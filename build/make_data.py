@@ -38,7 +38,10 @@ def build_shelters() -> int:
 
     for row in ws.iter_rows(min_row=2, values_only=True):
         sido, sgg, kind = row[1], row[2], row[4]
-        name, detail, addr, cap, deleted = row[5], row[6], row[7], row[11], row[19]
+        name, detail, addr = row[5], row[6], row[7]
+        lat, lon, cap = row[8], row[9], row[11]
+        dept, tel, deleted = row[12], row[13], row[19]
+        # row[14] 담당자 이름 · row[15] 담당자 연락처 → 개인정보라 제외
         if deleted == "Y":
             continue
         addr = (addr or "").strip()
@@ -46,9 +49,12 @@ def build_shelters() -> int:
             if addr.startswith(prefix):
                 addr = addr[len(prefix):]
                 break
-        tree.setdefault(sido, collections.OrderedDict()).setdefault(sgg, []).append(
-            [name or "", (detail or "").strip(), addr, int(cap or 0), kind or ""]
-        )
+        tree.setdefault(sido, collections.OrderedDict()).setdefault(sgg, []).append([
+            name or "", (detail or "").strip(), addr, int(cap or 0), kind or "",
+            round(float(lat), 5) if lat else None,      # 위도
+            round(float(lon), 5) if lon else None,      # 경도
+            (dept or "").strip(), (tel or "").strip(),
+        ])
 
     for sgg_map in tree.values():
         for items in sgg_map.values():
@@ -61,12 +67,13 @@ def build_shelters() -> int:
         "시도수": len(tree),
         "시군구수": sum(len(m) for m in tree.values()),
         "출처": "화학물질안전원 화학사고 대피장소 목록",
-        "필드": ["대피장소명", "상세시설명", "도로명주소(시도·시군구 제외)", "수용인원", "시설구분"],
+        "필드": ["대피장소명", "상세시설명", "도로명주소(시도·시군구 제외)", "수용인원",
+                 "시설구분", "위도", "경도", "관할부서", "부서전화"],
     }
 
     with open(OUT / "shelters.js", "w", encoding="utf-8") as f:
         f.write(f"/* 화학사고 대피장소 — 원자료: {meta['출처']}(기준일 {SHELTER_BASE_DATE})\n")
-        f.write("   구조: SHELTERS[시도][시군구] = [[장소명, 상세시설명, 도로명주소, 수용인원, 시설구분], ...]\n")
+        f.write("   구조: SHELTERS[시도][시군구] =\n     [[장소명, 상세시설명, 도로명주소, 수용인원, 시설구분, 위도, 경도, 관할부서, 부서전화], ...]\n   ※ 담당자 개인 이름·연락처는 포함하지 않습니다.\n")
         f.write("   ※ 자동 생성 파일입니다. build/make_data.py 로 재생성하세요. */\n")
         f.write("var SHELTER_META = " + json.dumps(meta, ensure_ascii=False) + ";\n")
         f.write("var SHELTERS = " + json.dumps(tree, ensure_ascii=False, separators=(",", ":")) + ";\n")
