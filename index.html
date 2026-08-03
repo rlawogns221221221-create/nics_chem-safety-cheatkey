@@ -10,8 +10,9 @@
 
 <div class="top">
   <div class="wrap">
-    <h1>화학사고 지자체 대응 지원도구</h1>
-    <p>화학사고 발생 시 지자체 담당자의 초기 대응 업무를 돕는 작성·점검 도구 모음입니다.</p>
+    <h1>화학사고 지자체 대응 지원도구
+      <span class="sub">화학사고 발생 시 지자체 담당자의 초기 대응을 돕는 작성·점검 도구</span>
+    </h1>
   </div>
 </div>
 
@@ -42,17 +43,15 @@
   </div>
 
   <div class="foot">
-    <div class="disc">
-      본 도구 모음은 지자체 담당자의 업무를 지원하는 <b>참고도구</b>입니다.
-      대응 방침의 판단과 최종 조치 책임은 해당 재난관리기관에 있습니다.
-    </div>
+    <div class="disc">본 도구 모음은 지자체 담당자의 업무를 지원하는 <b>참고도구</b>입니다.
+      대응 방침의 판단과 최종 조치 책임은 해당 재난관리기관에 있습니다.</div>
     <div id="ver"></div>
   </div>
 </div>
 
 <script src="data/version.js"></script>
 <script>
-document.getElementById("ver").innerHTML =
+document.getElementById("ver").textContent =
   "도구 버전 " + VERSION.도구버전 + " · 반영일 " + VERSION.반영일 + " · 관리 " + VERSION.관리부서;
 </script>
 </body>

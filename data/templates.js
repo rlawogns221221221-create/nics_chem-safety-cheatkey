@@ -269,9 +269,9 @@ var FIELDS = {
     { k: "읍면동", label: "사고 읍·면·동",  req: true },
     { k: "사업장", label: "사업장·장소명",  req: true },
     { k: "물질",   label: "사고물질",       req: true, 물질: true,
-      help: "460종 물질정보에서 찾습니다. 목록에 없으면 그대로 입력하세요." },
+      help: "460종에서 검색 · 없으면 직접 입력" },
     { k: "대상지역", label: "대상지역", req: true, wide: true,
-      help: "문자를 받을 주민의 지역. 사고 장소와 다를 수 있습니다." }
+      help: "문자를 받을 주민의 지역 (사고 장소와 다를 수 있음)" }
   ],
   evac: [
     { k: "대피소",             label: "대피소",                req: true, shelter: true },
@@ -280,6 +280,6 @@ var FIELDS = {
     { k: "집결시각",           label: "집결 시각",             req: true, type: "time", 부가: true },
     { k: "반려동물대피소",     label: "반려동물 동반 대피소",   req: true, 부가: true, shelter: true },
     { k: "거동불편연락처",     label: "거동불편자 연락처",      req: true, 부가: true, wide: true,
-      help: "주민이 도움을 요청할 곳. 담당자 개인번호가 아닌 기관 대표번호를 쓰세요." }
+      help: "담당자 개인번호가 아닌 기관 대표번호" }
   ]
 };
