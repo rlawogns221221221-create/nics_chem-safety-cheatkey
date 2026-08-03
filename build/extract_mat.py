@@ -31,6 +31,19 @@ def all_text(t):
 tables = [v for kind, v in hwpx.iter_top_blocks(SRC) if kind == "tbl"]
 print(f"표 {len(tables)}개")
 
+# 첫 표는 「화학사고 현장대응 물질정보 목록」 — 순서·물질명·CAS No·쪽번호.
+# 여기 실린 물질명이 정본이므로 CAS 로 연결해 표시명으로 쓴다.
+INDEX = {}
+_ix = tables[0]
+if cell(_ix, 0, 1).strip() == "물질명":
+    for r in range(1, _ix["rows"]):
+        cas = cell(_ix, r, 2).strip()
+        nm = cell(_ix, r, 1).strip()
+        no = cell(_ix, r, 0).strip()
+        if cas and nm:
+            INDEX[cas] = {"명": nm, "순서": int(no) if no.isdigit() else None}
+print(f"목록표 물질명 {len(INDEX)}건")
+
 groups, cur = [], None
 for t in tables:
     head = cell(t, 0, 0)
@@ -102,11 +115,19 @@ for g in groups:
         cas = (re.search(r"CAS\s*No\s*[:：]\s*(.*)", title) or re.match("", "")).group(1).strip() \
             if re.search(r"CAS\s*No\s*[:：]", title) else ""
 
-    d = {"물질명": ko, "영문명": en, "cas": cas}
+    ix = INDEX.get(cas)
+    d = {"물질명": (ix["명"] if ix else ko), "표제명": ko, "영문명": en, "cas": cas}
+    if ix and ix["순서"]:
+        d["순서"] = ix["순서"]
 
     ht = all_text(head)
     if (mm := re.search(r"국문유사명\s*[:：]\s*([^\n]*)", ht)):
-        d["유사명"] = [x.strip() for x in re.split(r"[,，]", mm.group(1).replace("···", "")) if x.strip()]
+        # 화학명 자체에 쉼표가 들어간다("1,1-", "2,4,6-").
+        # 세미콜론이 있으면 그것으로, 없으면 쉼표 뒤가 숫자가 아닐 때만 나눈다.
+        raw = mm.group(1).replace("···", "")
+        parts = re.split(r"[;；]", raw) if re.search(r"[;；]", raw) \
+                else re.split(r",(?!\s*\d)", raw)
+        d["유사명"] = [x.strip(" ,") for x in parts if x.strip(" ,")]
     if (mm := re.search(r"ERG No\s*\n(.*?)(?=\nUN No|\Z)", ht, re.S)):
         d["erg"] = bullets(mm.group(1))
     if (mm := re.search(r"UN No\s*\n(.*)", ht, re.S)):
@@ -178,7 +199,7 @@ json.dump(mats, open(OUT, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
 # 커버리지 점검
 n = len(mats)
 print(f"\n추출 {n}종")
-for k in ["물질명", "cas", "성상", "냄새", "외관", "비중", "증기밀도", "화재폭발", "nfpa", "대응",
+for k in ["물질명", "표제명", "순서", "cas", "성상", "냄새", "외관", "비중", "증기밀도", "화재폭발", "nfpa", "대응",
           "초기이격거리", "화재대피거리", "방호활동거리", "증상", "응급", "erg", "un", "ghs"]:
     c = sum(1 for m in mats if m.get(k))
     print(f"  {k:12s} {c:4d}/{n}  ({c*100//n}%)")

@@ -333,7 +333,7 @@ function fieldHtml(f) {
   var input = f.type === "time"
     ? '<input type="time" id="' + id + '" data-k="' + f.k + '" value="' + v + '">'
     : '<input type="text" id="' + id + '" data-k="' + f.k + '" value="' + v + '"'
-      + (f.물질 ? ' list="matList" autocomplete="off"' : "") + ">";
+      + (f.물질 ? " data-matpicker autocomplete=\"off\"" : "") + ">";
   return '<div class="f' + (f.wide ? " wide" : "") + '">'
     + '<label for="' + id + '">' + esc(f.label) + (f.req ? '<span class="req">*</span>' : "") + "</label>"
     + input
@@ -583,18 +583,6 @@ function saveTxt() {
 function renderAll() { renderStages(); renderTypes(); renderFields(); renderMatInfo(); renderOut(); }
 
 function init() {
-  // 물질 자동완성 — 사고 발생빈도가 높은 물질을 위로
-  var freq = (typeof STATS !== "undefined" && STATS.물질빈도) ? STATS.물질빈도 : {};
-  var dl = document.createElement("datalist");
-  dl.id = "matList";
-  dl.innerHTML = (typeof MATERIALS === "undefined" ? [] : MATERIALS).slice().sort(function (a, b) {
-    return ((freq[b.n] || {}).n || 0) - ((freq[a.n] || {}).n || 0) || a.n.localeCompare(b.n, "ko");
-  }).map(function (m) {
-    var f = (freq[m.n] || {}).n;
-    return '<option value="' + esc(m.n) + '">' + esc(m.e || "") + (f ? " · 사고 " + f + "건" : "") + "</option>";
-  }).join("");
-  document.body.appendChild(dl);
-
   var resumed = load();
   initShelters();
   renderCases();

@@ -139,11 +139,18 @@ def build_materials() -> int:
 
     out = []
     for m in raw:
-        names = [x.strip() for x in str(m["물질명"]).split(",") if x.strip()]
-        aliases = [x for x in (m.get("유사명") or []) if x] + names[1:]
+        # 표시명은 목록표(정본)의 물질명을 그대로 쓴다.
+        # ※ 화학명에는 쉼표가 들어간다("1,1-디클로로에틸렌", "N,N-디메틸포름아미드").
+        #    쉼표로 자르면 이름이 깨지므로 절대 분리하지 않는다.
+        name = str(m["물질명"]).strip()
+        aliases = []
+        for x in [m.get("표제명")] + list(m.get("유사명") or []):
+            x = str(x or "").strip()
+            if x and x != name and x not in aliases:
+                aliases.append(x)
         d = {
-            "n": names[0] if names else m["물질명"],
-            "e": str(m.get("영문명", "")).split(",")[0].strip(),
+            "n": name,
+            "e": str(m.get("영문명", "")).strip(),
             "c": m.get("cas", ""),
             "a": aliases[:8],
             "s": " / ".join(x for x in [m.get("냄새"), m.get("외관")] if x)
@@ -163,7 +170,11 @@ def build_materials() -> int:
         vd = num(d["vd"])
         if vd is not None:
             d["vdn"] = vd
+        if m.get("순서"):
+            d["i"] = m["순서"]              # 목록표 순번
         out.append({k: v for k, v in d.items() if v not in ("", None, [])})
+
+    out.sort(key=lambda x: x.get("i", 9999))
 
     with open(OUT / "materials.js", "w", encoding="utf-8") as f:
         f.write("/* 화학사고 현장대응 물질정보 460종 — 원자료: 화학물질안전원 「화학사고 현장대응 물질정보」(2026)\n")
@@ -171,7 +182,7 @@ def build_materials() -> int:
         f.write("   현장대응요원용 정보는 제외했습니다. build/make_data.py 로 재생성하세요.\n")
         f.write("   n물질명 e영문명 c CAS a유사명 s성상 vd증기밀도 sg비중 fp인화점 el폭발한계\n")
         f.write("   fe화재폭발가능성 hz NFPA건강 d1초기이격거리 d2방호활동거리 d3화재대피거리\n")
-        f.write("   sy흡입증상 e1/e2/e3 응급조치(흡입/피부/눈) */\n")
+        f.write("   sy흡입증상 e1/e2/e3 응급조치(흡입/피부/눈) i목록표순번 */\n")
         f.write("var MATERIALS = " + json.dumps(out, ensure_ascii=False, separators=(",", ":")) + ";\n")
     return len(out)
 

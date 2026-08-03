@@ -292,3 +292,40 @@ a.btnlink{display:inline-block;text-decoration:none;color:var(--brand-d);font-we
 a.btnlink:hover{border-color:var(--brand)}
 .shlist .l4 button{padding:2px 8px;font-size:11.5px;margin-top:5px}
 #map text.shhint{fill:#78838f;text-anchor:middle;font-family:inherit;pointer-events:none}
+
+/* ══ 사고물질 선택 목록 ═════════════════════════════════ */
+.mpk{position:fixed;z-index:900;background:#fff;border:1px solid var(--brand);
+  border-radius:8px;box-shadow:0 6px 24px rgba(16,32,48,.18);overflow:hidden;
+  display:flex;flex-direction:column}
+.mpk-hd{display:flex;justify-content:space-between;align-items:baseline;gap:10px;
+  padding:6px 11px;background:var(--brand-l);border-bottom:1px solid #cfe0f0;
+  font-size:11.5px;font-weight:700;color:var(--brand-d);white-space:nowrap}
+.mpk-hd > span:first-child{overflow:hidden;text-overflow:ellipsis}
+.mpk-hd .mpk-hint{font-weight:400;color:#4c7ba9;font-size:11px;white-space:nowrap;flex:none}
+.mpk-list{overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;
+  scrollbar-color:#9db4c8 #eef3f7}
+.mpk-list::-webkit-scrollbar{width:11px}
+.mpk-list::-webkit-scrollbar-track{background:#eef3f7}
+.mpk-list::-webkit-scrollbar-thumb{background:#9db4c8;border-radius:6px;
+  border:2px solid #eef3f7}
+.mpk-list::-webkit-scrollbar-thumb:hover{background:#7794ad}
+.mpk-row{display:flex;align-items:baseline;gap:8px;padding:6px 11px;cursor:pointer;
+  border-bottom:1px solid var(--line2);line-height:1.4}
+.mpk-row:last-child{border-bottom:0}
+.mpk-row:hover,.mpk-row.on{background:var(--brand-l)}
+.mpk-row.on{box-shadow:inset 3px 0 0 var(--brand)}
+.mpk-row .nm{font-size:13.5px;font-weight:600;color:var(--ink);flex:1;min-width:0;
+  overflow-wrap:anywhere}
+.mpk-row .en{font-size:11px;color:var(--ink3);max-width:34%;overflow:hidden;
+  text-overflow:ellipsis;white-space:nowrap;flex:none}
+.mpk-row .cas{font-size:11.5px;color:var(--ink2);font-variant-numeric:tabular-nums;
+  white-space:nowrap;flex:none}
+.mpk-row .fq{font-size:10.5px;color:var(--ok);background:var(--ok-l);
+  border-radius:20px;padding:1px 6px;white-space:nowrap;flex:none}
+.mpk-none{padding:20px 12px;text-align:center;font-size:12.5px;color:var(--ink3);line-height:1.7}
+.mpk-ft{padding:5px 11px;border-top:1px solid var(--line2);background:var(--panel);
+  font-size:11px;color:var(--ink3)}
+@media (max-width:560px){
+  .mpk-row .en{display:none}
+  .mpk-row .fq{display:none}
+}

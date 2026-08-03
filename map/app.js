@@ -499,14 +499,6 @@ function setAcc(lat, lon) {
 }
 
 function init() {
-  // 물질 자동완성
-  var dl = document.createElement("datalist");
-  dl.id = "matList";
-  dl.innerHTML = MATERIALS.map(function (m) {
-    return '<option value="' + esc(m.n) + '">' + esc(m.e || "") + "</option>";
-  }).join("");
-  document.body.appendChild(dl);
-
   initSelects();
   initMap();
 
