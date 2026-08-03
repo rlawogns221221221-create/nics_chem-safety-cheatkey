@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화학사고 주민대피 문자 작성 지원도구</title>
+<link rel="stylesheet" href="../assets/shell.css">
+</head>
+<body>
+
+<div class="top">
+  <div class="wrap">
+    <h1>화학사고 주민대피 문자 작성 지원도구</h1>
+    <p>대피·주민안내 <b>발송 지시를 받은 뒤</b> 사용하는 문안 작성 도구입니다.
+       대피 여부와 대상지역 판단은 이 도구가 하지 않습니다.</p>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <!-- ① 발송 단계 -->
+  <div class="card" id="cStage">
+    <h2><span class="step">1</span> 어떤 문자를 보내라고 지시받으셨습니까?</h2>
+    <div class="stages" id="stages"></div>
+  </div>
+
+  <!-- ② 사고정보 -->
+  <div class="card" id="cInfo" hidden>
+    <h2><span class="step">2</span> 사고정보
+      <span class="tag" id="sessTag" hidden>이어받음</span>
+    </h2>
+    <p class="hint">한 번 입력하면 같은 사고의 후속 문자(대피명령·종료 등)에 그대로 이어집니다.</p>
+    <div class="grid" id="fCommon"></div>
+  </div>
+
+  <!-- ③ 대피 정보 -->
+  <div class="card" id="cEvac" hidden>
+    <h2><span class="step">3</span> 대피장소·집결지</h2>
+    <p class="hint">지휘부에서 <b>지시받은 장소</b>를 고르세요. 목록은 등록된 화학사고 대피장소이며,
+       이 도구는 어느 곳이 적절한지 판단하지 않습니다.</p>
+
+    <div class="grid">
+      <div class="f">
+        <label for="sSido">대피장소 검색 — 시·도</label>
+        <select id="sSido"><option value="">선택</option></select>
+      </div>
+      <div class="f">
+        <label for="sSgg">시·군·구</label>
+        <select id="sSgg"><option value="">먼저 시·도를 선택하세요</option></select>
+      </div>
+      <div class="f wide">
+        <label for="sList">등록 대피장소 <span class="fh" id="sCnt"></span></label>
+        <select id="sList" multiple size="7"></select>
+        <span class="fh">Ctrl(⌘) 또는 드래그로 여러 곳을 고를 수 있습니다.
+          선택하면 아래 <b>대피소</b> 칸에 자동 입력됩니다.</span>
+      </div>
+    </div>
+
+    <div class="grid" id="fEvac" style="margin-top:12px"></div>
+
+    <label class="chk" style="margin-top:14px;padding-top:12px;border-top:1px solid var(--line2)">
+      <input type="checkbox" id="use71">
+      <span><b>7-1번 추가 안내도 함께 작성</b> — 차량 이용, 자력대피 곤란자 집결, 반려동물 동반,
+        거동불편자 연락처 안내. 필요할 때만 선택하세요.</span>
+    </label>
+    <details id="d71" hidden style="margin-top:8px">
+      <summary>7-1번 입력 항목</summary>
+      <div class="body"><div class="grid" id="fEvacExtra"></div></div>
+    </details>
+  </div>
+
+  <!-- ④ 결과 -->
+  <div class="card" id="cOut" hidden>
+    <h2><span class="step">4</span> 생성 문안</h2>
+    <div id="alerts"></div>
+    <div id="out"></div>
+
+    <div style="border-top:1px solid var(--line);padding-top:13px;margin-top:4px">
+      <div style="font-size:13.5px;font-weight:700;margin-bottom:5px">복사 전 확인</div>
+      <label class="chk"><input type="checkbox" class="gate"><span><b>대상지역</b>이 지시받은 지역과 같습니까?</span></label>
+      <label class="chk"><input type="checkbox" class="gate"><span><b>행동지시</b>가 지시받은 내용과 같습니까? (실내대피 / 외부대피)</span></label>
+      <label class="chk"><input type="checkbox" class="gate"><span><b>발송단계</b>가 지시받은 단계와 같습니까?</span></label>
+      <div class="row" style="margin-top:11px">
+        <button class="p" id="btnTxt" disabled>생성 문안 전체 저장(.txt)</button>
+        <button id="btnReset">사고 세션 종료·초기화</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 참고 -->
+  <details id="dCases" hidden>
+    <summary>참고 — 실제 발송 사례 <span id="caseN"></span></summary>
+    <div class="body">
+      <div class="alert w"><b>주의</b>
+        <span>아래는 실제 발송된 원문입니다. <b>승인된 표준문안이 아니며</b> 오탈자·표기 오류가
+        포함되어 있습니다. 문구 작성의 참고로만 보시고 그대로 복사하지 마세요.</span></div>
+      <div class="row" style="margin-bottom:10px">
+        <label for="caseF" style="font-size:13px;color:var(--ink2)">물질</label>
+        <select id="caseF" style="width:auto"><option value="">전체</option></select>
+      </div>
+      <div id="caseList"></div>
+    </div>
+  </details>
+
+  <div class="foot">
+    <div class="disc">
+      본 도구는 재난문자 <b>문안 작성을 지원하는 참고도구</b>입니다.
+      대피 여부·대상지역·발송단계의 판단과 최종 발송 책임은 해당 재난관리기관에 있습니다.
+      생성된 문안은 반드시 담당자가 확인한 뒤 발송하십시오.
+    </div>
+    <div id="ver"></div>
+  </div>
+</div>
+
+<script src="../data/version.js"></script>
+<script src="../data/templates.js"></script>
+<script src="../data/shelters.js"></script>
+<script src="../data/cases.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

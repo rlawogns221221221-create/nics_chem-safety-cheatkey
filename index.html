@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화학사고 지자체 대응 지원도구</title>
+<link rel="stylesheet" href="assets/shell.css">
+</head>
+<body>
+
+<div class="top">
+  <div class="wrap">
+    <h1>화학사고 지자체 대응 지원도구</h1>
+    <p>화학사고 발생 시 지자체 담당자의 초기 대응 업무를 돕는 작성·점검 도구 모음입니다.</p>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="tools">
+
+    <a class="tool" href="sms/index.html">
+      <span class="badge">사용 가능</span>
+      <b>① 주민대피 문자 작성</b>
+      <p>대피·주민안내 발송 지시를 받은 뒤, 화학사고 재난문자 표준(안) 12개 문안을
+         현재 사고정보에 맞춰 생성하고 글자수·누락·논리 충돌을 점검합니다.</p>
+    </a>
+
+    <span class="tool off">
+      <span class="badge soon">준비 중</span>
+      <b>② 인근 수계 누출 판단</b>
+      <p>물질 물성 기반 1차 확인 절차와 통보 대상기관 체크리스트.
+         실시간 수질·기상 정보는 제공하지 않습니다.</p>
+    </span>
+
+    <span class="tool off">
+      <span class="badge soon">준비 중</span>
+      <b>③ 폐기물 처리업체 섭외</b>
+      <p>섭외 시 확인항목 체크리스트와 처리 위탁 공문 양식 생성.
+         업체 목록은 현행 조회처로 연결합니다.</p>
+    </span>
+
+  </div>
+
+  <div class="foot">
+    <div class="disc">
+      본 도구 모음은 지자체 담당자의 업무를 지원하는 <b>참고도구</b>입니다.
+      대응 방침의 판단과 최종 조치 책임은 해당 재난관리기관에 있습니다.
+    </div>
+    <div id="ver"></div>
+  </div>
+</div>
+
+<script src="data/version.js"></script>
+<script>
+document.getElementById("ver").innerHTML =
+  "도구 버전 " + VERSION.도구버전 + " · 반영일 " + VERSION.반영일 + " · 관리 " + VERSION.관리부서;
+</script>
+</body>
+</html>
