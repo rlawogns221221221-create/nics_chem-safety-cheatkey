@@ -24,18 +24,27 @@
     <div class="stages" id="stages"></div>
   </div>
 
-  <!-- ② 사고정보 -->
+  <!-- ② 사고유형 -->
+  <div class="card" id="cType" hidden>
+    <h2><span class="step">2</span> 사고유형</h2>
+    <p class="hint">화학물질안전원 화학사고 통계의 공식 4개 구분입니다.
+       선택에 따라 문구의 사고 표현과 아래 참고 거리 정보가 함께 바뀝니다.</p>
+    <div class="stages" id="types"></div>
+  </div>
+
+  <!-- ③ 사고정보 -->
   <div class="card" id="cInfo" hidden>
-    <h2><span class="step">2</span> 사고정보
+    <h2><span class="step">3</span> 사고정보
       <span class="tag" id="sessTag" hidden>이어받음</span>
     </h2>
     <p class="hint">한 번 입력하면 같은 사고의 후속 문자(대피명령·종료 등)에 그대로 이어집니다.</p>
     <div class="grid" id="fCommon"></div>
+    <div id="matInfo"></div>
   </div>
 
   <!-- ③ 대피 정보 -->
   <div class="card" id="cEvac" hidden>
-    <h2><span class="step">3</span> 대피장소·집결지</h2>
+    <h2><span class="step">4</span> 대피장소·집결지</h2>
     <p class="hint">지휘부에서 <b>지시받은 장소</b>를 고르세요. 목록은 등록된 화학사고 대피장소이며,
        이 도구는 어느 곳이 적절한지 판단하지 않습니다.</p>
 
@@ -71,7 +80,7 @@
 
   <!-- ④ 결과 -->
   <div class="card" id="cOut" hidden>
-    <h2><span class="step">4</span> 생성 문안</h2>
+    <h2><span class="step">5</span> 생성 문안</h2>
     <div id="alerts"></div>
     <div id="out"></div>
 
@@ -114,6 +123,8 @@
 
 <script src="../data/version.js"></script>
 <script src="../data/templates.js"></script>
+<script src="../data/materials.js"></script>
+<script src="../data/stats.js"></script>
 <script src="../data/shelters.js"></script>
 <script src="../data/cases.js"></script>
 <script src="app.js"></script>

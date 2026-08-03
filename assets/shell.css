@@ -101,6 +101,20 @@ button.sm{padding:5px 10px;font-size:13px}
 .cnt.near{color:var(--warn)} .cnt.over{color:var(--err)}
 .cnt small{font-weight:400;color:var(--ink3)}
 
+/* 물질정보 참고 카드 */
+.matcard{border:1px solid var(--line);border-radius:9px;margin-top:14px;overflow:hidden;background:var(--card)}
+.matcard > header{padding:9px 13px;background:var(--brand-l);border-bottom:1px solid var(--line);
+  font-weight:700;font-size:14px;color:var(--brand-d);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.matcard > header em{font-style:normal;font-weight:400;font-size:12.5px;color:var(--ink2)}
+.matcard dl{margin:0;padding:11px 13px;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:13.5px}
+.matcard dt{font-weight:600;color:var(--ink2);white-space:nowrap}
+.matcard dd{margin:0;line-height:1.55;white-space:pre-line}
+.matfoot{margin:0;padding:9px 13px;border-top:1px solid var(--line2);
+  font-size:12px;color:var(--ink3);line-height:1.55}
+.stg.sm{padding:9px 12px}
+.stg.sm b{font-size:14px}
+.stg.sm span{font-size:12px}
+
 /* 알림 */
 .alert{display:flex;gap:9px;padding:10px 13px;border-radius:8px;font-size:13.5px;
        line-height:1.55;margin-bottom:9px;border:1px solid}
@@ -156,6 +170,10 @@ details .body{padding:13px}
   button,.noprint{display:none!important}
   body{background:#fff;font-size:12pt}
   .card,.out{box-shadow:none;break-inside:avoid}
+}
+@media (max-width:640px){
+  .matcard dl{grid-template-columns:1fr;gap:2px 0}
+  .matcard dt{margin-top:7px}
 }
 @media (max-width:560px){
   .wrap{padding:0 12px 56px}
