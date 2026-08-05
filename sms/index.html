@@ -49,8 +49,9 @@
           <div class="grid" id="fEvac"></div>
 
           <div class="row" style="margin-top:9px">
-            <button class="sm" id="btnFinder" type="button">관내 대피장소 목록에서 찾기</button>
-            <a class="sm btnlink" href="../map/index.html" target="_blank" rel="noopener">지도에서 보기</a>
+            <button class="sm p" id="btnMap" type="button">지도에서 찾기</button>
+            <button class="sm" id="btnFinder" type="button">목록에서 찾기</button>
+            <a class="sm btnlink" href="../map/index.html" target="_blank" rel="noopener">지도 도구 열기 (거리·반경)</a>
           </div>
 
           <div class="finder" id="finder" hidden>
@@ -70,11 +71,7 @@
               <div class="f wide">
                 <label for="shTarget">선택한 곳을 넣을 칸</label>
                 <div class="row">
-                  <select id="shTarget" style="flex:1">
-                    <option value="대피소">대피소</option>
-                    <option value="집결지">집결지</option>
-                    <option value="반려동물대피소">반려동물 동반 대피소</option>
-                  </select>
+                  <select id="shTarget" style="flex:1"></select>
                   <button class="sm p" id="btnPick" type="button">넣기</button>
                 </div>
               </div>
@@ -127,12 +124,15 @@
 </div>
 
 <script src="../data/version.js"></script>
+<script src="../data/basemap.js"></script>
 <script src="../data/templates.js"></script>
 <script src="../data/materials.js"></script>
 <script src="../data/stats.js"></script>
 <script src="../data/shelters.js"></script>
+<script src="../data/boundaries.js"></script>
 <script src="../data/cases.js"></script>
 <script src="../assets/matpicker.js"></script>
+<script src="../assets/shmap.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

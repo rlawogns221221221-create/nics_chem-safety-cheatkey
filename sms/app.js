@@ -16,7 +16,12 @@ var esc = function (s) {
 function count(s) { return Array.from(String(s)).length; }
 
 var SESS = "nics.sms.draft.v1";
-var state = { stage: null, type: "누출", data: {}, unknownMat: false, use71: false };
+/* openGrp — 접힌 문안 그룹 중 펼쳐 둔 것. 입력할 때마다 문안을 다시 그리므로
+   열어 둔 상태를 state 에 둬야 글자 한 자 칠 때마다 닫히지 않습니다. */
+function blankState() {
+  return { stage: null, type: "누출", data: {}, unknownMat: false, use71: false, openGrp: {} };
+}
+var state = blankState();
 
 /* ── 상태 저장 (sessionStorage: 브라우저를 닫으면 사라짐) ───────── */
 function save() {
@@ -29,6 +34,7 @@ function load() {
     var o = JSON.parse(r);
     if (o && o.data) {
       state = o;
+      if (!state.openGrp) state.openGrp = {};
       /* 발송 구분이 개편되기 전에 저장된 세션이면 구분만 비운다.
          (없어진 구분 id 가 남아 있으면 화면 조립이 실패한다) */
       if (state.stage && !STAGES.some(function (s) { return s.id === state.stage; }))
@@ -174,16 +180,29 @@ function fieldLabel(f) {
 
 /* 이번 구분에서 실제로 생성할 문안 — 그룹 단위로 돌려준다. 7-1번은 선택했을 때만 */
 function stageGroups(stage) {
-  return stage.그룹.map(function (g) {
+  return stage.그룹.map(function (g, gi) {
     return {
-      제목: g.제목,
+      제목: g.제목, 접힘: !!g.접힘, key: stage.id + ":" + gi,
       ids: g.문안.filter(function (id) { return !TEMPLATES[id].부가 || state.use71; })
     };
   }).filter(function (g) { return g.ids.length > 0; });
 }
 
+/* 그룹이 펼쳐져 있는가 — 접힘 그룹은 눌러서 열 때까지 감춘다 */
+function grpOpen(g) {
+  return g.접힘 ? !!state.openGrp[g.key] : true;
+}
+
+/* 검증
+   errs    사고정보 자체의 문제 → 모든 문안 복사를 막는다
+   tplErrs 문안 하나의 문제(글자수 초과·표현 충돌) → 그 문안만 막는다
+           다른 문안까지 막으면, 쓸 수 있는 문안을 못 쓰게 됩니다.
+   warns   판단이 필요한 사항 → 막지 않는다 */
 function validate(results) {
-  var errs = [], warns = [], d = state.data;
+  var errs = [], warns = [], tplErrs = {}, d = state.data;
+  var addTpl = function (r, m) {
+    (tplErrs[r.id] = tplErrs[r.id] || []).push(m);
+  };
 
   // 1. 필수 미입력
   var miss = usedFields().filter(function (f) {
@@ -198,10 +217,10 @@ function validate(results) {
   var ex = ["고담", "강담", "구담", "○○", "OO"].filter(function (w) { return all.indexOf(w) >= 0; });
   if (ex.length) warns.push("표준(안) 예시값으로 보이는 표현이 남아 있습니다: " + ex.join(", "));
 
-  // 3. 글자수 초과
+  // 3. 글자수 초과 — 그 문안만 막는다
   results.forEach(function (r) {
-    if (r.over) errs.push(r.tpl.번호 + " 문안이 축약 후에도 " + r.limit + "자를 "
-      + (r.len - r.limit) + "자 초과합니다. 대상지역·대피소 표기를 줄이세요.");
+    if (r.over) addTpl(r, "축약 후에도 " + r.limit + "자를 " + (r.len - r.limit)
+      + "자 초과합니다. 대상지역·대피소 표기를 줄이세요.");
   });
 
   // 4. 논리 충돌 — 한 화면에 알림 문안과 종료 문안이 함께 나오므로
@@ -210,9 +229,9 @@ function validate(results) {
   results.forEach(function (r) {
     var st = r.tpl.단계;
     if ((st === "indoor" || st === "indoor_end") && evacWords.test(r.text))
-      errs.push(r.tpl.번호 + ": 실내대피 문안인데 외부 대피 지시 표현이 포함되어 있습니다.");
+      addTpl(r, "실내대피 문안인데 외부 대피 지시 표현이 포함되어 있습니다.");
     if ((st === "indoor_end" || st === "evac_end") && /발령|즉시\s*대피/.test(r.text))
-      errs.push(r.tpl.번호 + ": 종료 문안인데 대피 발령 표현이 포함되어 있습니다.");
+      addTpl(r, "종료 문안인데 대피 발령 표현이 포함되어 있습니다.");
   });
 
   // 5. 물질 미확인인데 물질명이 입력된 경우
@@ -248,7 +267,7 @@ function validate(results) {
     if (v && !/^\d{1,2}:\d{2}$/.test(v)) warns.push(k + " 형식을 확인하세요 (예: 17:10).");
   });
 
-  return { errs: errs, warns: warns };
+  return { errs: errs, warns: warns, tplErrs: tplErrs };
 }
 
 
@@ -421,7 +440,8 @@ function renderFields() {
     c71.checked = state.use71;
     $("#fEvacExtra").hidden = !state.use71;
     c71.onchange = function () {
-      state.use71 = c71.checked; $("#fEvacExtra").hidden = !c71.checked; save(); renderOut();
+      state.use71 = c71.checked; $("#fEvacExtra").hidden = !c71.checked;
+      syncTargets(); save(); renderOut();
     };
   }
 }
@@ -448,25 +468,50 @@ function renderOut() {
 
   var v = validate(lastResults);
 
+  /* 접혀 있는 그룹의 오류는 위 알림에 함께 적는다. 안 보이는 곳에서
+     오류가 생겼는데 아무 표시가 없으면 모르고 지나칩니다. */
+  var tplErrLines = [];
+  lastResults.forEach(function (r) {
+    (v.tplErrs[r.id] || []).forEach(function (m) {
+      tplErrLines.push(r.tpl.번호 + ": " + m);
+    });
+  });
+
   var a = "";
-  if (v.errs.length)
-    a += '<div class="alert e"><b>확인 필요</b><ul><li>' + v.errs.map(esc).join("</li><li>") + "</li></ul></div>";
+  if (v.errs.length || tplErrLines.length)
+    a += '<div class="alert e"><b>확인 필요</b><ul><li>'
+      + v.errs.concat(tplErrLines).map(esc).join("</li><li>") + "</li></ul></div>";
   if (v.warns.length)
     a += '<div class="alert w"><b>주의</b><ul><li>' + v.warns.map(esc).join("</li><li>") + "</li></ul></div>";
-  if (!v.errs.length && !v.warns.length)
+  if (!v.errs.length && !tplErrLines.length && !v.warns.length)
     a += '<div class="alert s"><b>확인 완료</b>필수항목·글자수·논리 검사에서 발견된 문제가 없습니다.</div>';
   $("#alerts").innerHTML = a;
 
-  var blocked = v.errs.length > 0;
   $("#outCnt").textContent = lastResults.length + "건";
 
   $("#out").innerHTML = groups.map(function (g) {
-    return '<div class="ogrp"><div class="ohd">' + esc(g.제목)
-      + '<span>' + g.results.length + '건</span></div>'
-      + g.results.map(function (r) { return outCard(r, blocked); }).join("")
-      + "</div>";
+    var open = grpOpen(g);
+    var nErr = g.results.filter(function (r) {
+      return v.errs.length || (v.tplErrs[r.id] || []).length;
+    }).length;
+    var head = g.접힘
+      ? '<button type="button" class="ohd fold" data-g="' + esc(g.key) + '" aria-expanded="' + open + '">'
+        + '<i class="cv"></i>' + esc(g.제목) + "<span>" + g.results.length + "건</span>"
+        + (!open && nErr ? '<b class="werr">확인 필요</b>' : "")
+        + '<em>' + (open ? "접기" : "보기") + "</em></button>"
+      : '<div class="ohd">' + esc(g.제목) + "<span>" + g.results.length + "건</span></div>";
+    return '<div class="ogrp' + (g.접힘 ? " foldable" : "") + '">' + head
+      + '<div class="obody"' + (open ? "" : " hidden") + ">"
+      + g.results.map(function (r) { return outCard(r, v.errs, v.tplErrs[r.id] || []); }).join("")
+      + "</div></div>";
   }).join("");
 
+  $$("#out .ohd.fold").forEach(function (b) {
+    b.onclick = function () {
+      state.openGrp[b.dataset.g] = !state.openGrp[b.dataset.g];
+      save(); renderOut();
+    };
+  });
   $$("#out button[data-c]").forEach(function (b) {
     b.onclick = function () { copyText(lastResults[b.dataset.c].text, b); };
   });
@@ -475,17 +520,20 @@ function renderOut() {
 
 /* 문안 한 건 — 긴급재난문자와 자체 문자발송시스템은 발송 경로가 완전히 다르므로
    테두리·머리표·글자수 표시를 서로 다르게 해서 헷갈리지 않게 합니다. */
-function outCard(r, blocked) {
+function outCard(r, globalErrs, myErrs) {
+  var blocked = globalErrs.length > 0 || myErrs.length > 0;
   var isCbs = r.tpl.channel === "cbs";
   var cls = r.limit ? (r.len > r.limit ? "over" : (r.len > r.limit - 8 ? "near" : "")) : "";
   var cnt = r.limit
     ? '<span class="cnt ' + cls + '">' + r.len + " / " + r.limit + "자</span>"
     : '<span class="cnt"><small>' + r.len + "자 · 제한 없음</small></span>";
-  return '<div class="out ' + (isCbs ? "cbs" : "loc") + '"><header>'
+  return '<div class="out ' + (isCbs ? "cbs" : "loc") + (myErrs.length ? " bad" : "") + '"><header>'
     + '<span class="ch">' + (isCbs ? "긴급재난문자" : "자체 문자발송시스템") + "</span>"
     + '<span class="no">' + esc(r.tpl.번호) + "</span>"
     + '<span class="who">' + esc(r.tpl.대상) + "</span></header>"
     + '<div class="msg">' + esc(r.text) + "</div>"
+    + (myErrs.length
+        ? '<div class="oerr">' + myErrs.map(esc).join("<br>") + "</div>" : "")
     + (r.removed.length
         ? '<div class="cut">' + (r.limit || 90) + "자에 맞추려고 <b>" + esc(r.removed.join(", "))
           + "</b> 항목을 제외했습니다.</div>" : "")
@@ -518,6 +566,23 @@ function shelterList() {
   return ((SHELTERS[$("#sSido").value] || {})[$("#sSgg").value]) || [];
 }
 
+/* 고른 대피장소를 넣을 수 있는 칸 — 7-1번을 쓰지 않으면 부가 칸은 빼둔다 */
+var PLACE_KEYS = ["대피소", "집결지", "자력대피불가집결지", "반려동물대피소"];
+function placeTargets() {
+  return FIELDS.evac.filter(function (f) {
+    return PLACE_KEYS.indexOf(f.k) >= 0 && (!f.부가 || state.use71);
+  }).map(function (f) { return { k: f.k, label: f.label }; });
+}
+
+/* 고른 곳을 입력칸에 넣는다 (지도·목록 공용) */
+function putPlaces(names, target) {
+  var el = $("#if_" + target);
+  if (!el) return;
+  el.value = names.join(", ");
+  state.data[target] = el.value;
+  save(); renderOut();
+}
+
 function initShelters() {
   var sido = $("#sSido"), sgg = $("#sSgg"), list = $("#sList");
   sido.innerHTML = '<option value="">선택</option>'
@@ -542,16 +607,41 @@ function initShelters() {
   $("#btnFinder").onclick = function () {
     var f = $("#finder");
     f.hidden = !f.hidden;
-    this.textContent = f.hidden ? "관내 대피장소 목록에서 찾기" : "목록 닫기";
+    this.textContent = f.hidden ? "목록에서 찾기" : "목록 닫기";
+    if (!f.hidden) syncTargets();
+  };
+
+  /* 지도에서 찾기 — 사고 시·군·구를 이미 적었으면 그 관내를 먼저 보여준다 */
+  $("#btnMap").onclick = function () {
+    if (typeof SHMAP === "undefined") { alert("지도 화면을 불러오지 못했습니다."); return; }
+    var cols = placeTargets();
+    SHMAP.open({
+      시군구: String(state.data["시군"] || "").trim(),
+      칸목록: cols,
+      기본칸: cols.length ? cols[0].k : "대피소",
+      onPick: putPlaces
+    });
   };
 
   $("#btnPick").onclick = function () {
     var arr = shelterList();
     var picked = $$("option:checked", list).map(function (o) { return arr[o.value][0]; });
     if (!picked.length) { alert("대피장소를 하나 이상 선택하세요."); return; }
-    var target = $("#shTarget").value, el = $("#if_" + target);
-    if (el) { el.value = picked.join(", "); state.data[target] = el.value; save(); renderOut(); }
+    putPlaces(picked, $("#shTarget").value);
   };
+  syncTargets();
+}
+
+/* 넣을 칸 목록을 현재 상태에 맞춘다 (7-1번 선택 여부로 칸이 늘고 줄어듦) */
+function syncTargets() {
+  var sel = $("#shTarget");
+  if (!sel) return;
+  var keep = sel.value;
+  sel.innerHTML = placeTargets().map(function (c) {
+    return '<option value="' + esc(c.k) + '">' + esc(c.label) + "</option>";
+  }).join("");
+  if (keep) sel.value = keep;
+  if (!sel.value && sel.options.length) sel.selectedIndex = 0;
 }
 
 /* ── 참고 사례 ────────────────────────────────────────────── */
@@ -625,7 +715,7 @@ function init() {
   $("#btnReset").onclick = function () {
     if (!confirm("입력한 사고정보를 모두 지우고 처음으로 돌아갑니다. 계속할까요?")) return;
     try { sessionStorage.removeItem(SESS); } catch (e) {}
-    state = { stage: null, type: "누출", data: {}, unknownMat: false, use71: false };
+    state = blankState();
     $("#sessTag").hidden = true;
     var f = $("#finder");
     if (f) { f.hidden = true; $("#btnFinder").textContent = "관내 대피장소 목록에서 찾기"; }
