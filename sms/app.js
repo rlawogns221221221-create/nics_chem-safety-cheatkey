@@ -583,6 +583,37 @@ function putPlaces(names, target) {
   save(); renderOut();
 }
 
+/* "소규모 반경 60m / 대규모 반경 1km 이내" 같은 문장에서 거리 값을 뽑는다 */
+function pickDistances(txt) {
+  var out = [];
+  String(txt).replace(/([\d.]+)\s*(km|m)\b/gi, function (all, n, u) {
+    var v = Math.round(parseFloat(n) * (u.toLowerCase() === "km" ? 1000 : 1));
+    if (v > 0 && out.indexOf(v) < 0) out.push(v);
+    return all;
+  });
+  return out.sort(function (a, b) { return a - b; });
+}
+
+/* 지도 창에 넘길 영향 참고 반경 후보 — 입력한 사고물질의 물질정보에서 뽑는다.
+   ※ 확산 모델링 결과가 아니라 물질정보에 적힌 참고 거리입니다.
+      어디까지 대피시킬지는 도구가 판단하지 않습니다. */
+function radiusOptions() {
+  if (state.unknownMat) return [];
+  var m = findMaterial(state.data["물질"] || "");
+  if (!m) return [];
+  var out = [];
+  [["초기이격거리 (전 방향)", m.d1], ["방호활동거리 (풍하방향)", m.d2],
+   ["화재 동반 시 대피거리", m.d3]].forEach(function (x) {
+    if (!x[1]) return;
+    pickDistances(x[1]).forEach(function (v) {
+      if (out.some(function (o) { return o.m === v; })) return;
+      out.push({ m: v, label: x[0] + " — " + x[1],
+                 짧은: (v < 1000 ? v + "m" : (v / 1000) + "km") });
+    });
+  });
+  return out.sort(function (a, b) { return a.m - b.m; }).slice(0, 6);
+}
+
 function initShelters() {
   var sido = $("#sSido"), sgg = $("#sSgg"), list = $("#sList");
   sido.innerHTML = '<option value="">선택</option>'
@@ -615,10 +646,15 @@ function initShelters() {
   $("#btnMap").onclick = function () {
     if (typeof SHMAP === "undefined") { alert("지도 화면을 불러오지 못했습니다."); return; }
     var cols = placeTargets();
+    var vals = {};
+    cols.forEach(function (c) { vals[c.k] = state.data[c.k] || ""; });
     SHMAP.open({
       시군구: String(state.data["시군"] || "").trim(),
       칸목록: cols,
       기본칸: cols.length ? cols[0].k : "대피소",
+      값들: vals,                                  // 이미 넣어 둔 곳은 체크된 채로
+      반경후보: radiusOptions(),
+      물질: state.unknownMat ? "" : (state.data["물질"] || ""),
       onPick: putPlaces
     });
   };
