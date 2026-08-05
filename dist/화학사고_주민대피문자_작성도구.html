@@ -91,6 +91,25 @@ select[multiple] option{padding:5px 7px;border-radius:4px;line-height:1.35;font-
       margin:16px 0 9px;padding-top:13px;border-top:1px solid var(--line2)}
 .body > .sect:first-child{margin-top:0;padding-top:0;border-top:0}
 
+/* ── 사고정보 묶음 ─────────────────────────────────────────
+   처음 보는 근무자도 위에서부터 순서대로 채우면 되도록 번호를 매겨
+   묶었습니다. 다 채워야 다음이 열리는 방식은 아닙니다 — 급할 때는
+   아는 값부터 순서 없이 채울 수 있어야 합니다. */
+.fcommon{margin:16px 0 9px;padding-top:13px;border-top:1px solid var(--line2)}
+.fgrp{margin-bottom:16px}
+.fgrp:last-child{margin-bottom:0}
+.fgrp-hd{display:flex;align-items:baseline;gap:7px;margin-bottom:8px;flex-wrap:wrap}
+.fgrp-n{flex:none;width:18px;height:18px;border-radius:50%;background:var(--brand);
+  color:#fff;font-size:10.5px;font-weight:700;line-height:18px;text-align:center}
+.fgrp-hd b{font-size:12.5px;font-weight:700;color:var(--ink2);letter-spacing:.01em}
+.fgrp-d{font-size:11.5px;color:var(--ink3)}
+
+/* 대상지역 — 사고 위치와 헷갈리기 쉬운 항목이라 색을 넣어 눈에 띄게 함 */
+.fgrp-accent{background:var(--brand-l);border:1px solid #bcd4ea;border-radius:8px;
+  padding:12px 13px 13px}
+.fgrp-accent .fgrp-n{background:var(--brand-d)}
+.fgrp-accent .fgrp-d{color:var(--brand-d);font-weight:600}
+
 /* ── 버튼 ─────────────────────────────────────────── */
 button{font:inherit;cursor:pointer;border-radius:6px;border:1px solid var(--line);
        background:#fff;color:var(--ink);padding:8px 13px;font-size:13.5px}
@@ -590,8 +609,7 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:12.5px;flex:no
         <div class="sect">사고유형</div>
         <div class="chips" id="types"></div>
 
-        <div class="sect">기본정보</div>
-        <div class="grid" id="fCommon"></div>
+        <div id="fCommon" class="fcommon"></div>
         <div id="matInfo"></div>
 
         <div id="evacWrap" hidden>
@@ -677,7 +695,7 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:12.5px;flex:no
 /* 도구 기준정보 — 문안/데이터 갱신 시 이 파일을 수정하세요. */
 var VERSION = {
   도구명: "화학사고 주민대피 문자 작성 지원도구",
-  도구버전: "0.4.5-draft",
+  도구버전: "0.4.6-draft",
   반영일: "2026-08-05",
 
   // 문안 근거
@@ -1076,17 +1094,19 @@ var INCIDENT_TYPES = [
 
 /* 단계별 입력 필드 — 표준(안) 문안에 실제로 쓰이는 것만 노출.
    ※ 입력칸에 예시값(placeholder)을 두지 않습니다. 급할 때 예시를 실제 값으로
-      착각해 그대로 발송할 위험이 있습니다. 설명이 필요한 항목만 help 로 답니다. */
+      착각해 그대로 발송할 위험이 있습니다. 설명이 필요한 항목만 help 로 답니다.
+   ※ 그룹 — 사고정보 화면에서 몇 번째 묶음에 넣을지. 배열 순서 자체는 바꾸지
+      않았습니다(saveTxt·검증 메시지가 이 순서를 그대로 씀). 화면에는
+      FIELD_GROUPS 순서대로 묶여서 나갑니다. */
 var FIELDS = {
   공통: [
-    { k: "기관",   label: "발송기관",        req: true },
-    { k: "시각",   label: "발생시각",        req: true, type: "time" },
-    { k: "시군",   label: "사고 시·군·구",   req: true },
-    { k: "읍면동", label: "사고 읍·면·동",   req: true },
-    { k: "대상지역", label: "대상지역", req: true, wide: true,
-      help: "문자를 받을 주민의 지역 (사고 장소와 다를 수 있음)" },
-    { k: "사업장", label: "사업장·장소명",  req: true },
-    { k: "물질",   label: "사고물질",       req: true, 물질: true,
+    { k: "기관",   label: "발송기관",        req: true, 그룹: "info" },
+    { k: "시각",   label: "발생시각",        req: true, type: "time", 그룹: "info" },
+    { k: "시군",   label: "사고 시·군·구",   req: true, 그룹: "loc" },
+    { k: "읍면동", label: "사고 읍·면·동",   req: true, 그룹: "loc" },
+    { k: "대상지역", label: "대상지역", req: true, wide: true, 그룹: "area" },
+    { k: "사업장", label: "사업장·장소명",  req: true, 그룹: "loc" },
+    { k: "물질",   label: "사고물질",       req: true, 물질: true, 그룹: "mat",
       help: "460종에서 검색 · 없으면 직접 입력" }
   ],
   evac: [
@@ -1099,6 +1119,17 @@ var FIELDS = {
       help: "담당자 개인번호가 아닌 기관 대표번호" }
   ]
 };
+
+/* 사고정보 화면 — 처음 보는 근무자도 위에서부터 순서대로 채우면 되도록
+   번호를 매겨 묶었습니다. 항목을 다 채웠다고 다음 묶음이 잠기거나 하지는
+   않습니다 — 급할 때는 순서 없이 아는 값부터 채워도 됩니다. */
+var FIELD_GROUPS = [
+  { id: "info", 번호: 1, 제목: "발송 정보",     설명: "문자를 보내는 기관과 시각" },
+  { id: "loc",  번호: 2, 제목: "사고 발생 위치", 설명: "사고가 일어난 곳" },
+  { id: "area", 번호: 3, 제목: "문자 받을 지역", 강조: true,
+    설명: "문자를 받을 주민의 지역 — 사고 장소와 다를 수 있습니다" },
+  { id: "mat",  번호: 4, 제목: "사고물질",       설명: "사고를 일으킨 화학물질" }
+];
 
 </script>
 <script>
@@ -2986,6 +3017,18 @@ function fieldHtml(f) {
     + "</div>";
 }
 
+/* 사고정보를 번호 매긴 묶음으로 그린다 — 처음 보는 근무자도 위에서부터
+   순서대로 채우면 되도록. 강조 묶음(대상지역)은 사고 위치와 헷갈리기 쉬운
+   항목이라 색을 넣어 눈에 띄게 했습니다. */
+function fieldGroupHtml(g) {
+  var fields = FIELDS.공통.filter(function (f) { return f.그룹 === g.id; });
+  if (!fields.length) return "";
+  return '<div class="fgrp' + (g.강조 ? " fgrp-accent" : "") + '">'
+    + '<div class="fgrp-hd"><span class="fgrp-n">' + g.번호 + "</span><b>" + esc(g.제목) + "</b>"
+    + (g.설명 ? '<span class="fgrp-d">' + esc(g.설명) + "</span>" : "") + "</div>"
+    + '<div class="grid">' + fields.map(fieldHtml).join("") + "</div></div>";
+}
+
 function bindFields(root) {
   $$("input[data-k]", root).forEach(function (el) {
     el.oninput = function () {
@@ -3029,7 +3072,7 @@ function renderFields() {
   $("#noteBar").innerHTML = "<b>" + esc(stage.이름) + "</b> — " + esc(stage.안내)
     + " 필요한 것만 골라 복사하세요.";
 
-  $("#fCommon").innerHTML = FIELDS.공통.map(fieldHtml).join("");
+  $("#fCommon").innerHTML = FIELD_GROUPS.map(fieldGroupHtml).join("");
   bindFields($("#fCommon"));
 
   $("#evacWrap").hidden = !isEvac;

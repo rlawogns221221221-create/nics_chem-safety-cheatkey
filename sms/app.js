@@ -384,6 +384,18 @@ function fieldHtml(f) {
     + "</div>";
 }
 
+/* 사고정보를 번호 매긴 묶음으로 그린다 — 처음 보는 근무자도 위에서부터
+   순서대로 채우면 되도록. 강조 묶음(대상지역)은 사고 위치와 헷갈리기 쉬운
+   항목이라 색을 넣어 눈에 띄게 했습니다. */
+function fieldGroupHtml(g) {
+  var fields = FIELDS.공통.filter(function (f) { return f.그룹 === g.id; });
+  if (!fields.length) return "";
+  return '<div class="fgrp' + (g.강조 ? " fgrp-accent" : "") + '">'
+    + '<div class="fgrp-hd"><span class="fgrp-n">' + g.번호 + "</span><b>" + esc(g.제목) + "</b>"
+    + (g.설명 ? '<span class="fgrp-d">' + esc(g.설명) + "</span>" : "") + "</div>"
+    + '<div class="grid">' + fields.map(fieldHtml).join("") + "</div></div>";
+}
+
 function bindFields(root) {
   $$("input[data-k]", root).forEach(function (el) {
     el.oninput = function () {
@@ -427,7 +439,7 @@ function renderFields() {
   $("#noteBar").innerHTML = "<b>" + esc(stage.이름) + "</b> — " + esc(stage.안내)
     + " 필요한 것만 골라 복사하세요.";
 
-  $("#fCommon").innerHTML = FIELDS.공통.map(fieldHtml).join("");
+  $("#fCommon").innerHTML = FIELD_GROUPS.map(fieldGroupHtml).join("");
   bindFields($("#fCommon"));
 
   $("#evacWrap").hidden = !isEvac;
