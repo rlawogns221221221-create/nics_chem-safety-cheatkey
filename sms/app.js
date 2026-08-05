@@ -27,7 +27,14 @@ function load() {
     var r = sessionStorage.getItem(SESS);
     if (!r) return false;
     var o = JSON.parse(r);
-    if (o && o.data) { state = o; return true; }
+    if (o && o.data) {
+      state = o;
+      /* 발송 구분이 개편되기 전에 저장된 세션이면 구분만 비운다.
+         (없어진 구분 id 가 남아 있으면 화면 조립이 실패한다) */
+      if (state.stage && !STAGES.some(function (s) { return s.id === state.stage; }))
+        state.stage = null;
+      return true;
+    }
   } catch (e) {}
   return false;
 }
@@ -153,9 +160,26 @@ function usedFields() {
   return f;
 }
 
-/* 이번 단계에서 실제로 생성할 문안 — 7-1번은 선택했을 때만 */
-function stageTemplates(stage) {
-  return stage.문안.filter(function (id) { return !TEMPLATES[id].부가 || state.use71; });
+/* 지금 고른 발송 구분 */
+function curStage() {
+  return STAGES.filter(function (s) { return s.id === state.stage; })[0] || null;
+}
+
+/* 입력칸 이름 — 발송 구분에 따라 다르게 부르는 칸이 있다
+   (도로 우회 알림에서는 사고 지점이 사업장이 아니라 도로일 수 있음) */
+function fieldLabel(f) {
+  var s = curStage();
+  return (s && s.라벨 && s.라벨[f.k]) || f.label;
+}
+
+/* 이번 구분에서 실제로 생성할 문안 — 그룹 단위로 돌려준다. 7-1번은 선택했을 때만 */
+function stageGroups(stage) {
+  return stage.그룹.map(function (g) {
+    return {
+      제목: g.제목,
+      ids: g.문안.filter(function (id) { return !TEMPLATES[id].부가 || state.use71; })
+    };
+  }).filter(function (g) { return g.ids.length > 0; });
 }
 
 function validate(results) {
@@ -180,20 +204,16 @@ function validate(results) {
       + (r.len - r.limit) + "자 초과합니다. 대상지역·대피소 표기를 줄이세요.");
   });
 
-  // 4. 논리 충돌
+  // 4. 논리 충돌 — 한 화면에 알림 문안과 종료 문안이 함께 나오므로
+  //    화면에서 고른 구분이 아니라 문안 하나하나의 단계로 검사합니다.
   var evacWords = /즉시\s*대피|대피바람|대피요망|대피하시|대피명령|대피발령/;
-  if (state.stage === "indoor" || state.stage === "indoor_end") {
-    results.forEach(function (r) {
-      if (evacWords.test(r.text))
-        errs.push(r.tpl.번호 + ": 실내대피 단계인데 외부 대피 지시 표현이 포함되어 있습니다.");
-    });
-  }
-  if (state.stage === "indoor_end" || state.stage === "evac_end") {
-    results.forEach(function (r) {
-      if (/발령|즉시\s*대피/.test(r.text))
-        errs.push(r.tpl.번호 + ": 종료 단계인데 대피 발령 표현이 포함되어 있습니다.");
-    });
-  }
+  results.forEach(function (r) {
+    var st = r.tpl.단계;
+    if ((st === "indoor" || st === "indoor_end") && evacWords.test(r.text))
+      errs.push(r.tpl.번호 + ": 실내대피 문안인데 외부 대피 지시 표현이 포함되어 있습니다.");
+    if ((st === "indoor_end" || st === "evac_end") && /발령|즉시\s*대피/.test(r.text))
+      errs.push(r.tpl.번호 + ": 종료 문안인데 대피 발령 표현이 포함되어 있습니다.");
+  });
 
   // 5. 물질 미확인인데 물질명이 입력된 경우
   if (state.unknownMat && String(d["물질"] || "").trim())
@@ -335,7 +355,7 @@ function fieldHtml(f) {
     : '<input type="text" id="' + id + '" data-k="' + f.k + '" value="' + v + '"'
       + (f.물질 ? " data-matpicker autocomplete=\"off\"" : "") + ">";
   return '<div class="f' + (f.wide ? " wide" : "") + '">'
-    + '<label for="' + id + '">' + esc(f.label) + (f.req ? '<span class="req">*</span>' : "") + "</label>"
+    + '<label for="' + id + '">' + esc(fieldLabel(f)) + (f.req ? '<span class="req">*</span>' : "") + "</label>"
     + input
     + (f.help ? '<span class="fh">' + esc(f.help) + "</span>" : "")
     + (f.물질
@@ -362,7 +382,7 @@ function bindFields(root) {
 function renderStages() {
   $("#stages").innerHTML = STAGES.map(function (s) {
     return '<button type="button" data-s="' + s.id + '" aria-pressed="' + (state.stage === s.id)
-      + '"><b>' + esc(s.이름) + "</b><span>" + esc(s.설명) + "</span></button>";
+      + '"><b>' + esc(s.이름) + "</b></button>";
   }).join("");
   $$("#stages button").forEach(function (b) {
     b.onclick = function () { state.stage = b.dataset.s; save(); renderAll(); };
@@ -384,9 +404,9 @@ function renderFields() {
   $("#cols").hidden = !on;
   if (!on) { $("#noteBar").textContent = "보내라고 지시받은 문자를 위에서 고르세요."; return; }
 
-  var stage = STAGES.filter(function (s) { return s.id === state.stage; })[0];
-  $("#noteBar").innerHTML = "<b>" + esc(stage.이름) + "</b> — " + esc(stage.설명)
-    + " · 사고지역용과 그 외 지역용 문안이 함께 만들어집니다.";
+  var stage = curStage();
+  $("#noteBar").innerHTML = "<b>" + esc(stage.이름) + "</b> — " + esc(stage.안내)
+    + " 필요한 것만 골라 복사하세요.";
 
   $("#fCommon").innerHTML = FIELDS.공통.map(fieldHtml).join("");
   bindFields($("#fCommon"));
@@ -411,10 +431,21 @@ function renderFields() {
 var lastResults = [];
 
 function renderOut() {
-  var stage = STAGES.filter(function (s) { return s.id === state.stage; })[0];
-  if (!stage) { lastResults = []; return; }
+  var stage = curStage();
+  if (!stage) { lastResults = []; $("#btnTxt").disabled = true; return; }
 
-  lastResults = stageTemplates(stage).map(build);
+  /* 그룹 구조는 화면 표시용, lastResults 는 검증·기록·복사용 평면 목록 */
+  lastResults = [];
+  var groups = stageGroups(stage).map(function (g) {
+    g.results = g.ids.map(function (id) {
+      var r = build(id);
+      r.i = lastResults.length; r.그룹 = g.제목;
+      lastResults.push(r);
+      return r;
+    });
+    return g;
+  });
+
   var v = validate(lastResults);
 
   var a = "";
@@ -429,39 +460,38 @@ function renderOut() {
   var blocked = v.errs.length > 0;
   $("#outCnt").textContent = lastResults.length + "건";
 
-  $("#out").innerHTML = lastResults.map(function (r, i) {
-    var isCbs = r.tpl.channel === "cbs";
-    var cls = r.limit ? (r.len > r.limit ? "over" : (r.len > r.limit - 8 ? "near" : "")) : "";
-    var cnt = r.limit
-      ? '<span class="cnt ' + cls + '">' + r.len + " / " + r.limit + "자</span>"
-      : '<span class="cnt"><small>' + r.len + "자 · 제한 없음</small></span>";
-    return '<div class="out' + (isCbs ? " cbs" : "") + '"><header><span>'
-      + (isCbs ? "긴급재난문자" : "자체 문자발송시스템") + " · " + esc(r.tpl.번호)
-      + '</span><span class="who">' + esc(r.tpl.대상) + "</span></header>"
-      + '<div class="msg">' + esc(r.text) + "</div>"
-      + (r.removed.length
-          ? '<div class="cut">90자에 맞추려고 <b>' + esc(r.removed.join(", "))
-            + "</b> 항목을 제외했습니다.</div>" : "")
-      + "<footer>" + cnt
-      + '<button class="sm' + (blocked ? "" : " p") + '" data-c="' + i + '"'
-      + (blocked ? " disabled" : "") + ">복사</button></footer></div>";
+  $("#out").innerHTML = groups.map(function (g) {
+    return '<div class="ogrp"><div class="ohd">' + esc(g.제목)
+      + '<span>' + g.results.length + '건</span></div>'
+      + g.results.map(function (r) { return outCard(r, blocked); }).join("")
+      + "</div>";
   }).join("");
 
   $$("#out button[data-c]").forEach(function (b) {
     b.onclick = function () { copyText(lastResults[b.dataset.c].text, b); };
   });
-  gate();
+  $("#btnTxt").disabled = !lastResults.length;
 }
 
-/* 복사 전 3항목 확인 */
-function gate() {
-  var ok = $$(".gate").every(function (c) { return c.checked; });
-  var hasErr = $("#alerts .alert.e") !== null;
-  $$("#out button[data-c]").forEach(function (b) {
-    b.disabled = hasErr || !ok;
-    b.classList.toggle("p", !b.disabled);
-  });
-  $("#btnTxt").disabled = !lastResults.length;
+/* 문안 한 건 — 긴급재난문자와 자체 문자발송시스템은 발송 경로가 완전히 다르므로
+   테두리·머리표·글자수 표시를 서로 다르게 해서 헷갈리지 않게 합니다. */
+function outCard(r, blocked) {
+  var isCbs = r.tpl.channel === "cbs";
+  var cls = r.limit ? (r.len > r.limit ? "over" : (r.len > r.limit - 8 ? "near" : "")) : "";
+  var cnt = r.limit
+    ? '<span class="cnt ' + cls + '">' + r.len + " / " + r.limit + "자</span>"
+    : '<span class="cnt"><small>' + r.len + "자 · 제한 없음</small></span>";
+  return '<div class="out ' + (isCbs ? "cbs" : "loc") + '"><header>'
+    + '<span class="ch">' + (isCbs ? "긴급재난문자" : "자체 문자발송시스템") + "</span>"
+    + '<span class="no">' + esc(r.tpl.번호) + "</span>"
+    + '<span class="who">' + esc(r.tpl.대상) + "</span></header>"
+    + '<div class="msg">' + esc(r.text) + "</div>"
+    + (r.removed.length
+        ? '<div class="cut">' + (r.limit || 90) + "자에 맞추려고 <b>" + esc(r.removed.join(", "))
+          + "</b> 항목을 제외했습니다.</div>" : "")
+    + "<footer>" + cnt
+    + '<button class="sm' + (blocked ? "" : " p") + '" data-c="' + r.i + '"'
+    + (blocked ? " disabled" : "") + ">복사</button></footer></div>";
 }
 
 function copyText(t, btn) {
@@ -552,19 +582,21 @@ function saveTxt() {
   var now = new Date(), pad = function (n) { return String(n).padStart(2, "0"); };
   var ts = now.getFullYear() + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate())
          + " " + pad(now.getHours()) + ":" + pad(now.getMinutes());
-  var stage = STAGES.filter(function (s) { return s.id === state.stage; })[0];
+  var stage = curStage();
 
   var L = ["화학사고 주민대피 문자 — 생성 기록", "생성일시: " + ts,
-           "발송단계: " + (stage ? stage.이름 : "-"), "사고유형: " + state.type,
+           "발송구분: " + (stage ? stage.이름 : "-"), "사고유형: " + state.type,
            "도구: " + VERSION.도구명 + " " + VERSION.도구버전
              + " (문안근거: " + VERSION.문안근거 + ", 반영일 " + VERSION.반영일 + ")",
            "", "[입력값]"];
   usedFields().forEach(function (f) {
-    L.push("  " + f.label + ": "
+    L.push("  " + fieldLabel(f) + ": "
       + ((f.k === "물질" && state.unknownMat) ? "미확인" : (state.data[f.k] || "-")));
   });
   L.push("", "[생성 문안]");
+  var lastGrp = null;
   lastResults.forEach(function (r) {
+    if (r.그룹 !== lastGrp) { lastGrp = r.그룹; L.push("", "【" + lastGrp + "】"); }
     L.push("", "── " + r.tpl.번호 + " · " + r.tpl.제목,
            "   (" + r.len + "자" + (r.limit ? " / 상한 " + r.limit + "자" : "") + ")");
     if (r.removed.length) L.push("   축약으로 제외된 항목: " + r.removed.join(", "));
@@ -589,13 +621,11 @@ function init() {
   renderAll();
   $("#sessTag").hidden = !resumed;
 
-  $$(".gate").forEach(function (c) { c.onchange = gate; });
   $("#btnTxt").onclick = saveTxt;
   $("#btnReset").onclick = function () {
     if (!confirm("입력한 사고정보를 모두 지우고 처음으로 돌아갑니다. 계속할까요?")) return;
     try { sessionStorage.removeItem(SESS); } catch (e) {}
     state = { stage: null, type: "누출", data: {}, unknownMat: false, use71: false };
-    $$(".gate").forEach(function (c) { c.checked = false; });
     $("#sessTag").hidden = true;
     var f = $("#finder");
     if (f) { f.hidden = true; $("#btnFinder").textContent = "관내 대피장소 목록에서 찾기"; }
