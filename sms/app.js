@@ -398,10 +398,23 @@ function bindFields(root) {
   };
 }
 
+/* 디자인용 아이콘 — 업무 데이터가 아니라 화면 판독을 돕는 표시일 뿐이며
+   STAGES 데이터를 변경하지 않습니다. */
+var STAGE_ICON = {
+  indoor: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11 12 4l8 7"/><path d="M6 10v9h12v-9"/><path d="M10 19v-5h4v5"/></svg>',
+  detour: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19 12 4l8 15"/><path d="M9 19h6"/><path d="M12 10v4"/></svg>',
+  evac: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 3v9l4-3"/><path d="M13 12 6 16.5"/><circle cx="5" cy="18" r="1.6" fill="currentColor" stroke="none"/><path d="M9 21h9"/></svg>'
+};
+
 function renderStages() {
   $("#stages").innerHTML = STAGES.map(function (s) {
-    return '<button type="button" data-s="' + s.id + '" aria-pressed="' + (state.stage === s.id)
-      + '"><b>' + esc(s.이름) + "</b></button>";
+    var on = state.stage === s.id;
+    return '<button type="button" data-s="' + s.id + '" aria-pressed="' + on + '">'
+      + '<span class="stage-ic" aria-hidden="true">' + (STAGE_ICON[s.id] || "") + "</span>"
+      + '<span class="stage-body"><span class="stage-name">' + esc(s.이름) + "</span>"
+      + '<span class="stage-desc">' + esc(s.안내) + "</span></span>"
+      + '<span class="stage-state"><i class="dot" aria-hidden="true"></i>' + (on ? "선택됨" : "선택") + "</span>"
+      + "</button>";
   }).join("");
   $$("#stages button").forEach(function (b) {
     b.onclick = function () { state.stage = b.dataset.s; save(); renderAll(); };
@@ -489,6 +502,9 @@ function renderOut() {
 
   $("#outCnt").textContent = lastResults.length + "건";
 
+  /* 상태 요약 — 이미 계산된 v·lastResults 값을 그대로 보여줄 뿐, 새로운 판단을 하지 않는다 */
+  renderOutStat(v, tplErrLines);
+
   $("#out").innerHTML = groups.map(function (g) {
     var open = grpOpen(g);
     var nErr = g.results.filter(function (r) {
@@ -518,8 +534,40 @@ function renderOut() {
   $("#btnTxt").disabled = !lastResults.length;
 }
 
+/* 생성 문안 패널 최상단 상태 요약 — 순수 표시용, 검증 로직은 그대로 validate()가 담당한다 */
+function renderOutStat(v, tplErrLines) {
+  var box = $("#outStat");
+  if (!box) return;
+  if (!lastResults.length) { box.hidden = true; return; }
+  box.hidden = false;
+
+  var overN = lastResults.filter(function (r) { return r.over; }).length;
+  var nearN = lastResults.filter(function (r) {
+    return !r.over && r.limit && r.len > r.limit - 8;
+  }).length;
+  var lenState = overN ? "err" : (nearN ? "warn" : "ok");
+  var lenLabel = overN ? overN + "건 초과" : (nearN ? nearN + "건 근접" : "정상");
+
+  var reqState = v.errs.length ? "err" : "ok";
+  var reqLabel = v.errs.length ? "미입력·오류 있음" : "입력 완료";
+
+  var issueN = v.errs.length + tplErrLines.length + v.warns.length;
+  var issueState = (v.errs.length || tplErrLines.length) ? "err" : (v.warns.length ? "warn" : "ok");
+
+  box.innerHTML =
+    '<div class="st"><span class="n">' + lastResults.length + '</span><span class="l">생성된 문안</span></div>'
+    + '<div class="st ' + reqState + '"><span class="n">' + (v.errs.length ? "확인 필요" : "완료") + '</span><span class="l">필수정보 입력</span></div>'
+    + '<div class="st ' + lenState + '"><span class="n">' + lenLabel + '</span><span class="l">글자수 검사</span></div>'
+    + '<div class="st ' + issueState + '"><span class="n">' + issueN + '</span><span class="l">오류·주의 건수</span></div>';
+}
+
 /* 문안 한 건 — 긴급재난문자와 자체 문자발송시스템은 발송 경로가 완전히 다르므로
    테두리·머리표·글자수 표시를 서로 다르게 해서 헷갈리지 않게 합니다. */
+var CH_ICON = {
+  cbs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>',
+  loc: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h4"/></svg>'
+};
+
 function outCard(r, globalErrs, myErrs) {
   var blocked = globalErrs.length > 0 || myErrs.length > 0;
   var isCbs = r.tpl.channel === "cbs";
@@ -528,6 +576,7 @@ function outCard(r, globalErrs, myErrs) {
     ? '<span class="cnt ' + cls + '">' + r.len + " / " + r.limit + "자</span>"
     : '<span class="cnt"><small>' + r.len + "자 · 제한 없음</small></span>";
   return '<div class="out ' + (isCbs ? "cbs" : "loc") + (myErrs.length ? " bad" : "") + '"><header>'
+    + '<span class="ic" aria-hidden="true">' + (isCbs ? CH_ICON.cbs : CH_ICON.loc) + "</span>"
     + '<span class="ch">' + (isCbs ? "긴급재난문자" : "자체 문자발송시스템") + "</span>"
     + '<span class="no">' + esc(r.tpl.번호) + "</span>"
     + '<span class="who">' + esc(r.tpl.대상) + "</span></header>"
@@ -543,20 +592,28 @@ function outCard(r, globalErrs, myErrs) {
 }
 
 function copyText(t, btn) {
+  var o = btn.textContent;
+  var reset = function () {
+    btn.textContent = o; btn.classList.remove("is-done", "is-fail");
+  };
   var done = function () {
-    var o = btn.textContent; btn.textContent = "복사됨";
-    setTimeout(function () { btn.textContent = o; }, 1400);
+    btn.textContent = "복사됨"; btn.classList.add("is-done");
+    setTimeout(reset, 1400);
+  };
+  var failed = function () {
+    btn.textContent = "복사 실패"; btn.classList.add("is-fail");
+    setTimeout(reset, 1400);
   };
   if (navigator.clipboard && window.isSecureContext)
-    navigator.clipboard.writeText(t).then(done, function () { fallback(t, done); });
-  else fallback(t, done);
+    navigator.clipboard.writeText(t).then(done, function () { fallback(t, done, failed); });
+  else fallback(t, done, failed);
 }
-function fallback(t, done) {
+function fallback(t, done, failed) {
   var ta = document.createElement("textarea");
   ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0";
   document.body.appendChild(ta); ta.select();
   try { document.execCommand("copy"); done(); }
-  catch (e) { window.prompt("아래 문구를 복사하세요 (Ctrl+C)", t); }
+  catch (e) { if (failed) failed(); window.prompt("아래 문구를 복사하세요 (Ctrl+C)", t); }
   document.body.removeChild(ta);
 }
 
@@ -746,6 +803,9 @@ function init() {
   renderCases();
   renderAll();
   $("#sessTag").hidden = !resumed;
+
+  var hv = $("#hdrVer");
+  if (hv) { hv.textContent = "v" + VERSION.도구버전; hv.hidden = false; }
 
   $("#btnTxt").onclick = saveTxt;
   $("#btnReset").onclick = function () {

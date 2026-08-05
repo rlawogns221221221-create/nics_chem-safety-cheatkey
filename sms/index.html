@@ -10,15 +10,27 @@
 
 <div class="top">
   <div class="wrap">
+    <span class="brandmark" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 2 3.5 5.5v6c0 6 4 9.2 8.5 10.5 4.5-1.3 8.5-4.5 8.5-10.5v-6L12 2Z"/>
+        <path d="M12 8v4M12 15.2v.1"/>
+      </svg>
+    </span>
     <h1>화학사고 주민대피 문자 작성
-      <span class="sub">발송 지시를 받은 뒤 쓰는 문안 작성 도구 · 대피 여부 판단은 하지 않습니다</span>
+      <span class="sub">문안 작성 지원도구</span>
     </h1>
     <div class="act noprint">
       <button id="btnTxt" disabled>기록 저장</button>
-      <button id="btnReset">초기화</button>
+      <button id="btnReset" class="btn-danger">초기화</button>
+      <span class="verchip" id="hdrVer" hidden></span>
     </div>
   </div>
 </div>
+
+<div class="scopebar noprint"><div class="wrap">
+  <b>대피 여부·대상지역·발송단계는 이 도구가 판단하지 않습니다.</b>
+  관계기관·지휘권자의 발송 지시를 받은 뒤 문안 작성을 지원합니다.
+</div></div>
 
 <div class="note noprint"><div class="wrap" id="noteBar">
   보내라고 지시받은 문자를 아래에서 고르세요.
@@ -92,6 +104,7 @@
     <div class="panel sticky">
       <h2>생성 문안 <span id="outCnt" style="font-weight:400;color:var(--ink3)"></span></h2>
       <div class="body">
+        <div class="outstat" id="outStat" hidden></div>
         <div id="alerts"></div>
         <div id="out"></div>
       </div>

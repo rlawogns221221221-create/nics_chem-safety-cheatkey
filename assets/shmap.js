@@ -557,7 +557,10 @@ function renderFoot() {
   var sum = sel.reduce(function (a, s) { return a + (+s.cap || 0); }, 0);
   var el = $(".shmap-sum", box);
   el.hidden = !n;
-  el.textContent = n ? "수용인원 합계 " + sum.toLocaleString() + "명" : "";
+  el.innerHTML = n
+    ? "선택 " + n + "곳 · 수용인원 합계 " + sum.toLocaleString() + "명"
+      + '<span class="cap-note">단순 합산이며 실제 수용 가능 여부를 보장하지 않습니다</span>'
+    : "";
 }
 
 /* 지도 아래 선택/가리킨 대피장소의 주소를 적는다 — 여기가 어딘지 확인용 */
@@ -614,6 +617,7 @@ function setMode(m) {
   b.setAttribute("aria-pressed", String(m === "acc"));
   b.textContent = m === "acc" ? "지도를 누르세요" : (st.acc ? "사고지점 다시 찍기" : "사고지점 찍기");
   SVG.classList.toggle("crosshair", m === "acc");
+  $(".shmap", box).classList.toggle("mode-acc", m === "acc");
 }
 
 function renderRad() {
@@ -631,8 +635,9 @@ function renderRad() {
     + ' value="' + (st.radius || "") + '" aria-label="반경 직접 입력 (m)">'
     + '<button type="button" class="sm shmap-radx" title="반경 지우기">×</button>'
     + (cands.length && opt.물질
-        ? '<span class="src">' + esc(opt.물질) + " 물질정보 기준 · 확산 모델링 아님</span>"
-        : "");
+        ? '<span class="src">' + esc(opt.물질) + " 물질정보 기준</span>"
+        : "")
+    + '<span class="caveat">참고용 거리이며 확산 모델링 결과가 아닙니다. 대피 범위는 도구가 판단하지 않습니다.</span>';
 
   $$(".shmap-rad button[data-r]", box).forEach(function (b) {
     b.onclick = function () { setRadius(+b.dataset.r); };
@@ -785,10 +790,18 @@ function buildBox() {
       + '<span class="shmap-src"></span>'
       + '<button type="button" class="shmap-x" aria-label="닫기">✕</button></header>'
     + '<div class="shmap-bar">'
-      + '<label>시·도<select class="shmap-sido"></select></label>'
-      + '<label>시·군·구<select class="shmap-sgg"></select></label>'
-      + '<div class="shmap-lyr" role="group" aria-label="배경지도 선택"></div>'
-      + '<button type="button" class="shmap-accbtn sm">사고지점 찍기</button>'
+      + '<div class="shmap-grp" role="group" aria-label="지역 선택">'
+        + '<label>시·도<select class="shmap-sido"></select></label>'
+        + '<label>시·군·구<select class="shmap-sgg"></select></label>'
+      + "</div>"
+      + '<div class="shmap-grp">'
+        + '<label>배경지도<div class="shmap-lyr" role="group" aria-label="배경지도 선택"></div></label>'
+      + "</div>"
+      + '<div class="shmap-grp">'
+        + '<span class="shmap-glabel">사고 관련 도구</span>'
+        + '<button type="button" class="shmap-accbtn sm" aria-pressed="false">사고지점 찍기</button>'
+        + '<span class="shmap-modehint">지도에서 사고지점을 선택하세요 · Esc로 종료</span>'
+      + "</div>"
       + '<span class="shmap-hint">지도의 점이나 오른쪽 목록을 눌러 고르세요 · 여러 곳도 됩니다</span>'
     + "</div>"
     + '<div class="shmap-warn" hidden></div>'
@@ -888,16 +901,20 @@ function close() {
   if (anim) { cancelAnimationFrame(anim); anim = null; }
   box.hidden = true;
   document.body.style.overflow = "";
+  if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
+  lastFocus = null;
   if (opt && opt.onClose) opt.onClose();
 }
 
 /* ── 열기 ─────────────────────────────────────────────────── */
+var lastFocus = null;
 function open(o) {
   opt = o || {};
   if (typeof window.SHELTERS === "undefined") {
     alert("대피장소 데이터를 불러오지 못했습니다.");
     return;
   }
+  lastFocus = document.activeElement;
   if (!box) buildBox();
   box.hidden = false;
   document.body.style.overflow = "hidden";
