@@ -415,6 +415,23 @@ a.btnlink:hover{border-color:var(--brand)}
 .shmap-bar select{width:auto;min-width:132px}
 .shmap-hint{font-size:11.5px;color:var(--ink3);padding-bottom:6px}
 
+/* 배경지도 고르기 */
+.shmap-lyr{display:flex;gap:0;padding-bottom:1px}
+.shmap-lyr button{padding:7px 11px;font-size:12.5px;border-radius:0;
+  border-left-width:0;background:#fff}
+.shmap-lyr button:first-child{border-radius:6px 0 0 6px;border-left-width:1px}
+.shmap-lyr button:last-child{border-radius:0 6px 6px 0}
+.shmap-lyr button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);
+  color:#fff;font-weight:700}
+.shmap-lyr button[aria-pressed=true] + button{border-left-color:var(--brand)}
+.shmap-lyr button:disabled{background:var(--panel);color:var(--ink3);
+  text-decoration:line-through}
+
+/* 배경지도를 못 불러왔을 때의 안내 — 왜 안 되는지 적는다 */
+.shmap-warn{padding:8px 14px;background:var(--warn-l);border-bottom:1px solid #ebd0a4;
+  color:var(--warn);font-size:12px;line-height:1.55;flex:none}
+.shmap-warn a{color:var(--brand-d);font-weight:700}
+
 .shmap-body{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(260px,1fr);
   gap:0;min-height:0;flex:1}
 .shmap-mapwrap{position:relative;background:#eaf0f5;border-right:1px solid var(--line2);
@@ -423,7 +440,6 @@ a.btnlink:hover{border-color:var(--brand)}
   cursor:grab;display:block}
 .shmap-svg:active{cursor:grabbing}
 .shmap-svg .bg{fill:#eef3f7}
-.shmap-svg .tl image{opacity:.95}
 .shmap-svg .bds .bd{fill:none;stroke:#9fb2c4;vector-effect:non-scaling-stroke;
   stroke-width:.8px}
 .shmap-svg .bds .bd.on{stroke:var(--brand);stroke-width:1.6px}
@@ -431,6 +447,17 @@ a.btnlink:hover{border-color:var(--brand)}
   vector-effect:non-scaling-stroke;stroke-width:1.4px}
 .shmap-svg circle.mk.hv{fill:var(--brand-l)}
 .shmap-svg circle.mk.on{fill:var(--brand);stroke:#fff;stroke-width:2px}
+
+/* 배경지도가 깔렸을 때 — 도로·건물 위에서 묻히지 않게 대비를 올린다.
+   경계선은 얇게(배경을 가리지 않도록), 마커는 그림자를 넣어 도드라지게. */
+.shmap-svg.hasbg .bg{fill:#dfe6ec}
+.shmap-svg.hasbg .bds .bd{stroke:rgba(11,87,164,.30);stroke-width:.7px}
+.shmap-svg.hasbg .bds .bd.on{stroke:#b31f1f;stroke-width:2px;
+  stroke-dasharray:7 4;stroke-linejoin:round}
+.shmap-svg.hasbg circle.mk{stroke-width:2px;
+  filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+.shmap-svg.hasbg circle.mk.on{stroke-width:2.5px}
+.shmap-svg.hasbg text.mkl{stroke-width:.34em}
 .shmap-svg text.mkl{fill:#12181f;text-anchor:middle;paint-order:stroke;
   stroke:#fff;stroke-width:.28em;stroke-linejoin:round;font-weight:600;pointer-events:none}
 .shmap-svg text.mkl.on{fill:var(--brand-d)}
@@ -443,6 +470,16 @@ a.btnlink:hover{border-color:var(--brand)}
   background:rgba(255,255,255,.9);border-radius:4px;padding:2px 7px;font-size:11px}
 .shmap-scale i{display:block;height:4px;border:1px solid var(--ink2);border-top:0}
 .shmap-scale b{font-variant-numeric:tabular-nums;color:var(--ink2)}
+
+/* 지도 아래 주소 표시 — 고른 곳이 어디쯤인지 확인 */
+.shmap-addr{position:absolute;left:10px;right:10px;bottom:34px;
+  background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:7px;
+  padding:7px 11px;font-size:12.5px;line-height:1.5;
+  box-shadow:0 2px 8px rgba(0,0,0,.14);pointer-events:none}
+.shmap-addr b{font-weight:700}
+.shmap-addr i{font-style:normal;font-size:11.5px;color:var(--ink3);margin-left:4px}
+.shmap-addr span{display:block;color:var(--ink2);font-size:11.5px}
+.shmap-addr em{font-style:normal;font-size:11.5px;color:var(--brand-d);font-weight:600}
 
 .shmap-side{display:flex;flex-direction:column;min-height:0;min-width:0}
 .shmap-lh{padding:8px 12px;font-size:12px;font-weight:700;color:var(--ink2);
@@ -601,7 +638,7 @@ a.btnlink:hover{border-color:var(--brand)}
 /* 도구 기준정보 — 문안/데이터 갱신 시 이 파일을 수정하세요. */
 var VERSION = {
   도구명: "화학사고 주민대피 문자 작성 지원도구",
-  도구버전: "0.4.3-draft",
+  도구버전: "0.4.4-draft",
   반영일: "2026-08-05",
 
   // 문안 근거
@@ -641,10 +678,10 @@ var VERSION = {
   경계_출처: "통계청 센서스용 행정구역경계(2018) 기반",
   경계_비고: "위치 확인용 배경선 · 법적 행정경계 아님 · 원내 정본 데이터로 교체 권장",
 
-  // 배경지도(도로·건물) — data/basemap.js 에서 켜고 끕니다.
-  // 기본값은 꺼짐이며, 꺼져 있으면 경계선만 그려 오프라인에서도 동작합니다.
-  // 켜려면 브이월드 인증키가 필요하고 인터넷 연결이 있어야 합니다.
-  배경지도_기본값: "꺼짐 (인증키 미발급)",
+  // 배경지도(도로·건물) — data/basemap.js 에서 설정합니다.
+  // 브이월드가 안 되면 OpenStreetMap 으로 자동 전환되므로 배경 없는 지도가 남지
+  // 않습니다. 전환되면 이유를 화면에 표시합니다.
+  배경지도: "브이월드(국토교통부) · 실패 시 OpenStreetMap 자동 대체",
 
   관리부서: "화학물질안전원 ○○과 (기재 필요)",
   관리자연락처: "000-0000-0000 (기재 필요)"

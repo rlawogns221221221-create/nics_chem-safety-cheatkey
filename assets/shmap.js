@@ -49,33 +49,86 @@ function distM(a, b, c, d) {
 /* ── 상태 ─────────────────────────────────────────────────── */
 var box = null;                 // 창 DOM
 var opt = null;                 // open() 으로 받은 설정
-var st = { sido: "", sgg: "", list: [], sel: {}, view: null, hover: -1 };
-var tiles = { 가능: false, 확인중: false };   // 배경지도 사용 가능 여부
+var st = { sido: "", sgg: "", list: [], sel: {}, view: null, hover: -1, src: null };
 var SVG = null, VB = null;
 
-/* ── 배경지도 타일 확인 ────────────────────────────────────────
-   설정이 켜져 있어도 실제로 타일이 내려오는지 한 장으로 미리 확인합니다.
-   확인 전까지는 경계선만 그리고, 성공하면 배경을 덧그립니다.
-   (인증키 미등록 도메인·오프라인·차단 환경에서 조용히 경계선만 남습니다) */
-function tileUrl(z, x, y) {
-  var cfg = window.BASEMAP;
-  return String(cfg.주소).replace("{키}", encodeURIComponent(cfg.인증키))
+/* ══ 배경지도 타일 ═══════════════════════════════════════════
+   타일을 미리 확인하지 않고 바로 그립니다. 확인 단계를 두면 배경이 뜰 수
+   있는데도 그 시간만큼 빈 지도가 보이기 때문입니다.
+
+   타일 한 장씩 <img> 로 받아 두고, 받아진 것만 화면에 얹습니다.
+   한 원본에서 연달아 실패하면 그 원본은 쓸 수 없다고 보고 대체순서의
+   다음 원본으로 자동 전환합니다 → 배경 없는 지도가 남지 않습니다.
+   ═══════════════════════════════════════════════════════════ */
+
+var TILE = {};        // 타일 주소 → "ok" | "bad" | "…"
+var SRCSTAT = {};     // 원본 id → {ok, bad}
+var DEAD = {};        // 못 쓰는 것으로 판정된 원본 id
+var drawTimer = null;
+
+function cfg() { return window.BASEMAP || {}; }
+
+function sources() { return cfg().배경 || []; }
+function srcById(id) {
+  return sources().filter(function (s) { return s.id === id; })[0] || null;
+}
+function usable(s) {
+  if (!s || DEAD[s.id]) return false;
+  if (s.키필요 && !String(cfg().인증키 || "").trim()) return false;
+  return true;
+}
+/* 지금 쓸 배경 원본 — 고른 것이 못 쓰게 됐으면 대체순서에서 찾는다 */
+function curSrc() {
+  if (!cfg().사용) return null;
+  var s = srcById(st.src);
+  if (usable(s)) return s;
+  var order = (cfg().대체순서 || []).concat(sources().map(function (x) { return x.id; }));
+  for (var i = 0; i < order.length; i++) {
+    var c = srcById(order[i]);
+    if (usable(c)) { st.src = c.id; return c; }
+  }
+  return null;
+}
+
+function fmtTile(tpl, z, x, y) {
+  return String(tpl)
+    .replace("{키}", encodeURIComponent(cfg().인증키 || ""))
     .replace("{z}", z).replace("{x}", x).replace("{y}", y);
 }
-function probeTiles(done) {
-  var cfg = window.BASEMAP;
-  if (!cfg || !cfg.사용 || !String(cfg.인증키).trim()) { tiles.가능 = false; return done(); }
-  if (tiles.확인중) return;
-  tiles.확인중 = true;
-  var img = new Image(), fin = false;
-  var end = function (ok) {
-    if (fin) return; fin = true;
-    tiles.가능 = ok; tiles.확인중 = false; done();
+
+function scheduleDraw() {
+  if (drawTimer) return;
+  drawTimer = setTimeout(function () {
+    drawTimer = null;
+    if (box && !box.hidden && st.view) { draw(); showSrc(); }
+  }, 70);
+}
+
+/* 한 원본에서 성공은 없고 실패만 쌓이면 그 원본은 포기한다.
+   문턱을 4장으로 둔 이유: 화면 가장자리 타일 한두 장이 없는 경우
+   (확대 한계·바다 영역)를 서버 장애로 오판하지 않기 위한 것입니다. */
+function tally(sid, res) {
+  var s = SRCSTAT[sid] = SRCSTAT[sid] || { ok: 0, bad: 0 };
+  s[res === "ok" ? "ok" : "bad"]++;
+  if (res !== "ok" && s.ok === 0 && s.bad >= 4 && !DEAD[sid]) {
+    DEAD[sid] = true;
+    if (st.src === sid) st.src = null;      // curSrc() 가 다음 원본을 찾는다
+  }
+  scheduleDraw();
+}
+
+function loadTile(url, sid) {
+  var s = TILE[url];
+  if (s) return s;
+  TILE[url] = "…";
+  var im = new Image();
+  im.onload = function () {
+    TILE[url] = im.naturalWidth > 1 ? "ok" : "bad";
+    tally(sid, TILE[url]);
   };
-  img.onload = function () { end(img.naturalWidth > 1); };
-  img.onerror = function () { end(false); };
-  setTimeout(function () { end(false); }, cfg.대기시간 || 4000);
-  img.src = tileUrl(8, 218, 100);          // 한반도 중부가 들어가는 타일 한 장
+  im.onerror = function () { TILE[url] = "bad"; tally(sid, "bad"); };
+  im.src = url;
+  return "…";
 }
 
 /* ── 데이터 ───────────────────────────────────────────────── */
@@ -160,23 +213,35 @@ function toLL(clientX, clientY) {
 }
 
 function tileLayer(vb) {
-  if (!tiles.가능) return "";
-  var cfg = window.BASEMAP;
+  var src = curSrc();
+  if (!src) return "";
   var z = Math.round(Math.log(vb.sw / vb.w / 256) / Math.LN2);
-  z = Math.max(cfg.최소확대 || 6, Math.min(cfg.최대확대 || 18, z));
+  z = Math.max(cfg().최소확대 || 6, Math.min(src.최대확대 || 19, z));
   var n = Math.pow(2, z), sz = 1 / n;
   var x0 = Math.floor(vb.x * n), x1 = Math.floor((vb.x + vb.w) * n);
   var y0 = Math.floor(vb.y * n), y1 = Math.floor((vb.y + vb.h) * n);
-  if ((x1 - x0 + 1) * (y1 - y0 + 1) > 120) return "";     // 안전장치
-  var out = [];
+  if ((x1 - x0 + 1) * (y1 - y0 + 1) > 160) return "";     // 안전장치
+  var base = [], over = [];
   for (var X = x0; X <= x1; X++) {
     for (var Y = y0; Y <= y1; Y++) {
       if (X < 0 || Y < 0 || X >= n || Y >= n) continue;
-      out.push('<image href="' + esc(tileUrl(z, X, Y)) + '" x="' + (X * sz) + '" y="' + (Y * sz)
-        + '" width="' + sz + '" height="' + sz + '" preserveAspectRatio="none"/>');
+      var u = fmtTile(src.주소, z, X, Y);
+      if (loadTile(u, src.id) === "ok") base.push(img(u, X, Y, sz));
+      if (src.겹침) {
+        var o = fmtTile(src.겹침, z, X, Y);
+        if (loadTile(o, src.id) === "ok") over.push(img(o, X, Y, sz));
+      }
     }
   }
-  return '<g class="tl">' + out.join("") + "</g>";
+  if (!base.length && !over.length) return "";
+  return '<g class="tl">' + base.join("") + over.join("") + "</g>";
+}
+function img(u, X, Y, sz) {
+  /* 타일 경계에 실선이 보이지 않도록 아주 조금 겹쳐 그린다 */
+  var pad = sz * 0.0015;
+  return '<image href="' + esc(u) + '" x="' + (X * sz - pad) + '" y="' + (Y * sz - pad)
+    + '" width="' + (sz + pad * 2) + '" height="' + (sz + pad * 2)
+    + '" preserveAspectRatio="none"/>';
 }
 
 function boundaryPaths(vb) {
@@ -210,7 +275,11 @@ function draw() {
 
   g.push('<rect x="' + vb.x + '" y="' + vb.y + '" width="' + vb.w + '" height="' + vb.h
     + '" class="bg"/>');
-  g.push(tileLayer(vb));
+  var tl = tileLayer(vb);
+  g.push(tl);
+  /* 배경지도가 깔렸는지에 따라 경계선·마커 대비를 바꾼다.
+     배경 위에서는 옅은 회색 선이 묻히고, 흰 배경에서는 진한 선이 과하다. */
+  SVG.classList.toggle("hasbg", !!tl);
   g.push('<g class="bds" stroke-width="' + (k * 1.1) + '">' + boundaryPaths(vb) + "</g>");
 
   st.list.forEach(function (s, i) {
@@ -274,7 +343,7 @@ function selNames() {
 
 function toggle(i) {
   if (st.sel[i]) delete st.sel[i]; else st.sel[i] = true;
-  renderList(); draw(); renderFoot();
+  renderList(); draw(); renderFoot(); showAddr();
 }
 
 /* 외부 지도 확인 링크 — 인증키 없이 동작하는 공개 주소만 씁니다.
@@ -323,8 +392,10 @@ function renderList() {
       if (e.target.tagName === "A") return;
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(i); }
     };
-    el.onmouseenter = function () { st.hover = i; draw(); };
-    el.onmouseleave = function () { if (st.hover === i) { st.hover = -1; draw(); } };
+    el.onmouseenter = function () { st.hover = i; draw(); showAddr(); };
+    el.onmouseleave = function () {
+      if (st.hover === i) { st.hover = -1; draw(); showAddr(); }
+    };
   });
   var first = $(".shmap-it.on", wrap);
   if (first) first.scrollIntoView({ block: "nearest" });
@@ -343,7 +414,7 @@ function reload(refit) {
   st.list = st.sgg ? shelters(st.sido, st.sgg) : [];
   st.sel = {}; st.hover = -1;
   if (refit) { st.view = null; }
-  renderList(); renderFoot(); draw();
+  renderList(); renderFoot(); draw(); showAddr();
 }
 
 function fillSido() {
@@ -433,8 +504,10 @@ function buildBox() {
     + '<div class="shmap-bar">'
       + '<label>시·도<select class="shmap-sido"></select></label>'
       + '<label>시·군·구<select class="shmap-sgg"></select></label>'
+      + '<div class="shmap-lyr" role="group" aria-label="배경지도 선택"></div>'
       + '<span class="shmap-hint">지도의 점이나 오른쪽 목록을 눌러 고르세요 · 여러 곳도 됩니다</span>'
     + "</div>"
+    + '<div class="shmap-warn" hidden></div>'
     + '<div class="shmap-body">'
       + '<div class="shmap-mapwrap">'
         + '<svg class="shmap-svg" role="img" aria-label="대피장소 지도"></svg>'
@@ -444,6 +517,7 @@ function buildBox() {
           + '<button type="button" class="shmap-zf" title="전체 보기">⤢</button>'
         + "</div>"
         + '<div class="shmap-scale"><i></i><b></b></div>'
+        + '<div class="shmap-addr" hidden></div>'
       + "</div>"
       + '<div class="shmap-side">'
         + '<div class="shmap-lh">관내 대피장소 <span class="shmap-cnt"></span></div>'
@@ -458,6 +532,19 @@ function buildBox() {
 
   SVG = $(".shmap-svg", box);
   bindMap();
+
+  /* 배경지도 고르기 — 일반지도 / 위성+도로명 / OpenStreetMap */
+  $(".shmap-lyr", box).innerHTML = sources().map(function (s) {
+    return '<button type="button" data-s="' + esc(s.id) + '">' + esc(s.이름) + "</button>";
+  }).join("");
+  $$(".shmap-lyr button", box).forEach(function (b) {
+    b.onclick = function () {
+      DEAD[b.dataset.s] = false;          // 다시 시도해 볼 기회를 준다
+      SRCSTAT[b.dataset.s] = { ok: 0, bad: 0 };
+      st.src = b.dataset.s;
+      draw(); showSrc();
+    };
+  });
 
   $(".shmap-sido", box).onchange = function () {
     st.sido = this.value; st.sgg = ""; fillSgg(); reload(true);
@@ -525,9 +612,9 @@ function open(o) {
   st.sgg = $(".shmap-sgg", box).value;
   reload(true);
 
-  /* 배경지도는 있으면 좋고 없어도 되는 것 — 확인되면 다시 그린다 */
+  /* 배경지도는 바로 그린다. 안 되는 원본이면 대체순서에 따라 자동 전환된다 */
+  if (!st.src) st.src = cfg().기본 || (sources()[0] || {}).id || null;
   showSrc();
-  probeTiles(function () { showSrc(); draw(); });
 
   var f = $(".shmap-sgg", box);
   if (f) f.focus();
@@ -542,13 +629,52 @@ function findSido(sgg) {
   return hit;
 }
 
+/* 배경지도 상태 표시 — 안 될 때 왜 안 되는지 화면에 적어 준다.
+   조용히 경계선만 남기면 무엇이 잘못됐는지 알 수 없습니다. */
 function showSrc() {
-  var cfg = window.BASEMAP || {};
-  var el = $(".shmap-src", box);
-  if (tiles.가능) el.textContent = "배경지도 " + (cfg.저작권 || "");
-  else if (cfg.사용 && String(cfg.인증키).trim())
-    el.textContent = "배경지도 없음 (타일 서버에 연결하지 못했습니다) · 경계선만 표시";
-  else el.textContent = "행정경계선만 표시 (오프라인 동작)";
+  var el = $(".shmap-src", box), warn = $(".shmap-warn", box);
+  var src = curSrc();
+  el.textContent = src ? (src.저작권 || src.이름)
+    : (cfg().사용 ? "배경지도 없음 · 행정경계선만 표시" : "행정경계선만 표시");
+
+  /* 못 쓰게 판정된 원본이 있으면 이유와 확인 방법을 알려준다.
+     조용히 경계선만 남기면 무엇이 잘못됐는지 알 수 없습니다. */
+  /* 배경 고르기 단추 상태 — 지금 쓰는 것에 표시, 못 쓰는 것은 비활성 */
+  $$(".shmap-lyr button", box).forEach(function (b) {
+    b.setAttribute("aria-pressed", String(!!src && b.dataset.s === src.id));
+    b.disabled = !!DEAD[b.dataset.s];
+    b.title = DEAD[b.dataset.s] ? "불러오지 못했습니다" : "";
+  });
+
+  var dead = sources().filter(function (s) { return DEAD[s.id]; });
+  if (!dead.length) { warn.hidden = true; return; }
+
+  var d = dead[0];
+  var probe = fmtTile(d.주소, 15, 27960, 12854);     // 서울시청 부근 타일 한 장
+  warn.hidden = false;
+  warn.innerHTML = src
+    ? "<b>" + esc(d.이름) + " 배경지도를 불러오지 못해 " + esc(src.이름)
+      + "(으)로 바꿨습니다.</b> " + esc(d.진단 || "") + probeLink(probe)
+    : "<b>배경지도를 불러오지 못해 행정경계선만 표시합니다.</b> "
+      + esc(d.진단 || "") + " 인터넷 연결이 차단된 환경인지도 확인하세요."
+      + probeLink(probe);
+}
+function probeLink(u) {
+  return ' <a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">'
+    + "타일 주소 직접 열어보기</a> — 새 창에 뜨는 메시지가 실제 원인입니다.";
+}
+
+/* 지도 아래 선택/가리킨 대피장소의 주소를 적는다 — 여기가 어딘지 확인용 */
+function showAddr() {
+  var el = $(".shmap-addr", box);
+  var i = st.hover >= 0 ? st.hover : Number(Object.keys(st.sel)[0]);
+  var s = st.list[i];
+  if (!s) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = "<b>" + esc(s.name) + "</b>"
+    + (s.detail ? " <i>" + esc(s.detail) + "</i>" : "")
+    + '<span>' + esc((s.sgg || "") + " " + (s.addr || "")) + "</span>"
+    + (s.cap ? '<em>수용 ' + Number(s.cap).toLocaleString() + "명</em>" : "");
 }
 
 window.SHMAP = { open: open, close: close };
