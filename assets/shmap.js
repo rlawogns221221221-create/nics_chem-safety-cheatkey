@@ -12,10 +12,8 @@
        onPick(이름들, 칸)
      })
 
-   좌표계는 웹 메르카토르(EPSG:3857)입니다. 배경지도 타일이 이 좌표계를 쓰므로
-   타일·행정경계선·대피장소 마커가 정확히 겹칩니다.
-   (② 지도 도구 map/app.js 는 등장방형 도법을 씁니다. 두 곳의 좌표 변환을
-    섞어 쓰지 않도록 파일을 분리해 두었습니다.)
+   투영·거리·배경지도 타일은 assets/mapcore.js 를 씁니다 (② 대피장소 지도와 공용).
+   좌표계는 웹 메르카토르(EPSG:3857)이므로 타일·행정경계선·마커가 정확히 겹칩니다.
 
    이 창은 어느 대피장소가 적절한지 판단하지 않습니다. 거리·방위·반경은
    물질정보에 적힌 참고 값을 그려 보여주는 것이며 확산 모델링이 아닙니다.
@@ -31,46 +29,13 @@ var esc = function (s) {
 var $ = function (s, r) { return (r || document).querySelector(s); };
 var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
-/* 2018년 경계 데이터와 현재 행정구역명이 다른 곳 */
-var ALIAS = { "미추홀구": "남구" };
-
-/* ── 웹 메르카토르 (0~1 정규화 세계좌표) ───────────────────── */
-var TAU = Math.PI * 2;
-var EQUATOR = 40075016.686;                 // 적도 둘레 (m) = 세계좌표 1.0
-function wx(lon) { return (+lon + 180) / 360; }
-function wy(lat) {
-  var l = Math.max(-85.05112878, Math.min(85.05112878, +lat));
-  var s = Math.sin(l * Math.PI / 180);
-  return 0.5 - Math.log((1 + s) / (1 - s)) / (2 * TAU);
-}
-function wxInv(x) { return x * 360 - 180; }
-function wyInv(y) { return Math.atan(Math.sinh((0.5 - y) * TAU)) * 180 / Math.PI; }
-
-/* 미터 → 세계좌표 길이. 메르카토르는 등각이므로 위도에 따라 축척이 달라진다. */
-function mToWorld(m, lat) {
-  return m / (EQUATOR * Math.cos(lat * Math.PI / 180));
-}
-
-/* 직선거리 (m) — 하버사인 */
-function distM(a, b, c, d) {
-  var R = 6371000, p = Math.PI / 180;
-  var dLat = (c - a) * p, dLon = (d - b) * p;
-  var s = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-        + Math.cos(a * p) * Math.cos(c * p) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  return Math.round(2 * R * Math.asin(Math.sqrt(s)));
-}
-/* 방위각 (도, 북=0) */
-function bearing(a, b, c, d) {
-  var p = Math.PI / 180;
-  var y = Math.sin((d - b) * p) * Math.cos(c * p);
-  var x = Math.cos(a * p) * Math.sin(c * p) - Math.sin(a * p) * Math.cos(c * p) * Math.cos((d - b) * p);
-  return (Math.atan2(y, x) / p + 360) % 360;
-}
-var DIRS = ["북", "북동", "동", "남동", "남", "남서", "서", "북서"];
-function dirName(deg) { return DIRS[Math.round(deg / 45) % 8]; }
-function fmtDist(m) {
-  return m < 1000 ? m + "m" : (m / 1000).toFixed(m < 10000 ? 1 : 0) + "km";
-}
+/* 투영·거리·타일은 assets/mapcore.js 에 모아 두었습니다 — ② 대피장소 지도와
+   같은 코드를 써야 두 지도가 어긋나지 않습니다. */
+var MC = window.MAPCORE;
+var wx = MC.wx, wy = MC.wy, wxInv = MC.wxInv, wyInv = MC.wyInv;
+var mToWorld = MC.mToWorld;
+var distM = MC.distM, bearing = MC.bearing, dirName = MC.dirName, fmtDist = MC.fmtDist;
+var matchSgg = MC.matchSgg;
 
 /* ── 상태 ─────────────────────────────────────────────────── */
 var box = null;                 // 창 DOM
@@ -80,7 +45,7 @@ var st = {
   all: [],                      // 관내 대피장소 전부
   show: [],                     // 검색·정렬을 거친 표시 목록
   sel: {},                      // 고른 곳 — 정렬해도 흐트러지지 않게 key 로 담는다
-  view: null, hover: -1, src: null,
+  view: null, hover: -1,
   touched: false,               // 사용자가 선택을 손댔는가 (넣을 칸을 바꿀 때 판단용)
   acc: null,                    // 사고지점 {lat, lon}
   radius: null,                 // 영향 참고 반경 (m)
@@ -89,109 +54,12 @@ var st = {
 };
 var SVG = null, VB = null;
 
-/* ══ 배경지도 타일 ═══════════════════════════════════════════
-   타일을 미리 확인하지 않고 바로 그립니다. 확인 단계를 두면 배경이 뜰 수
-   있는데도 그 시간만큼 빈 지도가 보이기 때문입니다.
-
-   타일 한 장씩 <img> 로 받아 두고, 받아진 것만 화면에 얹습니다.
-   한 원본에서 연달아 실패하면 그 원본은 쓸 수 없다고 보고 대체순서의
-   다음 원본으로 자동 전환합니다 → 배경 없는 지도가 남지 않습니다.
-   ═══════════════════════════════════════════════════════════ */
-
-var TILE = {};        // 타일 주소 → "ok" | "bad" | "…"
-var SRCSTAT = {};     // 원본 id → {ok, bad}
-var DEAD = {};        // 못 쓰는 것으로 판정된 원본 id
-var drawTimer = null;
-
-function cfg() { return window.BASEMAP || {}; }
-function sources() { return cfg().배경 || []; }
-function srcById(id) {
-  return sources().filter(function (s) { return s.id === id; })[0] || null;
-}
-function usable(s) {
-  if (!s || DEAD[s.id]) return false;
-  if (s.키필요 && !String(cfg().인증키 || "").trim()) return false;
-  return true;
-}
-/* 지금 쓸 배경 원본 — 고른 것이 못 쓰게 됐으면 대체순서에서 찾는다 */
-function curSrc() {
-  if (!cfg().사용) return null;
-  var s = srcById(st.src);
-  if (usable(s)) return s;
-  var order = (cfg().대체순서 || []).concat(sources().map(function (x) { return x.id; }));
-  for (var i = 0; i < order.length; i++) {
-    var c = srcById(order[i]);
-    if (usable(c)) { st.src = c.id; return c; }
-  }
-  return null;
-}
-
-function fmtTile(tpl, z, x, y) {
-  return String(tpl)
-    .replace("{키}", encodeURIComponent(cfg().인증키 || ""))
-    .replace("{z}", z).replace("{x}", x).replace("{y}", y);
-}
-
-function scheduleDraw() {
-  if (drawTimer) return;
-  drawTimer = setTimeout(function () {
-    drawTimer = null;
-    if (box && !box.hidden && st.view) { draw(); showSrc(); }
-  }, 70);
-}
-
-/* 한 원본에서 성공은 없고 실패만 쌓이면 그 원본은 포기한다.
-   문턱을 4장으로 둔 이유: 화면 가장자리 타일 한두 장이 없는 경우
-   (확대 한계·바다 영역)를 서버 장애로 오판하지 않기 위한 것입니다. */
-function tally(sid, res) {
-  var s = SRCSTAT[sid] = SRCSTAT[sid] || { ok: 0, bad: 0 };
-  s[res === "ok" ? "ok" : "bad"]++;
-  if (res !== "ok" && s.ok === 0 && s.bad >= 4 && !DEAD[sid]) {
-    DEAD[sid] = true;
-    if (st.src === sid) st.src = null;      // curSrc() 가 다음 원본을 찾는다
-  }
-  scheduleDraw();
-}
-
-function loadTile(url, sid) {
-  var s = TILE[url];
-  if (s) return s;
-  TILE[url] = "…";
-  var im = new Image();
-  im.onload = function () {
-    TILE[url] = im.naturalWidth > 1 ? "ok" : "bad";
-    tally(sid, TILE[url]);
-  };
-  im.onerror = function () { TILE[url] = "bad"; tally(sid, "bad"); };
-  im.src = url;
-  return "…";
-}
+/* 배경지도 타일은 mapcore 가 받아 둡니다. 새 타일이 도착하면 다시 그립니다. */
+MC.tiles.onChange(function () {
+  if (box && !box.hidden && st.view) { draw(); showSrc(); }
+});
 
 /* ── 데이터 ───────────────────────────────────────────────── */
-function shelters(sido, sgg) {
-  var out = [];
-  var S = window.SHELTERS || {};
-  var sds = sido ? [sido] : Object.keys(S);
-  sds.forEach(function (sd) {
-    var sgs = sgg ? [sgg] : Object.keys(S[sd] || {});
-    sgs.forEach(function (sg) {
-      ((S[sd] || {})[sg] || []).forEach(function (r) {
-        if (r[5] == null || r[6] == null) return;
-        out.push({ key: sd + "|" + sg + "|" + r[0] + "|" + r[5] + "," + r[6],
-                   sido: sd, sgg: sg, name: r[0], detail: r[1], addr: r[2],
-                   cap: r[3], kind: r[4], lat: r[5], lon: r[6], dept: r[7], tel: r[8] });
-      });
-    });
-  });
-  return out;
-}
-
-function matchSgg(bName, sgg) {
-  if (!sgg) return false;
-  if (bName === sgg) return true;
-  if (ALIAS[sgg] && bName === ALIAS[sgg]) return true;
-  return bName.indexOf(sgg) === 0 || sgg.indexOf(bName) === 0;
-}
 
 /* 선택 시·군·구 경계의 범위 (세계좌표) */
 function sggBox() {
@@ -319,63 +187,6 @@ function toLL(clientX, clientY) {
   return { lon: wxInv(x), lat: wyInv(y) };
 }
 
-function tileLayer(vb) {
-  var src = curSrc();
-  if (!src) return "";
-  var z = Math.round(Math.log(vb.sw / vb.w / 256) / Math.LN2);
-  z = Math.max(cfg().최소확대 || 6, Math.min(src.최대확대 || 19, z));
-  var n = Math.pow(2, z), sz = 1 / n;
-  var x0 = Math.floor(vb.x * n), x1 = Math.floor((vb.x + vb.w) * n);
-  var y0 = Math.floor(vb.y * n), y1 = Math.floor((vb.y + vb.h) * n);
-  if ((x1 - x0 + 1) * (y1 - y0 + 1) > 160) return "";     // 안전장치
-  var base = [], over = [];
-  for (var X = x0; X <= x1; X++) {
-    for (var Y = y0; Y <= y1; Y++) {
-      if (X < 0 || Y < 0 || X >= n || Y >= n) continue;
-      var u = fmtTile(src.주소, z, X, Y);
-      if (loadTile(u, src.id) === "ok") base.push(img(u, X, Y, sz, z));
-      if (src.겹침) {
-        var o = fmtTile(src.겹침, z, X, Y);
-        if (loadTile(o, src.id) === "ok") over.push(img(o, X, Y, sz, z));
-      }
-    }
-  }
-  if (!base.length && !over.length) return "";
-  return '<g class="tl">' + base.join("") + over.join("") + "</g>";
-}
-function img(u, X, Y, sz, z) {
-  var x0 = pxX(X * sz), y0 = pxY(Y * sz);
-  var w = sz / VB.w * VB.sw, h = sz / VB.h * VB.sh;
-  /* 타일 경계에 흰 실선이 보이지 않도록 반 픽셀 겹쳐 그린다 */
-  return '<image href="' + esc(u) + '" x="' + (x0 - 0.5).toFixed(2)
-    + '" y="' + (y0 - 0.5).toFixed(2) + '" width="' + (w + 1).toFixed(2)
-    + '" height="' + (h + 1).toFixed(2) + '" preserveAspectRatio="none"'
-    + ' data-t="' + z + "/" + X + "/" + Y + '"/>';
-}
-
-function boundaryPaths(vb) {
-  if (typeof window.BOUNDARIES === "undefined") return "";
-  var mx = vb.sw * 0.35, my = vb.sh * 0.35;      // 화면 밖 여유 (px)
-  var out = [];
-  BOUNDARIES.forEach(function (f) {
-    var on = f.s === st.sido && matchSgg(f.n, st.sgg);
-    f.r.forEach(function (ring) {
-      var X = 0, Y = 0, d = "", any = false, inside = false, lx = 1e9, ly = 1e9;
-      for (var i = 0; i < ring.length; i += 2) {
-        if (i === 0) { X = ring[0]; Y = ring[1]; } else { X += ring[i]; Y += ring[i + 1]; }
-        var sx = pxX(wx(X / BOUNDARY_SCALE)), sy = pxY(wy(Y / BOUNDARY_SCALE));
-        if (sx > -mx && sx < vb.sw + mx && sy > -my && sy < vb.sh + my) inside = true;
-        /* 확대하면 한 픽셀 안에 여러 점이 몰린다 — 눈에 안 보이는 점은 건넌다 */
-        if (any && Math.abs(sx - lx) < 0.4 && Math.abs(sy - ly) < 0.4) continue;
-        d += (any ? "L" : "M") + sx.toFixed(1) + " " + sy.toFixed(1);
-        lx = sx; ly = sy; any = true;
-      }
-      if (inside && any) out.push('<path d="' + d + '" class="bd' + (on ? " on" : "") + '"/>');
-    });
-  });
-  return out.join("");
-}
-
 function draw() {
   if (!st.view) fit();
   VB = viewBox();
@@ -384,12 +195,14 @@ function draw() {
   var g = [];
 
   g.push('<rect x="0" y="0" width="' + vb.sw + '" height="' + vb.sh + '" class="bg"/>');
-  var tl = tileLayer(vb);
+  var tl = MC.tiles.layer(vb);
   g.push(tl);
   /* 배경지도가 깔렸는지에 따라 경계선·마커 대비를 바꾼다.
      배경 위에서는 옅은 회색 선이 묻히고, 흰 배경에서는 진한 선이 과하다. */
   SVG.classList.toggle("hasbg", !!tl);
-  g.push('<g class="bds">' + boundaryPaths(vb) + "</g>");
+  g.push('<g class="bds">' + MC.boundaryPaths(vb, function (f) {
+    return f.s === st.sido && matchSgg(f.n, st.sgg);
+  }) + "</g>");
 
   /* 영향 참고 반경 */
   if (st.acc && st.radius > 0) {
@@ -451,16 +264,9 @@ function hitMarker(clientX, clientY) {
 }
 
 function drawScale(vb) {
-  var latC = wyInv(vb.y + vb.h / 2);
-  var full = distM(latC, wxInv(vb.x), latC, wxInv(vb.x + vb.w));
-  var target = full / 4;
-  var nice = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000];
-  var pick = nice.reduce(function (a, b) {
-    return Math.abs(b - target) < Math.abs(a - target) ? b : a;
-  });
-  $(".shmap-scale i", box).style.width =
-    Math.max(22, Math.round(pick / full * vb.sw)) + "px";
-  $(".shmap-scale b", box).textContent = pick >= 1000 ? (pick / 1000) + "km" : pick + "m";
+  var s = MC.scale(vb);
+  $(".shmap-scale i", box).style.width = s.px + "px";
+  $(".shmap-scale b", box).textContent = s.label;
 }
 
 /* ── 선택 ─────────────────────────────────────────────────── */
@@ -478,22 +284,6 @@ function toggle(i) {
   if (st.sel[s.key]) delete st.sel[s.key];
   else { st.sel[s.key] = true; moveTo(s); }    // 고르면 그 자리로 지도를 옮긴다
   renderList(); draw(); renderFoot(); showAddr();
-}
-
-/* 외부 지도 확인 링크 — 인증키 없이 동작하는 공개 주소만 씁니다.
-   도로·건물을 보면서 위치를 최종 확인하는 용도이며, 새 창으로 열리므로
-   작성 중인 내용은 그대로 남습니다. */
-function extLinks(s) {
-  var q = encodeURIComponent(s.name + " " + (s.sgg || "") + " " + (s.addr || ""));
-  var kakao = "https://map.kakao.com/link/map/" + encodeURIComponent(s.name)
-            + "," + s.lat + "," + s.lon;
-  var naver = "https://map.naver.com/p/search/" + q;
-  var road = "https://map.kakao.com/link/roadview/" + s.lat + "," + s.lon;
-  return '<span class="shmap-ext">'
-    + '<a href="' + kakao + '" target="_blank" rel="noopener noreferrer">카카오맵</a>'
-    + '<a href="' + road + '" target="_blank" rel="noopener noreferrer">로드뷰</a>'
-    + '<a href="' + naver + '" target="_blank" rel="noopener noreferrer">네이버지도</a>'
-    + "</span>";
 }
 
 function renderList() {
@@ -524,7 +314,7 @@ function renderList() {
       + (s.inRing ? '<div class="l5">영향 참고 반경 '
           + fmtDist(st.radius) + " 안입니다 · 확산방향을 확인하세요</div>" : "")
       + (s.tel ? '<div class="l3">' + esc(s.dept || "") + " " + esc(s.tel) + "</div>" : "")
-      + '<div class="l4">' + extLinks(s) + "</div></div>";
+      + '<div class="l4">' + MC.extLinks(s) + "</div></div>";
   }).join("");
 
   $$(".shmap-it", wrap).forEach(function (el) {
@@ -575,36 +365,19 @@ function showAddr() {
 
 /* ── 배경지도 상태 표시 ────────────────────────────────────── */
 function showSrc() {
-  var el = $(".shmap-src", box), warn = $(".shmap-warn", box);
-  var src = curSrc();
-  el.textContent = src ? (src.저작권 || src.이름)
-    : (cfg().사용 ? "배경지도 없음 · 행정경계선만 표시" : "행정경계선만 표시");
+  var s = MC.tiles.status();
+  $(".shmap-src", box).textContent = s.label;
 
   /* 배경 고르기 단추 상태 — 지금 쓰는 것에 표시, 못 쓰는 것은 비활성 */
   $$(".shmap-lyr button", box).forEach(function (b) {
-    b.setAttribute("aria-pressed", String(!!src && b.dataset.s === src.id));
-    b.disabled = !!DEAD[b.dataset.s];
-    b.title = DEAD[b.dataset.s] ? "불러오지 못했습니다" : "";
+    b.setAttribute("aria-pressed", String(!!s.src && b.dataset.s === s.src.id));
+    b.disabled = MC.tiles.isDead(b.dataset.s);
+    b.title = MC.tiles.isDead(b.dataset.s) ? "불러오지 못했습니다" : "";
   });
 
-  /* 못 쓰게 판정된 원본이 있으면 이유와 확인 방법을 알려준다.
-     조용히 경계선만 남기면 무엇이 잘못됐는지 알 수 없습니다. */
-  var dead = sources().filter(function (s) { return DEAD[s.id]; });
-  if (!dead.length) { warn.hidden = true; return; }
-
-  var d = dead[0];
-  var probe = fmtTile(d.주소, 15, 27960, 12854);     // 서울시청 부근 타일 한 장
-  warn.hidden = false;
-  warn.innerHTML = src
-    ? "<b>" + esc(d.이름) + " 배경지도를 불러오지 못해 " + esc(src.이름)
-      + "(으)로 바꿨습니다.</b> " + esc(d.진단 || "") + probeLink(probe)
-    : "<b>배경지도를 불러오지 못해 행정경계선만 표시합니다.</b> "
-      + esc(d.진단 || "") + " 인터넷 연결이 차단된 환경인지도 확인하세요."
-      + probeLink(probe);
-}
-function probeLink(u) {
-  return ' <a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">'
-    + "타일 주소 직접 열어보기</a> — 새 창에 뜨는 메시지가 실제 원인입니다.";
+  var warn = $(".shmap-warn", box);
+  warn.hidden = !s.warn;
+  warn.innerHTML = s.warn;
 }
 
 /* ── 사고지점·반경 ────────────────────────────────────────── */
@@ -673,7 +446,7 @@ function syncSort() {
 
 /* ── 조건 선택 ────────────────────────────────────────────── */
 function reload(refit) {
-  st.all = st.sgg ? shelters(st.sido, st.sgg) : [];
+  st.all = st.sgg ? MC.shelters(st.sido, st.sgg) : [];
   st.sel = {}; st.q = ""; st.touched = false;
   var qi = $(".shmap-q", box);
   if (qi) qi.value = "";
@@ -829,14 +602,13 @@ function buildBox() {
   bindMap();
 
   /* 배경지도 고르기 — 일반지도 / 위성+도로명 / OpenStreetMap */
-  $(".shmap-lyr", box).innerHTML = sources().map(function (s) {
+  $(".shmap-lyr", box).innerHTML = MC.tiles.sources().map(function (s) {
     return '<button type="button" data-s="' + esc(s.id) + '">' + esc(s.이름) + "</button>";
   }).join("");
   $$(".shmap-lyr button", box).forEach(function (b) {
     b.onclick = function () {
-      DEAD[b.dataset.s] = false;          // 다시 시도해 볼 기회를 준다
-      SRCSTAT[b.dataset.s] = { ok: 0, bad: 0 };
-      st.src = b.dataset.s;
+      MC.tiles.revive(b.dataset.s);       // 다시 시도해 볼 기회를 준다
+      MC.tiles.use(b.dataset.s);
       draw(); showSrc();
     };
   });
@@ -916,7 +688,7 @@ function open(o) {
   if (opt.시군구) {
     st.sgg = opt.시군구;
     var sd = opt.시도 || st.sido;
-    if (!sd || !((window.SHELTERS[sd] || {})[st.sgg])) sd = findSido(st.sgg) || "";
+    if (!sd || !((window.SHELTERS[sd] || {})[st.sgg])) sd = MC.findSido(st.sgg) || "";
     st.sido = sd;
   } else {
     st.sido = opt.시도 || st.sido || "";
@@ -932,26 +704,19 @@ function open(o) {
   renderRad();
 
   /* 배경지도는 바로 그린다. 안 되는 원본이면 대체순서에 따라 자동 전환된다 */
-  if (!st.src) st.src = cfg().기본 || (sources()[0] || {}).id || null;
   showSrc();
 
   var f = $(".shmap-q", box);
   if (f) f.focus();
 }
 
-/* 시·군·구 이름만 알 때 시·도 찾기 (동명 시·군·구가 있으면 첫 번째) */
-function findSido(sgg) {
-  var S = window.SHELTERS || {}, hit = null;
-  Object.keys(S).forEach(function (sd) {
-    if (!hit && S[sd] && S[sd][sgg]) hit = sd;
-  });
-  return hit;
-}
-
 /* 시야 상태 — 확인·시험용으로만 읽습니다 */
 function debug() {
+  var s = MC.tiles.status();
   return { view: st.view && { cx: st.view.cx, cy: st.view.cy, w: st.view.w },
-           src: (curSrc() || {}).id || null, dead: Object.keys(DEAD).filter(function (k) { return DEAD[k]; }),
+           src: (s.src || {}).id || null,
+           dead: MC.tiles.sources().filter(function (x) { return MC.tiles.isDead(x.id); })
+                   .map(function (x) { return x.id; }),
            acc: st.acc, radius: st.radius, shown: st.show.length, sel: selNames() };
 }
 

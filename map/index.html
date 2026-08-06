@@ -6,124 +6,109 @@
 <title>화학사고 대피장소 지도</title>
 <link rel="stylesheet" href="../assets/shell.css">
 </head>
-<body>
+<body class="mapapp">
 
 <div class="top">
   <div class="wrap">
-    <h1>화학사고 대피장소 지도
-      <span class="sub">전국 등록 대피장소 위치 확인 · 사고지점 기준 거리와 방위 계산</span>
-    </h1>
+    <h1>화학사고 대피장소 지도</h1>
     <div class="act noprint">
-      <button id="btnPrint">인쇄</button>
-      <button id="btnClear">초기화</button>
+      <button id="btnSrc" type="button">자료 출처</button>
+      <button id="btnPrint" type="button">인쇄</button>
+      <button id="btnClear" type="button">초기화</button>
     </div>
   </div>
 </div>
 
-<div class="note noprint"><div class="wrap" id="noteBar">
-  시·도와 시·군·구를 고르면 관내 대피장소가 지도에 표시됩니다.
-  지도를 <b>클릭</b>하면 그 지점을 사고지점으로 잡고 거리·방위를 계산합니다.
-</div></div>
+<!-- ── 조건 ─────────────────────────────────────────────── -->
+<div class="mbar noprint">
+  <div class="mbar-in">
+    <label class="mb-f">시·도<select id="mSido"></select></label>
+    <label class="mb-f">시·군·구<select id="mSgg"></select></label>
+    <label class="mb-f" title="사고지점을 찍으면 행정구역과 상관없이 반경 안을 모두 찾습니다">
+      찾는 범위<select id="mScope">
+        <option value="">선택한 시·군·구 관내</option>
+        <option value="2000">사고지점 반경 2km</option>
+        <option value="5000">사고지점 반경 5km</option>
+        <option value="10000">사고지점 반경 10km</option>
+        <option value="20000">사고지점 반경 20km</option>
+      </select>
+    </label>
+    <label class="mb-f">영향반경 참고 물질<input type="text" id="mMat" data-matpicker autocomplete="off"></label>
+    <label class="mb-f">풍향 (불어오는 쪽)<select id="mWind">
+      <option value="">모름 / 표시 안 함</option>
+      <option value="0">북풍 (N)</option><option value="45">북동풍 (NE)</option>
+      <option value="90">동풍 (E)</option><option value="135">남동풍 (SE)</option>
+      <option value="180">남풍 (S)</option><option value="225">남서풍 (SW)</option>
+      <option value="270">서풍 (W)</option><option value="315">북서풍 (NW)</option>
+    </select></label>
+    <div class="mb-lyr" id="mLyr" role="group" aria-label="배경지도 선택"></div>
+  </div>
+</div>
 
-<div class="wrap">
+<div class="mbar-warn" id="mWarn" hidden></div>
+<div class="mrad noprint" id="mRad" hidden></div>
 
-  <!-- 조건 -->
-  <div class="panel" style="margin-bottom:14px">
-    <div class="body">
-      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-        <div class="f">
-          <label for="mSido">시·도</label>
-          <select id="mSido"></select>
-        </div>
-        <div class="f">
-          <label for="mSgg">시·군·구</label>
-          <select id="mSgg"></select>
-        </div>
-        <div class="f">
-          <label for="mMat">영향반경 참고 물질</label>
-          <input type="text" id="mMat" data-matpicker autocomplete="off">
-        </div>
-        <div class="f">
-          <label for="mRadius">반경 (m)</label>
-          <div class="row" style="flex-wrap:nowrap">
-            <input type="text" id="mRadius" inputmode="numeric" style="flex:1">
-            <button class="sm" id="btnRadClear" type="button" title="반경 지우기">×</button>
-          </div>
-        </div>
-        <div class="f">
-          <label for="mWind">풍향 (바람이 불어오는 쪽)</label>
-          <select id="mWind">
-            <option value="">모름 / 표시 안 함</option>
-            <option value="0">북풍 (N)</option><option value="45">북동풍 (NE)</option>
-            <option value="90">동풍 (E)</option><option value="135">남동풍 (SE)</option>
-            <option value="180">남풍 (S)</option><option value="225">남서풍 (SW)</option>
-            <option value="270">서풍 (W)</option><option value="315">북서풍 (NW)</option>
-          </select>
-        </div>
-      </div>
-      <div id="radHint"></div>
+<!-- ── 사고지점 요약 ─────────────────────────────────────── -->
+<div class="msum" id="mSum" hidden></div>
+
+<!-- ── 지도 + 목록 ──────────────────────────────────────── -->
+<div class="mmain">
+  <div class="mmap">
+    <svg id="map" role="img" aria-label="화학사고 대피장소 지도"></svg>
+
+    <div class="mapctl noprint">
+      <button id="zIn" type="button" title="확대">＋</button>
+      <button id="zOut" type="button" title="축소">−</button>
+      <button id="zFit" type="button" title="전체 보기">⤢</button>
+    </div>
+
+    <div class="maplegend" id="mLeg"></div>
+    <div class="mapscale"><i id="scaleBar"></i><b id="scaleTxt"></b></div>
+    <div class="mapaddr" id="mAddr" hidden></div>
+
+    <div class="mapacc noprint">
+      <button id="btnAcc" type="button" class="sm">사고지점 찍기</button>
+      <label>위도<input type="text" id="acLat" inputmode="decimal"></label>
+      <label>경도<input type="text" id="acLon" inputmode="decimal"></label>
+      <button id="btnAccClear" type="button" class="sm" title="사고지점 지우기">×</button>
+      <label class="mapchk"><input type="checkbox" id="cRings" checked>거리 눈금</label>
     </div>
   </div>
 
-  <!-- 지도 + 목록 -->
-  <div class="mapcols">
-    <div class="panel">
-      <h2>지도 <span id="mapInfo" style="font-weight:400;color:var(--ink3)"></span></h2>
-      <div class="mapwrap">
-        <svg id="map" role="img" aria-label="화학사고 대피장소 지도"></svg>
-        <div class="mapctl noprint">
-          <button id="zIn" title="확대">＋</button>
-          <button id="zOut" title="축소">−</button>
-          <button id="zFit" title="전체 보기">⤢</button>
-        </div>
-        <div class="maplegend">
-          <span><i class="dot sh"></i>대피장소</span>
-          <span><i class="dot ac"></i>사고지점</span>
-          <span><i class="dot in"></i>반경 안</span>
-        </div>
-        <div class="mapscale"><span id="scaleBar"></span><b id="scaleTxt"></b></div>
-      </div>
-      <div class="body" style="padding:10px 14px;border-top:1px solid var(--line2)">
-        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
-          <div class="f">
-            <label for="acLat">사고지점 위도</label>
-            <input type="text" id="acLat" inputmode="decimal">
-          </div>
-          <div class="f">
-            <label for="acLon">사고지점 경도</label>
-            <input type="text" id="acLon" inputmode="decimal">
-          </div>
-          <div class="f" style="justify-content:flex-end">
-            <span class="fh">지도를 클릭해도 잡힙니다</span>
-          </div>
-        </div>
-      </div>
+  <div class="mside">
+    <div class="ms-hd">대피장소 <span id="listCnt"></span></div>
+    <div class="ms-tools noprint">
+      <input type="text" id="mQ" placeholder="이름·주소로 찾기" aria-label="대피장소 검색" autocomplete="off">
+      <select id="mSort" aria-label="정렬">
+        <option value="name">이름순</option>
+        <option value="dist">사고지점 가까운 순</option>
+        <option value="cap">수용인원 많은 순</option>
+      </select>
     </div>
-
-    <div class="panel">
-      <h2>대피장소 <span id="listCnt" style="font-weight:400;color:var(--ink3)"></span></h2>
-      <div class="shlist" id="shList"></div>
-    </div>
+    <div class="ms-list" id="shList"></div>
   </div>
+</div>
 
-  <details class="box noprint">
-    <summary>자료 출처 · 사용 시 주의</summary>
-    <div class="body" id="ver" style="font-size:12px;color:var(--ink2);line-height:1.7"></div>
-  </details>
-
-  <div class="foot">
-    <div class="disc">이 지도는 <b>등록된 대피장소의 위치를 확인하는 참고도구</b>입니다.
-      어느 대피장소가 적절한지, 대피 범위를 어디까지 잡을지는 도구가 판단하지 않습니다.
-      거리는 지형·도로를 고려하지 않은 <b>직선거리</b>이며, 반경 원은 물질정보에 기재된
-      참고 거리를 그린 것으로 실제 확산 범위가 아닙니다.</div>
+<!-- ── 자료 출처 창 ─────────────────────────────────────── -->
+<div class="cbx-back" id="srcModal" hidden>
+  <div class="cbx">
+    <header><b>자료 출처 · 사용 시 주의</b>
+      <button type="button" class="cbx-x" id="btnSrcClose" aria-label="닫기">✕</button></header>
+    <div class="alert w cbx-alert"><b>참고도구</b>이 지도는 등록된 대피장소의 위치를 확인하는
+      참고도구입니다. 어느 대피장소가 적절한지, 대피 범위를 어디까지 잡을지는 도구가
+      판단하지 않습니다. 거리는 지형·도로를 고려하지 않은 <b>직선거리</b>이며, 반경 원은
+      물질정보에 적힌 참고 거리를 그린 것으로 <b>실제 확산 범위가 아닙니다</b>.</div>
+    <div class="cbx-body" id="ver"></div>
   </div>
 </div>
 
 <script src="../data/version.js"></script>
+<script src="../data/basemap.js"></script>
 <script src="../data/materials.js"></script>
 <script src="../data/shelters.js"></script>
 <script src="../data/boundaries.js"></script>
 <script src="../assets/matpicker.js"></script>
+<script src="../assets/mapcore.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

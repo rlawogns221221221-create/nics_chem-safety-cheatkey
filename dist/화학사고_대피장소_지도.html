@@ -315,90 +315,241 @@ details.box .body{padding:12px}
   .ohd{color:#000}
 }
 
-/* ══ 대피장소 지도 ══════════════════════════════════════ */
-.mapcols{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:14px;align-items:start}
-.mapwrap{position:relative;background:#eef3f7;border-bottom:1px solid var(--line2)}
-#map{display:block;width:100%;height:min(64vh,620px);cursor:crosshair;touch-action:none}
-#map.grab{cursor:grabbing}
-#map .sea{fill:#e9eff4}
-#map .bds{fill:none;stroke:#9db4c8;stroke-linejoin:round;stroke-linecap:round}
-#map .bd.on{stroke:#3d7ab5}
-#map circle.sh{fill:#0b6b41;stroke:#fff;cursor:pointer}
-#map circle.sh.in{fill:#b31f1f}
-#map circle.sh.sel{fill:#0b57a4;stroke:#fff}
-#map text.shlbl{fill:#2c3a47;paint-order:stroke;stroke:#fff;stroke-width:.0012;
-  text-anchor:middle;font-family:inherit;font-weight:600;pointer-events:none}
-#map text.shlbl.sel{fill:#0b57a4}
-#map .ring{fill:rgba(179,31,31,.07);stroke:#b31f1f;stroke-dasharray:.004 .003}
-#map .wind{stroke:#0b57a4;stroke-linecap:round;opacity:.75}
-#map .windhead{fill:#0b57a4;opacity:.75}
-#map .acc{stroke:#b31f1f;stroke-linecap:round}
-#map .accdot{fill:none;stroke:#b31f1f}
+/* ══ 대피장소 지도 ══════════════════════════════════════════
+   지도가 주인공인 화면이라 한 화면에 꽉 채웁니다(스크롤 없이 지도·목록이
+   동시에 보이도록). 지도는 화면 픽셀 좌표계로 그리므로(assets/mapcore.js)
+   아래 선 굵기·글자 크기는 그대로 화면 픽셀이며 확대해도 변하지 않습니다. */
+body.mapapp{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+@supports (height:100dvh){ body.mapapp{height:100dvh} }
+.mapapp .top{flex:none;padding:11px 0}
+.mapapp .top .wrap{max-width:none;padding:0 16px}
 
-.mapctl{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:5px}
+/* 조건 줄 */
+.mbar{flex:none;background:var(--panel);border-bottom:1px solid var(--line)}
+.mbar-in{display:flex;align-items:flex-end;gap:11px;flex-wrap:wrap;padding:9px 16px}
+.mb-f{display:flex;flex-direction:column;gap:3px;font-size:11.5px;font-weight:700;color:var(--ink2)}
+.mb-f select,.mb-f input[type=text]{width:auto;min-width:132px;font-weight:400}
+.mb-f input[type=text]{min-width:150px}
+
+/* 배경지도 고르기 */
+.mb-lyr{display:flex;gap:0;margin-left:auto}
+.mb-lyr button{padding:7px 11px;font-size:12.5px;border-radius:0;border-left-width:0;background:#fff}
+.mb-lyr button:first-child{border-radius:6px 0 0 6px;border-left-width:1px}
+.mb-lyr button:last-child{border-radius:0 6px 6px 0}
+.mb-lyr button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.mb-lyr button[aria-pressed=true] + button{border-left-color:var(--brand)}
+.mb-lyr button:disabled{background:var(--panel);color:var(--ink3);text-decoration:line-through}
+
+.mbar-warn{flex:none;padding:8px 16px;background:var(--warn-l);
+  border-bottom:1px solid #ebd0a4;color:var(--warn);font-size:12px;line-height:1.55}
+.mbar-warn a{color:var(--brand-d);font-weight:700}
+
+/* 영향 참고 반경 줄 */
+.mrad{flex:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:7px 16px;background:var(--brand-l);border-bottom:1px solid #bcd4ea}
+.mr-lb{font-size:11.5px;font-weight:700;color:var(--brand-d)}
+.mr-nm{font-size:12.5px;color:var(--ink);margin-right:4px}
+.mr-none{font-size:12px;color:var(--warn);font-weight:600}
+.mrad button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
+.mr-more{font-size:11.5px;color:var(--brand-d);margin-left:4px}
+.mr-more > summary{cursor:pointer;font-weight:600}
+.mr-more dl{margin:6px 0 0;display:grid;grid-template-columns:auto 1fr;gap:3px 10px;
+  background:#fff;border:1px solid #cfe0f0;border-radius:6px;padding:8px 10px;
+  max-width:760px;color:var(--ink)}
+.mr-more dt{font-weight:600;color:var(--ink2);white-space:nowrap}
+.mr-more dd{margin:0;line-height:1.5}
+.mr-more .src{margin:5px 0 0;font-size:11px;color:var(--ink3);line-height:1.5;max-width:760px}
+
+/* 사고지점 요약 줄 — "이 근방에 무엇이 있나"를 한 줄로 */
+.msum{flex:none;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  padding:8px 16px;background:#0d3f70;color:#fff;font-size:12.5px}
+.ms-near{display:flex;align-items:baseline;gap:6px}
+.ms-near b{font-weight:700;color:#bcd3ec;font-size:11.5px}
+.ms-near em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
+.ms-bands{display:flex;gap:8px;flex-wrap:wrap}
+.ms-b{background:rgba(255,255,255,.13);border-radius:20px;padding:1px 10px;
+  font-variant-numeric:tabular-nums}
+.ms-b.z{opacity:.55}
+.ms-warn{background:rgba(255,255,255,.13);border-radius:20px;padding:1px 10px}
+.ms-warn.on{background:var(--err);font-weight:700}
+.ms-none{color:#bcd3ec}
+.ms-more{margin-left:auto;background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4);
+  color:#fff;font-size:12px;padding:3px 11px;font-weight:600}
+.ms-more:hover{background:rgba(255,255,255,.3);border-color:#fff}
+
+/* 지도 + 목록 */
+.mmain{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px}
+.mmap{position:relative;background:#eaf0f5;min-height:0;border-right:1px solid var(--line)}
+#map{position:absolute;inset:0;width:100%;height:100%;display:block;
+  touch-action:none;cursor:grab}
+#map:active{cursor:grabbing}
+#map.crosshair{cursor:crosshair}
+#map .bg{fill:#eef3f7}
+#map .bds .bd{fill:none;stroke:#9fb2c4;stroke-width:.8px}
+#map .bds .bd.on{stroke:var(--brand);stroke-width:1.6px}
+
+/* 거리 눈금 — 배경을 가리지 않게 얇고 옅게 */
+#map circle.grid{fill:none;stroke:#0d3f70;stroke-width:1px;stroke-dasharray:3 4;opacity:.5}
+#map text.gridlbl{fill:#0d3f70;text-anchor:middle;font-weight:700;paint-order:stroke;
+  stroke:#fff;stroke-width:.32em;stroke-linejoin:round;pointer-events:none}
+
+/* 영향 참고 반경 */
+#map circle.ring{fill:rgba(179,31,31,.07);stroke:var(--err);stroke-width:1.8px;stroke-dasharray:7 4}
+#map text.ringlbl{fill:var(--err);text-anchor:middle;font-weight:700;paint-order:stroke;
+  stroke:#fff;stroke-width:.32em;stroke-linejoin:round;pointer-events:none}
+
+/* 풍하방향 */
+#map path.lee{fill:rgba(138,79,6,.10);stroke:rgba(138,79,6,.35);stroke-width:1px}
+#map text.leelbl{fill:var(--warn);text-anchor:middle;font-weight:700;paint-order:stroke;
+  stroke:#fff;stroke-width:.32em;stroke-linejoin:round;pointer-events:none}
+
+/* 사고지점 ↔ 고른 곳 연결선 */
+#map line.link{stroke:#0d3f70;stroke-width:1.8px;stroke-dasharray:5 4}
+#map text.linklbl{fill:#0d3f70;text-anchor:middle;font-weight:700;paint-order:stroke;
+  stroke:#fff;stroke-width:.38em;stroke-linejoin:round;pointer-events:none}
+
+/* 대피장소 */
+#map circle.mk{fill:#fff;stroke:var(--ok);stroke-width:1.8px;cursor:pointer}
+#map circle.mk.hv{fill:var(--ok-l)}
+#map circle.mk.lee{stroke:var(--warn)}
+#map circle.mk.in{fill:#fdeaea;stroke:var(--err)}
+#map circle.mk.on{fill:var(--brand);stroke:#fff;stroke-width:2.4px}
+#map circle.mk.on.in{fill:var(--err);stroke:#fff}
+#map text.mkl{fill:#12181f;text-anchor:middle;font-weight:600;paint-order:stroke;
+  stroke:#fff;stroke-width:.28em;stroke-linejoin:round;pointer-events:none}
+#map text.mkl.on{fill:var(--brand-d)}
+#map text.mkh{fill:#5c6b7a;text-anchor:middle;paint-order:stroke;
+  stroke:#fff;stroke-width:.3em;pointer-events:none}
+
+/* 사고지점 */
+#map line.acc{stroke:var(--err);stroke-width:2.6px}
+#map circle.accdot{fill:none;stroke:var(--err);stroke-width:1.8px}
+#map text.acclbl{fill:var(--err);text-anchor:middle;font-weight:700;paint-order:stroke;
+  stroke:#fff;stroke-width:.32em;stroke-linejoin:round;pointer-events:none}
+
+/* 배경지도가 깔렸을 때 — 도로·건물 위에서 묻히지 않게 대비를 올린다 */
+#map.hasbg .bg{fill:#dfe6ec}
+#map.hasbg .bds .bd{stroke:rgba(11,87,164,.28);stroke-width:.7px}
+#map.hasbg .bds .bd.on{stroke:#b31f1f;stroke-width:2px;stroke-dasharray:7 4;stroke-linejoin:round}
+#map.hasbg circle.mk{stroke-width:2.2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+#map.hasbg text.mkl{stroke-width:.34em}
+#map.hasbg circle.grid{stroke-width:1.4px;opacity:.75}
+
+/* 지도 위 겹쳐 놓는 것들 */
+.mapctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
 .mapctl button{width:32px;height:32px;padding:0;font-size:15px;line-height:1;
-  background:rgba(255,255,255,.94);border-color:var(--line);font-weight:700}
-.maplegend{position:absolute;left:10px;top:10px;display:flex;gap:10px;flex-wrap:wrap;
-  background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:6px;
-  padding:5px 9px;font-size:11.5px;color:var(--ink2)}
-.maplegend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:4px;
-  vertical-align:-1px;border:1px solid #fff}
-.maplegend .dot.sh{background:#0b6b41}
-.maplegend .dot.ac{background:#b31f1f}
-.maplegend .dot.in{background:#b31f1f;opacity:.55}
-.mapscale{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:7px;
-  background:rgba(255,255,255,.92);border:1px solid var(--line);border-radius:6px;padding:4px 9px}
-.mapscale span{display:block;height:5px;border:1.5px solid var(--ink2);border-top:0}
-.mapscale b{font-size:11px;color:var(--ink2);font-variant-numeric:tabular-nums}
+  background:rgba(255,255,255,.95)}
+.maplegend{position:absolute;left:10px;top:10px;display:flex;gap:9px;flex-wrap:wrap;
+  background:rgba(255,255,255,.92);border-radius:6px;padding:4px 9px;
+  font-size:11.5px;color:var(--ink2);pointer-events:none;max-width:calc(100% - 70px)}
+.maplegend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;
+  margin-right:4px;vertical-align:-1px;border:1.5px solid var(--ok);background:#fff}
+.maplegend .dot.ac{background:var(--err);border-color:var(--err)}
+.maplegend .dot.in{background:#fdeaea;border-color:var(--err)}
+.maplegend .dot.lee{background:rgba(138,79,6,.2);border-color:var(--warn)}
+.maplegend .dot.gr{background:none;border-style:dashed;border-color:#0d3f70}
+.mapscale{position:absolute;left:10px;bottom:56px;display:flex;align-items:center;gap:6px;
+  background:rgba(255,255,255,.92);border-radius:4px;padding:2px 7px;font-size:11px}
+.mapscale i{display:block;height:4px;border:1px solid var(--ink2);border-top:0}
+.mapscale b{font-variant-numeric:tabular-nums;color:var(--ink2)}
+.mapaddr{position:absolute;left:10px;max-width:min(380px,calc(100% - 62px));bottom:84px;
+  background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:7px;
+  padding:7px 11px;font-size:12.5px;line-height:1.5;
+  box-shadow:0 2px 8px rgba(0,0,0,.14);pointer-events:none}
+.mapaddr b{font-weight:700}
+.mapaddr i{font-style:normal;font-size:11.5px;color:var(--ink3);margin-left:4px}
+.mapaddr span{display:block;color:var(--ink2);font-size:11.5px}
+.mapaddr em{font-style:normal;font-size:11.5px;color:var(--brand-d);font-weight:600}
+.mapaddr em + em::before{content:" · ";color:var(--ink3);font-weight:400}
 
-/* 반경 후보 */
-.radbox{margin-top:10px;border:1px solid #bcd4ea;background:var(--brand-l);
-  border-radius:7px;padding:8px 11px;font-size:12px}
-.radbox .hd{font-weight:700;color:var(--brand-d);margin-bottom:6px}
-.radbox .hd em{font-style:normal;font-weight:400;color:var(--ink2);font-size:12px}
-.radrow{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;padding:3px 0;
-  border-top:1px solid #cfe0f0;line-height:1.45}
-.radrow b{flex:none;min-width:128px;color:var(--ink2)}
-.radrow span{flex:1;min-width:150px}
-.radrow span{color:var(--ink)}
-.radrow .btns{margin-left:auto;display:flex;gap:4px;flex-wrap:wrap}
-.radrow .btns button{padding:2px 7px;font-size:11.5px}
-.radbox .src{margin:8px 0 0;font-size:11px;color:var(--ink3);line-height:1.5}
+/* 사고지점 조작 줄 — 지도 아래에 붙여 둔다 */
+.mapacc{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;
+  gap:8px;flex-wrap:wrap;padding:7px 10px;background:rgba(255,255,255,.95);
+  border-top:1px solid var(--line)}
+.mapacc label{display:flex;align-items:center;gap:5px;font-size:11.5px;
+  font-weight:700;color:var(--ink2)}
+.mapacc input[type=text]{width:104px;padding:4px 8px;font-size:12.5px}
+.mapacc .mapchk{margin-left:auto;font-weight:600}
+.mapacc .mapchk input{width:15px;height:15px;accent-color:var(--brand)}
+#btnAcc[aria-pressed=true]{background:var(--err);border-color:var(--err);color:#fff;font-weight:700}
 
 /* 목록 */
-.shlist{max-height:min(64vh,620px);overflow-y:auto}
-.shlist .empty{padding:24px 14px;text-align:center;color:var(--ink3);font-size:13px;line-height:1.7}
-.shlist .sh{padding:9px 14px;border-bottom:1px solid var(--line2);cursor:pointer;line-height:1.5}
-.shlist .sh:hover{background:var(--panel)}
-.shlist .sh.sel{background:var(--brand-l);box-shadow:inset 3px 0 0 var(--brand)}
-.shlist .l1{font-size:13.5px}
-.shlist .l1 em{font-style:normal;font-size:12px;color:var(--ink3)}
-.shlist .l2{font-size:12px;color:var(--ink2);display:flex;gap:7px;align-items:center;
-  flex-wrap:wrap;margin-top:1px}
-.shlist .l2 .d{color:var(--brand-d);font-variant-numeric:tabular-nums;font-size:12.5px}
-.shlist .l3{font-size:11.5px;color:var(--ink3);margin-top:1px}
-.shlist .l4{font-size:11.5px;color:var(--brand-d);margin-top:4px;padding-top:4px;
-  border-top:1px dashed #c3d6e8}
-.shlist .tag{font-size:10.5px;padding:1px 6px}
-.shlist .tag.danger{background:var(--err-l);color:var(--err)}
-.shlist .tag.lee{background:var(--warn-l);color:var(--warn)}
+.mside{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--card)}
+.ms-hd{flex:none;padding:9px 13px;font-size:12.5px;font-weight:700;color:var(--ink2);
+  border-bottom:1px solid var(--line2)}
+.ms-hd span{font-weight:400;color:var(--ink3)}
+.ms-tools{flex:none;display:flex;gap:6px;padding:7px 13px;background:var(--panel);
+  border-bottom:1px solid var(--line2)}
+.ms-tools input[type=text]{flex:1;min-width:0;padding:5px 9px;font-size:12.5px}
+.ms-tools select{width:auto;flex:none;padding:5px 6px;font-size:12px}
+.ms-list{flex:1;min-height:0;overflow-y:auto;scrollbar-gutter:stable}
+.ms-empty{padding:22px 14px;color:var(--ink3);font-size:12.5px;line-height:1.8;margin:0}
+.ms-it{padding:8px 13px;border-bottom:1px solid var(--line2);cursor:pointer;font-size:12.5px}
+.ms-it:hover{background:var(--panel)}
+.ms-it.on{background:var(--brand-l);box-shadow:inset 3px 0 0 var(--brand)}
+.ms-it.ring{background:var(--err-l)}
+.ms-it.ring:hover{background:#fbdede}
+.ms-it.ring.on{background:#f8d4d4;box-shadow:inset 3px 0 0 var(--err)}
+.ms-it .l1{display:flex;align-items:baseline;gap:6px}
+.ms-it .l1 b{font-weight:700}
+.ms-it .l1 .dt{font-weight:400;font-size:11.5px;color:var(--ink3)}
+.ms-it .l1 .d{margin-left:auto;flex:none;font-size:11.5px;font-weight:700;
+  color:var(--brand-d);font-variant-numeric:tabular-nums;white-space:nowrap}
+/* 거리 막대 — 줄끼리 견주어 보라고 넣는다 */
+.ms-bar{height:3px;background:var(--line2);border-radius:2px;margin:4px 0 3px;overflow:hidden}
+.ms-bar i{display:block;height:100%;background:var(--brand);opacity:.55}
+.ms-it.ring .ms-bar i{background:var(--err);opacity:.7}
+.ms-it .l2{color:var(--ink2);font-size:11.5px;margin-top:2px;line-height:1.5}
+.ms-it .l3{color:var(--brand-d);font-size:11.5px;margin-top:2px}
+.ms-it .l5{margin-top:3px;display:flex;gap:5px;flex-wrap:wrap}
+.ms-it .l5 .tag{font-size:10.5px;padding:1px 7px;border-radius:20px;font-weight:700}
+.ms-it .l5 .tag.danger{background:var(--err-l);color:var(--err)}
+.ms-it .l5 .tag.lee{background:var(--warn-l);color:var(--warn)}
+.ms-it .l4{margin-top:5px;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.ms-cp{display:flex;gap:5px}
+.ms-cp button{padding:2px 8px;font-size:11px}
 
-@media (max-width:980px){
-  .mapcols{grid-template-columns:1fr}
-  #map{height:56vh}
-  .shlist{max-height:none}
+/* 자료 출처 창 */
+#ver p{margin:0 0 9px;font-size:12.5px;line-height:1.65;color:var(--ink2)}
+#ver p b{color:var(--ink)}
+#ver .src{margin-top:12px;padding-top:9px;border-top:1px solid var(--line2);
+  font-size:11.5px;color:var(--ink3)}
+
+@media (max-width:1080px){ .mmain{grid-template-columns:minmax(0,1fr) 320px} }
+@media (max-width:860px){
+  body.mapapp{height:auto;overflow:visible}
+  .mmain{grid-template-columns:1fr;flex:none}
+  .mmap{height:56vh;border-right:0}
+  .mside{height:auto}
+  .ms-list{overflow:visible}
+  .mb-lyr{margin-left:0}
+  .mb-f select,.mb-f input[type=text]{min-width:120px}
+  /* 좁은 화면에서는 사고지점 줄이 지도를 많이 가리지 않게 촘촘히 */
+  .mapacc{gap:5px;padding:5px 8px;font-size:11px}
+  .mapacc label{gap:3px}
+  .mapacc input[type=text]{width:84px;padding:3px 6px;font-size:12px}
+  .mapacc .sm{padding:3px 9px}
+  .mapscale{bottom:64px}
+  .mapaddr{bottom:92px}
 }
 @media print{
-  .mapcols{grid-template-columns:1fr}
-  .mapctl{display:none!important}
-  #map{height:420px}
-  .shlist{max-height:none;overflow:visible}
+  body.mapapp{height:auto;overflow:visible;display:block}
+  .mbar,.mapctl,.mapacc,.ms-tools,.mbar-warn{display:none!important}
+  .mmain{display:block}
+  .mmap{position:relative;height:440px;page-break-inside:avoid;border:1px solid #000}
+  .msum{background:#fff;color:#000;border:1px solid #000;border-width:1px 0}
+  .msum .ms-near b,.msum .ms-none{color:#333}
+  .ms-b,.ms-warn{background:#eee;color:#000}
+  .ms-warn.on{background:#fff;border:1px solid #000;font-weight:700}
+  .mside{height:auto}
+  .ms-list{overflow:visible}
+  .ms-it{break-inside:avoid}
 }
+
 a.btnlink{display:inline-block;text-decoration:none;color:var(--brand-d);font-weight:600;
   border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:12.5px;background:#fff}
 a.btnlink:hover{border-color:var(--brand)}
-.shlist .l4 button{padding:2px 8px;font-size:11.5px;margin-top:5px}
-#map text.shhint{fill:#78838f;text-anchor:middle;font-family:inherit;pointer-events:none}
 
 /* ══ 사고물질 선택 목록 ═════════════════════════════════ */
 .mpk{position:fixed;z-index:900;background:#fff;border:1px solid var(--brand);
@@ -600,116 +751,99 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:12.5px;flex:no
 
 </style>
 </head>
-<body>
+<body class="mapapp">
 
 <div class="top">
   <div class="wrap">
-    <h1>화학사고 대피장소 지도
-      <span class="sub">전국 등록 대피장소 위치 확인 · 사고지점 기준 거리와 방위 계산</span>
-    </h1>
+    <h1>화학사고 대피장소 지도</h1>
     <div class="act noprint">
-      <button id="btnPrint">인쇄</button>
-      <button id="btnClear">초기화</button>
+      <button id="btnSrc" type="button">자료 출처</button>
+      <button id="btnPrint" type="button">인쇄</button>
+      <button id="btnClear" type="button">초기화</button>
     </div>
   </div>
 </div>
 
-<div class="note noprint"><div class="wrap" id="noteBar">
-  시·도와 시·군·구를 고르면 관내 대피장소가 지도에 표시됩니다.
-  지도를 <b>클릭</b>하면 그 지점을 사고지점으로 잡고 거리·방위를 계산합니다.
-</div></div>
+<!-- ── 조건 ─────────────────────────────────────────────── -->
+<div class="mbar noprint">
+  <div class="mbar-in">
+    <label class="mb-f">시·도<select id="mSido"></select></label>
+    <label class="mb-f">시·군·구<select id="mSgg"></select></label>
+    <label class="mb-f" title="사고지점을 찍으면 행정구역과 상관없이 반경 안을 모두 찾습니다">
+      찾는 범위<select id="mScope">
+        <option value="">선택한 시·군·구 관내</option>
+        <option value="2000">사고지점 반경 2km</option>
+        <option value="5000">사고지점 반경 5km</option>
+        <option value="10000">사고지점 반경 10km</option>
+        <option value="20000">사고지점 반경 20km</option>
+      </select>
+    </label>
+    <label class="mb-f">영향반경 참고 물질<input type="text" id="mMat" data-matpicker autocomplete="off"></label>
+    <label class="mb-f">풍향 (불어오는 쪽)<select id="mWind">
+      <option value="">모름 / 표시 안 함</option>
+      <option value="0">북풍 (N)</option><option value="45">북동풍 (NE)</option>
+      <option value="90">동풍 (E)</option><option value="135">남동풍 (SE)</option>
+      <option value="180">남풍 (S)</option><option value="225">남서풍 (SW)</option>
+      <option value="270">서풍 (W)</option><option value="315">북서풍 (NW)</option>
+    </select></label>
+    <div class="mb-lyr" id="mLyr" role="group" aria-label="배경지도 선택"></div>
+  </div>
+</div>
 
-<div class="wrap">
+<div class="mbar-warn" id="mWarn" hidden></div>
+<div class="mrad noprint" id="mRad" hidden></div>
 
-  <!-- 조건 -->
-  <div class="panel" style="margin-bottom:14px">
-    <div class="body">
-      <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-        <div class="f">
-          <label for="mSido">시·도</label>
-          <select id="mSido"></select>
-        </div>
-        <div class="f">
-          <label for="mSgg">시·군·구</label>
-          <select id="mSgg"></select>
-        </div>
-        <div class="f">
-          <label for="mMat">영향반경 참고 물질</label>
-          <input type="text" id="mMat" data-matpicker autocomplete="off">
-        </div>
-        <div class="f">
-          <label for="mRadius">반경 (m)</label>
-          <div class="row" style="flex-wrap:nowrap">
-            <input type="text" id="mRadius" inputmode="numeric" style="flex:1">
-            <button class="sm" id="btnRadClear" type="button" title="반경 지우기">×</button>
-          </div>
-        </div>
-        <div class="f">
-          <label for="mWind">풍향 (바람이 불어오는 쪽)</label>
-          <select id="mWind">
-            <option value="">모름 / 표시 안 함</option>
-            <option value="0">북풍 (N)</option><option value="45">북동풍 (NE)</option>
-            <option value="90">동풍 (E)</option><option value="135">남동풍 (SE)</option>
-            <option value="180">남풍 (S)</option><option value="225">남서풍 (SW)</option>
-            <option value="270">서풍 (W)</option><option value="315">북서풍 (NW)</option>
-          </select>
-        </div>
-      </div>
-      <div id="radHint"></div>
+<!-- ── 사고지점 요약 ─────────────────────────────────────── -->
+<div class="msum" id="mSum" hidden></div>
+
+<!-- ── 지도 + 목록 ──────────────────────────────────────── -->
+<div class="mmain">
+  <div class="mmap">
+    <svg id="map" role="img" aria-label="화학사고 대피장소 지도"></svg>
+
+    <div class="mapctl noprint">
+      <button id="zIn" type="button" title="확대">＋</button>
+      <button id="zOut" type="button" title="축소">−</button>
+      <button id="zFit" type="button" title="전체 보기">⤢</button>
+    </div>
+
+    <div class="maplegend" id="mLeg"></div>
+    <div class="mapscale"><i id="scaleBar"></i><b id="scaleTxt"></b></div>
+    <div class="mapaddr" id="mAddr" hidden></div>
+
+    <div class="mapacc noprint">
+      <button id="btnAcc" type="button" class="sm">사고지점 찍기</button>
+      <label>위도<input type="text" id="acLat" inputmode="decimal"></label>
+      <label>경도<input type="text" id="acLon" inputmode="decimal"></label>
+      <button id="btnAccClear" type="button" class="sm" title="사고지점 지우기">×</button>
+      <label class="mapchk"><input type="checkbox" id="cRings" checked>거리 눈금</label>
     </div>
   </div>
 
-  <!-- 지도 + 목록 -->
-  <div class="mapcols">
-    <div class="panel">
-      <h2>지도 <span id="mapInfo" style="font-weight:400;color:var(--ink3)"></span></h2>
-      <div class="mapwrap">
-        <svg id="map" role="img" aria-label="화학사고 대피장소 지도"></svg>
-        <div class="mapctl noprint">
-          <button id="zIn" title="확대">＋</button>
-          <button id="zOut" title="축소">−</button>
-          <button id="zFit" title="전체 보기">⤢</button>
-        </div>
-        <div class="maplegend">
-          <span><i class="dot sh"></i>대피장소</span>
-          <span><i class="dot ac"></i>사고지점</span>
-          <span><i class="dot in"></i>반경 안</span>
-        </div>
-        <div class="mapscale"><span id="scaleBar"></span><b id="scaleTxt"></b></div>
-      </div>
-      <div class="body" style="padding:10px 14px;border-top:1px solid var(--line2)">
-        <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(130px,1fr))">
-          <div class="f">
-            <label for="acLat">사고지점 위도</label>
-            <input type="text" id="acLat" inputmode="decimal">
-          </div>
-          <div class="f">
-            <label for="acLon">사고지점 경도</label>
-            <input type="text" id="acLon" inputmode="decimal">
-          </div>
-          <div class="f" style="justify-content:flex-end">
-            <span class="fh">지도를 클릭해도 잡힙니다</span>
-          </div>
-        </div>
-      </div>
+  <div class="mside">
+    <div class="ms-hd">대피장소 <span id="listCnt"></span></div>
+    <div class="ms-tools noprint">
+      <input type="text" id="mQ" placeholder="이름·주소로 찾기" aria-label="대피장소 검색" autocomplete="off">
+      <select id="mSort" aria-label="정렬">
+        <option value="name">이름순</option>
+        <option value="dist">사고지점 가까운 순</option>
+        <option value="cap">수용인원 많은 순</option>
+      </select>
     </div>
-
-    <div class="panel">
-      <h2>대피장소 <span id="listCnt" style="font-weight:400;color:var(--ink3)"></span></h2>
-      <div class="shlist" id="shList"></div>
-    </div>
+    <div class="ms-list" id="shList"></div>
   </div>
+</div>
 
-  <details class="box noprint">
-    <summary>자료 출처 · 사용 시 주의</summary>
-    <div class="body" id="ver" style="font-size:12px;color:var(--ink2);line-height:1.7"></div>
-  </details>
-
-  <div class="foot">
-    <div class="disc">이 지도는 <b>등록된 대피장소의 위치를 확인하는 참고도구</b>입니다.
-      어느 대피장소가 적절한지, 대피 범위를 어디까지 잡을지는 도구가 판단하지 않습니다.
-      거리는 지형·도로를 고려하지 않은 <b>직선거리</b>이며, 반경 원은 물질정보에 기재된
-      참고 거리를 그린 것으로 실제 확산 범위가 아닙니다.</div>
+<!-- ── 자료 출처 창 ─────────────────────────────────────── -->
+<div class="cbx-back" id="srcModal" hidden>
+  <div class="cbx">
+    <header><b>자료 출처 · 사용 시 주의</b>
+      <button type="button" class="cbx-x" id="btnSrcClose" aria-label="닫기">✕</button></header>
+    <div class="alert w cbx-alert"><b>참고도구</b>이 지도는 등록된 대피장소의 위치를 확인하는
+      참고도구입니다. 어느 대피장소가 적절한지, 대피 범위를 어디까지 잡을지는 도구가
+      판단하지 않습니다. 거리는 지형·도로를 고려하지 않은 <b>직선거리</b>이며, 반경 원은
+      물질정보에 적힌 참고 거리를 그린 것으로 <b>실제 확산 범위가 아닙니다</b>.</div>
+    <div class="cbx-body" id="ver"></div>
   </div>
 </div>
 
@@ -717,7 +851,7 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:12.5px;flex:no
 /* 도구 기준정보 — 문안/데이터 갱신 시 이 파일을 수정하세요. */
 var VERSION = {
   도구명: "화학사고 주민대피 문자 작성 지원도구",
-  도구버전: "0.4.8-draft",
+  도구버전: "0.5.0-draft",
   반영일: "2026-08-06",
 
   // 문안 근거
@@ -764,6 +898,70 @@ var VERSION = {
 
   관리부서: "화학물질안전원 ○○과 (기재 필요)",
   관리자연락처: "000-0000-0000 (기재 필요)"
+};
+
+</script>
+<script>
+/* ============================================================
+   배경지도 설정 — 대피장소 지도 선택 화면의 배경(도로·건물·지명)
+
+   이 도구는 인터넷이 되는 환경에서 씁니다. 배경지도를 기본으로 켜 둡니다.
+
+   ── 어떻게 동작하나 ──────────────────────────────────────────
+   대체순서에 적힌 순서대로 시도합니다. 앞의 것이 안 되면(인증키 문제·
+   도메인 미등록·서버 장애) 자동으로 다음 것으로 넘어갑니다.
+   그래서 화면에 배경 없는 지도가 남는 일이 없습니다.
+
+     vworld → 브이월드 일반지도 (국토교통부. 인증키 필요)
+     osm    → OpenStreetMap (인증키 불필요. 최후 대비용)
+
+   화면 위쪽에서 일반지도 / 위성+도로명 / OpenStreetMap 을 직접 고를 수도 있습니다.
+
+   ── 브이월드 인증키 ─────────────────────────────────────────
+   https://www.vworld.kr → 오픈API → 인증키 발급 (2D 배경지도 / WMTS)
+   ※ 발급할 때 **활용 도메인에 이 도구를 올릴 주소를 반드시 등록**하세요.
+      등록하지 않은 주소에서 열면 브이월드가 타일을 거부합니다.
+      (이때는 화면에 이유가 표시되고 OpenStreetMap 으로 자동 전환됩니다)
+
+   ── 주소 틀의 치환 항목 ──────────────────────────────────────
+   {키} {z} {x} {y}
+   브이월드 WMTS 는 z / y(행) / x(열) 순서, OSM 계열은 z / x / y 순서입니다.
+   좌표계는 둘 다 웹 메르카토르(EPSG:3857)이므로 경계선·마커와 정확히 겹칩니다.
+   ============================================================ */
+
+var BASEMAP = {
+  사용: true,
+
+  /* 브이월드 인증키 — 주소 틀의 {키} 에 들어갑니다 */
+  인증키: "6FB11C99-E62D-38A5-8F5C-609B9D96BD65",
+
+  기본: "vworld",
+  대체순서: ["vworld", "osm"],
+
+  배경: [
+    {
+      id: "vworld", 이름: "일반지도", 저작권: "국토교통부 브이월드",
+      주소: "https://api.vworld.kr/req/wmts/1.0.0/{키}/Base/{z}/{y}/{x}.png",
+      키필요: true, 최대확대: 19,
+      진단: "브이월드가 타일을 주지 않았습니다. 인증키가 잘못되었거나, " +
+            "인증키 발급 시 등록한 활용 도메인이 지금 접속한 주소와 다를 수 있습니다."
+    },
+    {
+      id: "vworld_sat", 이름: "위성+도로명", 저작권: "국토교통부 브이월드",
+      주소: "https://api.vworld.kr/req/wmts/1.0.0/{키}/Satellite/{z}/{y}/{x}.jpeg",
+      겹침: "https://api.vworld.kr/req/wmts/1.0.0/{키}/Hybrid/{z}/{y}/{x}.png",
+      키필요: true, 최대확대: 19,
+      진단: "브이월드가 위성영상 타일을 주지 않았습니다. 인증키·활용 도메인을 확인하세요."
+    },
+    {
+      id: "osm", 이름: "OpenStreetMap", 저작권: "© OpenStreetMap 기여자",
+      주소: "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+      키필요: false, 최대확대: 19,
+      진단: "OpenStreetMap 타일 서버에 연결하지 못했습니다. 인터넷 연결을 확인하세요."
+    }
+  ],
+
+  최소확대: 6
 };
 
 </script>
@@ -1032,8 +1230,380 @@ window.MatPicker = { close: close, refresh: function () { READY = false; ALL = [
 
 </script>
 <script>
-/* 화학사고 대피장소 지도 — 외부 지도 API 없이 SVG 로 직접 그립니다.
-   인터넷 연결·API 키가 필요 없어 망분리 환경에서도 그대로 동작합니다. */
+/* ============================================================
+   지도 공용 엔진 — 투영 · 거리 · 배경지도 타일 · 행정경계선
+
+   ① 문자 작성 도구의 "지도에서 고르기" 창(assets/shmap.js)과
+   ② 대피장소 지도(map/app.js)가 같은 코드를 씁니다.
+   앞으로 만들 ③ 방제자원업체 지도도 이 파일을 그대로 씁니다.
+   따로 두면 타일 대체 규칙 같은 것을 고칠 때 두 번 고쳐야 하고,
+   한쪽만 고쳐지면 두 지도가 서로 다르게 동작하게 됩니다.
+
+   ── 좌표계 ─────────────────────────────────────────────────
+   웹 메르카토르(EPSG:3857)를 0~1 로 정규화한 '세계좌표'를 씁니다.
+   배경지도 타일이 이 좌표계를 쓰므로 타일·경계선·마커가 정확히 겹칩니다.
+
+   그리기는 화면 픽셀 좌표로 합니다(viewBox="0 0 폭 높이").
+   세계좌표를 viewBox 에 그대로 넣으면 SVG 내부 float32(유효자리 7자리)
+   때문에 확대할수록 도형이 떨리거나 사라집니다. 투영은 배정도인 이곳에서
+   끝내고, SVG 에는 픽셀 값만 넘깁니다. 덕분에 선 굵기·글자 크기도
+   그냥 픽셀이라 확대해도 변하지 않습니다.
+
+   ── 시야(vb) 규약 ───────────────────────────────────────────
+   {x, y, w, h}  세계좌표로 나타낸 보이는 범위
+   {sw, sh}      그 범위가 그려질 화면 크기 (픽셀)
+   ============================================================ */
+(function () {
+"use strict";
+
+var TAU = Math.PI * 2;
+var EQUATOR = 40075016.686;              // 적도 둘레 (m) = 세계좌표 1.0
+var D2R = Math.PI / 180;
+
+/* ── 투영 ─────────────────────────────────────────────────── */
+function wx(lon) { return (+lon + 180) / 360; }
+function wy(lat) {
+  var l = Math.max(-85.05112878, Math.min(85.05112878, +lat));
+  var s = Math.sin(l * D2R);
+  return 0.5 - Math.log((1 + s) / (1 - s)) / (2 * TAU);
+}
+function wxInv(x) { return x * 360 - 180; }
+function wyInv(y) { return Math.atan(Math.sinh((0.5 - y) * TAU)) / D2R; }
+
+/* 미터 ↔ 세계좌표 길이. 메르카토르는 등각이라 위도에 따라 축척이 달라진다. */
+function mToWorld(m, lat) { return m / (EQUATOR * Math.cos(lat * D2R)); }
+function worldToM(w, lat) { return w * EQUATOR * Math.cos(lat * D2R); }
+
+/* ── 거리·방위 ────────────────────────────────────────────── */
+
+/* 직선거리 (m) — 하버사인. 지형·도로를 고려하지 않는다. */
+function distM(a, b, c, d) {
+  var R = 6371000;
+  var dLat = (c - a) * D2R, dLon = (d - b) * D2R;
+  var s = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+        + Math.cos(a * D2R) * Math.cos(c * D2R) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  return Math.round(2 * R * Math.asin(Math.sqrt(s)));
+}
+/* 방위각 (도, 북=0) */
+function bearing(a, b, c, d) {
+  var y = Math.sin((d - b) * D2R) * Math.cos(c * D2R);
+  var x = Math.cos(a * D2R) * Math.sin(c * D2R)
+        - Math.sin(a * D2R) * Math.cos(c * D2R) * Math.cos((d - b) * D2R);
+  return (Math.atan2(y, x) / D2R + 360) % 360;
+}
+var DIRS = ["북", "북동", "동", "남동", "남", "남서", "서", "북서"];
+function dirName(deg) { return DIRS[Math.round(deg / 45) % 8]; }
+
+/* 급할 때 읽는 값이라 자리수를 늘리지 않는다 (1.2km 로 충분).
+   딱 떨어지면 소수점을 붙이지 않는다 — "1.0km 안 3곳" 보다 "1km 안 3곳" 이 읽기 쉽다. */
+function fmtDist(m) {
+  if (m < 1000) return Math.round(m) + "m";
+  var km = m / 1000;
+  if (km >= 100) return Math.round(km) + "km";
+  return (Math.round(km * 10) % 10 === 0 ? km.toFixed(0) : km.toFixed(1)) + "km";
+}
+
+/* 눈금·반경에 쓰는 '떨어지지 않는' 거리 값 */
+var NICE = [10, 20, 50, 100, 200, 300, 500, 1000, 2000, 3000, 5000,
+            10000, 20000, 30000, 50000, 100000, 200000];
+function niceDist(target) {
+  return NICE.reduce(function (a, b) {
+    return Math.abs(b - target) < Math.abs(a - target) ? b : a;
+  });
+}
+
+/* ── 축척 막대 ────────────────────────────────────────────── */
+/* 화면 가로의 1/4 에 가까운 '떨어지는' 거리를 고른다 */
+function scale(vb) {
+  var latC = wyInv(vb.y + vb.h / 2);
+  var full = distM(latC, wxInv(vb.x), latC, wxInv(vb.x + vb.w));
+  var pick = niceDist(full / 4);
+  return { m: pick, px: Math.max(22, Math.round(pick / full * vb.sw)),
+           label: pick >= 1000 ? (pick / 1000) + "km" : pick + "m" };
+}
+
+/* ══ 배경지도 타일 ═══════════════════════════════════════════
+   타일을 미리 확인하지 않고 바로 그립니다. 확인 단계를 두면 배경이 뜰 수
+   있는데도 그 시간만큼 빈 지도가 보이기 때문입니다.
+
+   타일 한 장씩 <img> 로 받아 두고, 받아진 것만 화면에 얹습니다.
+   한 원본에서 연달아 실패하면 그 원본은 쓸 수 없다고 보고 대체순서의
+   다음 원본으로 자동 전환합니다 → 배경 없는 지도가 남지 않습니다.
+   ═══════════════════════════════════════════════════════════ */
+
+var TILE = {};        // 타일 주소 → "ok" | "bad" | "…"
+var SRCSTAT = {};     // 원본 id → {ok, bad}
+var DEAD = {};        // 못 쓰는 것으로 판정된 원본 id
+var CUR = null;       // 사용자가 고른 원본 id
+var timer = null, listeners = [];
+
+function cfg() { return window.BASEMAP || {}; }
+function sources() { return cfg().배경 || []; }
+function srcById(id) {
+  return sources().filter(function (s) { return s.id === id; })[0] || null;
+}
+function usable(s) {
+  if (!s || DEAD[s.id]) return false;
+  if (s.키필요 && !String(cfg().인증키 || "").trim()) return false;
+  return true;
+}
+/* 지금 쓸 배경 원본 — 고른 것이 못 쓰게 됐으면 대체순서에서 찾는다 */
+function curSrc() {
+  if (!cfg().사용) return null;
+  var s = srcById(CUR);
+  if (usable(s)) return s;
+  var order = (cfg().대체순서 || []).concat(sources().map(function (x) { return x.id; }));
+  for (var i = 0; i < order.length; i++) {
+    var c = srcById(order[i]);
+    if (usable(c)) { CUR = c.id; return c; }
+  }
+  return null;
+}
+
+function tileUrl(tpl, z, x, y) {
+  return String(tpl)
+    .replace("{키}", encodeURIComponent(cfg().인증키 || ""))
+    .replace("{z}", z).replace("{x}", x).replace("{y}", y);
+}
+
+/* 타일 상태가 바뀌면 화면을 다시 그리라고 알린다.
+   여러 장이 한꺼번에 도착하므로 조금 모았다가 한 번만 알린다. */
+function notify() {
+  if (timer) return;
+  timer = setTimeout(function () {
+    timer = null;
+    listeners.forEach(function (fn) { try { fn(); } catch (e) {} });
+  }, 70);
+}
+
+/* 한 원본에서 성공은 없고 실패만 쌓이면 그 원본은 포기한다.
+   문턱을 4장으로 둔 이유: 화면 가장자리 타일 한두 장이 없는 경우
+   (확대 한계·바다 영역)를 서버 장애로 오판하지 않기 위한 것입니다. */
+function tally(sid, res) {
+  var s = SRCSTAT[sid] = SRCSTAT[sid] || { ok: 0, bad: 0 };
+  s[res === "ok" ? "ok" : "bad"]++;
+  if (res !== "ok" && s.ok === 0 && s.bad >= 4 && !DEAD[sid]) {
+    DEAD[sid] = true;
+    if (CUR === sid) CUR = null;            // curSrc() 가 다음 원본을 찾는다
+  }
+  notify();
+}
+
+function loadTile(url, sid) {
+  var s = TILE[url];
+  if (s) return s;
+  TILE[url] = "…";
+  var im = new Image();
+  im.onload = function () {
+    TILE[url] = im.naturalWidth > 1 ? "ok" : "bad";
+    tally(sid, TILE[url]);
+  };
+  im.onerror = function () { TILE[url] = "bad"; tally(sid, "bad"); };
+  im.src = url;
+  return "…";
+}
+
+/* 지금 시야에 필요한 타일을 화면 픽셀 좌표의 <image> 로 돌려준다.
+   아직 안 받아진 타일은 넣지 않는다 — 받아지면 notify() 로 다시 그린다. */
+function tileLayer(vb) {
+  var src = curSrc();
+  if (!src) return "";
+  var z = Math.round(Math.log(vb.sw / vb.w / 256) / Math.LN2);
+  z = Math.max(cfg().최소확대 || 6, Math.min(src.최대확대 || 19, z));
+  var n = Math.pow(2, z), sz = 1 / n;
+  var x0 = Math.floor(vb.x * n), x1 = Math.floor((vb.x + vb.w) * n);
+  var y0 = Math.floor(vb.y * n), y1 = Math.floor((vb.y + vb.h) * n);
+  if ((x1 - x0 + 1) * (y1 - y0 + 1) > 160) return "";     // 안전장치
+  var base = [], over = [];
+  for (var X = x0; X <= x1; X++) {
+    for (var Y = y0; Y <= y1; Y++) {
+      if (X < 0 || Y < 0 || X >= n || Y >= n) continue;
+      var u = tileUrl(src.주소, z, X, Y);
+      if (loadTile(u, src.id) === "ok") base.push(tileImg(vb, u, X, Y, sz, z));
+      if (src.겹침) {
+        var o = tileUrl(src.겹침, z, X, Y);
+        if (loadTile(o, src.id) === "ok") over.push(tileImg(vb, o, X, Y, sz, z));
+      }
+    }
+  }
+  if (!base.length && !over.length) return "";
+  return '<g class="tl">' + base.join("") + over.join("") + "</g>";
+}
+
+function tileImg(vb, u, X, Y, sz, z) {
+  var x0 = (X * sz - vb.x) / vb.w * vb.sw;
+  var y0 = (Y * sz - vb.y) / vb.h * vb.sh;
+  var w = sz / vb.w * vb.sw, h = sz / vb.h * vb.sh;
+  /* 타일 경계에 흰 실선이 보이지 않도록 반 픽셀 겹쳐 그린다 */
+  return '<image href="' + escAttr(u) + '" x="' + (x0 - 0.5).toFixed(2)
+    + '" y="' + (y0 - 0.5).toFixed(2) + '" width="' + (w + 1).toFixed(2)
+    + '" height="' + (h + 1).toFixed(2) + '" preserveAspectRatio="none"'
+    + ' data-t="' + z + "/" + X + "/" + Y + '"/>';
+}
+
+function escAttr(s) {
+  return String(s == null ? "" : s).replace(/[&<>"]/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+  });
+}
+
+/* 배경지도 상태 — 두 지도가 똑같은 문구로 알려야 하므로 여기서 만든다.
+   못 쓰게 판정된 원본이 있으면 이유와 확인 방법까지 적는다. 조용히
+   경계선만 남기면 사용자는 무엇이 잘못됐는지 알 수 없습니다. */
+function tileStatus() {
+  var src = curSrc();
+  var label = src ? (src.저작권 || src.이름)
+    : (cfg().사용 ? "배경지도 없음 · 행정경계선만 표시" : "행정경계선만 표시");
+  var dead = sources().filter(function (s) { return DEAD[s.id]; });
+  var warn = "";
+  if (dead.length) {
+    var d = dead[0];
+    var probe = tileUrl(d.주소, 15, 27960, 12854);       // 서울시청 부근 타일 한 장
+    var link = ' <a href="' + escAttr(probe) + '" target="_blank" rel="noopener noreferrer">'
+      + "타일 주소 직접 열어보기</a> — 새 창에 뜨는 메시지가 실제 원인입니다.";
+    warn = src
+      ? "<b>" + escAttr(d.이름) + " 배경지도를 불러오지 못해 " + escAttr(src.이름)
+        + "(으)로 바꿨습니다.</b> " + escAttr(d.진단 || "") + link
+      : "<b>배경지도를 불러오지 못해 행정경계선만 표시합니다.</b> "
+        + escAttr(d.진단 || "") + " 인터넷 연결이 차단된 환경인지도 확인하세요." + link;
+  }
+  return { src: src, label: label, warn: warn };
+}
+
+/* ── 행정경계선 ───────────────────────────────────────────────
+   data/boundaries.js 의 델타 인코딩된 고리를 화면 픽셀 path 로 바꾼다.
+   isOn(경계) 가 참이면 강조 표시(class="bd on")한다. */
+function boundaryPaths(vb, isOn) {
+  if (typeof window.BOUNDARIES === "undefined") return "";
+  var mx = vb.sw * 0.35, my = vb.sh * 0.35;      // 화면 밖 여유 (px)
+  var out = [];
+  window.BOUNDARIES.forEach(function (f) {
+    var on = !!(isOn && isOn(f));
+    f.r.forEach(function (ring) {
+      var X = 0, Y = 0, d = "", any = false, inside = false, lx = 1e9, ly = 1e9;
+      for (var i = 0; i < ring.length; i += 2) {
+        if (i === 0) { X = ring[0]; Y = ring[1]; } else { X += ring[i]; Y += ring[i + 1]; }
+        var sx = (wx(X / window.BOUNDARY_SCALE) - vb.x) / vb.w * vb.sw;
+        var sy = (wy(Y / window.BOUNDARY_SCALE) - vb.y) / vb.h * vb.sh;
+        if (sx > -mx && sx < vb.sw + mx && sy > -my && sy < vb.sh + my) inside = true;
+        /* 확대하면 한 픽셀 안에 여러 점이 몰린다 — 눈에 안 보이는 점은 건넌다 */
+        if (any && Math.abs(sx - lx) < 0.4 && Math.abs(sy - ly) < 0.4) continue;
+        d += (any ? "L" : "M") + sx.toFixed(1) + " " + sy.toFixed(1);
+        lx = sx; ly = sy; any = true;
+      }
+      if (inside && any) out.push('<path d="' + d + '" class="bd' + (on ? " on" : "") + '"/>');
+    });
+  });
+  return out.join("");
+}
+
+/* 2018년 경계 데이터와 현재 행정구역명이 다른 곳 */
+var ALIAS = { "미추홀구": "남구" };
+function matchSgg(bName, sgg) {
+  if (!sgg) return false;
+  if (bName === sgg) return true;
+  if (ALIAS[sgg] && bName === ALIAS[sgg]) return true;
+  return bName.indexOf(sgg) === 0 || sgg.indexOf(bName) === 0;
+}
+
+/* ── 대피장소 데이터 읽기 ──────────────────────────────────────
+   SHELTERS[시도][시군구] = [[장소명, 상세, 주소, 수용, 구분, 위도, 경도, 부서, 전화], ...]
+   좌표가 없는 곳은 지도에 찍을 수 없으므로 건넌다. */
+function shelters(sido, sgg) {
+  var out = [];
+  var S = window.SHELTERS || {};
+  var sds = sido ? [sido] : Object.keys(S);
+  sds.forEach(function (sd) {
+    var sgs = sgg ? [sgg] : Object.keys(S[sd] || {});
+    sgs.forEach(function (sg) {
+      ((S[sd] || {})[sg] || []).forEach(function (r) {
+        if (r[5] == null || r[6] == null) return;
+        out.push({ key: sd + "|" + sg + "|" + r[0] + "|" + r[5] + "," + r[6],
+                   sido: sd, sgg: sg, name: r[0], detail: r[1], addr: r[2],
+                   cap: r[3], kind: r[4], lat: r[5], lon: r[6], dept: r[7], tel: r[8] });
+      });
+    });
+  });
+  return out;
+}
+
+/* 시·군·구 이름만 알 때 시·도 찾기 (동명 시·군·구가 있으면 첫 번째) */
+function findSido(sgg) {
+  var S = window.SHELTERS || {}, hit = null;
+  Object.keys(S).forEach(function (sd) {
+    if (!hit && S[sd] && S[sd][sgg]) hit = sd;
+  });
+  return hit;
+}
+
+/* 외부 지도 확인 링크 — 인증키 없이 동작하는 공개 주소만 씁니다.
+   도로·건물을 보면서 위치를 최종 확인하는 용도이며, 새 창으로 열리므로
+   보고 있던 화면은 그대로 남습니다. */
+function extLinks(s) {
+  var q = encodeURIComponent(s.name + " " + (s.sgg || "") + " " + (s.addr || ""));
+  var kakao = "https://map.kakao.com/link/map/" + encodeURIComponent(s.name)
+            + "," + s.lat + "," + s.lon;
+  var road = "https://map.kakao.com/link/roadview/" + s.lat + "," + s.lon;
+  var naver = "https://map.naver.com/p/search/" + q;
+  return '<span class="shmap-ext">'
+    + '<a href="' + kakao + '" target="_blank" rel="noopener noreferrer">카카오맵</a>'
+    + '<a href="' + road + '" target="_blank" rel="noopener noreferrer">로드뷰</a>'
+    + '<a href="' + naver + '" target="_blank" rel="noopener noreferrer">네이버지도</a>'
+    + "</span>";
+}
+
+window.MAPCORE = {
+  /* 투영 */
+  wx: wx, wy: wy, wxInv: wxInv, wyInv: wyInv,
+  mToWorld: mToWorld, worldToM: worldToM,
+  /* 거리·방위 */
+  distM: distM, bearing: bearing, dirName: dirName,
+  fmtDist: fmtDist, niceDist: niceDist, scale: scale,
+  /* 그리기 */
+  boundaryPaths: boundaryPaths, matchSgg: matchSgg,
+  /* 데이터 */
+  shelters: shelters, findSido: findSido, extLinks: extLinks,
+  /* 배경지도 타일 */
+  tiles: {
+    cfg: cfg,
+    sources: sources,
+    current: curSrc,
+    isDead: function (id) { return !!DEAD[id]; },
+    use: function (id) { CUR = id; },
+    /* 다시 시도해 볼 기회를 준다 — 일시적인 장애였을 수 있다 */
+    revive: function (id) { DEAD[id] = false; SRCSTAT[id] = { ok: 0, bad: 0 }; },
+    url: tileUrl,
+    layer: tileLayer,
+    status: tileStatus,
+    onChange: function (fn) { listeners.push(fn); }
+  }
+};
+
+})();
+
+</script>
+<script>
+/* ============================================================
+   화학사고 대피장소 지도
+
+   ① 문자 작성 도구 안의 "지도에서 고르기"(assets/shmap.js)와 같은 엔진
+   (assets/mapcore.js)을 씁니다. 배경지도·투영·거리 계산이 같으므로 두 화면에서
+   같은 사고지점을 찍으면 같은 거리가 나옵니다.
+
+   ── 이 화면이 고르기 창보다 더 하는 일 ─────────────────────
+   · 거리 눈금 — 사고지점 둘레에 500m·1km 같은 고리를 그려, 재보지 않아도
+     "얼마나 떨어져 있는지"가 바로 보이게 합니다.
+   · 찾는 범위 — 사고지점 반경으로 찾으면 행정구역을 넘어갑니다. 사고지점이
+     시·군 경계 가까이면 옆 시·군 대피장소가 관내 대피장소보다 가깝습니다.
+   · 요약 줄 — 가장 가까운 곳과 거리 구간별 개수를 한 줄로 보여줍니다.
+   · 풍하방향 — 바람이 향하는 쪽을 부채꼴로 표시합니다.
+   · 연결선 — 고르거나 가리킨 곳까지 선을 긋고 거리·방위를 적습니다.
+
+   ── 판단하지 않는 것 ───────────────────────────────────────
+   어느 대피장소가 적절한지, 어디까지 대피시킬지는 이 도구가 정하지 않습니다.
+   거리는 지형·도로를 무시한 직선거리이고, 반경 원과 풍하 부채꼴은 물질정보에
+   적힌 참고 값을 그린 것이며 확산 모델링 결과가 아닙니다.
+   ============================================================ */
 (function () {
 "use strict";
 
@@ -1045,81 +1615,88 @@ var esc = function (s) {
   });
 };
 
-/* 2018년 경계 데이터와 현재 행정구역명이 다른 3곳 */
-var ALIAS = { "미추홀구": "남구", "군위군": "군위군", "null": null };
+var MC = window.MAPCORE;
+var wx = MC.wx, wy = MC.wy, wxInv = MC.wxInv, wyInv = MC.wyInv;
+var mToWorld = MC.mToWorld;
+var distM = MC.distM, bearing = MC.bearing, dirName = MC.dirName, fmtDist = MC.fmtDist;
 
-var state = { sido: "", sgg: "", acc: null, radius: null, wind: "", mat: "", sel: -1 };
-var view = null;                     // {cx, cy, w}  중심 경도·위도와 가로 폭(경도 단위)
-var shown = [];                      // 현재 지도에 그린 대피장소
+var LEE_DEG = 60;                  // 풍하방향으로 볼 각도 (풍향 반대쪽 ±60°)
 
-/* ── 좌표 변환 ────────────────────────────────────────────────
-   등장방형 도법 + 위도 보정. 한국 정도 범위에서는 왜곡이 무시할 수준이다. */
-var LAT0 = 36.3, KX = Math.cos(LAT0 * Math.PI / 180);
-function px(lon) { return lon * KX; }
-function pxInv(x) { return x / KX; }
+var st = {
+  sido: "", sgg: "",
+  scope: "",                       // "" = 시·군·구 관내 / 숫자 = 사고지점 반경 (m)
+  acc: null,                       // 사고지점 {lat, lon}
+  radius: null,                    // 영향 참고 반경 (m)
+  wind: "", mat: "",
+  q: "", sort: "name",
+  rings: true,                     // 거리 눈금 표시
+  mode: "pick",                    // "acc" = 다음 클릭이 사고지점
+  all: [], show: [],
+  sel: -1, hover: -1,
+  view: null
+};
+var SVG = null, VB = null;
 
-/* 두 지점 직선거리 (m) — 하버사인 */
-function dist(a, b, c, d) {
-  var R = 6371000, p = Math.PI / 180;
-  var dLat = (c - a) * p, dLon = (d - b) * p;
-  var s = Math.sin(dLat / 2) * Math.sin(dLat / 2)
-        + Math.cos(a * p) * Math.cos(c * p) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  return Math.round(2 * R * Math.asin(Math.sqrt(s)));
-}
-/* 방위각 (도, 북=0) */
-function bearing(a, b, c, d) {
-  var p = Math.PI / 180;
-  var y = Math.sin((d - b) * p) * Math.cos(c * p);
-  var x = Math.cos(a * p) * Math.sin(c * p) - Math.sin(a * p) * Math.cos(c * p) * Math.cos((d - b) * p);
-  return (Math.atan2(y, x) / p + 360) % 360;
-}
-var DIRS = ["북", "북동", "동", "남동", "남", "남서", "서", "북서"];
-function dirName(deg) { return DIRS[Math.round(deg / 45) % 8]; }
-function fmtDist(m) { return m < 1000 ? m + "m" : (m / 1000).toFixed(m < 10000 ? 2 : 1) + "km"; }
+/* 새 배경지도 타일이 도착하면 다시 그린다 */
+MC.tiles.onChange(function () { if (st.view) { draw(); showSrc(); } });
 
-/* ── 데이터 ───────────────────────────────────────────────── */
-
-function currentShelters() {
-  var out = [];
-  var sidos = state.sido ? [state.sido] : Object.keys(SHELTERS);
-  sidos.forEach(function (sd) {
-    var sggs = state.sgg ? [state.sgg] : Object.keys(SHELTERS[sd] || {});
-    sggs.forEach(function (sg) {
-      (SHELTERS[sd] && SHELTERS[sd][sg] || []).forEach(function (r) {
-        if (r[5] == null || r[6] == null) return;
-        out.push({ sido: sd, sgg: sg, name: r[0], detail: r[1], addr: r[2],
-                   cap: r[3], kind: r[4], lat: r[5], lon: r[6], dept: r[7], tel: r[8] });
-      });
+/* ── 표시 대상 고르기 ──────────────────────────────────────────
+   범위를 반경으로 잡으면 행정구역을 보지 않고 전국에서 찾습니다.
+   사고가 시·군 경계 가까이에서 나면 옆 시·군 대피장소가 관내보다 가깝기
+   때문입니다. 목록에는 시·군·구를 함께 적어 어디 소속인지 보이게 합니다. */
+function sourceList() {
+  if (st.scope && st.acc) {
+    var r = +st.scope;
+    return MC.shelters("", "").filter(function (s) {
+      return distM(st.acc.lat, st.acc.lon, s.lat, s.lon) <= r;
     });
-  });
-  return out;
+  }
+  if (!st.sido && !st.sgg) return [];
+  return MC.shelters(st.sido, st.sgg);
 }
 
-function bounds(list) {
-  if (!list.length) return { m: 124.5, M: 131.0, n: 33.0, N: 38.7 };
-  var m = 999, M = -999, n = 999, N = -999;
-  list.forEach(function (s) {
-    m = Math.min(m, s.lon); M = Math.max(M, s.lon);
-    n = Math.min(n, s.lat); N = Math.max(N, s.lat);
+function recompute() {
+  st.all = sourceList();
+  var acc = st.acc;
+  st.all.forEach(function (s) {
+    if (acc) {
+      s.d = distM(acc.lat, acc.lon, s.lat, s.lon);
+      s.b = bearing(acc.lat, acc.lon, s.lat, s.lon);
+      s.inRing = st.radius > 0 && s.d <= st.radius;
+      /* 풍향은 '불어오는 쪽' — 바람이 향하는 쪽(풍하) = 풍향 + 180 */
+      if (st.wind !== "") {
+        var diff = Math.abs(((s.b - ((+st.wind + 180) % 360)) + 540) % 360 - 180);
+        s.lee = diff <= LEE_DEG;
+      } else s.lee = false;
+    } else { s.d = null; s.b = null; s.inRing = false; s.lee = false; }
   });
-  if (M - m < 0.02) { m -= 0.01; M += 0.01; }
-  if (N - n < 0.02) { n -= 0.01; N += 0.01; }
-  return { m: m, M: M, n: n, N: N };
+
+  var q = st.q.trim().toLowerCase();
+  st.show = st.all.filter(function (s) {
+    if (!q) return true;
+    return (s.name + " " + (s.detail || "") + " " + (s.addr || "") + " "
+            + (s.kind || "") + " " + s.sgg).toLowerCase().indexOf(q) >= 0;
+  });
+  if (st.sort === "dist" && acc) st.show.sort(function (a, b) { return a.d - b.d; });
+  else if (st.sort === "cap") st.show.sort(function (a, b) { return (+b.cap || 0) - (+a.cap || 0); });
+  else st.show.sort(function (a, b) { return a.name.localeCompare(b.name, "ko"); });
+
+  st.sel = -1; st.hover = -1;
 }
 
-/* 선택한 시·군·구 경계의 범위 */
-function sggBounds() {
-  if (!state.sgg) return null;
-  var m = 999, M = -999, n = 999, N = -999, any = false;
-  BOUNDARIES.forEach(function (f) {
-    if (f.s !== state.sido || !matchSgg(f.n, state.sgg)) return;
-    f.r.forEach(function (r) {
+/* ── 시야 ─────────────────────────────────────────────────── */
+function sggBox() {
+  if (!st.sgg || typeof window.BOUNDARIES === "undefined") return null;
+  var m = 2, M = -1, n = 2, N = -1, any = false;
+  window.BOUNDARIES.forEach(function (f) {
+    if (f.s !== st.sido || !MC.matchSgg(f.n, st.sgg)) return;
+    f.r.forEach(function (ring) {
       var X = 0, Y = 0;
-      for (var i = 0; i < r.length; i += 2) {
-        if (i === 0) { X = r[0]; Y = r[1]; } else { X += r[i]; Y += r[i + 1]; }
-        var lon = X / BOUNDARY_SCALE, lat = Y / BOUNDARY_SCALE;
-        m = Math.min(m, lon); M = Math.max(M, lon);
-        n = Math.min(n, lat); N = Math.max(N, lat);
+      for (var i = 0; i < ring.length; i += 2) {
+        if (i === 0) { X = ring[0]; Y = ring[1]; } else { X += ring[i]; Y += ring[i + 1]; }
+        var x = wx(X / window.BOUNDARY_SCALE), y = wy(Y / window.BOUNDARY_SCALE);
+        m = Math.min(m, x); M = Math.max(M, x);
+        n = Math.min(n, y); N = Math.max(N, y);
         any = true;
       }
     });
@@ -1127,230 +1704,392 @@ function sggBounds() {
   return any ? { m: m, M: M, n: n, N: N } : null;
 }
 
-/* 화면에 들어와야 할 것 전부를 담도록 시야를 맞춘다
-   — 대피장소 · 선택 시군구 경계 · 사고지점과 반경 원 */
-function fit(list) {
-  var b = bounds(list);
-  var sb = sggBounds();
-  if (sb) {
-    b.m = Math.min(b.m, sb.m); b.M = Math.max(b.M, sb.M);
-    b.n = Math.min(b.n, sb.n); b.N = Math.max(b.N, sb.N);
+function fit() {
+  var m = 2, M = -1, n = 2, N = -1, any = false;
+  var add = function (x, y) {
+    m = Math.min(m, x); M = Math.max(M, x);
+    n = Math.min(n, y); N = Math.max(N, y);
+    any = true;
+  };
+  st.show.forEach(function (s) { add(wx(s.lon), wy(s.lat)); });
+  /* 반경으로 찾는 중이면 관내 경계는 시야 기준으로 삼지 않는다 */
+  if (!st.scope) {
+    var b = sggBox();
+    if (b) { add(b.m, b.n); add(b.M, b.N); }
   }
-  if (state.acc) {
-    var rd = (state.radius > 0 ? state.radius : 0) / 111320;
-    b.m = Math.min(b.m, state.acc.lon - rd / KX); b.M = Math.max(b.M, state.acc.lon + rd / KX);
-    b.n = Math.min(b.n, state.acc.lat - rd);      b.N = Math.max(b.N, state.acc.lat + rd);
+  if (st.acc) {
+    var far = Math.max(st.radius > 0 ? st.radius : 0, st.scope ? +st.scope : 0);
+    var r = far ? mToWorld(far, st.acc.lat) : 0;
+    add(wx(st.acc.lon) - r, wy(st.acc.lat) - r);
+    add(wx(st.acc.lon) + r, wy(st.acc.lat) + r);
   }
-  var w = (b.M - b.m) * 1.18, h = (b.N - b.n) * 1.18;
-  view = { cx: (b.m + b.M) / 2, cy: (b.n + b.N) / 2, w: Math.max(w, h * 1.4, 0.02) };
+  if (!any) { st.view = { cx: wx(127.8), cy: wy(36.3), w: 0.09 }; return; }   // 전국
+  var w = (M - m) * 1.22, h = (N - n) * 1.22;
+  st.view = { cx: (m + M) / 2, cy: (n + N) / 2, w: Math.max(w, h * 1.35, 0.00035) };
 }
 
-/* ── 지도 그리기 ──────────────────────────────────────────── */
+var anim = null;
+function animateTo(t, ms) {
+  if (anim) { cancelAnimationFrame(anim); anim = null; }
+  var from = { cx: st.view.cx, cy: st.view.cy, w: st.view.w }, t0 = null;
+  var step = function (ts) {
+    if (t0 === null) t0 = ts;
+    var p = Math.min(1, (ts - t0) / ms);
+    var e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;   // 완만한 가감속
+    st.view.cx = from.cx + (t.cx - from.cx) * e;
+    st.view.cy = from.cy + (t.cy - from.cy) * e;
+    st.view.w = from.w + (t.w - from.w) * e;
+    draw();
+    if (p < 1) anim = requestAnimationFrame(step); else anim = null;
+  };
+  anim = requestAnimationFrame(step);
+}
 
-var SVG = null, VB = null;
+/* 고른 곳으로 지도를 옮긴다. 확대는 '너무 멀리 보고 있을 때만' 당깁니다 —
+   이미 가까이 보고 있는데 매번 확대가 바뀌면 주변을 비교하는 흐름이 끊깁니다.
+   사고지점이 있으면 둘이 한 화면에 들어오게 잡습니다. 거리를 눈으로
+   확인하려는 것이므로 한쪽만 크게 보여 주면 소용이 없습니다. */
+function moveTo(s) {
+  if (!st.view) fit();
+  var want;
+  if (st.acc) {
+    var span = Math.max(Math.abs(wx(s.lon) - wx(st.acc.lon)),
+                        Math.abs(wy(s.lat) - wy(st.acc.lat)) * 1.35) * 2.6;
+    want = Math.max(span, mToWorld(400, s.lat));
+    animateTo({ cx: (wx(s.lon) + wx(st.acc.lon)) / 2,
+                cy: (wy(s.lat) + wy(st.acc.lat)) / 2,
+                w: Math.min(st.view.w, want) }, 340);
+  } else {
+    want = mToWorld(1400, s.lat);
+    animateTo({ cx: wx(s.lon), cy: wy(s.lat), w: Math.min(st.view.w, want) }, 340);
+  }
+}
 
+/* ── 좌표 변환 ────────────────────────────────────────────── */
 function svgSize() {
   var r = SVG.getBoundingClientRect();
-  return { w: r.width || 640, h: r.height || 460 };
+  return { w: r.width || 720, h: r.height || 520 };
 }
-
 function viewBox() {
-  var s = svgSize(), asp = s.h / s.w;
-  var wx = view.w * KX;                       // 투영 좌표 폭
-  var hy = wx * asp;
-  return { x: px(view.cx) - wx / 2, y: -view.cy - hy / 2, w: wx, h: hy, sw: s.w, sh: s.h };
+  var s = svgSize();
+  var w = st.view.w, h = w * (s.h / s.w);
+  return { x: st.view.cx - w / 2, y: st.view.cy - h / 2, w: w, h: h, sw: s.w, sh: s.h };
 }
-
-/* 화면 픽셀 → 위경도 */
-function screenToLL(clientX, clientY) {
+function pX(lon) { return (wx(lon) - VB.x) / VB.w * VB.sw; }
+function pY(lat) { return (wy(lat) - VB.y) / VB.h * VB.sh; }
+function pxLen(m, lat) { return mToWorld(m, lat) / VB.w * VB.sw; }
+function toLL(clientX, clientY) {
   var r = SVG.getBoundingClientRect();
-  var vb = VB;
-  var x = vb.x + (clientX - r.left) / r.width * vb.w;
-  var y = vb.y + (clientY - r.top) / r.height * vb.h;
-  return { lon: pxInv(x), lat: -y };
+  var x = VB.x + (clientX - r.left) / r.width * VB.w;
+  var y = VB.y + (clientY - r.top) / r.height * VB.h;
+  return { lon: wxInv(x), lat: wyInv(y) };
 }
 
-function boundaryPaths(vb) {
-  var pad = vb.w * 0.3;
-  var x0 = vb.x - pad, x1 = vb.x + vb.w + pad, y0 = vb.y - pad, y1 = vb.y + vb.h + pad;
+/* ── 거리 눈금 ────────────────────────────────────────────────
+   사고지점 둘레에 '떨어지는' 거리로 고리를 그린다. 축척 막대만으로는
+   특정 대피장소가 얼마나 떨어졌는지 가늠하려면 눈으로 재야 하는데,
+   고리가 있으면 몇 번째 고리 안팎인지로 바로 읽힙니다.
+   확대 정도에 따라 간격을 바꿔 항상 2~3개가 보이게 합니다. */
+function ringDists(vb) {
+  if (!st.acc || !st.rings) return [];
+  var latC = wyInv(vb.y + vb.h / 2);
+  var fullM = distM(latC, wxInv(vb.x), latC, wxInv(vb.x + vb.w));
+  var step = MC.niceDist(fullM / 5);
+  var lim = fullM * 0.75;                    // 화면을 크게 넘는 고리는 안 그린다
   var out = [];
-  BOUNDARIES.forEach(function (f) {
-    var hit = state.sgg && f.s === state.sido && matchSgg(f.n, state.sgg);
-    f.r.forEach(function (ring) {
-      var X = 0, Y = 0, d = "", any = false, inside = false;
-      for (var i = 0; i < ring.length; i += 2) {
-        if (i === 0) { X = ring[0]; Y = ring[1]; } else { X += ring[i]; Y += ring[i + 1]; }
-        var lon = X / BOUNDARY_SCALE, lat = Y / BOUNDARY_SCALE;
-        var sx = px(lon), sy = -lat;
-        if (sx > x0 && sx < x1 && sy > y0 && sy < y1) inside = true;
-        d += (any ? "L" : "M") + sx.toFixed(4) + " " + sy.toFixed(4);
-        any = true;
-      }
-      if (inside) out.push('<path d="' + d + '" class="bd' + (hit ? " on" : "") + '"/>');
-    });
-  });
-  return out.join("");
+  for (var i = 1; i <= 5 && step * i <= lim; i++) out.push(step * i);
+  return out;
 }
 
-function matchSgg(bName, sgg) {
-  if (bName === sgg) return true;
-  var a = ALIAS[sgg];
-  if (a && bName === a) return true;
-  return bName.indexOf(sgg) === 0 || sgg.indexOf(bName) === 0;
-}
-
+/* ── 그리기 ───────────────────────────────────────────────── */
 function draw() {
-  if (!view) fit(currentShelters());
+  if (!st.view) fit();
   VB = viewBox();
-  var vb = VB;
-  var k = vb.w / vb.sw;                       // 투영단위 / 픽셀
-  var r = k * 4.2;                            // 마커 반지름
-  var g = [];
+  var vb = VB, g = [];
+  var R = 5.6;                                  // 마커 반지름 (px)
 
-  g.push('<rect x="' + vb.x + '" y="' + vb.y + '" width="' + vb.w + '" height="' + vb.h + '" class="sea"/>');
-  g.push('<g class="bds" stroke-width="' + (k * 0.9) + '">' + boundaryPaths(vb) + "</g>");
+  g.push('<rect x="0" y="0" width="' + vb.sw + '" height="' + vb.sh + '" class="bg"/>');
+  var tl = MC.tiles.layer(vb);
+  g.push(tl);
+  SVG.classList.toggle("hasbg", !!tl);
+  g.push('<g class="bds">' + MC.boundaryPaths(vb, function (f) {
+    return !st.scope && f.s === st.sido && MC.matchSgg(f.n, st.sgg);
+  }) + "</g>");
 
-  var acc = state.acc;
-  // 반경 원
-  if (acc && state.radius > 0) {
-    var rd = state.radius / 111320;           // m → 위도 도
-    g.push('<circle cx="' + px(acc.lon) + '" cy="' + (-acc.lat) + '" r="' + (rd * KX * 0 + rd)
-      + '" class="ring" stroke-width="' + (k * 1.6) + '"/>');
+  var acc = st.acc, ax = 0, ay = 0;
+  if (acc) { ax = pX(acc.lon); ay = pY(acc.lat); }
+
+  /* 풍하방향 부채꼴 — 바람이 향하는 쪽 ±60° */
+  if (acc && st.wind !== "") {
+    var down = (+st.wind + 180) % 360;
+    var L = Math.sqrt(vb.sw * vb.sw + vb.sh * vb.sh);
+    var p0 = ray(ax, ay, down - LEE_DEG, L), p1 = ray(ax, ay, down + LEE_DEG, L);
+    g.push('<path class="lee" d="M' + ax.toFixed(1) + " " + ay.toFixed(1)
+      + "L" + p0.x.toFixed(1) + " " + p0.y.toFixed(1)
+      + "A" + L.toFixed(1) + " " + L.toFixed(1) + " 0 0 1 "
+      + p1.x.toFixed(1) + " " + p1.y.toFixed(1) + 'Z"/>');
+    var lbl = ray(ax, ay, down, Math.min(L * 0.42, vb.sh * 0.42));
+    g.push('<text class="leelbl" x="' + lbl.x.toFixed(1) + '" y="' + lbl.y.toFixed(1)
+      + '" font-size="12">풍하방향</text>');
   }
-  // 풍향 화살표
-  if (acc && state.wind !== "") {
-    var deg = +state.wind, L = vb.w * 0.13;
-    var to = (deg + 180) % 360, rad = to * Math.PI / 180;
-    var ex = px(acc.lon) + Math.sin(rad) * L, ey = -acc.lat - Math.cos(rad) * L;
-    g.push('<line x1="' + px(acc.lon) + '" y1="' + (-acc.lat) + '" x2="' + ex + '" y2="' + ey
-      + '" class="wind" stroke-width="' + (k * 2) + '"/>');
-    g.push('<circle cx="' + ex + '" cy="' + ey + '" r="' + (k * 3.5) + '" class="windhead"/>');
+
+  /* 거리 눈금 */
+  ringDists(vb).forEach(function (d) {
+    var rr = pxLen(d, acc.lat);
+    g.push('<circle class="grid" cx="' + ax.toFixed(1) + '" cy="' + ay.toFixed(1)
+      + '" r="' + rr.toFixed(1) + '"/>');
+    g.push('<text class="gridlbl" x="' + ax.toFixed(1) + '" y="' + (ay - rr + 13).toFixed(1)
+      + '" font-size="11">' + fmtDist(d) + "</text>");
+  });
+
+  /* 영향 참고 반경 */
+  if (acc && st.radius > 0) {
+    var pr = pxLen(st.radius, acc.lat);
+    g.push('<circle class="ring" cx="' + ax.toFixed(1) + '" cy="' + ay.toFixed(1)
+      + '" r="' + pr.toFixed(1) + '"/>');
+    g.push('<text class="ringlbl" x="' + ax.toFixed(1) + '" y="' + (ay + pr - 6).toFixed(1)
+      + '" font-size="11.5">영향 참고 ' + fmtDist(st.radius) + "</text>");
   }
 
-  // 대피장소
-  shown.forEach(function (s, i) {
-    var cls = "sh" + (s.inRing ? " in" : "") + (i === state.sel ? " sel" : "");
-    g.push('<circle cx="' + px(s.lon) + '" cy="' + (-s.lat) + '" r="' + (i === state.sel ? r * 1.7 : r)
-      + '" class="' + cls + '" stroke-width="' + (k * 1.1) + '" data-i="' + i + '"/>');
-  });
-  // 이름 표시 — 겹치지 않을 만큼 여유가 있을 때만. 선택한 곳은 항상 표시한다.
-  var cap = vb.sw < 700 ? 8 : (vb.sw < 1000 ? 14 : 20);
-  shown.forEach(function (s, i) {
-    if (i !== state.sel && shown.length > cap) return;
-    g.push('<text x="' + px(s.lon) + '" y="' + (-s.lat - r * 1.9) + '" class="shlbl'
-      + (i === state.sel ? " sel" : "") + '" font-size="' + (k * 11) + '">' + esc(s.name) + "</text>");
-  });
-  if (shown.length > cap)
-    g.push('<text x="' + (vb.x + vb.w / 2) + '" y="' + (vb.y + vb.h - k * 12) + '" class="shhint"'
-      + ' font-size="' + (k * 10) + '">확대하거나 목록에서 고르면 이름이 표시됩니다</text>');
+  /* 사고지점 ↔ 고르거나 가리킨 곳 연결선 */
+  var focus = st.hover >= 0 ? st.show[st.hover] : (st.sel >= 0 ? st.show[st.sel] : null);
+  if (acc && focus) {
+    var fx = pX(focus.lon), fy = pY(focus.lat);
+    g.push('<line class="link" x1="' + ax.toFixed(1) + '" y1="' + ay.toFixed(1)
+      + '" x2="' + fx.toFixed(1) + '" y2="' + fy.toFixed(1) + '"/>');
+    g.push('<text class="linklbl" x="' + ((ax + fx) / 2).toFixed(1)
+      + '" y="' + ((ay + fy) / 2 - 5).toFixed(1) + '" font-size="12.5">'
+      + fmtDist(focus.d) + " " + dirName(focus.b) + "쪽</text>");
+  }
 
-  // 사고지점
+  /* 대피장소 */
+  st.show.forEach(function (s, i) {
+    var on = i === st.sel, hv = i === st.hover;
+    g.push('<circle class="mk' + (s.inRing ? " in" : "") + (s.lee ? " lee" : "")
+      + (on ? " on" : "") + (hv ? " hv" : "") + '" cx="' + pX(s.lon).toFixed(1)
+      + '" cy="' + pY(s.lat).toFixed(1) + '" r="' + (on ? R * 1.6 : R).toFixed(1)
+      + '" data-i="' + i + '"/>');
+  });
+  /* 이름 — 고른 곳·가리킨 곳은 항상, 그 외에는 개수가 적을 때만 */
+  var cap = vb.sw < 560 ? 10 : (vb.sw < 900 ? 18 : 26);
+  st.show.forEach(function (s, i) {
+    if (i !== st.sel && i !== st.hover && st.show.length > cap) return;
+    g.push('<text class="mkl' + (i === st.sel ? " on" : "") + '" x="' + pX(s.lon).toFixed(1)
+      + '" y="' + (pY(s.lat) - R * 2).toFixed(1) + '" font-size="12">'
+      + esc(s.name) + (s.d != null ? " " + fmtDist(s.d) : "") + "</text>");
+  });
+  if (st.show.length > cap)
+    g.push('<text class="mkh" x="' + (vb.sw / 2) + '" y="' + (vb.sh - 10)
+      + '" font-size="11">확대하거나 목록에서 가리키면 이름이 보입니다</text>');
+
+  /* 사고지점 — 십자 */
   if (acc) {
-    var ax = px(acc.lon), ay = -acc.lat;
-    g.push('<line x1="' + (ax - r * 2.2) + '" y1="' + ay + '" x2="' + (ax + r * 2.2) + '" y2="' + ay
-      + '" class="acc" stroke-width="' + (k * 2.2) + '"/>');
-    g.push('<line x1="' + ax + '" y1="' + (ay - r * 2.2) + '" x2="' + ax + '" y2="' + (ay + r * 2.2)
-      + '" class="acc" stroke-width="' + (k * 2.2) + '"/>');
-    g.push('<circle cx="' + ax + '" cy="' + ay + '" r="' + (r * 1.15) + '" class="accdot" stroke-width="' + (k * 1.4) + '"/>');
+    var L2 = 13;
+    g.push('<line class="acc" x1="' + (ax - L2).toFixed(1) + '" y1="' + ay.toFixed(1)
+      + '" x2="' + (ax + L2).toFixed(1) + '" y2="' + ay.toFixed(1) + '"/>');
+    g.push('<line class="acc" x1="' + ax.toFixed(1) + '" y1="' + (ay - L2).toFixed(1)
+      + '" x2="' + ax.toFixed(1) + '" y2="' + (ay + L2).toFixed(1) + '"/>');
+    g.push('<circle class="accdot" cx="' + ax.toFixed(1) + '" cy="' + ay.toFixed(1) + '" r="6"/>');
+    g.push('<text class="acclbl" x="' + ax.toFixed(1) + '" y="' + (ay - L2 - 5).toFixed(1)
+      + '" font-size="12">사고지점</text>');
   }
 
-  SVG.setAttribute("viewBox", [vb.x, vb.y, vb.w, vb.h].join(" "));
+  SVG.setAttribute("viewBox", "0 0 " + vb.sw + " " + vb.sh);
   SVG.innerHTML = g.join("");
-
-  $$("#map circle.sh").forEach(function (c) {
-    c.onclick = function (e) { e.stopPropagation(); select(+c.dataset.i, true); };
-  });
-
   drawScale(vb);
-  $("#mapInfo").textContent = shown.length
-    ? shown.length + "곳 표시" + (state.acc ? " · 사고지점 기준 정렬" : "")
-    : "표시할 대피장소가 없습니다";
+}
+
+/* 방위각 deg 로 길이 L 만큼 간 화면 좌표 (북=0, 화면 y 는 아래로 증가) */
+function ray(x, y, deg, L) {
+  var a = deg * Math.PI / 180;
+  return { x: x + Math.sin(a) * L, y: y - Math.cos(a) * L };
 }
 
 function drawScale(vb) {
-  var mPerUnit = 111320;                       // 투영 1단위(위도 1도) ≈ m
-  var target = vb.w / 4 * mPerUnit / KX * KX;  // 화면 1/4 폭에 해당하는 거리(m)
-  var nice = [10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000, 100000, 200000];
-  var pick = nice.reduce(function (a, b) { return Math.abs(b - target) < Math.abs(a - target) ? b : a; });
-  var frac = (pick / mPerUnit) / vb.w;
-  $("#scaleBar").style.width = Math.max(24, Math.round(frac * vb.sw)) + "px";
-  $("#scaleTxt").textContent = pick >= 1000 ? (pick / 1000) + "km" : pick + "m";
+  var s = MC.scale(vb);
+  $("#scaleBar").style.width = s.px + "px";
+  $("#scaleTxt").textContent = s.label;
+}
+
+/* 눌린 곳에서 가장 가까운 마커 (없으면 -1)
+   마커마다 click 을 걸지 않는 이유: 끌기를 위해 포인터를 캡처하면 그 뒤의
+   이벤트가 모두 <svg> 로 향하므로 마커의 click 이 오지 않습니다. */
+function hitMarker(clientX, clientY) {
+  var rc = SVG.getBoundingClientRect();
+  var best = -1, bd = 1e9, TH = 18;
+  st.show.forEach(function (s, i) {
+    var dx = rc.left + pX(s.lon) - clientX, dy = rc.top + pY(s.lat) - clientY;
+    var d = Math.sqrt(dx * dx + dy * dy);
+    if (d < bd) { bd = d; best = i; }
+  });
+  return bd <= TH ? best : -1;
+}
+
+/* ── 요약 줄 ──────────────────────────────────────────────────
+   "이 근방에 무엇이 있나"를 한 줄로 답합니다. 목록을 다 훑지 않아도
+   가장 가까운 곳과 거리 구간별 개수가 바로 보이게 하려는 것입니다. */
+var BANDS = [1000, 2000, 5000];
+function renderSummary() {
+  var el = $("#mSum");
+  if (!st.acc || !st.all.length) {
+    el.hidden = !st.acc;
+    if (st.acc) el.innerHTML = '<span class="ms-none">사고지점 주변에 표시할 대피장소가 없습니다.'
+      + " 찾는 범위를 넓혀 보세요.</span>";
+    return;
+  }
+  el.hidden = false;
+
+  var sorted = st.all.slice().sort(function (a, b) { return a.d - b.d; });
+  var near = sorted[0];
+  var parts = [];
+  parts.push('<span class="ms-near"><b>가장 가까운 곳</b>' + esc(near.name)
+    + '<em>' + fmtDist(near.d) + " " + dirName(near.b) + "쪽</em></span>");
+
+  var bands = BANDS.map(function (m) {
+    var n = sorted.filter(function (s) { return s.d <= m; }).length;
+    return '<span class="ms-b' + (n ? "" : " z") + '">' + fmtDist(m) + " 안 <b>" + n + "</b>곳</span>";
+  }).join("");
+  parts.push('<span class="ms-bands">' + bands + "</span>");
+
+  if (st.radius > 0) {
+    var inR = st.all.filter(function (s) { return s.inRing; }).length;
+    parts.push('<span class="ms-warn' + (inR ? " on" : "") + '">영향 참고 반경 '
+      + fmtDist(st.radius) + " 안 <b>" + inR + "</b>곳"
+      + (inR ? " · 영향권일 수 있으니 확인하세요" : "") + "</span>");
+  }
+  if (st.wind !== "") {
+    var lee = st.all.filter(function (s) { return s.lee; }).length;
+    parts.push('<span class="ms-b">풍하방향 <b>' + lee + "</b>곳</span>");
+  }
+
+  /* 관내만 보고 있으면, 반경 안에 다른 시·군·구 대피장소가 더 있는지 알려준다.
+     경계 근처 사고에서 더 가까운 곳을 놓치지 않게 하려는 것입니다. */
+  if (!st.scope) {
+    var have = {};
+    st.all.forEach(function (s) { have[s.key] = true; });
+    var more = MC.shelters("", "").filter(function (s) {
+      return !have[s.key] && distM(st.acc.lat, st.acc.lon, s.lat, s.lon) <= 5000;
+    }).length;
+    if (more)
+      parts.push('<button type="button" class="ms-more noprint">반경 5km 안 다른 시·군·구에 '
+        + more + "곳 더 있습니다 · 범위 넓히기</button>");
+  }
+
+  el.innerHTML = parts.join("");
+  var b = $(".ms-more", el);
+  if (b) b.onclick = function () {
+    st.scope = "5000"; $("#mScope").value = "5000";
+    if (st.sort === "name") { st.sort = "dist"; $("#mSort").value = "dist"; }
+    refresh(true);
+  };
+}
+
+/* 어디 소속인지 보이게 시·군·구를 앞에 붙인다 — 반경으로 찾으면 여러 시·군·구가
+   섞이기 때문이다. 원자료의 주소는 시·군·구가 빠진 것이 원칙이지만 들어 있는
+   행도 있어, 이미 있으면 덧붙이지 않는다("남구 광주 남구 …" 방지). */
+function placeOf(s) {
+  var addr = String(s.addr || "");
+  return addr.indexOf(s.sgg) >= 0 ? addr : (s.sgg + " " + addr).trim();
 }
 
 /* ── 목록 ─────────────────────────────────────────────────── */
-
-function recompute() {
-  shown = currentShelters();
-  var acc = state.acc;
-  shown.forEach(function (s) {
-    if (acc) {
-      s.d = dist(acc.lat, acc.lon, s.lat, s.lon);
-      s.b = bearing(acc.lat, acc.lon, s.lat, s.lon);
-      s.inRing = state.radius > 0 && s.d <= state.radius;
-      if (state.wind !== "") {
-        // 풍향은 '불어오는 쪽'. 바람이 향하는 쪽(풍하) = 풍향 + 180
-        var diff = Math.abs(((s.b - ((+state.wind + 180) % 360)) + 540) % 360 - 180);
-        s.lee = diff <= 60;                    // 풍하방향 ±60° 안
-      } else s.lee = false;
-    } else { s.d = null; s.b = null; s.inRing = false; s.lee = false; }
-  });
-  if (acc) shown.sort(function (a, b) { return a.d - b.d; });
-  else shown.sort(function (a, b) { return a.name.localeCompare(b.name, "ko"); });
-  state.sel = -1;
-}
-
 function renderList() {
-  var acc = state.acc;
-  $("#listCnt").textContent = shown.length ? shown.length + "곳" : "";
-  if (!shown.length) {
-    $("#shList").innerHTML = '<p class="empty">선택한 지역에 등록된 대피장소가 없습니다.<br>'
-      + "다른 시·군·구를 선택하거나 시·도 전체로 보세요.</p>";
+  var acc = st.acc;
+  $("#listCnt").textContent = st.all.length
+    ? (st.q ? st.show.length + " / " + st.all.length + "곳" : st.all.length + "곳") : "";
+
+  if (!st.show.length) {
+    $("#shList").innerHTML = '<p class="ms-empty">'
+      + (!st.sido && !st.sgg && !st.scope
+          ? "시·도와 시·군·구를 고르세요.<br>사고지점을 찍은 뒤 <b>찾는 범위</b>를 반경으로 바꾸면 행정구역과 상관없이 찾습니다."
+         : st.q ? "‘" + esc(st.q) + "’ 과(와) 맞는 곳이 없습니다."
+         : "선택한 범위에 등록된 대피장소가 없습니다.") + "</p>";
     return;
   }
-  var warn = shown.filter(function (s) { return s.inRing; }).length;
-  var head = "";
-  if (acc && state.radius > 0)
-    head = warn
-      ? '<div class="alert w" style="margin:10px 12px"><b>확인</b>반경 ' + fmtDist(state.radius)
-        + " 안에 대피장소 " + warn + "곳이 있습니다. 영향권일 수 있으니 확인하세요.</div>"
-      : '<div class="alert s" style="margin:10px 12px"><b>확인</b>반경 ' + fmtDist(state.radius)
-        + " 안에는 등록 대피장소가 없습니다.</div>";
-  if (!acc)
-    head = '<div class="alert i" style="margin:10px 12px"><b>안내</b>'
-      + "지도를 클릭해 사고지점을 잡으면 거리·방위 순으로 정렬됩니다.</div>";
 
-  $("#shList").innerHTML = head + shown.map(function (s, i) {
-    var meta = acc
-      ? '<b class="d">' + fmtDist(s.d) + "</b> <span>" + dirName(s.b) + "쪽</span>"
-        + (s.inRing ? '<span class="tag danger">반경 안</span>' : "")
-        + (s.lee ? '<span class="tag lee">풍하방향</span>' : "")
-      : "<span>" + esc(s.kind) + "</span>";
-    return '<div class="sh' + (i === state.sel ? " sel" : "") + '" data-i="' + i + '">'
+  /* 거리 막대 — 줄끼리 견주어 보라고 넣습니다. 가장 먼 곳을 100 으로 둡니다 */
+  var maxD = 0;
+  if (acc) st.show.forEach(function (s) { maxD = Math.max(maxD, s.d); });
+
+  $("#shList").innerHTML = st.show.map(function (s, i) {
+    var on = i === st.sel;
+    var bar = acc && maxD
+      ? '<div class="ms-bar"><i style="width:' + Math.max(2, Math.round(s.d / maxD * 100)) + '%"></i></div>'
+      : "";
+    return '<div class="ms-it' + (on ? " on" : "") + (s.inRing ? " ring" : "")
+      + '" data-i="' + i + '" role="button" tabindex="0" aria-pressed="' + (on ? "true" : "false") + '">'
       + '<div class="l1"><b>' + esc(s.name) + "</b>"
-      + (s.detail ? " <em>" + esc(s.detail) + "</em>" : "") + "</div>"
-      + '<div class="l2">' + meta + "</div>"
-      + '<div class="l3">' + esc(s.sgg) + " " + esc(s.addr)
-      + (s.cap ? " · 수용 " + s.cap.toLocaleString() + "명" : "") + "</div>"
-      + (i === state.sel
-          ? '<div class="l4">'
-            + (s.dept || s.tel ? esc(s.dept) + (s.tel ? " · " + esc(s.tel) : "") + "<br>" : "")
-            + '<button class="sm" type="button" data-cp="' + i + '">이름 복사</button> '
-            + '<button class="sm" type="button" data-cpa="' + i + '">이름+주소 복사</button>'
-            + "</div>" : "")
+      + (s.detail ? '<span class="dt">' + esc(s.detail) + "</span>" : "")
+      + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
+      + "</div>" + bar
+      + '<div class="l2">' + esc(placeOf(s))
+      + (s.cap ? " · 수용 " + Number(s.cap).toLocaleString() + "명" : "")
+      + (s.kind ? " · " + esc(s.kind) : "") + "</div>"
+      + (s.inRing || s.lee
+          ? '<div class="l5">'
+            + (s.inRing ? '<span class="tag danger">영향 참고 반경 안</span>' : "")
+            + (s.lee ? '<span class="tag lee">풍하방향</span>' : "") + "</div>" : "")
+      + (s.tel ? '<div class="l3">' + esc(s.dept || "") + " " + esc(s.tel) + "</div>" : "")
+      + (on ? '<div class="l4">' + MC.extLinks(s)
+              + '<span class="ms-cp noprint">'
+              + '<button class="sm" type="button" data-cp="' + i + '">이름 복사</button>'
+              + '<button class="sm" type="button" data-cpa="' + i + '">이름+주소 복사</button>'
+              + "</span></div>" : "")
       + "</div>";
   }).join("");
 
-  $$("#shList .sh").forEach(function (el) {
-    el.onclick = function () { select(+el.dataset.i, false); };
+  $$("#shList .ms-it").forEach(function (el) {
+    var i = +el.dataset.i;
+    el.onclick = function (e) {
+      if (e.target.tagName === "A" || e.target.tagName === "BUTTON") return;
+      select(i, false);
+    };
+    el.onkeydown = function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(i, false); }
+    };
+    el.onmouseenter = function () { st.hover = i; draw(); showAddr(); };
+    el.onmouseleave = function () { if (st.hover === i) { st.hover = -1; draw(); showAddr(); } };
   });
   $$("#shList button[data-cp], #shList button[data-cpa]").forEach(function (btn) {
     btn.onclick = function (e) {
       e.stopPropagation();
       var full = btn.hasAttribute("data-cpa");
-      var s = shown[+(btn.dataset.cp || btn.dataset.cpa)];
-      copyText(full ? s.name + " (" + s.sgg + " " + s.addr + ")" : s.name, btn);
+      var s = st.show[+(btn.dataset.cp != null ? btn.dataset.cp : btn.dataset.cpa)];
+      copyText(full ? s.name + " (" + placeOf(s) + ")" : s.name, btn);
     };
   });
+}
+
+function select(i, fromMap) {
+  st.sel = (st.sel === i ? -1 : i);
+  renderList(); draw(); showAddr();
+  if (st.sel >= 0 && !fromMap) moveTo(st.show[st.sel]);
+  if (st.sel >= 0 && fromMap) {
+    var el = $('#shList .ms-it[data-i="' + st.sel + '"]');
+    if (el) el.scrollIntoView({ block: "nearest" });
+  }
+}
+
+/* 지도 위 주소 표시 — 지금 보고 있는 곳이 어딘지 확인용 */
+function showAddr() {
+  var el = $("#mAddr");
+  var s = st.hover >= 0 ? st.show[st.hover] : (st.sel >= 0 ? st.show[st.sel] : null);
+  if (!s) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = "<b>" + esc(s.name) + "</b>"
+    + (s.detail ? " <i>" + esc(s.detail) + "</i>" : "")
+    + "<span>" + esc(placeOf(s)) + "</span>"
+    + (s.cap ? "<em>수용 " + Number(s.cap).toLocaleString() + "명</em>" : "")
+    + (s.d != null ? "<em>사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽</em>" : "");
+}
+
+function renderLegend() {
+  var it = ['<span><i class="dot sh"></i>대피장소</span>'];
+  if (st.acc) it.push('<span><i class="dot ac"></i>사고지점</span>');
+  if (st.radius > 0) it.push('<span><i class="dot in"></i>영향 참고 반경 안</span>');
+  if (st.acc && st.wind !== "") it.push('<span><i class="dot lee"></i>풍하방향</span>');
+  if (st.acc && st.rings) it.push('<span><i class="dot gr"></i>거리 눈금</span>');
+  $("#mLeg").innerHTML = it.join("");
 }
 
 function copyText(t, btn) {
@@ -1371,28 +2110,19 @@ function fallbackCopy(t, done) {
   document.body.removeChild(ta);
 }
 
-function select(i, fromMap) {
-  state.sel = (state.sel === i ? -1 : i);
-  renderList();
-  draw();
-  if (!fromMap && state.sel >= 0) {
-    var s = shown[state.sel];
-    // 선택한 곳이 화면 밖이면 중심 이동
-    var vb = VB, sx = px(s.lon), sy = -s.lat;
-    if (sx < vb.x || sx > vb.x + vb.w || sy < vb.y || sy > vb.y + vb.h) {
-      view.cx = s.lon; view.cy = s.lat; draw();
-    }
-  }
-  if (fromMap && state.sel >= 0) {
-    var el = $('#shList .sh[data-i="' + state.sel + '"]');
-    if (el) el.scrollIntoView({ block: "nearest" });
-  }
+function refresh(refit) {
+  recompute();
+  if (refit) st.view = null;
+  syncSort(); renderSummary(); renderList(); renderLegend(); draw(); showAddr();
 }
 
-function refresh() { recompute(); renderList(); draw(); }
+function syncSort() {
+  $$("#mSort option").forEach(function (o) { if (o.value === "dist") o.disabled = !st.acc; });
+  if (!st.acc && st.sort === "dist") { st.sort = "name"; $("#mSort").value = "name"; }
+  $$("#mScope option").forEach(function (o) { if (o.value) o.disabled = !st.acc; });
+}
 
-/* ── 물질 → 반경 후보 ─────────────────────────────────────── */
-
+/* ── 물질 → 영향 참고 반경 ────────────────────────────────── */
 function normName(x) { return String(x).replace(/[\s·,()]/g, "").toLowerCase(); }
 var MATIDX = null;
 function findMaterial(name) {
@@ -1420,163 +2150,297 @@ function pickDistances(txt) {
   return out.sort(function (a, b) { return a - b; });
 }
 
-function renderRadHint() {
-  var box = $("#radHint");
-  var m = state.mat ? findMaterial(state.mat) : null;
-  if (!state.mat) { box.innerHTML = ""; return; }
-  if (!m) {
-    box.innerHTML = '<div class="alert w" style="margin-top:10px"><b>물질정보 없음</b>‘'
-      + esc(state.mat) + "’은(는) 460종 목록에 없습니다. 반경을 직접 입력하세요.</div>";
+function renderRad() {
+  var box = $("#mRad");
+  var m = st.mat ? findMaterial(st.mat) : null;
+
+  if (!st.mat && st.radius == null) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+
+  if (st.mat && !m) {
+    box.innerHTML = '<span class="mr-none">‘' + esc(st.mat)
+      + "’은(는) 물질정보 460종 목록에 없습니다. 반경을 직접 입력하세요.</span>"
+      + radInput();
+    bindRad();
     return;
   }
-  var rows = [];
-  [["초기이격거리 (전 방향)", m.d1], ["방호활동거리 (풍하방향)", m.d2],
-   ["화재 동반 시 대피거리", m.d3]].forEach(function (x) {
-    if (!x[1]) return;
-    var ds = pickDistances(x[1]);
-    rows.push('<div class="radrow"><b>' + esc(x[0]) + "</b><span>" + esc(x[1]) + "</span>"
-      + (ds.length ? '<span class="btns">' + ds.map(function (v) {
-          return '<button class="sm" type="button" data-r="' + v + '">' + fmtDist(v) + " 적용</button>";
-        }).join("") + "</span>" : "") + "</div>");
+
+  var rows = [], btns = [];
+  if (m) {
+    [["초기이격거리 (전 방향)", m.d1], ["방호활동거리 (풍하방향)", m.d2],
+     ["화재 동반 시 대피거리", m.d3]].forEach(function (x) {
+      if (!x[1]) return;
+      rows.push("<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>");
+      pickDistances(x[1]).forEach(function (v) {
+        if (btns.indexOf(v) < 0) btns.push(v);
+      });
+    });
+    btns.sort(function (a, b) { return a - b; });
+  }
+
+  box.innerHTML = '<span class="mr-lb">영향 참고 반경</span>'
+    + (m ? '<b class="mr-nm">' + esc(m.n) + "</b>" : "")
+    + btns.slice(0, 6).map(function (v) {
+        return '<button type="button" class="sm" data-r="' + v + '"'
+          + (st.radius === v ? ' aria-pressed="true"' : "") + ">" + fmtDist(v) + "</button>";
+      }).join("")
+    + radInput()
+    + (rows.length
+        ? '<details class="mr-more noprint"><summary>물질정보 원문</summary>'
+          + "<dl>" + rows.join("") + "</dl>"
+          + '<p class="src">' + esc(VERSION.물질정보_출처)
+          + " 에 적힌 참고 거리입니다. 확산 모델링 결과가 아니며, 대피 범위 판단은 담당자가 합니다.</p>"
+          + "</details>"
+        : "");
+  bindRad();
+}
+function radInput() {
+  return '<input type="text" class="mr-in" id="mRadIn" inputmode="numeric" placeholder="m"'
+    + ' value="' + (st.radius || "") + '" aria-label="반경 직접 입력 (m)">'
+    + '<button type="button" class="sm" id="mRadX" title="반경 지우기">×</button>';
+}
+function bindRad() {
+  $$("#mRad button[data-r]").forEach(function (b) {
+    b.onclick = function () { setRadius(+b.dataset.r); };
   });
-  box.innerHTML = '<div class="radbox"><div class="hd">' + esc(m.n)
-    + (m.s ? ' <em>' + esc(m.s) + "</em>" : "") + "</div>" + rows.join("")
-    + '<p class="src">화학물질안전원 「화학사고 현장대응 물질정보」 참고 거리입니다. '
-    + "실제 확산 범위가 아니며, 대피 범위 판단은 담당자가 합니다.</p></div>";
-  $$("#radHint button[data-r]").forEach(function (b) {
-    b.onclick = function () {
-      state.radius = +b.dataset.r; $("#mRadius").value = state.radius;
-      recompute(); fit(shown); renderList(); draw();
-    };
+  var inp = $("#mRadIn");
+  if (inp) inp.oninput = function () {
+    var v = parseInt(String(inp.value).replace(/[^\d]/g, ""), 10);
+    setRadius(isNaN(v) ? null : v, true);
+  };
+  var x = $("#mRadX");
+  if (x) x.onclick = function () { setRadius(null); };
+}
+function setRadius(m, keepInput) {
+  st.radius = m && m > 0 ? m : null;
+  recompute(); renderSummary(); renderList(); renderLegend(); draw();
+  if (!keepInput) renderRad();
+  else $$("#mRad button[data-r]").forEach(function (b) {
+    b.setAttribute("aria-pressed", String(st.radius === +b.dataset.r));
   });
+}
+
+/* ── 사고지점 ─────────────────────────────────────────────── */
+function setMode(m) {
+  st.mode = m;
+  var b = $("#btnAcc");
+  b.setAttribute("aria-pressed", String(m === "acc"));
+  b.textContent = m === "acc" ? "지도를 누르세요" : (st.acc ? "사고지점 다시 찍기" : "사고지점 찍기");
+  SVG.classList.toggle("crosshair", m === "acc");
+}
+
+function setAcc(lat, lon, refit) {
+  st.acc = { lat: Math.round(lat * 1e5) / 1e5, lon: Math.round(lon * 1e5) / 1e5 };
+  $("#acLat").value = st.acc.lat;
+  $("#acLon").value = st.acc.lon;
+  if (st.sort === "name") { st.sort = "dist"; $("#mSort").value = "dist"; }
+  setMode("pick");
+  refresh(!!refit);
+  zoomToNeighborhood();
+}
+
+/* 사고지점을 찍으면 그 언저리로 당깁니다.
+   시·군 전체를 보던 화면에서는 가장 가까운 대피장소도 점 하나라 "얼마나
+   떨어져 있나"가 눈에 들어오지 않고, 거리 눈금도 20km·40km 처럼 크게 잡혀
+   쓸모가 없습니다. 이미 가까이 보고 있으면 건드리지 않습니다. */
+function zoomToNeighborhood() {
+  if (!st.acc || !st.all.length || !st.view) return;
+  var near = st.all.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 3);
+  var reach = Math.max(near[near.length - 1].d,
+                       st.radius > 0 ? st.radius : 0,
+                       st.scope ? +st.scope : 0);
+  var w = mToWorld(reach * 2.6, st.acc.lat);          // 지름 + 여유
+  if (w >= st.view.w * 0.85) return;                  // 이미 그만큼 가까이 보고 있다
+  animateTo({ cx: wx(st.acc.lon), cy: wy(st.acc.lat), w: w }, 420);
+}
+
+function clearAcc() {
+  st.acc = null; st.scope = "";
+  $("#acLat").value = ""; $("#acLon").value = ""; $("#mScope").value = "";
+  st.sort = "name"; $("#mSort").value = "name";
+  setMode("pick");
+  refresh(true);
+}
+
+/* ── 배경지도 ─────────────────────────────────────────────── */
+function showSrc() {
+  var s = MC.tiles.status();
+  $$("#mLyr button").forEach(function (b) {
+    b.setAttribute("aria-pressed", String(!!s.src && b.dataset.s === s.src.id));
+    b.disabled = MC.tiles.isDead(b.dataset.s);
+    b.title = MC.tiles.isDead(b.dataset.s) ? "불러오지 못했습니다" : (s.src ? s.src.저작권 || "" : "");
+  });
+  var w = $("#mWarn");
+  w.hidden = !s.warn;
+  w.innerHTML = s.warn;
+}
+
+/* ── 조작 ─────────────────────────────────────────────────── */
+function zoom(f, cx, cy) {
+  var v = st.view;
+  var nw = Math.max(0.0000015, Math.min(1.2, v.w * f));
+  if (cx != null) {
+    var ll = toLL(cx, cy);
+    var px = wx(ll.lon), py = wy(ll.lat);
+    var rx = (px - VB.x) / VB.w, ry = (py - VB.y) / VB.h;
+    var nh = nw * (VB.sh / VB.sw);
+    v.cx = px - (rx - 0.5) * nw;
+    v.cy = py - (ry - 0.5) * nh;
+  }
+  v.w = nw;
+  draw();
+}
+
+function bindMap() {
+  var drag = null;
+  SVG.onpointerdown = function (e) {
+    if (anim) { cancelAnimationFrame(anim); anim = null; }
+    drag = { x: e.clientX, y: e.clientY, cx: st.view.cx, cy: st.view.cy, moved: false };
+    try { SVG.setPointerCapture(e.pointerId); } catch (err) {}
+  };
+  SVG.onpointermove = function (e) {
+    if (!drag) return;
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
+    st.view.cx = drag.cx - dx / VB.sw * VB.w;
+    st.view.cy = drag.cy - dy / VB.sh * VB.h;
+    draw();
+  };
+  SVG.onpointerup = function (e) {
+    var moved = drag && drag.moved;
+    drag = null;
+    try { SVG.releasePointerCapture(e.pointerId); } catch (err) {}
+    if (moved) return;                       // 끌었으면 선택이 아니다
+    if (st.mode === "acc") {
+      var ll = toLL(e.clientX, e.clientY);
+      setAcc(ll.lat, ll.lon);                // 찍은 자리가 유지되도록 시야는 그대로
+      return;
+    }
+    var i = hitMarker(e.clientX, e.clientY);
+    if (i >= 0) select(i, true);
+  };
+  SVG.onpointercancel = function (e) {
+    drag = null;
+    try { SVG.releasePointerCapture(e.pointerId); } catch (err) {}
+  };
+  SVG.onwheel = function (e) {
+    e.preventDefault();
+    if (anim) { cancelAnimationFrame(anim); anim = null; }
+    zoom(e.deltaY > 0 ? 1.25 : 0.8, e.clientX, e.clientY);
+  };
+  $("#zIn").onclick = function () { zoom(0.7); };
+  $("#zOut").onclick = function () { zoom(1.42); };
+  $("#zFit").onclick = function () { fit(); draw(); };
+  window.addEventListener("resize", function () { if (st.view) draw(); });
 }
 
 /* ── 초기화 ───────────────────────────────────────────────── */
-
 function initSelects() {
   var sido = $("#mSido"), sgg = $("#mSgg");
-  sido.innerHTML = '<option value="">전국</option>'
+  sido.innerHTML = '<option value="">선택</option>'
     + Object.keys(SHELTERS).sort().map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
   var fillSgg = function () {
     var m = SHELTERS[sido.value] || {};
-    sgg.innerHTML = '<option value="">' + (sido.value ? "시·도 전체" : "먼저 시·도 선택") + "</option>"
-      + Object.keys(m).sort().map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
+    var ks = Object.keys(m).sort();
+    sgg.innerHTML = '<option value="">' + (sido.value ? "시·도 전체" : "시·도 먼저") + "</option>"
+      + ks.map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
   };
   fillSgg();
   sido.onchange = function () {
-    state.sido = sido.value; state.sgg = ""; fillSgg();
-    recompute(); fit(shown); renderList(); draw();
+    st.sido = sido.value; st.sgg = ""; fillSgg(); refresh(true);
   };
-  sgg.onchange = function () {
-    state.sgg = sgg.value;
-    recompute(); fit(shown); renderList(); draw();
-  };
+  sgg.onchange = function () { st.sgg = sgg.value; refresh(true); };
 }
 
-function initMap() {
-  SVG = $("#map");
+function initSrcModal() {
+  $("#ver").innerHTML =
+    "<p><b>대피장소</b> — " + esc(VERSION.대피장소_출처) + " · 기준일 "
+      + esc(VERSION.대피장소_기준일) + " ("
+      + SHELTER_META.총건수.toLocaleString() + "곳 · 좌표 포함)</p>"
+    + "<p><b>배경지도</b> — " + esc(VERSION.배경지도) + ". 인터넷이 되는 환경에서만 표시되며, "
+      + "안 되면 행정경계선만 그립니다.</p>"
+    + "<p><b>행정경계</b> — " + esc(VERSION.경계_출처) + ". "
+      + "<b>위치를 가늠하기 위한 배경선이며 법적 행정경계가 아닙니다.</b> "
+      + "정식 배포 전 원내 정본 데이터로 교체를 권장합니다.</p>"
+    + "<p><b>영향 참고 반경</b> — " + esc(VERSION.물질정보_출처) + ". "
+      + "물질정보에 적힌 참고 거리이며 확산 모델링 결과가 아닙니다.</p>"
+    + "<p><b>거리·방위</b> — 지형·도로를 고려하지 않은 직선거리(하버사인)입니다. "
+      + "실제 이동거리는 이보다 깁니다.</p>"
+    + "<p><b>풍하방향</b> — 입력한 풍향의 반대쪽 ±" + LEE_DEG + "° 를 칠한 것입니다. "
+      + "지형·풍속·물질 밀도를 반영하지 않습니다.</p>"
+    + "<p>담당자 개인 이름·연락처는 데이터에 포함하지 않았습니다. 관할부서 대표번호만 표시합니다.</p>"
+    + "<p class=\"src\">도구 버전 " + esc(VERSION.도구버전) + " · 반영일 " + esc(VERSION.반영일) + "</p>";
 
-  // 클릭 → 사고지점
-  var moved = false;
-  SVG.addEventListener("mousedown", function () { moved = false; });
-  SVG.addEventListener("click", function (e) {
-    if (moved) return;
-    var ll = screenToLL(e.clientX, e.clientY);
-    setAcc(ll.lat, ll.lon);
+  var open = function () { $("#srcModal").hidden = false; document.body.style.overflow = "hidden"; };
+  var close = function () { $("#srcModal").hidden = true; document.body.style.overflow = ""; };
+  $("#btnSrc").onclick = open;
+  $("#btnSrcClose").onclick = close;
+  $("#srcModal").onclick = function (e) { if (e.target.id === "srcModal") close(); };
+  document.addEventListener("keydown", function (e) {
+    if (e.key !== "Escape") return;
+    if (!$("#srcModal").hidden) { close(); return; }
+    if (st.mode === "acc") setMode("pick");
   });
-
-  // 드래그 이동
-  var drag = null;
-  SVG.addEventListener("mousedown", function (e) {
-    drag = { x: e.clientX, y: e.clientY, cx: view.cx, cy: view.cy };
-    SVG.classList.add("grab");
-  });
-  window.addEventListener("mousemove", function (e) {
-    if (!drag) return;
-    var r = SVG.getBoundingClientRect();
-    var dx = (e.clientX - drag.x) / r.width * VB.w;
-    var dy = (e.clientY - drag.y) / r.height * VB.h;
-    if (Math.abs(e.clientX - drag.x) + Math.abs(e.clientY - drag.y) > 4) moved = true;
-    view.cx = drag.cx - pxInv(dx);
-    view.cy = drag.cy + dy;
-    draw();
-  });
-  window.addEventListener("mouseup", function () { drag = null; SVG.classList.remove("grab"); });
-
-  // 휠 확대·축소
-  SVG.addEventListener("wheel", function (e) {
-    e.preventDefault();
-    var ll = screenToLL(e.clientX, e.clientY);
-    var f = e.deltaY > 0 ? 1.22 : 1 / 1.22;
-    var nw = Math.min(Math.max(view.w * f, 0.004), 9);
-    var k = nw / view.w;
-    view.cx = ll.lon + (view.cx - ll.lon) * k;
-    view.cy = ll.lat + (view.cy - ll.lat) * k;
-    view.w = nw;
-    draw();
-  }, { passive: false });
-
-  var zoom = function (f) {
-    view.w = Math.min(Math.max(view.w * f, 0.004), 9); draw();
-  };
-  $("#zIn").onclick = function () { zoom(1 / 1.4); };
-  $("#zOut").onclick = function () { zoom(1.4); };
-  $("#zFit").onclick = function () { fit(shown); draw(); };
-  window.addEventListener("resize", function () { if (view) draw(); });
-}
-
-function setAcc(lat, lon) {
-  state.acc = { lat: Math.round(lat * 1e5) / 1e5, lon: Math.round(lon * 1e5) / 1e5 };
-  $("#acLat").value = state.acc.lat;
-  $("#acLon").value = state.acc.lon;
-  refresh();                       // 사고지점 클릭은 시야를 그대로 둔다(클릭한 자리가 유지되도록)
 }
 
 function init() {
+  SVG = $("#map");
   initSelects();
-  initMap();
+  initSrcModal();
+  bindMap();
 
-  $("#mMat").oninput = function () { state.mat = this.value.trim(); renderRadHint(); };
-  $("#mRadius").oninput = function () {
-    var v = parseFloat(String(this.value).replace(/[^\d.]/g, ""));
-    state.radius = isFinite(v) && v > 0 ? v : null;
-    refresh();
+  /* 배경지도 고르기 */
+  $("#mLyr").innerHTML = MC.tiles.sources().map(function (s) {
+    return '<button type="button" data-s="' + esc(s.id) + '">' + esc(s.이름) + "</button>";
+  }).join("");
+  $$("#mLyr button").forEach(function (b) {
+    b.onclick = function () {
+      MC.tiles.revive(b.dataset.s); MC.tiles.use(b.dataset.s);
+      draw(); showSrc();
+    };
+  });
+
+  $("#mScope").onchange = function () { st.scope = this.value; refresh(true); };
+  $("#mQ").oninput = function () {
+    st.q = this.value; recompute(); renderList(); draw();
   };
-  $("#btnRadClear").onclick = function () { $("#mRadius").value = ""; state.radius = null; refresh(); };
-  $("#mWind").onchange = function () { state.wind = this.value; refresh(); };
+  $("#mSort").onchange = function () {
+    st.sort = this.value; recompute(); renderList(); draw();
+  };
+  $("#mMat").oninput = function () { st.mat = this.value.trim(); renderRad(); };
+  $("#mWind").onchange = function () {
+    st.wind = this.value;
+    recompute(); renderSummary(); renderList(); renderLegend(); draw();
+  };
+  $("#cRings").onchange = function () { st.rings = this.checked; renderLegend(); draw(); };
+
+  $("#btnAcc").onclick = function () { setMode(st.mode === "acc" ? "pick" : "acc"); };
+  $("#btnAccClear").onclick = clearAcc;
 
   var latlon = function () {
     var la = parseFloat($("#acLat").value), lo = parseFloat($("#acLon").value);
-    if (isFinite(la) && isFinite(lo) && la > 32 && la < 40 && lo > 123 && lo < 133) {
-      state.acc = { lat: la, lon: lo }; refresh();
-    }
+    /* 우리나라 범위 밖 값은 오타로 보고 무시한다 */
+    if (isFinite(la) && isFinite(lo) && la > 32 && la < 40 && lo > 123 && lo < 133)
+      setAcc(la, lo, true);
   };
   $("#acLat").oninput = latlon;
   $("#acLon").oninput = latlon;
 
   $("#btnPrint").onclick = function () { window.print(); };
   $("#btnClear").onclick = function () {
-    state = { sido: "", sgg: "", acc: null, radius: null, wind: "", mat: "", sel: -1 };
+    st.sido = ""; st.sgg = ""; st.scope = ""; st.acc = null; st.radius = null;
+    st.wind = ""; st.mat = ""; st.q = ""; st.sort = "name"; st.rings = true;
+    ["mMat", "mQ", "acLat", "acLon"].forEach(function (id) { $("#" + id).value = ""; });
     $("#mSido").value = ""; $("#mSido").onchange();
-    ["mMat", "mRadius", "acLat", "acLon"].forEach(function (id) { $("#" + id).value = ""; });
-    $("#mWind").value = "";
-    $("#radHint").innerHTML = "";
-    fit(currentShelters()); refresh();
+    $("#mWind").value = ""; $("#mScope").value = ""; $("#mSort").value = "name";
+    $("#cRings").checked = true;
+    renderRad();
+    setMode("pick");
   };
 
-  $("#ver").innerHTML =
-    "대피장소 — " + esc(VERSION.대피장소_출처) + " · 기준일 " + esc(VERSION.대피장소_기준일)
-    + " (" + SHELTER_META.총건수.toLocaleString() + "곳 · 좌표 포함)<br>"
-    + "행정경계 — 통계청 센서스용 행정구역경계(2018) 기반. "
-    + "<b>위치를 가늠하기 위한 배경선이며 법적 행정경계가 아닙니다.</b> "
-    + "정식 배포 전 원내 정본 데이터로 교체를 권장합니다.<br>"
-    + "참고 거리 — " + esc(VERSION.물질정보_출처) + "<br>"
-    + "거리 계산 — 지형·도로를 고려하지 않은 직선거리(하버사인)<br>"
-    + "지도 — 외부 지도 서비스를 쓰지 않고 좌표를 직접 그립니다. "
-    + "도로·건물·지형은 표시되지 않습니다.<br>"
-    + "담당자 개인 이름·연락처는 데이터에 포함하지 않았습니다. 관할부서 대표번호만 표시합니다.";
-
-  refresh();
+  setMode("pick");
+  showSrc();
+  refresh(true);
 }
 
 document.addEventListener("DOMContentLoaded", init);
