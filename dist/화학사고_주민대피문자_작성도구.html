@@ -204,16 +204,6 @@ button.sm{padding:5px 10px;font-size:12.5px}
      padding:4px 0;cursor:pointer;line-height:1.5;color:var(--ink2)}
 .chk input{margin:3px 0 0;flex:none;width:15px;height:15px;accent-color:var(--brand)}
 
-/* ── 접이식 ───────────────────────────────────────── */
-details.box{border:1px solid var(--line);border-radius:8px;background:var(--card);margin-top:10px}
-details.box > summary{padding:9px 12px;cursor:pointer;font-size:12.5px;font-weight:600;
-  color:var(--ink2);list-style:none;display:flex;justify-content:space-between;gap:8px}
-details.box > summary::-webkit-details-marker{display:none}
-details.box > summary::after{content:"＋";color:var(--ink3);flex:none;font-size:13px}
-details.box[open] > summary{border-bottom:1px solid var(--line2)}
-details.box[open] > summary::after{content:"−"}
-details.box .body{padding:12px}
-
 /* ── 물질정보 ─────────────────────────────────────── */
 .matbar{margin-top:8px;border:1px solid #bcd4ea;background:var(--brand-l);border-radius:7px;
         font-size:12.5px;overflow:hidden}
@@ -267,23 +257,6 @@ details.box .body{padding:12px}
   .cbx{max-width:none;border-radius:0;height:100%}
 }
 @media print{ .cbx-back{display:none!important} }
-
-/* ── 푸터 ─────────────────────────────────────────── */
-.foot{font-size:11.5px;color:var(--ink3);line-height:1.6;margin-top:20px}
-.foot .disc{background:#fff;border:1px solid var(--line);border-left:3px solid var(--warn);
-            border-radius:6px;padding:9px 12px;margin-bottom:9px;color:var(--ink2);font-size:12.5px}
-
-/* ── 진입 화면 ────────────────────────────────────── */
-.tools{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:18px}
-.tool{display:block;text-decoration:none;color:inherit;background:var(--card);
-      border:1px solid var(--line);border-radius:var(--r);padding:18px}
-.tool:hover{border-color:var(--brand)}
-.tool.off{opacity:.6;pointer-events:none}
-.tool b{display:block;font-size:16px;margin-bottom:6px}
-.tool p{margin:0;font-size:13px;color:var(--ink2);line-height:1.55}
-.badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:20px;
-       background:var(--ok-l);color:var(--ok);margin-bottom:9px}
-.badge.soon{background:var(--line2);color:var(--ink3)}
 
 /* ── 반응형 ───────────────────────────────────────── */
 @media (max-width:980px){
@@ -872,6 +845,9 @@ var VERSION = {
   // 대피장소 데이터
   대피장소_출처: "화학물질안전원 화학사고 대피장소 목록",
   대피장소_기준일: "2026-05-19",
+  // 진입 화면에 적는 건수. data/shelters.js 의 SHELTER_META.총건수 와 같아야 하며,
+  // 다르면 build/build_single.py 가 빌드를 멈춥니다 (숫자가 조용히 어긋나지 않게).
+  대피장소_건수: 1849,
 
   // 물질정보 (참고용)
   물질정보_출처: "화학물질안전원 「화학사고 현장대응 물질정보」 460종",

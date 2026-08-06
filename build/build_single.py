@@ -33,6 +33,27 @@ def read(base: pathlib.Path, rel: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+def check_counts() -> None:
+    """진입 화면이 적는 대피장소 건수가 실제 데이터와 같은지 본다.
+
+    index.html 은 data/shelters.js 를 불러오지 않습니다(700KB 를 진입 화면에서
+    받게 할 이유가 없습니다). 대신 data/version.js 에 적어 둔 건수를 쓰는데,
+    데이터만 갱신하고 이 숫자를 안 고치면 화면에 옛 건수가 남습니다.
+    빌드할 때마다 대조해 조용히 어긋나는 일을 막습니다.
+    """
+    meta = (ROOT / "data" / "shelters.js").read_text(encoding="utf-8")[:2000]
+    ver = (ROOT / "data" / "version.js").read_text(encoding="utf-8")
+    a = re.search(r'"총건수":\s*(\d+)', meta)
+    b = re.search(r"대피장소_건수:\s*(\d+)", ver)
+    if not a or not b:
+        sys.exit("대피장소 건수를 찾지 못했습니다 (shelters.js / version.js 확인)")
+    if a.group(1) != b.group(1):
+        sys.exit(
+            f"대피장소 건수가 다릅니다 — shelters.js {a.group(1)}곳, "
+            f"version.js {b.group(1)}곳. data/version.js 의 대피장소_건수 를 고치세요."
+        )
+
+
 def build(page: pathlib.Path, out: pathlib.Path) -> None:
     html = page.read_text(encoding="utf-8")
     base = page.parent
@@ -60,6 +81,7 @@ def build(page: pathlib.Path, out: pathlib.Path) -> None:
 
 
 def main() -> None:
+    check_counts()
     for page, out in PAGES:
         build(page, out)
     print("→ 각 파일 하나씩 내부망 PC로 옮겨 브라우저에서 열면 됩니다.")
