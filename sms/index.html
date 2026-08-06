@@ -10,10 +10,9 @@
 
 <div class="top">
   <div class="wrap">
-    <h1>화학사고 주민대피 문자 작성
-      <span class="sub">발송 지시를 받은 뒤 쓰는 문안 작성 도구 · 대피 여부 판단은 하지 않습니다</span>
-    </h1>
+    <h1>화학사고 주민대피 문자 생성 도구</h1>
     <div class="act noprint">
+      <button id="btnCases" type="button" hidden>실제 발송 사례</button>
       <button id="btnTxt" disabled>기록 저장</button>
       <button id="btnReset">초기화</button>
     </div>
@@ -98,27 +97,19 @@
 
   </div>
 
-  <details class="box noprint" id="dCases" hidden>
-    <summary>참고 — 다른 지자체 실제 발송 사례 <span id="caseN"></span></summary>
-    <div class="body">
-      <div class="alert w"><b>주의</b>실제 발송된 원문입니다. 승인된 표준문안이 아니며
-        오탈자·표기 오류가 포함되어 있습니다. 그대로 복사하지 마세요.</div>
-      <div class="row" style="margin-bottom:9px">
-        <label for="caseF" style="font-size:12.5px;color:var(--ink2)">물질</label>
-        <select id="caseF" style="width:auto"></select>
-      </div>
-      <div id="caseList"></div>
+</div>
+
+<div class="cbx-back" id="casesModal" hidden>
+  <div class="cbx">
+    <header><b>다른 지자체 실제 발송 사례</b><span class="cbx-n" id="caseN"></span>
+      <button type="button" class="cbx-x" id="btnCasesClose" aria-label="닫기">✕</button></header>
+    <div class="alert w cbx-alert"><b>주의</b>실제 발송된 원문입니다. 승인된 표준문안이 아니며
+      오탈자·표기 오류가 포함되어 있습니다. 그대로 복사하지 마세요.</div>
+    <div class="cbx-bar">
+      <label for="caseF">물질</label>
+      <select id="caseF"></select>
     </div>
-  </details>
-
-  <details class="box noprint">
-    <summary>자료 출처 · 기준</summary>
-    <div class="body" id="ver" style="font-size:12px;color:var(--ink2);line-height:1.7"></div>
-  </details>
-
-  <div class="foot">
-    <div class="disc">본 도구는 재난문자 <b>문안 작성을 지원하는 참고도구</b>입니다.
-      대피 여부·대상지역·발송단계의 판단과 최종 발송 책임은 해당 재난관리기관에 있습니다.</div>
+    <div class="cbx-body" id="caseList"></div>
   </div>
 </div>
 

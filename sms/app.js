@@ -193,27 +193,67 @@ function grpOpen(g) {
   return g.접힘 ? !!state.openGrp[g.key] : true;
 }
 
+/* 문안이 실제로 쓰는 입력 항목만 뽑는다 — 채워지기 전 원문에서 {키} 자리표시자를
+   찾는다. 사고유형별 변형 문구에도 자리표시자가 있을 수 있어 함께 뽑는다
+   (예: 변형.상황.누출 안의 "{물질:이/가} 누출되는…"). 대피소는 실내대피 문안에는
+   없으므로, 그 문안에서는 대피소가 비어 있어도 문제 삼지 않게 하기 위한 것이다. */
+var USEDKEYS = {};
+function usedKeysOf(tpl) {
+  if (USEDKEYS[tpl.번호]) return USEDKEYS[tpl.번호];
+  var src = tpl.text || (tpl.seg || []).map(function (s) { return s[0] + (s[3] || ""); }).join(" ");
+  if (tpl.변형) {
+    Object.keys(tpl.변형).forEach(function (vk) {
+      var opts = tpl.변형[vk];
+      Object.keys(opts).forEach(function (ok) { src += " " + opts[ok]; });
+    });
+  }
+  var keys = {};
+  String(src).replace(PH, function (m, only, k) {
+    if (k.charAt(0) !== "@") keys[k] = true;   // {@상황} 은 사고유형 변형 표시일 뿐 입력칸이 아니다
+  });
+  return (USEDKEYS[tpl.번호] = Object.keys(keys));
+}
+
+var FIELD_BY_KEY = null;
+function labelOf(k) {
+  if (!FIELD_BY_KEY) {
+    FIELD_BY_KEY = {};
+    FIELDS.공통.concat(FIELDS.evac).forEach(function (f) { FIELD_BY_KEY[f.k] = f; });
+  }
+  var f = FIELD_BY_KEY[k];
+  return f ? fieldLabel(f) : k;
+}
+
+/* 문안 하나가 아직 채우지 않은 항목 — 이 문안이 실제로 쓰는 항목만 검사한다 */
+function missingKeysFor(tpl) {
+  return usedKeysOf(tpl).filter(function (k) {
+    if (k === "물질") return !state.unknownMat && !String(state.data["물질"] || "").trim();
+    return !String(state.data[k] || "").trim();
+  });
+}
+
 /* 검증
-   errs    사고정보 자체의 문제 → 모든 문안 복사를 막는다
-   tplErrs 문안 하나의 문제(글자수 초과·표현 충돌) → 그 문안만 막는다
-           다른 문안까지 막으면, 쓸 수 있는 문안을 못 쓰게 됩니다.
+   tplErrs 문안 하나의 문제(미입력·글자수 초과·표현 충돌) → 그 문안 카드 안에
+           빨간 글씨로 표시하고 그 문안만 복사를 막는다. 다른 문안까지 막으면
+           쓸 수 있는 문안을 못 쓰게 되므로, 전체를 막는 오류는 두지 않는다.
    warns   판단이 필요한 사항 → 막지 않는다 */
 function validate(results) {
-  var errs = [], warns = [], tplErrs = {}, d = state.data;
+  var warns = [], tplErrs = {}, d = state.data;
   var addTpl = function (r, m) {
     (tplErrs[r.id] = tplErrs[r.id] || []).push(m);
   };
 
-  // 1. 필수 미입력
-  var miss = usedFields().filter(function (f) {
-    if (f.k === "물질" && state.unknownMat) return false;
-    return !String(d[f.k] || "").trim();
-  }).map(function (f) { return f.label; });
-  if (miss.length) errs.push("입력되지 않은 항목: " + miss.join(", "));
+  // 1. 문안별 필수 입력 확인 — 그 문안이 실제로 쓰는 항목만 검사한다
+  results.forEach(function (r) {
+    var missing = missingKeysFor(r.tpl);
+    if (missing.length)
+      addTpl(r, "입력되지 않은 항목: " + missing.map(labelOf).join(", "));
+    else if (/\{[^}]+\}/.test(r.text))
+      addTpl(r, "문구에 채워지지 않은 항목이 남아 있습니다.");
+  });
 
-  // 2. 미치환 자리표시자 / 예시값 잔존
+  // 2. 예시값 잔존
   var all = results.map(function (r) { return r.text; }).join("\n");
-  if (/\{[^}]+\}/.test(all)) errs.push("문구에 치환되지 않은 항목이 남아 있습니다.");
   var ex = ["고담", "강담", "구담", "○○", "OO"].filter(function (w) { return all.indexOf(w) >= 0; });
   if (ex.length) warns.push("표준(안) 예시값으로 보이는 표현이 남아 있습니다: " + ex.join(", "));
 
@@ -236,7 +276,7 @@ function validate(results) {
 
   // 5. 물질 미확인인데 물질명이 입력된 경우
   if (state.unknownMat && String(d["물질"] || "").trim())
-    errs.push("‘물질 미확인’을 선택했는데 물질명이 입력되어 있습니다. 하나만 선택하세요.");
+    warns.push("‘물질 미확인’을 선택했는데 물질명이 입력되어 있습니다. 하나만 선택하세요.");
 
   // 6. 지역 정합성
   var dong = String(d["읍면동"] || "").trim();
@@ -267,7 +307,7 @@ function validate(results) {
     if (v && !/^\d{1,2}:\d{2}$/.test(v)) warns.push(k + " 형식을 확인하세요 (예: 17:10).");
   });
 
-  return { errs: errs, warns: warns, tplErrs: tplErrs };
+  return { warns: warns, tplErrs: tplErrs };
 }
 
 
@@ -480,32 +520,18 @@ function renderOut() {
 
   var v = validate(lastResults);
 
-  /* 접혀 있는 그룹의 오류는 위 알림에 함께 적는다. 안 보이는 곳에서
-     오류가 생겼는데 아무 표시가 없으면 모르고 지나칩니다. */
-  var tplErrLines = [];
-  lastResults.forEach(function (r) {
-    (v.tplErrs[r.id] || []).forEach(function (m) {
-      tplErrLines.push(r.tpl.번호 + ": " + m);
-    });
-  });
-
-  var a = "";
-  if (v.errs.length || tplErrLines.length)
-    a += '<div class="alert e"><b>확인 필요</b><ul><li>'
-      + v.errs.concat(tplErrLines).map(esc).join("</li><li>") + "</li></ul></div>";
-  if (v.warns.length)
-    a += '<div class="alert w"><b>주의</b><ul><li>' + v.warns.map(esc).join("</li><li>") + "</li></ul></div>";
-  if (!v.errs.length && !tplErrLines.length && !v.warns.length)
-    a += '<div class="alert s"><b>확인 완료</b>필수항목·글자수·논리 검사에서 발견된 문제가 없습니다.</div>';
-  $("#alerts").innerHTML = a;
+  /* 필수 미입력·글자수 초과 같은 문제는 이제 각 문안 카드 안에 빨간 글씨로
+     표시합니다(outCard 의 .oerr). 판단이 필요한 사항(지역 불일치 등)만
+     여기 주의 문구로 남깁니다 — 전체를 막는 오류 배너는 두지 않습니다. */
+  $("#alerts").innerHTML = v.warns.length
+    ? '<div class="alert w"><b>주의</b><ul><li>' + v.warns.map(esc).join("</li><li>") + "</li></ul></div>"
+    : "";
 
   $("#outCnt").textContent = lastResults.length + "건";
 
   $("#out").innerHTML = groups.map(function (g) {
     var open = grpOpen(g);
-    var nErr = g.results.filter(function (r) {
-      return v.errs.length || (v.tplErrs[r.id] || []).length;
-    }).length;
+    var nErr = g.results.filter(function (r) { return (v.tplErrs[r.id] || []).length; }).length;
     var head = g.접힘
       ? '<button type="button" class="ohd fold" data-g="' + esc(g.key) + '" aria-expanded="' + open + '">'
         + '<i class="cv"></i>' + esc(g.제목) + "<span>" + g.results.length + "건</span>"
@@ -514,7 +540,7 @@ function renderOut() {
       : '<div class="ohd">' + esc(g.제목) + "<span>" + g.results.length + "건</span></div>";
     return '<div class="ogrp' + (g.접힘 ? " foldable" : "") + '">' + head
       + '<div class="obody"' + (open ? "" : " hidden") + ">"
-      + g.results.map(function (r) { return outCard(r, v.errs, v.tplErrs[r.id] || []); }).join("")
+      + g.results.map(function (r) { return outCard(r, v.tplErrs[r.id] || []); }).join("")
       + "</div></div>";
   }).join("");
 
@@ -532,8 +558,8 @@ function renderOut() {
 
 /* 문안 한 건 — 긴급재난문자와 자체 문자발송시스템은 발송 경로가 완전히 다르므로
    테두리·머리표·글자수 표시를 서로 다르게 해서 헷갈리지 않게 합니다. */
-function outCard(r, globalErrs, myErrs) {
-  var blocked = globalErrs.length > 0 || myErrs.length > 0;
+function outCard(r, myErrs) {
+  var blocked = myErrs.length > 0;
   var isCbs = r.tpl.channel === "cbs";
   var cls = r.limit ? (r.len > r.limit ? "over" : (r.len > r.limit - 8 ? "near" : "")) : "";
   var cnt = r.limit
@@ -692,11 +718,15 @@ function syncTargets() {
   if (!sel.value && sel.options.length) sel.selectedIndex = 0;
 }
 
-/* ── 참고 사례 ────────────────────────────────────────────── */
+/* ── 참고 사례 ──────────────────────────────────────────────
+   본문 화면에는 두지 않고, 위쪽 "실제 발송 사례" 버튼을 눌렀을 때만 창으로
+   띄웁니다. 나중에 100건 넘게 늘어나도 본문을 밀어내지 않도록 하기 위한 것으로,
+   창 안 목록은 스크롤됩니다. */
 
 function renderCases() {
-  if (typeof CASES === "undefined" || !CASES.length) return;
-  $("#dCases").hidden = false;
+  var btn = $("#btnCases");
+  if (typeof CASES === "undefined" || !CASES.length) { btn.hidden = true; return; }
+  btn.hidden = false;
   $("#caseN").textContent = "(" + CASES.length + "건)";
   var mats = Object.keys(CASES.reduce(function (a, c) { a[c.물질] = 1; return a; }, {})).sort();
   $("#caseF").innerHTML = '<option value="">전체</option>'
@@ -712,6 +742,19 @@ function renderCases() {
     }).join("") || '<p style="font-size:13px;color:var(--ink3)">해당 사례가 없습니다.</p>';
   };
   $("#caseF").onchange = draw; draw();
+
+  btn.onclick = openCases;
+  $("#btnCasesClose").onclick = closeCases;
+  $("#casesModal").onclick = function (e) { if (e.target.id === "casesModal") closeCases(); };
+}
+
+function openCases() {
+  $("#casesModal").hidden = false;
+  document.body.style.overflow = "hidden";
+}
+function closeCases() {
+  $("#casesModal").hidden = true;
+  document.body.style.overflow = "";
 }
 
 /* ── 기록 저장 ────────────────────────────────────────────── */
@@ -771,17 +814,9 @@ function init() {
     window.scrollTo(0, 0);
   };
 
-  $("#ver").innerHTML =
-    "문안 근거 — " + esc(VERSION.문안근거) + " · 반영일 " + esc(VERSION.반영일) + "<br>"
-    + "대피장소 — " + esc(VERSION.대피장소_출처) + " · 기준일 " + esc(VERSION.대피장소_기준일)
-    + " (" + (SHELTER_META ? SHELTER_META.총건수.toLocaleString() : "-") + "곳)<br>"
-    + "물질정보 — " + esc(VERSION.물질정보_출처) + " · " + esc(VERSION.물질정보_기준) + "<br>"
-    + "사고유형 구분 — " + esc(VERSION.통계_출처) + " " + esc(VERSION.통계_기간)
-    + " (" + (typeof STATS !== "undefined" ? STATS.총건수.toLocaleString() : "-") + "건)<br>"
-    + "글자수 상한 — 긴급재난문자 " + VERSION.글자수.cbs + "자"
-    + (VERSION.글자수_검증여부 ? "" : " · <b>실제 발송시스템과 산정방식 대조 전</b>") + "<br>"
-    + "추가문의 전화 — 문구에 넣지 않음 (문의 폭주 방지)<br>"
-    + "도구 버전 " + esc(VERSION.도구버전) + " · 관리 " + esc(VERSION.관리부서);
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && !$("#casesModal").hidden) closeCases();
+  });
 }
 
 document.addEventListener("DOMContentLoaded", init);
