@@ -15,6 +15,32 @@ var esc = function (s) {
    실제 재난문자방송시스템의 산정 방식과 대조 후 확정해야 합니다. */
 function count(s) { return Array.from(String(s)).length; }
 
+/* 발송 구분 3개를 고르는 첫 화면 버튼 그림 — 진입화면(portal.css) 패널의
+   손그림 느낌을 밝은 화면에 맞게 가져온 것. 장식일 뿐 정보를 담지 않으므로
+   aria-hidden 으로 숨긴다. */
+var STAGE_ICONS = {
+  indoor:
+    '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M10 29 32 12l22 17" stroke-width="3.4"/>'
+    + '<path d="M15.5 26v27h33V26" stroke-width="3.4"/>'
+    + '<rect x="27" y="35.5" width="10" height="17.5" rx="1.6" stroke-width="2.8"/>'
+    + '<path d="M41 8.5a12 12 0 0 1 5 9" stroke-width="2.6" opacity=".55"/>'
+    + '<path d="M47.5 4a18.5 18.5 0 0 1 7.5 14.5" stroke-width="2.4" opacity=".32"/>'
+    + '</svg>',
+  detour:
+    '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M8 49c10.5 0 14.5-4 20-14s9.5-14 20-14" stroke-width="4.6"/>'
+    + '<path d="M39.5 12.5l9 8.5-9 8.5" stroke-width="3.6"/>'
+    + '<path d="M12 56h9M12 56v-7" stroke-width="2.6" opacity=".5"/>'
+    + '</svg>',
+  evac:
+    '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">'
+    + '<path d="M32 55S18 41 18 30a14 14 0 1 1 28 0c0 11-14 25-14 25z" stroke-width="3.2"/>'
+    + '<circle cx="32" cy="29.5" r="5.6" stroke-width="2.8"/>'
+    + '<path d="M8 12.5l7 7M56 12.5l-7 7M8 47.5l7-7M56 47.5l-7-7" stroke-width="2.6" opacity=".5"/>'
+    + '</svg>'
+};
+
 var SESS = "nics.sms.draft.v1";
 /* openGrp — 접힌 문안 그룹 중 펼쳐 둔 것. 입력할 때마다 문안을 다시 그리므로
    열어 둔 상태를 state 에 둬야 글자 한 자 칠 때마다 닫히지 않습니다. */
@@ -452,8 +478,11 @@ function bindFields(root) {
 
 function renderStages() {
   $("#stages").innerHTML = STAGES.map(function (s) {
-    return '<button type="button" data-s="' + s.id + '" aria-pressed="' + (state.stage === s.id)
-      + '"><b>' + esc(s.이름) + "</b></button>";
+    return '<button type="button" class="stp" data-s="' + s.id + '" aria-pressed="' + (state.stage === s.id) + '">'
+      + '<span class="stp-ic" aria-hidden="true">' + (STAGE_ICONS[s.id] || "") + "</span>"
+      + "<b>" + esc(s.이름) + "</b>"
+      + (s.짧은설명 ? '<span class="stp-d">' + esc(s.짧은설명) + "</span>" : "")
+      + "</button>";
   }).join("");
   $$("#stages button").forEach(function (b) {
     b.onclick = function () { state.stage = b.dataset.s; save(); renderAll(); };

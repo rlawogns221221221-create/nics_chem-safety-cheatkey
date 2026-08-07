@@ -12,10 +12,25 @@
   --warn:#8a4f06; --warn-l:#fdf2e0;
   --err:#b31f1f; --err-l:#fdeaea;
   --r:10px;
+  --ease:cubic-bezier(.22,.61,.36,1);
 }
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}   /* display:grid/flex 가 hidden 을 덮지 않도록 */
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
+
+/* ── 부드럽게 나타나기 ────────────────────────────────────────
+   버튼을 눌러 새로 보이게 되는 요소들에 붙인다. [hidden] 을 뗄 때
+   (display:none → 보임) 브라우저가 애니메이션을 처음부터 다시 재생하므로,
+   자바스크립트로 시점을 맞출 필요 없이 CSS만으로 "누르면 부드럽게 나타남"이
+   된다. innerHTML 로 새로 그려지는 요소(문안 카드 등)에도 그대로 적용되며,
+   이 경우는 새로 생겨날 때마다 매번 재생된다. */
+@keyframes revealIn{
+  from{opacity:0;transform:translateY(9px)}
+  to{opacity:1;transform:none}
+}
 html{-webkit-text-size-adjust:100%;background:var(--bg)}
 body{
   margin:0; background:var(--bg); color:var(--ink);
@@ -40,17 +55,36 @@ body{
       font-size:12.5px;padding:8px 0;margin-bottom:16px}
 .note .wrap{padding-bottom:0}
 
-/* ── 발송 구분 선택 (상단 가로) ───────────────────── */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:16px 0}
-.steps button{text-align:center;padding:14px 13px;border:1.5px solid var(--line);
-  background:var(--card);border-radius:9px;line-height:1.4}
-.steps button b{display:block;font-size:15px;font-weight:700}
-.steps button:hover{border-color:var(--brand)}
-.steps button[aria-pressed=true]{border-color:var(--brand);background:var(--brand);color:#fff}
+/* ── 발송 구분 선택 (상단 가로) ─────────────────────
+   버튼을 누르기 전에도 허전하지 않도록 정사각형에 가깝게 키우고, 손그림
+   아이콘(STAGE_ICONS, sms/app.js)과 한 줄 설명을 넣었다. 진입화면(portal.css)
+   패널과 같은 느낌(둥근 모서리·호버 시 살짝 뜨는 그림자)을 가져오되, 이 도구는
+   실무 중 보는 화면이라 어둡게 하지 않고 밝은 배경을 그대로 둔다. */
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0 22px}
+.steps button.stp{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
+  text-align:center;aspect-ratio:1/.86;min-height:132px;padding:16px 12px 14px;
+  border:1.5px solid var(--line);background:var(--card);border-radius:16px;line-height:1.35;
+  color:var(--ink);box-shadow:0 1px 2px rgba(18,40,70,.05);
+  transition:border-color .18s var(--ease),box-shadow .18s var(--ease),
+             transform .18s var(--ease),background .18s var(--ease)}
+.stp-ic{width:46px;height:46px;color:var(--brand);transition:color .18s var(--ease)}
+.stp-ic svg{width:100%;height:100%;display:block}
+.steps button.stp b{display:block;font-size:15px;font-weight:800;letter-spacing:-.01em}
+.stp-d{font-size:11.5px;color:var(--ink3);font-weight:500;transition:color .18s var(--ease)}
+.steps button.stp:hover{border-color:var(--brand);box-shadow:0 8px 20px rgba(11,87,164,.15);
+  transform:translateY(-2px)}
+.steps button.stp:active{transform:translateY(0)}
+.steps button.stp[aria-pressed=true]{border-color:var(--brand-d);background:var(--brand);
+  color:#fff;box-shadow:0 8px 22px rgba(11,87,164,.3)}
+.steps button.stp[aria-pressed=true] .stp-ic{color:#fff}
+.steps button.stp[aria-pressed=true] .stp-d{color:#cfe0f5}
 
 /* ── 2단 레이아웃 ─────────────────────────────────── */
-.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:16px;align-items:start}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r)}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:16px;align-items:start;
+  animation:revealIn .38s var(--ease) both}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
+  box-shadow:0 1px 3px rgba(18,40,70,.05)}
 .panel > h2{margin:0;padding:11px 16px;font-size:13px;font-weight:700;color:var(--ink2);
   border-bottom:1px solid var(--line2);letter-spacing:.01em;
   display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -59,6 +93,7 @@ body{
 
 /* ── 폼 ───────────────────────────────────────────── */
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px 12px}
+#fEvacExtra{animation:revealIn .3s var(--ease) both}
 .f{display:flex;flex-direction:column;gap:4px;min-width:0}
 .f.wide{grid-column:1/-1}
 .f label{font-size:12.5px;font-weight:600;color:var(--ink2)}
@@ -209,7 +244,7 @@ button.sm{padding:5px 10px;font-size:12.5px}
 
 /* ── 대피장소 찾기 ────────────────────────────────── */
 .finder{border:1px solid var(--line);border-radius:7px;background:var(--panel);
-        padding:11px;margin-top:8px}
+        padding:11px;margin-top:8px;animation:revealIn .3s var(--ease) both}
 .finder .cntlbl{font-size:11.5px;color:var(--ink3);font-weight:400;margin-left:5px}
 
 /* ── 참고 사례 ────────────────────────────────────── */
@@ -221,10 +256,12 @@ button.sm{padding:5px 10px;font-size:12.5px}
 /* ── 참고 사례 창 — "실제 발송 사례" 단추를 눌렀을 때만 뜬다.
    나중에 100건 넘게 늘어나도 본문을 밀어내지 않도록 목록만 스크롤됩니다. */
 .cbx-back{position:fixed;inset:0;z-index:1000;background:rgba(9,20,33,.55);
-  display:flex;align-items:center;justify-content:center;padding:18px}
+  display:flex;align-items:center;justify-content:center;padding:18px;
+  animation:cbxFade .2s var(--ease) both}
 .cbx{background:var(--card);border-radius:12px;width:100%;max-width:680px;
   max-height:100%;display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:0 18px 48px rgba(0,0,0,.3)}
+  box-shadow:0 18px 48px rgba(0,0,0,.3);animation:revealIn .3s var(--ease) both}
+@keyframes cbxFade{from{opacity:0}to{opacity:1}}
 .cbx > header{display:flex;align-items:center;gap:8px;padding:11px 14px;
   background:var(--brand-d);color:#fff;flex:none}
 .cbx > header b{font-size:14.5px}
@@ -250,8 +287,12 @@ button.sm{padding:5px 10px;font-size:12.5px}
 }
 @media (max-width:560px){
   .wrap{padding:0 12px 48px}
-  .steps{grid-template-columns:1fr;gap:6px}
-  .steps button{padding:10px 12px}
+  .steps{gap:7px;margin:14px 0 18px}
+  .steps button.stp{min-height:0;aspect-ratio:1/.92;padding:11px 6px 10px;
+    border-radius:13px;gap:6px}
+  .stp-ic{width:32px;height:32px}
+  .steps button.stp b{font-size:12.5px}
+  .stp-d{display:none}
   .panel .body{padding:13px}
   .msg{font-size:15.5px}
   .matbar dl{grid-template-columns:1fr;gap:1px}
@@ -299,12 +340,14 @@ body.mapapp{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .mb-lyr button:disabled{background:var(--panel);color:var(--ink3);text-decoration:line-through}
 
 .mbar-warn{flex:none;padding:8px 16px;background:var(--warn-l);
-  border-bottom:1px solid #ebd0a4;color:var(--warn);font-size:12px;line-height:1.55}
+  border-bottom:1px solid #ebd0a4;color:var(--warn);font-size:12px;line-height:1.55;
+  animation:revealIn .26s var(--ease) both}
 .mbar-warn a{color:var(--brand-d);font-weight:700}
 
 /* 영향 참고 반경 줄 */
 .mrad{flex:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
-  padding:7px 16px;background:var(--brand-l);border-bottom:1px solid #bcd4ea}
+  padding:7px 16px;background:var(--brand-l);border-bottom:1px solid #bcd4ea;
+  animation:revealIn .26s var(--ease) both}
 .mr-lb{font-size:11.5px;font-weight:700;color:var(--brand-d)}
 .mr-nm{font-size:12.5px;color:var(--ink);margin-right:4px}
 .mr-none{font-size:12px;color:var(--warn);font-weight:600}
@@ -321,7 +364,8 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 
 /* 사고지점 요약 줄 — "이 근방에 무엇이 있나"를 한 줄로 */
 .msum{flex:none;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
-  padding:8px 16px;background:#0d3f70;color:#fff;font-size:12.5px}
+  padding:8px 16px;background:#0d3f70;color:#fff;font-size:12.5px;
+  animation:revealIn .26s var(--ease) both}
 .ms-near{display:flex;align-items:baseline;gap:6px}
 .ms-near b{font-weight:700;color:#bcd3ec;font-size:11.5px}
 .ms-near em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
@@ -414,7 +458,8 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .mapaddr{position:absolute;left:10px;max-width:min(380px,calc(100% - 62px));bottom:84px;
   background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:7px;
   padding:7px 11px;font-size:12.5px;line-height:1.5;
-  box-shadow:0 2px 8px rgba(0,0,0,.14);pointer-events:none}
+  box-shadow:0 2px 8px rgba(0,0,0,.14);pointer-events:none;
+  animation:revealIn .26s var(--ease) both}
 .mapaddr b{font-weight:700}
 .mapaddr i{font-style:normal;font-size:11.5px;color:var(--ink3);margin-left:4px}
 .mapaddr span{display:block;color:var(--ink2);font-size:11.5px}
@@ -551,10 +596,11 @@ a.btnlink:hover{border-color:var(--brand)}
    지도는 화면 픽셀 좌표계로 그립니다(assets/shmap.js 참고). 그래서 아래
    선 굵기·글자 크기는 그대로 화면 픽셀이며 확대해도 변하지 않습니다. */
 .shmap-back{position:fixed;inset:0;z-index:1000;background:rgba(9,20,33,.55);
-  display:flex;align-items:center;justify-content:center;padding:18px}
+  display:flex;align-items:center;justify-content:center;padding:18px;
+  animation:cbxFade .2s var(--ease) both}
 .shmap{background:var(--card);border-radius:12px;width:100%;max-width:1080px;
   max-height:100%;display:flex;flex-direction:column;overflow:hidden;
-  box-shadow:0 18px 48px rgba(0,0,0,.3)}
+  box-shadow:0 18px 48px rgba(0,0,0,.3);animation:revealIn .3s var(--ease) both}
 .shmap > header{display:flex;align-items:center;gap:10px;padding:11px 14px;
   background:var(--brand-d);color:#fff;flex:none}
 .shmap > header b{font-size:14.5px}
@@ -584,12 +630,13 @@ a.btnlink:hover{border-color:var(--brand)}
 
 /* 배경지도를 못 불러왔을 때의 안내 — 왜 안 되는지 적는다 */
 .shmap-warn{padding:8px 14px;background:var(--warn-l);border-bottom:1px solid #ebd0a4;
-  color:var(--warn);font-size:12px;line-height:1.55;flex:none}
+  color:var(--warn);font-size:12px;line-height:1.55;flex:none;animation:revealIn .26s var(--ease) both}
 .shmap-warn a{color:var(--brand-d);font-weight:700}
 
 /* 영향 참고 반경 줄 — 사고지점을 찍으면 나타난다 */
 .shmap-rad{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
-  padding:8px 14px;background:var(--brand-l);border-bottom:1px solid #bcd4ea;flex:none}
+  padding:8px 14px;background:var(--brand-l);border-bottom:1px solid #bcd4ea;flex:none;
+  animation:revealIn .26s var(--ease) both}
 .shmap-rad .lb{font-size:11.5px;font-weight:700;color:var(--brand-d)}
 .shmap-rad button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);
   color:#fff;font-weight:700}
@@ -649,7 +696,8 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:12.5px;flex:no
 .shmap-addr{position:absolute;left:10px;right:10px;bottom:34px;
   background:rgba(255,255,255,.96);border:1px solid var(--line);border-radius:7px;
   padding:7px 11px;font-size:12.5px;line-height:1.5;
-  box-shadow:0 2px 8px rgba(0,0,0,.14);pointer-events:none}
+  box-shadow:0 2px 8px rgba(0,0,0,.14);pointer-events:none;
+  animation:revealIn .26s var(--ease) both}
 .shmap-addr b{font-weight:700}
 .shmap-addr i{font-style:normal;font-size:11.5px;color:var(--ink3);margin-left:4px}
 .shmap-addr span{display:block;color:var(--ink2);font-size:11.5px}
