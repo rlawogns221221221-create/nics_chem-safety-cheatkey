@@ -59,6 +59,10 @@ body{
 .skip{position:absolute;left:-9999px;top:0;z-index:100;
   background:var(--navy);color:#fff;padding:10px 18px;font-weight:700}
 .skip:focus{left:0}
+/* 화면엔 안 보이지만 스크린리더는 읽는다 — 시각적 제목 문구를 없앤 대신
+   페이지 구조(h1 하나)는 접근성을 위해 남겨 둔다 */
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;
+  overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ── 상단 바 ─────────────────────────────────────────────── */
 .top{flex:none;background:var(--top-bg);border-bottom:1px solid var(--top-line)}
@@ -81,20 +85,18 @@ body{
     linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 55%, var(--bg-2) 100%);
 }
 
-.stage-head{flex:none;padding:52px 0 40px}
-.eyebrow{margin:0 0 14px;font-size:12.5px;font-weight:700;
-  letter-spacing:.18em;color:var(--accent)}
-.stage h1{margin:0;font-size:52px;line-height:1.16;font-weight:800;
-  letter-spacing:-.035em;color:var(--fg)}
-
-/* ── 도구 패널 ───────────────────────────────────────────── */
-.panels{flex:1;min-height:0;margin:0;padding:0;list-style:none;display:flex}
+/* ── 도구 패널 ───────────────────────────────────────────────
+   화면 가득 채우던 이전 형태 대신, 위아래·좌우로 여백을 두고 패널 사이에도
+   틈을 줬다. 패널을 나열한 목록이라는 게 한눈에 보이도록 모서리도 둥글렸다. */
+.panels-wrap{flex:1;min-height:0;display:flex;align-items:center;padding:44px 0}
+/* .wrap 이 이미 max-width·중앙정렬·좌우 여백을 준다 — 여기선 높이·간격만 추가 */
+.panels{height:min(58vh,600px);margin:0;list-style:none;display:flex;gap:18px}
 
 .pn{position:relative;flex:1 1 0;min-width:0;overflow:hidden;
-  border-left:1px solid rgba(255,255,255,.11);
+  border-radius:20px;background:rgba(255,255,255,.02);
+  box-shadow:0 1px 0 rgba(255,255,255,.06) inset;
   transition:flex-grow var(--t) var(--ease),background var(--t) var(--ease);
   display:flex;align-items:flex-end}
-.pn:first-child{border-left:0}
 /* 하나에 마우스를 올리면 그 패널이 넓어지고 나머지는 조금 줄어든다.
    ‼ 아래 두 줄의 우선순위를 같게 맞춰야 한다. `.pn:hover` 만 쓰면 우선순위가
    `.panels:hover .pn` 보다 낮아 호버해도 넓어지지 않는다(실제로 그랬음). */
@@ -128,7 +130,7 @@ body{
 .pn-body{position:relative;z-index:3;width:100%;padding:0 34px 40px;pointer-events:none}
 .pn-no{display:block;font-size:13px;font-weight:800;letter-spacing:.14em;
   color:var(--accent);margin-bottom:10px;font-variant-numeric:tabular-nums}
-.pn h2{margin:0;font-size:27px;line-height:1.3;font-weight:800;
+.pn h2{margin:0;font-size:25px;line-height:1.3;font-weight:800;
   letter-spacing:-.025em;color:var(--fg)}
 
 /* 설명과 이용하기 — 마우스를 올리거나 초점이 갔을 때 나타난다 */
@@ -162,15 +164,14 @@ body{
 
 /* ── 화면이 낮을 때 (1366×768 같은 업무용 노트북) ─────────── */
 @media (min-width:961px) and (max-height:900px){
-  .stage-head{padding:36px 0 28px}
-  .stage h1{font-size:42px}
-  .eyebrow{margin-bottom:11px}
+  .panels-wrap{padding:32px 0}
+  .panels{height:min(60vh,520px)}
   .pn-body{padding:0 28px 32px}
   .pn h2{font-size:24px}
 }
 @media (min-width:961px) and (max-height:780px){
-  .stage-head{padding:28px 0 22px}
-  .stage h1{font-size:36px}
+  .panels-wrap{padding:24px 0}
+  .panels{height:min(62vh,460px)}
   .pn-body{padding:0 24px 26px}
   .pn h2{font-size:22px}
   .pn-d{font-size:13.5px}
@@ -180,15 +181,11 @@ body{
 @media (max-width:960px){
   :root{--pad:24px}
   body{height:auto}
-  .stage-head{padding:38px 0 26px}
-  .stage h1{font-size:34px}
-  .panels{flex-direction:column;flex:none}
+  .panels-wrap{padding:28px 0;align-items:stretch}
+  .panels{flex-direction:column;height:auto;gap:16px}
   /* 세로로 쌓이면 내용이 패널보다 길어질 수 있다. flex-end 로 두면 위가 잘리므로
-     stretch 로 두고 위아래 여백을 준다. */
-  /* flex-basis 0 으로 두면 내용보다 짧아져 아래가 잘린다 — 내용 높이를 따르게 한다 */
-  .pn{flex:0 0 auto;border-left:0;border-top:1px solid rgba(255,255,255,.11);
-    min-height:0;align-items:stretch}
-  .pn:first-child{border-top:0}
+     stretch 로 두고, flex-basis 0 대신 내용 높이를 따르게 한다(안 그러면 아래가 잘림) */
+  .pn{flex:0 0 auto;min-height:0;align-items:stretch}
   .panels:hover .pn,.pn:hover,.pn:focus-within,.pn:focus{flex:0 0 auto}
   .pn-body{padding:26px 24px 28px}
 }
@@ -206,9 +203,7 @@ body{
   .top .wrap{min-height:52px;gap:10px}
   .brand-tx{font-size:12px}
   .rule,.svc,.ext{display:none}
-  .stage-head{padding:30px 0 22px}
-  .eyebrow{font-size:11.5px;margin-bottom:9px}
-  .stage h1{font-size:27px}
+  .panels-wrap{padding:22px 0}
   .pn{min-height:190px}
   .pn h2{font-size:21px}
   .pn-d{font-size:13.5px}
@@ -219,9 +214,9 @@ body{
   body{background:#fff;color:#000;height:auto}
   .stage{background:#fff}
   .pn-art,.pn::after,.pn::before{display:none}
-  .stage h1,.pn h2{color:#000}
-  .pn{border:1px solid #000;break-inside:avoid;min-height:0;margin-bottom:8px}
-  .panels{flex-direction:column}
+  .pn h2{color:#000}
+  .pn{border:1px solid #000;break-inside:avoid;min-height:0;margin-bottom:8px;border-radius:0}
+  .panels-wrap{padding:0}
+  .panels{flex-direction:column;height:auto}
   .pn-d,.pn-go{opacity:1;max-height:none;transform:none;margin-top:8px;color:#333}
-  .eyebrow{color:#333}
 }
