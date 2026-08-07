@@ -1924,18 +1924,20 @@ function fit() {
    확인하려는 것이므로 한쪽만 크게 보여 주면 소용이 없습니다. */
 function moveTo(s) {
   if (!st.view) fit();
-  var want;
+  /* 고른 곳은 항상 화면 가운데에 온다 — 예전에는 사고지점이 있으면 둘의
+     중간점을 가운데로 잡았는데, 확대는 "이미 가까이 보고 있으면 그대로"
+     규칙 때문에 min() 으로 더 넓어지지 못하게 막혀 있어서, 사고지점과 먼
+     곳을 고르면 그 중간점 기준으로 고른 곳이 화면 가장자리나 밖으로
+     밀려났다(실제로 그랬음). 가운데는 고른 곳으로 고정하고, 사고지점은
+     "무리 없이 함께 보일 때만" 시야를 넓혀 포함시킨다. */
+  var base = Math.min(st.view.w, mToWorld(1400, s.lat));
+  var want = base;
   if (st.acc) {
     var span = Math.max(Math.abs(wx(s.lon) - wx(st.acc.lon)),
                         Math.abs(wy(s.lat) - wy(st.acc.lat)) * 1.35) * 2.6;
-    want = Math.max(span, mToWorld(400, s.lat));
-    CAM.animateTo({ cx: (wx(s.lon) + wx(st.acc.lon)) / 2,
-                cy: (wy(s.lat) + wy(st.acc.lat)) / 2,
-                w: Math.min(st.view.w, want) }, 340);
-  } else {
-    want = mToWorld(1400, s.lat);
-    CAM.animateTo({ cx: wx(s.lon), cy: wy(s.lat), w: Math.min(st.view.w, want) }, 340);
+    want = Math.min(Math.max(base, span), base * 6);   // 너무 멀면 상한까지만 넓힌다
   }
+  CAM.animateTo({ cx: wx(s.lon), cy: wy(s.lat), w: want }, 340);
 }
 
 /* ── 좌표 변환 ────────────────────────────────────────────── */
