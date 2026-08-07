@@ -387,21 +387,65 @@ body.mapapp{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .mapapp .top{flex:none;padding:11px 0}
 .mapapp .top .wrap{max-width:none;padding:0 16px}
 
-/* 조건 줄 */
+/* 조건 줄 — 시·도/시·군·구/찾는 범위는 오른쪽 목록 패널로 옮기고(.ms-find),
+   여기는 주소 검색·영향반경 물질·풍향·배경지도만 남겨 더 넓게 쓴다.
+   글자가 작아 안 보인다는 의견을 받아 줄 높이와 글자 크기를 키웠다. */
 .mbar{flex:none;background:var(--panel);border-bottom:1px solid var(--line)}
-.mbar-in{display:flex;align-items:flex-end;gap:11px;flex-wrap:wrap;padding:9px 16px}
-.mb-f{display:flex;flex-direction:column;gap:3px;font-size:11.5px;font-weight:700;color:var(--ink2)}
-.mb-f select,.mb-f input[type=text]{width:auto;min-width:132px;font-weight:400}
-.mb-f input[type=text]{min-width:150px}
+.mbar-in{display:flex;align-items:flex-end;gap:16px;flex-wrap:wrap;padding:14px 18px;min-height:64px}
+.mb-f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--ink2)}
+.mb-f select,.mb-f input[type=text]{width:auto;min-width:150px;font-weight:400;
+  padding:8px 11px;font-size:14.5px;border-radius:7px}
+.mb-f input[type=text]{min-width:170px}
+.mb-addr{position:relative}
+.mb-addr input[type=text]{min-width:260px}
+
+/* 풍향 단추 — 실제 나침반(.windpop, JS 로 생성)은 이 단추를 누르면 뜬다 */
+.mb-wind{position:relative}
+.windbtn{display:flex;align-items:center;gap:7px;padding:8px 12px;font-size:14.5px;
+  font-weight:600;color:var(--ink);border-radius:7px;min-width:150px}
+.windbtn-ic{width:17px;height:17px;flex:none;color:var(--ink3)}
+.windbtn.on{border-color:var(--brand);background:var(--brand-l);color:var(--brand-d)}
+.windbtn.on .windbtn-ic{color:var(--brand-d)}
 
 /* 배경지도 고르기 */
 .mb-lyr{display:flex;gap:0;margin-left:auto}
-.mb-lyr button{padding:7px 11px;font-size:12.5px;border-radius:0;border-left-width:0;background:#fff}
+.mb-lyr button{padding:9px 14px;font-size:13.5px;border-radius:0;border-left-width:0;background:#fff}
 .mb-lyr button:first-child{border-radius:6px 0 0 6px;border-left-width:1px}
 .mb-lyr button:last-child{border-radius:0 6px 6px 0}
 .mb-lyr button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
 .mb-lyr button[aria-pressed=true] + button{border-left-color:var(--brand)}
 .mb-lyr button:disabled{background:var(--panel);color:var(--ink3);text-decoration:line-through}
+
+/* 주소·장소 검색 결과 — 사고물질 목록(.mpk)과 같은 모양을 그대로 쓴다 */
+#addrPop.mpk{z-index:950}
+#addrPop .mpk-list{max-height:320px}
+
+/* 풍향 고르기 창 — 나침반 */
+.windpop{position:fixed;z-index:950;background:#fff;border:1px solid var(--brand);
+  border-radius:10px;box-shadow:0 6px 24px rgba(16,32,48,.18);padding:12px;width:216px;
+  animation:revealIn .2s var(--ease) both}
+.windpop-hd{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:10px;text-align:center}
+.windpop-hd b{color:var(--brand-d)}
+.windrose{position:relative;width:168px;height:168px;margin:0 auto}
+.wr-ring{position:absolute;inset:8px;border:1.5px dashed var(--line);border-radius:50%}
+.wr-hub{position:absolute;left:50%;top:50%;width:8px;height:8px;margin:-4px;
+  border-radius:50%;background:var(--ink3);z-index:1}
+.wr-cap{text-align:center;font-size:12px;line-height:1.5;color:var(--ink2);
+  margin:10px 0 12px}
+.wr-cap b{color:var(--brand-d);font-weight:800}
+.wr-b{position:absolute;width:34px;height:34px;margin:-17px;padding:0;border-radius:50%;
+  font-size:11px;font-weight:700;background:#fff;display:flex;align-items:center;justify-content:center}
+.wr-b[aria-pressed=true]{background:var(--brand);border-color:var(--brand-d);color:#fff;
+  box-shadow:0 0 0 3px var(--brand-l)}
+/* 풍하방향 화살표 — 나침반 가운데서 시작해 고른 방향의 반대쪽을 가리킨다.
+   기본자세(0deg)가 북쪽(위)을 향해야 rotate(풍하방향deg) 가 그대로 맞으므로,
+   막대는 가운데(바닥)에서 위로 자라도록 두고 그 끝점을 축으로 돌린다. */
+.wr-arrow{position:absolute;left:50%;bottom:50%;width:3px;height:58px;background:var(--err);
+  transform-origin:50% 100%;border-radius:2px 2px 0 0}
+.wr-arrow::after{content:"";position:absolute;left:50%;top:-1px;width:0;height:0;
+  transform:translateX(-50%);border-left:6px solid transparent;border-right:6px solid transparent;
+  border-bottom:9px solid var(--err)}
+.windpop-clear{width:100%;justify-content:center;display:flex}
 
 .mbar-warn{flex:none;padding:8px 16px;background:var(--warn-l);
   border-bottom:1px solid #ebd0a4;color:var(--warn);font-size:12px;line-height:1.55;
@@ -445,7 +489,7 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .ms-more:hover{background:rgba(255,255,255,.3);border-color:#fff}
 
 /* 지도 + 목록 */
-.mmain{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 360px}
+.mmain{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 440px}
 .mmap{position:relative;background:#eaf0f5;min-height:0;border-right:1px solid var(--line)}
 #map{position:absolute;inset:0;width:100%;height:100%;display:block;
   touch-action:none;cursor:grab}
@@ -543,6 +587,14 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 
 /* 목록 */
 .mside{display:flex;flex-direction:column;min-height:0;min-width:0;background:var(--card)}
+/* 대피장소로 찾는 기능(시·도/시·군·구/찾는 범위) — 조건 줄에서 이리로 옮겨,
+   대피장소 목록과 한 흐름(어디서 찾을지 → 무엇이 나왔는지)으로 붙였다 */
+.ms-find{flex:none;padding:12px 13px 13px;background:var(--panel);
+  border-bottom:1px solid var(--line2);display:flex;flex-direction:column;gap:9px}
+.ms-find-row{display:flex;gap:9px}
+.ms-find-row .mb-f{flex:1;min-width:0}
+.ms-find .mb-f.wide{width:100%}
+.ms-find .mb-f select{width:100%;min-width:0}
 .ms-hd{flex:none;padding:9px 13px;font-size:12.5px;font-weight:700;color:var(--ink2);
   border-bottom:1px solid var(--line2)}
 .ms-hd span{font-weight:400;color:var(--ink3)}
@@ -583,15 +635,18 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 #ver .src{margin-top:12px;padding-top:9px;border-top:1px solid var(--line2);
   font-size:11.5px;color:var(--ink3)}
 
-@media (max-width:1080px){ .mmain{grid-template-columns:minmax(0,1fr) 320px} }
+@media (max-width:1080px){ .mmain{grid-template-columns:minmax(0,1fr) 380px} }
 @media (max-width:860px){
   body.mapapp{height:auto;overflow:visible}
   .mmain{grid-template-columns:1fr;flex:none}
   .mmap{height:56vh;border-right:0}
   .mside{height:auto}
   .ms-list{overflow:visible}
+  .ms-find-row{flex-wrap:wrap}
   .mb-lyr{margin-left:0}
   .mb-f select,.mb-f input[type=text]{min-width:120px}
+  .mb-addr input[type=text]{min-width:150px}
+  .windbtn{min-width:0}
   /* 좁은 화면에서는 사고지점 줄이 지도를 많이 가리지 않게 촘촘히 */
   .mapacc{gap:5px;padding:5px 8px;font-size:11px}
   .mapacc label{gap:3px}
@@ -602,7 +657,7 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 }
 @media print{
   body.mapapp{height:auto;overflow:visible;display:block}
-  .mbar,.mapctl,.mapacc,.ms-tools,.mbar-warn{display:none!important}
+  .mbar,.mapctl,.mapacc,.ms-tools,.mbar-warn,.ms-find,.windpop,#addrPop{display:none!important}
   .mmain{display:block}
   .mmap{position:relative;height:440px;page-break-inside:avoid;border:1px solid #000}
   .msum{background:#fff;color:#000;border:1px solid #000;border-width:1px 0}
@@ -2225,6 +2280,39 @@ function extLinks(s) {
     + "</span>";
 }
 
+/* ── 카메라(시야 이동) ────────────────────────────────────────
+   ①②(map/app.js, assets/shmap.js) 가 각자 만들어 쓰던 requestAnimationFrame
+   트윈을 한 곳으로 모았다. 어느 지도든 확대·축소·전체보기·조건 바뀜으로
+   시야가 바뀔 때 항상 이 함수를 거치면, 순간이동 없이 "어디서 어디로,
+   얼마나" 움직였는지 눈으로 좇을 수 있다.
+
+   getView()/setView(v) 로 호출측의 view 객체({cx,cy,w})를 읽고 쓰며,
+   매 프레임 redraw() 를 부른다. 반환하는 stop() 은 드래그를 시작하거나
+   다른 이동을 새로 걸 때 진행 중이던 트윈을 끊는 용도다. */
+function makeCamera(getView, setView, redraw) {
+  var anim = null;
+  function stop() { if (anim) { cancelAnimationFrame(anim); anim = null; } }
+  function animateTo(target, ms) {
+    stop();
+    var view = getView();
+    var from = { cx: view.cx, cy: view.cy, w: view.w }, t0 = null;
+    var step = function (ts) {
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / ms);
+      var e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;   // 완만한 가감속
+      setView({
+        cx: from.cx + (target.cx - from.cx) * e,
+        cy: from.cy + (target.cy - from.cy) * e,
+        w: from.w + (target.w - from.w) * e
+      });
+      redraw();
+      if (p < 1) anim = requestAnimationFrame(step); else anim = null;
+    };
+    anim = requestAnimationFrame(step);
+  }
+  return { animateTo: animateTo, stop: stop, isAnimating: function () { return !!anim; } };
+}
+
 window.MAPCORE = {
   /* 투영 */
   wx: wx, wy: wy, wxInv: wxInv, wyInv: wyInv,
@@ -2234,6 +2322,8 @@ window.MAPCORE = {
   fmtDist: fmtDist, niceDist: niceDist, scale: scale,
   /* 그리기 */
   boundaryPaths: boundaryPaths, matchSgg: matchSgg,
+  /* 카메라 */
+  camera: makeCamera,
   /* 데이터 */
   shelters: shelters, findSido: findSido, extLinks: extLinks,
   /* 배경지도 타일 */
@@ -2311,6 +2401,9 @@ var st = {
   sort: "name", q: ""
 };
 var SVG = null, VB = null;
+/* 모든 시야 이동이 이 카메라를 거친다 — ② 대피장소 지도(map/app.js)와 같은
+   공용 헬퍼(assets/mapcore.js)라서 두 지도가 똑같이 부드럽게 움직인다 */
+var CAM = MC.camera(function () { return st.view; }, function (v) { st.view = v; }, draw);
 
 /* 배경지도 타일은 mapcore 가 받아 둡니다. 새 타일이 도착하면 다시 그립니다. */
 MC.tiles.onChange(function () {
@@ -2365,7 +2458,7 @@ function recompute() {
   st.hover = -1;
 }
 
-function fit() {
+function fitTarget() {
   var m = 2, M = -1, n = 2, N = -1, any = false;
   var add = function (x, y) {
     m = Math.min(m, x); M = Math.max(M, x);
@@ -2380,27 +2473,17 @@ function fit() {
     add(wx(st.acc.lon) - r, wy(st.acc.lat) - r);
     add(wx(st.acc.lon) + r, wy(st.acc.lat) + r);
   }
-  if (!any) { st.view = { cx: wx(127.8), cy: wy(36.3), w: 0.035 }; return; }
+  if (!any) return { cx: wx(127.8), cy: wy(36.3), w: 0.035 };
   var w = (M - m) * 1.25, h = (N - n) * 1.25;
-  st.view = { cx: (m + M) / 2, cy: (n + N) / 2, w: Math.max(w, h * 1.35, 0.00035) };
+  return { cx: (m + M) / 2, cy: (n + N) / 2, w: Math.max(w, h * 1.35, 0.00035) };
 }
 
-/* ── 지도 이동 (부드럽게) ──────────────────────────────────── */
-var anim = null;
-function animateTo(t, ms) {
-  if (anim) { cancelAnimationFrame(anim); anim = null; }
-  var from = { cx: st.view.cx, cy: st.view.cy, w: st.view.w }, t0 = null;
-  var step = function (ts) {
-    if (t0 === null) t0 = ts;
-    var p = Math.min(1, (ts - t0) / ms);
-    var e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;   // 완만한 가감속
-    st.view.cx = from.cx + (t.cx - from.cx) * e;
-    st.view.cy = from.cy + (t.cy - from.cy) * e;
-    st.view.w = from.w + (t.w - from.w) * e;
-    draw();
-    if (p < 1) anim = requestAnimationFrame(step); else anim = null;
-  };
-  anim = requestAnimationFrame(step);
+/* 처음 여는 창은 바로 그 시야로, 이미 뭔가 보고 있던 중이면 부드럽게 옮겨
+   어디로 얼마나 움직이는지 눈으로 좇을 수 있게 한다. */
+function fit() {
+  var t = fitTarget();
+  if (!st.view) { st.view = t; draw(); return; }
+  CAM.animateTo(t, 420);
 }
 
 /* 고른 대피장소로 지도를 옮긴다.
@@ -2410,7 +2493,7 @@ var NEAR_M = 1400;              // 이동 후 화면 가로에 담을 대략 거
 function moveTo(s) {
   if (!st.view) fit();
   var want = mToWorld(NEAR_M, s.lat);
-  animateTo({ cx: wx(s.lon), cy: wy(s.lat), w: Math.min(st.view.w, want) }, 340);
+  CAM.animateTo({ cx: wx(s.lon), cy: wy(s.lat), w: Math.min(st.view.w, want) }, 340);
 }
 
 /* ── 그리기 ───────────────────────────────────────────────── */
@@ -2710,8 +2793,9 @@ function reload(refit) {
   if (qi) qi.value = "";
   prefill();
   recompute();
-  if (refit) st.view = null;
-  syncSort(); renderList(); renderFoot(); draw(); showAddr();
+  syncSort(); renderList(); renderFoot();
+  if (refit) fit(); else draw();
+  showAddr();
 }
 
 /* 이미 입력칸에 들어 있는 곳은 체크된 상태로 시작한다.
@@ -2764,11 +2848,17 @@ function zoom(f, cx, cy) {
   v.w = nw;
   draw();
 }
+/* ＋/－ 단추는 화면 가운데 기준으로, 얼마나 당겨지는지 보이게 부드럽게 움직인다.
+   휠·드래그는 연속 동작이라 지금처럼 그 자리서 바로 반응한다(zoom() 그대로). */
+function zoomBtn(f) {
+  var nw = Math.max(0.0000015, Math.min(1.2, st.view.w * f));
+  CAM.animateTo({ cx: st.view.cx, cy: st.view.cy, w: nw }, 260);
+}
 
 function bindMap() {
   var drag = null;
   SVG.onpointerdown = function (e) {
-    if (anim) { cancelAnimationFrame(anim); anim = null; }
+    CAM.stop();
     drag = { x: e.clientX, y: e.clientY, cx: st.view.cx, cy: st.view.cy, moved: false };
     try { SVG.setPointerCapture(e.pointerId); } catch (err) {}
   };
@@ -2795,12 +2885,12 @@ function bindMap() {
   };
   SVG.onwheel = function (e) {
     e.preventDefault();
-    if (anim) { cancelAnimationFrame(anim); anim = null; }
+    CAM.stop();
     zoom(e.deltaY > 0 ? 1.25 : 0.8, e.clientX, e.clientY);
   };
-  $(".shmap-zi", box).onclick = function () { zoom(0.7); };
-  $(".shmap-zo", box).onclick = function () { zoom(1.42); };
-  $(".shmap-zf", box).onclick = function () { fit(); draw(); };
+  $(".shmap-zi", box).onclick = function () { zoomBtn(0.7); };
+  $(".shmap-zo", box).onclick = function () { zoomBtn(1.42); };
+  $(".shmap-zf", box).onclick = function () { fit(); };
 }
 
 /* ── 창 만들기 ────────────────────────────────────────────── */
@@ -2915,7 +3005,7 @@ function onKey(e) {
 
 function close() {
   if (!box) return;
-  if (anim) { cancelAnimationFrame(anim); anim = null; }
+  CAM.stop();
   box.hidden = true;
   document.body.style.overflow = "";
   if (opt && opt.onClose) opt.onClose();
@@ -2958,6 +3048,7 @@ function open(o) {
   st.acc = null; st.radius = null; st.sort = "name";
   $(".shmap-sort", box).value = "name";
   setMode("pick");
+  st.view = null;     // 새로 열 때는 지난번 보던 자리에서 옮겨 오지 않고 바로 잡는다
   reload(true);
   renderRad();
 

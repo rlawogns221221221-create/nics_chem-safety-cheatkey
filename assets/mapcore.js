@@ -320,6 +320,39 @@ function extLinks(s) {
     + "</span>";
 }
 
+/* ── 카메라(시야 이동) ────────────────────────────────────────
+   ①②(map/app.js, assets/shmap.js) 가 각자 만들어 쓰던 requestAnimationFrame
+   트윈을 한 곳으로 모았다. 어느 지도든 확대·축소·전체보기·조건 바뀜으로
+   시야가 바뀔 때 항상 이 함수를 거치면, 순간이동 없이 "어디서 어디로,
+   얼마나" 움직였는지 눈으로 좇을 수 있다.
+
+   getView()/setView(v) 로 호출측의 view 객체({cx,cy,w})를 읽고 쓰며,
+   매 프레임 redraw() 를 부른다. 반환하는 stop() 은 드래그를 시작하거나
+   다른 이동을 새로 걸 때 진행 중이던 트윈을 끊는 용도다. */
+function makeCamera(getView, setView, redraw) {
+  var anim = null;
+  function stop() { if (anim) { cancelAnimationFrame(anim); anim = null; } }
+  function animateTo(target, ms) {
+    stop();
+    var view = getView();
+    var from = { cx: view.cx, cy: view.cy, w: view.w }, t0 = null;
+    var step = function (ts) {
+      if (t0 === null) t0 = ts;
+      var p = Math.min(1, (ts - t0) / ms);
+      var e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;   // 완만한 가감속
+      setView({
+        cx: from.cx + (target.cx - from.cx) * e,
+        cy: from.cy + (target.cy - from.cy) * e,
+        w: from.w + (target.w - from.w) * e
+      });
+      redraw();
+      if (p < 1) anim = requestAnimationFrame(step); else anim = null;
+    };
+    anim = requestAnimationFrame(step);
+  }
+  return { animateTo: animateTo, stop: stop, isAnimating: function () { return !!anim; } };
+}
+
 window.MAPCORE = {
   /* 투영 */
   wx: wx, wy: wy, wxInv: wxInv, wyInv: wyInv,
@@ -329,6 +362,8 @@ window.MAPCORE = {
   fmtDist: fmtDist, niceDist: niceDist, scale: scale,
   /* 그리기 */
   boundaryPaths: boundaryPaths, matchSgg: matchSgg,
+  /* 카메라 */
+  camera: makeCamera,
   /* 데이터 */
   shelters: shelters, findSido: findSido, extLinks: extLinks,
   /* 배경지도 타일 */

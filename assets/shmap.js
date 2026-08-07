@@ -53,6 +53,9 @@ var st = {
   sort: "name", q: ""
 };
 var SVG = null, VB = null;
+/* 모든 시야 이동이 이 카메라를 거친다 — ② 대피장소 지도(map/app.js)와 같은
+   공용 헬퍼(assets/mapcore.js)라서 두 지도가 똑같이 부드럽게 움직인다 */
+var CAM = MC.camera(function () { return st.view; }, function (v) { st.view = v; }, draw);
 
 /* 배경지도 타일은 mapcore 가 받아 둡니다. 새 타일이 도착하면 다시 그립니다. */
 MC.tiles.onChange(function () {
@@ -107,7 +110,7 @@ function recompute() {
   st.hover = -1;
 }
 
-function fit() {
+function fitTarget() {
   var m = 2, M = -1, n = 2, N = -1, any = false;
   var add = function (x, y) {
     m = Math.min(m, x); M = Math.max(M, x);
@@ -122,27 +125,17 @@ function fit() {
     add(wx(st.acc.lon) - r, wy(st.acc.lat) - r);
     add(wx(st.acc.lon) + r, wy(st.acc.lat) + r);
   }
-  if (!any) { st.view = { cx: wx(127.8), cy: wy(36.3), w: 0.035 }; return; }
+  if (!any) return { cx: wx(127.8), cy: wy(36.3), w: 0.035 };
   var w = (M - m) * 1.25, h = (N - n) * 1.25;
-  st.view = { cx: (m + M) / 2, cy: (n + N) / 2, w: Math.max(w, h * 1.35, 0.00035) };
+  return { cx: (m + M) / 2, cy: (n + N) / 2, w: Math.max(w, h * 1.35, 0.00035) };
 }
 
-/* ── 지도 이동 (부드럽게) ──────────────────────────────────── */
-var anim = null;
-function animateTo(t, ms) {
-  if (anim) { cancelAnimationFrame(anim); anim = null; }
-  var from = { cx: st.view.cx, cy: st.view.cy, w: st.view.w }, t0 = null;
-  var step = function (ts) {
-    if (t0 === null) t0 = ts;
-    var p = Math.min(1, (ts - t0) / ms);
-    var e = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;   // 완만한 가감속
-    st.view.cx = from.cx + (t.cx - from.cx) * e;
-    st.view.cy = from.cy + (t.cy - from.cy) * e;
-    st.view.w = from.w + (t.w - from.w) * e;
-    draw();
-    if (p < 1) anim = requestAnimationFrame(step); else anim = null;
-  };
-  anim = requestAnimationFrame(step);
+/* 처음 여는 창은 바로 그 시야로, 이미 뭔가 보고 있던 중이면 부드럽게 옮겨
+   어디로 얼마나 움직이는지 눈으로 좇을 수 있게 한다. */
+function fit() {
+  var t = fitTarget();
+  if (!st.view) { st.view = t; draw(); return; }
+  CAM.animateTo(t, 420);
 }
 
 /* 고른 대피장소로 지도를 옮긴다.
@@ -152,7 +145,7 @@ var NEAR_M = 1400;              // 이동 후 화면 가로에 담을 대략 거
 function moveTo(s) {
   if (!st.view) fit();
   var want = mToWorld(NEAR_M, s.lat);
-  animateTo({ cx: wx(s.lon), cy: wy(s.lat), w: Math.min(st.view.w, want) }, 340);
+  CAM.animateTo({ cx: wx(s.lon), cy: wy(s.lat), w: Math.min(st.view.w, want) }, 340);
 }
 
 /* ── 그리기 ───────────────────────────────────────────────── */
@@ -452,8 +445,9 @@ function reload(refit) {
   if (qi) qi.value = "";
   prefill();
   recompute();
-  if (refit) st.view = null;
-  syncSort(); renderList(); renderFoot(); draw(); showAddr();
+  syncSort(); renderList(); renderFoot();
+  if (refit) fit(); else draw();
+  showAddr();
 }
 
 /* 이미 입력칸에 들어 있는 곳은 체크된 상태로 시작한다.
@@ -506,11 +500,17 @@ function zoom(f, cx, cy) {
   v.w = nw;
   draw();
 }
+/* ＋/－ 단추는 화면 가운데 기준으로, 얼마나 당겨지는지 보이게 부드럽게 움직인다.
+   휠·드래그는 연속 동작이라 지금처럼 그 자리서 바로 반응한다(zoom() 그대로). */
+function zoomBtn(f) {
+  var nw = Math.max(0.0000015, Math.min(1.2, st.view.w * f));
+  CAM.animateTo({ cx: st.view.cx, cy: st.view.cy, w: nw }, 260);
+}
 
 function bindMap() {
   var drag = null;
   SVG.onpointerdown = function (e) {
-    if (anim) { cancelAnimationFrame(anim); anim = null; }
+    CAM.stop();
     drag = { x: e.clientX, y: e.clientY, cx: st.view.cx, cy: st.view.cy, moved: false };
     try { SVG.setPointerCapture(e.pointerId); } catch (err) {}
   };
@@ -537,12 +537,12 @@ function bindMap() {
   };
   SVG.onwheel = function (e) {
     e.preventDefault();
-    if (anim) { cancelAnimationFrame(anim); anim = null; }
+    CAM.stop();
     zoom(e.deltaY > 0 ? 1.25 : 0.8, e.clientX, e.clientY);
   };
-  $(".shmap-zi", box).onclick = function () { zoom(0.7); };
-  $(".shmap-zo", box).onclick = function () { zoom(1.42); };
-  $(".shmap-zf", box).onclick = function () { fit(); draw(); };
+  $(".shmap-zi", box).onclick = function () { zoomBtn(0.7); };
+  $(".shmap-zo", box).onclick = function () { zoomBtn(1.42); };
+  $(".shmap-zf", box).onclick = function () { fit(); };
 }
 
 /* ── 창 만들기 ────────────────────────────────────────────── */
@@ -657,7 +657,7 @@ function onKey(e) {
 
 function close() {
   if (!box) return;
-  if (anim) { cancelAnimationFrame(anim); anim = null; }
+  CAM.stop();
   box.hidden = true;
   document.body.style.overflow = "";
   if (opt && opt.onClose) opt.onClose();
@@ -700,6 +700,7 @@ function open(o) {
   st.acc = null; st.radius = null; st.sort = "name";
   $(".shmap-sort", box).value = "name";
   setMode("pick");
+  st.view = null;     // 새로 열 때는 지난번 보던 자리에서 옮겨 오지 않고 바로 잡는다
   reload(true);
   renderRad();
 
