@@ -1,192 +1,227 @@
 /* ============================================================
-   화학사고 대응지원 서비스 — 진입 화면 전용 스타일
+   화학사고 대응지원 서비스 — 진입 화면
 
-   업무도구 화면(assets/shell.css)과 파일을 나눠 둔 이유:
-   진입 화면은 여백을 넓게 쓰고 글자를 크게 쓰는 반면, 업무도구는 한 화면에
-   많은 정보를 담아야 해서 밀도가 완전히 다릅니다.
+   구성: 얇은 흰색 상단 바 + 어두운 전면 캔버스(제목 + 도구 패널 3개).
+   카드를 나란히 늘어놓는 흔한 형태 대신, 화면 폭을 꽉 채우는 패널 3개를
+   두고 마우스를 올린 패널이 넓어지며 설명이 드러나게 했습니다.
 
-   이 화면은 순수 CSS로만 동작합니다(자바스크립트 없음). 카드에 마우스를
-   올리면 나오는 부가설명은 :hover/:focus-within 전환이고, 터치 화면에서는
-   호버가 없으므로 처음부터 펼쳐 보이도록 미디어쿼리로 나눴습니다.
+   자바스크립트가 전혀 없습니다. 펼침·확대는 :hover / :focus-within 이고,
+   호버가 없는 터치 화면은 미디어쿼리로 갈라 항상 펼쳐 둡니다.
 
-   ── 나중에 세 화면 디자인을 합칠 때 ──────────────────────────
-   아래 --p-* 토큰의 색상 값은 shell.css 의 --brand / --ink / --line 계열과
-   같은 값입니다(이름만 다름).
-       --p-navy      = shell.css --brand-d   #073f7c
-       --p-blue      = shell.css --brand     #0b57a4
-       --p-ink       = shell.css --ink       #12181f
-       --p-ink-2     = shell.css --ink2      #4a5563
-       --p-ink-3     = shell.css --ink3      #78838f
-       --p-line      = shell.css --line      #d5dce3
+   ── 업무도구 화면(assets/shell.css)과의 관계 ──────────────────
+   색 값은 같은 계열입니다(이름만 다름). 나중에 합칠 때 참고:
+       --navy #12385F ≈ shell.css --brand-d,  --accent 는 진입 화면 전용
    ============================================================ */
 
 :root{
-  color-scheme: light;
-  --p-navy:#073f7c;
-  --p-navy-d:#052f5e;
-  --p-blue:#0b57a4;
-  --p-accent:#1c8f88;           /* 청록 — 카드 호버 강조에만 제한적으로 */
-  --p-bg:#eef1f5;
-  --p-surface:#ffffff;
-  --p-ink:#12181f;
-  --p-ink-2:#4a5563;
-  --p-ink-3:#78838f;
-  --p-line:#d9dfe6;
-  --p-line-2:#e8edf1;
-  --p-warn:#8a4f06;
-  --p-warn-soft:#fdf2e0;
+  /* 어두운 캔버스 */
+  --bg-0:#061523;
+  --bg-1:#0a2036;
+  --bg-2:#0c2942;
+  /* 강조 */
+  --accent:#3ecfc4;
+  --accent-dim:#7fd6d0;
+  /* 글자 */
+  --fg:#ffffff;
+  --fg-2:#a9c0d6;
+  --fg-3:#6f8ba6;
+  /* 밝은 상단 바 */
+  --top-bg:#ffffff;
+  --top-line:#dfe5ec;
+  --ink:#12181f;
+  --ink-2:#4a5563;
+  --ink-3:#7a8795;
+  --navy:#12385F;
 
-  --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:40px;
-
-  --p-wrap:1280px;
-  --p-pad:32px;
-  --p-r:16px;
-  --p-r-s:8px;
-  --p-t:170ms;
+  --wrap:1400px;
+  --pad:40px;
+  --t:300ms;
+  --ease:cubic-bezier(.22,.61,.36,1);
 }
 
 *{box-sizing:border-box}
 [hidden]{display:none!important}
-html{-webkit-text-size-adjust:100%;background:var(--p-bg);scroll-behavior:smooth}
+html,body{height:100%}
+html{-webkit-text-size-adjust:100%;background:var(--bg-1)}
 body{
-  margin:0;background:var(--p-bg);color:var(--p-ink);
+  margin:0;min-height:100%;display:flex;flex-direction:column;
+  background:var(--bg-1);color:var(--fg);
   font-family:"Pretendard","SUIT","Noto Sans KR","Apple SD Gothic Neo",
               "Malgun Gothic","맑은 고딕",system-ui,-apple-system,sans-serif;
   font-size:16px;line-height:1.6;word-break:keep-all;
   -webkit-font-smoothing:antialiased;
 }
 @media (prefers-reduced-motion:reduce){
-  html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
-.p-wrap{max-width:var(--p-wrap);margin:0 auto;padding:0 var(--p-pad)}
+.wrap{max-width:var(--wrap);margin:0 auto;padding:0 var(--pad);width:100%}
 
-a:focus-visible,button:focus-visible,.p-card:focus-visible,.p-card:focus-within{
-  outline:3px solid var(--p-blue);outline-offset:2px;border-radius:var(--p-r-s)
-}
-.p-skip{position:absolute;left:-9999px;top:0;z-index:100;
-  background:var(--p-navy);color:#fff;padding:10px 18px;font-weight:700;
-  border-radius:0 0 var(--p-r-s) 0}
-.p-skip:focus{left:0}
+.skip{position:absolute;left:-9999px;top:0;z-index:100;
+  background:var(--navy);color:#fff;padding:10px 18px;font-weight:700}
+.skip:focus{left:0}
 
-/* ── 상단 바 — 기관 식별 + 서비스명, 한 줄 ─────────────────── */
-.p-top{background:var(--p-surface);border-bottom:1px solid var(--p-line)}
-.p-top .p-wrap{display:flex;align-items:center;gap:12px;min-height:52px;flex-wrap:wrap}
-.p-gov{display:flex;align-items:center;gap:9px;min-width:0}
-/* 로고 자리 — 실제 파일을 받으면 src 만 채우면 됩니다. 비어 있는 동안은
-   숨겨지고 글자만 보입니다(임의로 그린 로고를 쓰지 않기 위한 것) */
-.p-gov-logo{display:none;height:26px;width:auto;flex:none}
-.p-gov-logo[src]{display:block}
-.p-gov-tx{font-size:13px;font-weight:700;color:var(--p-ink-2);white-space:nowrap}
-.p-gov-tx em{font-style:normal;font-weight:700;font-size:10.5px;color:var(--p-navy);
-  background:var(--p-bg);border:1px solid var(--p-line);border-radius:20px;
-  padding:1px 7px;margin-left:8px;vertical-align:1px}
-.p-div{width:1px;height:16px;background:var(--p-line);flex:none}
-.p-svc{font-size:15px;font-weight:800;color:var(--p-ink);letter-spacing:-.01em;white-space:nowrap}
-.p-ext{margin-left:auto;display:inline-flex;align-items:center;gap:4px;
-  font-size:12.5px;color:var(--p-ink-3);text-decoration:none;white-space:nowrap}
-.p-ext:hover{color:var(--p-blue);text-decoration:underline}
+/* ── 상단 바 ─────────────────────────────────────────────── */
+.top{flex:none;background:var(--top-bg);border-bottom:1px solid var(--top-line)}
+.top .wrap{display:flex;align-items:center;gap:14px;min-height:56px}
+.brand{display:flex;align-items:center;gap:10px;min-width:0}
+.mark{width:28px;height:28px;flex:none;display:block}
+.brand-tx{font-size:13.5px;font-weight:800;color:var(--ink);
+  letter-spacing:-.01em;white-space:nowrap}
+.rule{width:1px;height:15px;background:var(--top-line);flex:none}
+.svc{font-size:14px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.ext{margin-left:auto;display:inline-flex;align-items:center;gap:5px;flex:none;
+  font-size:12.5px;color:var(--ink-3);text-decoration:none}
+.ext svg{width:11px;height:11px}
+.ext:hover{color:var(--navy)}
 
-/* ── 히어로 ───────────────────────────────────────────────── */
-.p-hero{position:relative;overflow:hidden;color:#fff;
-  min-height:300px;display:flex;align-items:flex-end}
-.p-hero-photo{position:absolute;inset:0;z-index:0}
-.p-hero-illust,.p-hero-img{width:100%;height:100%;display:block;object-fit:cover}
-.p-hero-in{position:relative;z-index:1;padding:var(--s6) 0 var(--s6)}
-.p-eyebrow{margin:0 0 8px;font-size:13.5px;font-weight:700;letter-spacing:.04em;
-  color:#8fd6d1;text-transform:uppercase}
-.p-hero h1{margin:0;font-size:42px;line-height:1.22;letter-spacing:-.025em;
-  font-weight:800;color:#fff;text-shadow:0 1px 18px rgba(0,0,0,.25)}
-
-/* ── 업무도구 카드 ───────────────────────────────────────────
-   기본 상태는 아이콘·제목·한 줄 설명만. 나머지는 마우스를 올리거나(데스크톱)
-   포커스가 갔을 때 펼쳐집니다. 터치 화면은 호버가 없어 처음부터 펼쳐 둡니다. */
-.p-toolsec{padding:var(--s7) 0 var(--s7);background:var(--p-bg)}
-.p-tools{margin:0;padding:0;list-style:none;
-  display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s5)}
-
-.p-card{position:relative;background:var(--p-surface);
-  border:1px solid var(--p-line);border-radius:var(--p-r);
-  padding:28px 26px;transition:border-color var(--p-t),box-shadow var(--p-t),transform var(--p-t)}
-.p-card.is-ready:hover,.p-card.is-ready:focus-within{
-  border-color:var(--p-accent);transform:translateY(-4px);
-  box-shadow:0 14px 30px rgba(7,63,124,.14)}
-.p-card-hit{position:absolute;inset:0;border-radius:var(--p-r);z-index:1;outline-offset:-2px}
-.p-card > *:not(.p-card-hit){position:relative;z-index:2;pointer-events:none}
-
-.p-card-no{position:absolute;top:24px;right:26px;font-size:12px;font-weight:800;
-  color:var(--p-ink-3);font-variant-numeric:tabular-nums;letter-spacing:.06em}
-.p-card-ico{display:grid;place-items:center;width:52px;height:52px;border-radius:13px;
-  background:var(--p-bg);color:var(--p-navy);margin-bottom:16px;
-  transition:background var(--p-t),color var(--p-t)}
-.p-card.is-ready:hover .p-card-ico,.p-card.is-ready:focus-within .p-card-ico{
-  background:var(--p-navy);color:#fff}
-.p-card.is-soon{cursor:default}
-.p-card.is-soon .p-card-ico{color:var(--p-ink-3)}
-.p-state{display:inline-block;margin:0 0 10px;font-size:11.5px;font-weight:700;
-  color:var(--p-warn);background:var(--p-warn-soft);border-radius:20px;padding:2px 10px}
-
-.p-card h2{margin:0 0 6px;font-size:21px;font-weight:800;letter-spacing:-.02em;color:var(--p-ink)}
-.p-oneline{margin:0;font-size:14.5px;line-height:1.55;color:var(--p-ink-2)}
-
-.p-reveal{max-height:0;opacity:0;overflow:hidden;margin-top:0;
-  transition:max-height var(--p-t) ease,opacity var(--p-t) ease,margin-top var(--p-t) ease}
-.p-card.is-ready:hover .p-reveal,.p-card.is-ready:focus-within .p-reveal,
-.p-card.is-soon:hover .p-reveal,.p-card.is-soon:focus .p-reveal{
-  max-height:220px;opacity:1;margin-top:16px}
-
-.p-feat{margin:0 0 16px;padding:0;list-style:none;border-top:1px solid var(--p-line-2);padding-top:12px}
-.p-feat li{position:relative;padding-left:15px;font-size:13.5px;line-height:1.7;color:var(--p-ink-2)}
-.p-feat li + li{margin-top:2px}
-.p-feat li::before{content:"";position:absolute;left:1px;top:10px;width:6px;height:1.5px;
-  background:var(--p-accent)}
-
-.p-btn{display:inline-flex;align-items:center;gap:7px;font-size:14.5px;font-weight:700;
-  color:var(--p-navy)}
-.p-btn svg{transition:transform var(--p-t)}
-.p-card.is-ready:hover .p-btn svg,.p-card.is-ready:focus-within .p-btn svg{transform:translateX(3px)}
-.p-card.is-soon .p-btn{color:var(--p-ink-3)}
-
-/* 터치 화면 — 호버가 없으므로 펼침 내용을 항상 보여줍니다 */
-@media (hover:none),(pointer:coarse){
-  .p-reveal{max-height:none;opacity:1;margin-top:14px}
+/* ── 어두운 캔버스 ───────────────────────────────────────── */
+.stage{flex:1;min-height:0;display:flex;flex-direction:column;
+  background:
+    radial-gradient(120% 80% at 78% 0%, rgba(62,207,196,.09), transparent 60%),
+    linear-gradient(180deg, var(--bg-0) 0%, var(--bg-1) 55%, var(--bg-2) 100%);
 }
 
-/* ── 푸터 ─────────────────────────────────────────────────── */
-.p-foot{padding:16px 0 22px;background:var(--p-bg)}
-.p-foot .p-wrap{font-size:12.5px;color:var(--p-ink-3);text-align:center}
+.stage-head{flex:none;padding:52px 0 40px}
+.eyebrow{margin:0 0 14px;font-size:12.5px;font-weight:700;
+  letter-spacing:.18em;color:var(--accent)}
+.stage h1{margin:0;font-size:52px;line-height:1.16;font-weight:800;
+  letter-spacing:-.035em;color:var(--fg)}
 
-/* ── 반응형 ───────────────────────────────────────────────── */
-@media (min-width:961px) and (max-height:820px){
-  .p-hero{min-height:230px}
-  .p-hero h1{font-size:34px}
-  .p-hero-in{padding:var(--s5) 0}
-  .p-toolsec{padding:var(--s6) 0}
-  .p-card{padding:22px 22px}
+/* ── 도구 패널 ───────────────────────────────────────────── */
+.panels{flex:1;min-height:0;margin:0;padding:0;list-style:none;display:flex}
+
+.pn{position:relative;flex:1 1 0;min-width:0;overflow:hidden;
+  border-left:1px solid rgba(255,255,255,.11);
+  transition:flex-grow var(--t) var(--ease),background var(--t) var(--ease);
+  display:flex;align-items:flex-end}
+.pn:first-child{border-left:0}
+/* 하나에 마우스를 올리면 그 패널이 넓어지고 나머지는 조금 줄어든다.
+   ‼ 아래 두 줄의 우선순위를 같게 맞춰야 한다. `.pn:hover` 만 쓰면 우선순위가
+   `.panels:hover .pn` 보다 낮아 호버해도 넓어지지 않는다(실제로 그랬음). */
+.panels:hover .pn{flex-grow:.88}
+.panels .pn:hover,.panels .pn:focus-within,.panels .pn:focus{
+  flex-grow:1.5;background:rgba(255,255,255,.05)}
+
+/* 위쪽 강조선이 왼쪽에서 자라난다 */
+.pn::before{content:"";position:absolute;top:0;left:0;height:3px;width:0;
+  background:var(--accent);z-index:3;transition:width var(--t) var(--ease)}
+.pn:hover::before,.pn:focus-within::before,.pn:focus::before{width:100%}
+
+.pn-hit{position:absolute;inset:0;z-index:4;outline-offset:-4px}
+.pn-hit:focus-visible,.pn:focus-visible{outline:3px solid var(--accent)}
+
+/* 배경 그림 — 평소에도 또렷하게 보이고, 마우스를 올리면 한 단계 더 밝아진다 */
+.pn-art{position:absolute;inset:0;z-index:1;pointer-events:none;
+  opacity:.78;transform:scale(1);transform-origin:50% 62%;
+  transition:opacity var(--t) var(--ease),transform var(--t) var(--ease)}
+.pn-art svg{width:100%;height:100%;display:block}
+.pn:hover .pn-art,.pn:focus-within .pn-art,.pn:focus .pn-art{opacity:1;transform:scale(1.06)}
+/* 글자가 놓이는 아래쪽만 어둡게 깐다 — 그림이 보이는 위쪽은 거의 건드리지 않는다 */
+.pn::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;
+  background:linear-gradient(180deg,
+    rgba(6,21,35,0) 0%,rgba(6,21,35,0) 42%,
+    rgba(6,21,35,.55) 66%,rgba(6,21,35,.92) 86%,rgba(6,21,35,.97) 100%)}
+/* 패널 위쪽에 아주 옅은 빛 — 세 면이 각각 살아 있게 */
+.pn-art::after{content:"";position:absolute;inset:0;
+  background:radial-gradient(90% 55% at 50% 34%, rgba(62,207,196,.13), transparent 70%)}
+
+.pn-body{position:relative;z-index:3;width:100%;padding:0 34px 40px;pointer-events:none}
+.pn-no{display:block;font-size:13px;font-weight:800;letter-spacing:.14em;
+  color:var(--accent);margin-bottom:10px;font-variant-numeric:tabular-nums}
+.pn h2{margin:0;font-size:27px;line-height:1.3;font-weight:800;
+  letter-spacing:-.025em;color:var(--fg)}
+
+/* 설명과 이용하기 — 마우스를 올리거나 초점이 갔을 때 나타난다 */
+.pn-d{margin:0;max-width:30em;font-size:14.5px;line-height:1.65;color:var(--fg-2);
+  opacity:0;max-height:0;transform:translateY(10px);overflow:hidden;
+  transition:opacity var(--t) var(--ease),max-height var(--t) var(--ease),
+             transform var(--t) var(--ease),margin var(--t) var(--ease)}
+.pn-go{display:inline-flex;align-items:center;gap:8px;font-size:14.5px;font-weight:700;
+  color:var(--fg);opacity:0;max-height:0;transform:translateY(10px);overflow:hidden;
+  transition:opacity var(--t) var(--ease),max-height var(--t) var(--ease),
+             transform var(--t) var(--ease),margin var(--t) var(--ease)}
+.pn-go svg{width:15px;height:15px;transition:transform var(--t) var(--ease)}
+.pn-go.is-off{color:var(--fg-3)}
+
+.pn:hover .pn-d,.pn:focus-within .pn-d,.pn:focus .pn-d{
+  opacity:1;max-height:9em;transform:none;margin:12px 0 0}
+.pn:hover .pn-go,.pn:focus-within .pn-go,.pn:focus .pn-go{
+  opacity:1;max-height:3em;transform:none;margin:20px 0 0}
+.pn:hover .pn-go svg{transform:translateX(4px)}
+
+.chip{display:inline-block;font-size:11.5px;font-weight:700;color:#f0c990;
+  background:rgba(240,201,144,.14);border:1px solid rgba(240,201,144,.35);
+  border-radius:20px;padding:2px 10px;margin-bottom:10px}
+.pn.is-soon{cursor:default}
+.pn.is-soon .pn-art{opacity:.34}
+.pn.is-soon:hover .pn-art,.pn.is-soon:focus .pn-art{opacity:.7}
+.pn.is-soon::before{background:#f0c990}
+
+.stage-foot{flex:none;padding:16px 0 20px;border-top:1px solid rgba(255,255,255,.09)}
+.stage-foot .wrap{font-size:12.5px;color:var(--fg-3)}
+
+/* ── 화면이 낮을 때 (1366×768 같은 업무용 노트북) ─────────── */
+@media (min-width:961px) and (max-height:900px){
+  .stage-head{padding:36px 0 28px}
+  .stage h1{font-size:42px}
+  .eyebrow{margin-bottom:11px}
+  .pn-body{padding:0 28px 32px}
+  .pn h2{font-size:24px}
+}
+@media (min-width:961px) and (max-height:780px){
+  .stage-head{padding:28px 0 22px}
+  .stage h1{font-size:36px}
+  .pn-body{padding:0 24px 26px}
+  .pn h2{font-size:22px}
+  .pn-d{font-size:13.5px}
 }
 
+/* ── 좁은 화면 ───────────────────────────────────────────── */
 @media (max-width:960px){
-  :root{--p-pad:24px}
-  .p-tools{grid-template-columns:1fr;gap:var(--s4)}
-  .p-hero h1{font-size:36px}
+  :root{--pad:24px}
+  body{height:auto}
+  .stage-head{padding:38px 0 26px}
+  .stage h1{font-size:34px}
+  .panels{flex-direction:column;flex:none}
+  /* 세로로 쌓이면 내용이 패널보다 길어질 수 있다. flex-end 로 두면 위가 잘리므로
+     stretch 로 두고 위아래 여백을 준다. */
+  /* flex-basis 0 으로 두면 내용보다 짧아져 아래가 잘린다 — 내용 높이를 따르게 한다 */
+  .pn{flex:0 0 auto;border-left:0;border-top:1px solid rgba(255,255,255,.11);
+    min-height:0;align-items:stretch}
+  .pn:first-child{border-top:0}
+  .panels:hover .pn,.pn:hover,.pn:focus-within,.pn:focus{flex:0 0 auto}
+  .pn-body{padding:26px 24px 28px}
+}
+/* 터치 화면은 호버가 없으므로 설명을 항상 보여준다.
+   패널이 낮아 글자와 그림이 겹치므로 그림은 낮추고 어둡게 더 깐다. */
+@media (hover:none),(pointer:coarse){
+  .pn-art{opacity:.4}
+  .pn::after{background:linear-gradient(180deg,rgba(6,21,35,.62) 0%,rgba(6,21,35,.82) 100%)}
+  .pn-d{opacity:1;max-height:9em;transform:none;margin:12px 0 0}
+  .pn-go{opacity:1;max-height:3em;transform:none;margin:18px 0 0}
+  .pn::before{width:100%}
 }
 @media (max-width:560px){
-  :root{--p-pad:18px}
-  body{font-size:15px}
-  .p-top .p-wrap{min-height:auto;padding:10px var(--p-pad)}
-  .p-svc{font-size:13.5px}
-  .p-gov-tx{font-size:11.5px}
-  .p-gov-tx em{display:none}
-  .p-ext{display:none}
-  .p-hero{min-height:220px}
-  .p-hero h1{font-size:28px;line-height:1.3}
-  .p-card{padding:22px}
-  .p-card h2{font-size:19px}
+  :root{--pad:18px}
+  .top .wrap{min-height:52px;gap:10px}
+  .brand-tx{font-size:12px}
+  .rule,.svc,.ext{display:none}
+  .stage-head{padding:30px 0 22px}
+  .eyebrow{font-size:11.5px;margin-bottom:9px}
+  .stage h1{font-size:27px}
+  .pn{min-height:190px}
+  .pn h2{font-size:21px}
+  .pn-d{font-size:13.5px}
 }
 
 @media print{
-  .p-hero-photo,.p-top{display:none!important}
-  body{background:#fff}
-  .p-card{break-inside:avoid;border-color:#000}
-  .p-reveal{max-height:none!important;opacity:1!important}
+  *{transition:none!important}
+  body{background:#fff;color:#000;height:auto}
+  .stage{background:#fff}
+  .pn-art,.pn::after,.pn::before{display:none}
+  .stage h1,.pn h2{color:#000}
+  .pn{border:1px solid #000;break-inside:avoid;min-height:0;margin-bottom:8px}
+  .panels{flex-direction:column}
+  .pn-d,.pn-go{opacity:1;max-height:none;transform:none;margin-top:8px;color:#333}
+  .eyebrow{color:#333}
 }
