@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <!-- ────────────────────────────────────────────────────────────
-     화학사고 주민대피 문자 작성 지원도구 — 오프라인 단일 파일
+     화학사고 지자체 대응 지원도구 — 오프라인 단일 파일
      · 이 파일 하나만 있으면 인터넷 연결 없이 동작합니다.
      · 외부 서버로 어떤 정보도 전송하지 않습니다.
-     · 문안/대피장소 갱신은 소스 저장소에서 재빌드하세요.
-       (build/make_data.py → build/build_single.py)
+     · 자료 갱신은 소스 저장소에서 재빌드하세요.
+       (build/make_data.py · build/make_resources.py → build/build_single.py)
      ──────────────────────────────────────────────────────────── -->
 
 <html lang="ko">
@@ -672,6 +672,117 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 a.btnlink{display:inline-block;text-decoration:none;color:var(--brand-d);font-weight:600;
   border:1px solid var(--line);border-radius:6px;padding:5px 10px;font-size:12.5px;background:#fff}
 a.btnlink:hover{border-color:var(--brand)}
+
+/* ══ ③ 방제자원 동원 ═══════════════════════════════════════
+   ② 대피장소 지도의 뼈대(.mmain / .mmap / .mside)를 그대로 쓰고,
+   ③ 에만 있는 것(자원 종류 · 연락처 · 동원 목록)만 여기 더합니다. */
+
+/* 자원 종류 색 — 색만으로 구분하면 배경지도 위에서 헷갈리고 색각 이상이
+   있으면 구분이 안 되므로, 지도 마커는 모양도 함께 다르게 그립니다
+   (res/app.js 의 markerShape). 여기 색은 모양을 거드는 역할입니다. */
+:root{
+  --rk-waste:#6b4c9a;    /* 폐기물 처리 — 보라 ● */
+  --rk-equip:#0b6b41;    /* 방제장비  — 초록 ■ */
+  --rk-heavy:#b3651f;    /* 중장비    — 주황 ▲ */
+  --rk-capsule:#b31f1f;  /* 비상캡슐  — 빨강 ◆ (가장 급함) */
+}
+
+/* 목록·범례에 쓰는 작은 표식 */
+.rkdot{display:inline-block;width:10px;height:10px;flex:none;margin-right:5px;
+  vertical-align:-1px;background:var(--ink3)}
+.rkdot.rk-waste{background:var(--rk-waste);border-radius:50%}
+.rkdot.rk-equip{background:var(--rk-equip);border-radius:2px}
+.rkdot.rk-heavy{background:var(--rk-heavy);
+  clip-path:polygon(50% 0,100% 100%,0 100%)}
+.rkdot.rk-capsule{background:var(--rk-capsule);
+  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
+
+/* 예시 자료 / 내부용 알림 띠 — 무엇을 보고 있는지 화면에서 바로 알려 준다.
+   내부판은 개인 연락처가 들어 있어 실수로 공유되면 안 되므로 진하게. */
+.databar{flex:none;display:flex;flex-wrap:wrap;gap:6px 18px;
+  padding:8px 16px;font-size:12.5px;line-height:1.5;
+  animation:slideDown .26s var(--ease) both}
+.databar b{font-weight:800;margin-right:5px}
+.databar.is-example{background:var(--warn-l);border-bottom:1px solid #ebd0a4;color:var(--warn)}
+.databar.is-internal{background:#7a1414;border-bottom:1px solid #5d0f0f;color:#fff}
+.databar.is-internal .db-ex{color:#ffd9a8}
+
+/* 자원 종류 고르기 칩 */
+.rk-lb{font-size:12px;font-weight:700;color:var(--ink2);margin-bottom:7px}
+.rk-chips{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.rk-chip{display:flex;align-items:center;justify-content:flex-start;
+  padding:8px 10px;font-size:12.5px;font-weight:600;text-align:left;
+  background:#fff;border-radius:7px;line-height:1.3}
+.rk-chip[aria-pressed=false]{color:var(--ink3);background:var(--panel);opacity:.72}
+.rk-chip[aria-pressed=false] .rkdot{filter:grayscale(1);opacity:.6}
+.rk-chip[aria-pressed=true]{border-color:var(--brand);background:var(--brand-l);
+  color:var(--brand-d)}
+
+/* 요약 줄 — 종류별로 가장 가까운 곳. 누르면 그 자원이 선택된다.
+   ② 는 "가장 가까운 대피장소 하나"가 답이지만, 방제자원은 종류마다
+   하나씩 필요하므로 네 개를 나란히 보여 준다. */
+.msum .ms-k{background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.28);
+  border-radius:20px;padding:2px 11px;color:#fff;font-size:12.5px;
+  display:inline-flex;align-items:center;gap:2px}
+.msum .ms-k:hover{background:rgba(255,255,255,.28);border-color:#fff}
+.msum .ms-k.z{opacity:.5}
+.msum .ms-k em{font-style:normal;font-weight:700;margin-left:4px;
+  font-variant-numeric:tabular-nums}
+.msum .ms-k .rkdot{width:9px;height:9px;margin-right:2px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.5)}
+.msum .ms-note{margin-left:auto;color:#bcd3ec;font-size:11.5px}
+
+/* 목록 줄 */
+.rs-it .l1{align-items:center}
+.rs-cap{font-size:12px;color:var(--ink);margin-top:3px;line-height:1.5}
+.rs-approx{font-size:10.5px;font-weight:700;color:var(--warn);
+  background:var(--warn-l);border-radius:4px;padding:0 5px;white-space:nowrap}
+.rs-tel{margin-top:5px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.rs-t1{font-size:11px;font-weight:700;color:var(--ink3)}
+.rs-t1.rs-in{color:#7a1414;margin-left:6px}
+.rs-num{font-size:13.5px;font-weight:700;color:var(--brand-d);text-decoration:none;
+  font-variant-numeric:tabular-nums;border-bottom:1px solid transparent}
+.rs-num:hover{border-bottom-color:var(--brand-d)}
+.rs-num-in{color:#7a1414}
+.rs-num-in:hover{border-bottom-color:#7a1414}
+/* 동원 목록에 담긴 줄 */
+.ms-it.inmob{box-shadow:inset 3px 0 0 var(--ok)}
+.ms-it.inmob.on{box-shadow:inset 3px 0 0 var(--brand)}
+
+/* 동원 목록 막대 — 목록 맨 아래 붙는다 */
+.mob{flex:none;display:flex;align-items:center;gap:8px;padding:9px 13px;
+  background:var(--ok-l);border-top:1px solid #b3ddc7;
+  animation:slideUp .26s var(--ease) both}
+.mob-n{font-size:12.5px;font-weight:700;color:var(--ok);margin-right:auto}
+.mob-n b{font-variant-numeric:tabular-nums}
+
+/* 지도 마커 — 모양은 res/app.js 가 그리고 색만 여기서 준다 */
+#map .rk{stroke:#fff;stroke-width:1.6px;cursor:pointer}
+#map .rk-waste{fill:var(--rk-waste)}
+#map .rk-equip{fill:var(--rk-equip)}
+#map .rk-heavy{fill:var(--rk-heavy)}
+#map .rk-capsule{fill:var(--rk-capsule)}
+#map .rk.hv{stroke:var(--ink);stroke-width:2.2px}
+#map .rk.on{stroke:var(--brand-d);stroke-width:3px}
+#map .rk.mob{stroke:var(--ok);stroke-width:3px}
+/* 좌표를 주소에서 정확히 못 찾은 곳 — 속을 비워 "대략 위치"임을 보인다 */
+#map .rk.approx{fill:#fff;stroke-width:2.4px}
+#map .rk.approx.rk-waste{stroke:var(--rk-waste)}
+#map .rk.approx.rk-equip{stroke:var(--rk-equip)}
+#map .rk.approx.rk-heavy{stroke:var(--rk-heavy)}
+#map .rk.approx.rk-capsule{stroke:var(--rk-capsule)}
+#map.hasbg .rk{stroke-width:2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+
+@media (max-width:560px){
+  .rk-chips{grid-template-columns:1fr}
+  .msum .ms-note{margin-left:0;flex-basis:100%}
+}
+@media print{
+  .databar.is-internal{background:#fff;color:#000;border:2px solid #000}
+  .databar.is-example{background:#fff;color:#000;border:1px solid #000}
+  .rk-chips,.rk-lb,.mob{display:none!important}
+  .rs-num{color:#000}
+}
 
 /* ══ 사고물질 선택 목록 ═════════════════════════════════ */
 .mpk{position:fixed;z-index:900;background:#fff;border:1px solid var(--brand);

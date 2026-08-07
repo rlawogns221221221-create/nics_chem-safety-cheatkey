@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화학사고 방제자원 동원</title>
+<link rel="stylesheet" href="../assets/shell.css">
+</head>
+<body class="mapapp">
+
+<div class="top">
+  <div class="wrap">
+    <h1>화학사고 방제자원 동원</h1>
+    <div class="act noprint">
+      <button id="btnSrc" type="button">자료 출처</button>
+      <button id="btnPrint" type="button">인쇄</button>
+      <button id="btnClear" type="button">초기화</button>
+    </div>
+  </div>
+</div>
+
+<!-- 예시 자료 / 내부용 경고 띠 — 데이터에 따라 app.js 가 켭니다 -->
+<div class="databar noprint" id="dataBar" hidden></div>
+
+<!-- ── 조건 ─────────────────────────────────────────────── -->
+<div class="mbar noprint">
+  <div class="mbar-in">
+    <label class="mb-f mb-addr" title="등록된 방제자원 이름·주소·시군구·읍면동으로 찾습니다. 정확한 주소가 아니어도 근처로 이동합니다.">
+      주소·장소 검색
+      <input type="text" id="mAddrQ" placeholder="예) 안산시, 여수시 신길" autocomplete="off">
+    </label>
+    <div class="mb-lyr" id="mLyr" role="group" aria-label="배경지도 선택"></div>
+  </div>
+</div>
+
+<div class="mpk noprint" id="addrPop" hidden></div>
+<div class="mbar-warn" id="mWarn" hidden></div>
+
+<!-- ── 사고지점 요약 — 종류별로 가장 가까운 곳 ────────────── -->
+<div class="msum" id="mSum" hidden></div>
+
+<!-- ── 지도 + 목록 ──────────────────────────────────────── -->
+<div class="mmain">
+  <div class="mmap">
+    <svg id="map" role="img" aria-label="화학사고 방제자원 지도"></svg>
+
+    <div class="mapctl noprint">
+      <button id="zIn" type="button" title="확대">＋</button>
+      <button id="zOut" type="button" title="축소">−</button>
+      <button id="zFit" type="button" title="전체 보기">⤢</button>
+    </div>
+
+    <div class="maplegend" id="mLeg"></div>
+    <div class="mapscale"><i id="scaleBar"></i><b id="scaleTxt"></b></div>
+    <div class="mapaddr" id="mAddr" hidden></div>
+
+    <div class="mapacc noprint">
+      <button id="btnAcc" type="button" class="sm">사고지점 찍기</button>
+      <label>위도<input type="text" id="acLat" inputmode="decimal"></label>
+      <label>경도<input type="text" id="acLon" inputmode="decimal"></label>
+      <button id="btnAccClear" type="button" class="sm" title="사고지점 지우기">×</button>
+      <label class="mapchk"><input type="checkbox" id="cRings" checked>거리 눈금</label>
+    </div>
+  </div>
+
+  <div class="mside">
+    <!-- 종류 고르기 — 어떤 자원이 필요한지로 먼저 좁힌다 -->
+    <div class="ms-find noprint">
+      <div class="rk-lb">필요한 자원</div>
+      <div class="rk-chips" id="rKinds" role="group" aria-label="자원 종류 고르기"></div>
+      <label class="mb-f wide" style="margin-top:9px">
+        찾는 범위<select id="mScope">
+          <option value="">선택한 시·군·구 관내</option>
+          <option value="10000">사고지점 반경 10km</option>
+          <option value="20000">사고지점 반경 20km</option>
+          <option value="50000">사고지점 반경 50km</option>
+          <option value="100000">사고지점 반경 100km</option>
+        </select>
+      </label>
+      <div class="ms-find-row" style="margin-top:9px">
+        <label class="mb-f">시·도<select id="mSido"></select></label>
+        <label class="mb-f">시·군·구<select id="mSgg"></select></label>
+      </div>
+    </div>
+
+    <div class="ms-hd">방제자원 <span id="listCnt"></span></div>
+    <div class="ms-tools noprint">
+      <input type="text" id="mQ" placeholder="업체명·보유장비로 찾기 (예: 크레인, 흡착)"
+             aria-label="방제자원 검색" autocomplete="off">
+      <select id="mSort" aria-label="정렬">
+        <option value="dist">사고지점 가까운 순</option>
+        <option value="name">이름순</option>
+      </select>
+    </div>
+    <div class="ms-list" id="resList"></div>
+
+    <!-- 동원 목록 — 고른 곳을 담아 한 번에 복사 -->
+    <div class="mob noprint" id="mobBar" hidden></div>
+  </div>
+</div>
+
+<!-- ── 자료 출처 창 ─────────────────────────────────────── -->
+<div class="cbx-back" id="srcModal" hidden>
+  <div class="cbx">
+    <header><b>자료 출처 · 사용 시 주의</b>
+      <button type="button" class="cbx-x" id="btnSrcClose" aria-label="닫기">✕</button></header>
+    <div class="alert w cbx-alert"><b>참고도구</b>등록된 방제자원의 위치와 연락처를 찾아 주는
+      참고도구입니다. 어느 자원을 동원할지, 처리 방법이 적절한지는 도구가 판단하지 않습니다.
+      거리는 지형·도로를 고려하지 않은 <b>직선거리</b>이며 실제 도착 시간과 다릅니다.
+      <b>연락 전 업체의 현재 가동 여부·보유 상태를 반드시 확인하세요.</b></div>
+    <div class="cbx-body" id="ver"></div>
+  </div>
+</div>
+
+<script src="../data/version.js"></script>
+<script src="../data/basemap.js"></script>
+<script src="../data/boundaries.js"></script>
+<script src="../data/resources.js"></script>
+<script src="../assets/mapcore.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
