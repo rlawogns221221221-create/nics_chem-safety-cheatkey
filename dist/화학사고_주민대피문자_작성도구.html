@@ -46,13 +46,25 @@
   from{opacity:0;transform:translateY(9px)}
   to{opacity:1;transform:none}
 }
+/* 위로 살짝 밀려 올라오며 나타남 — 트리거 아래에서 위로 열리는 것(문자 생성칸)에 */
+@keyframes slideUp{
+  from{opacity:0;transform:translateY(26px)}
+  to{opacity:1;transform:none}
+}
+/* 위에서 아래로 펼쳐지며 나타남 — 트리거 바로 아래 붙어 열리는 것(목록·추가 입력)에 */
+@keyframes slideDown{
+  from{opacity:0;transform:translateY(-12px)}
+  to{opacity:1;transform:none}
+}
 html{-webkit-text-size-adjust:100%;background:var(--bg)}
 body{
   margin:0; background:var(--bg); color:var(--ink);
   font-family:"Pretendard","Malgun Gothic","맑은 고딕","Apple SD Gothic Neo",
               -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   font-size:15px; line-height:1.6; word-break:keep-all;
+  display:flex;flex-direction:column;min-height:100vh;
 }
+@supports (min-height:100dvh){ body{min-height:100dvh} }
 .wrap{max-width:1180px;margin:0 auto;padding:0 18px 64px}
 
 /* ── 헤더 ─────────────────────────────────────────── */
@@ -70,23 +82,46 @@ body{
       font-size:12.5px;padding:8px 0;margin-bottom:16px}
 .note .wrap{padding-bottom:0}
 
-/* ── 발송 구분 선택 (상단 가로) ─────────────────────
-   버튼을 누르기 전에도 허전하지 않도록 정사각형에 가깝게 키우고, 손그림
-   아이콘(STAGE_ICONS, sms/app.js)과 한 줄 설명을 넣었다. 진입화면(portal.css)
-   패널과 같은 느낌(둥근 모서리·호버 시 살짝 뜨는 그림자)을 가져오되, 이 도구는
-   실무 중 보는 화면이라 어둡게 하지 않고 밝은 배경을 그대로 둔다. */
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0 22px}
+/* ── 발송 구분 선택 ───────────────────────────────────
+   버튼을 고르기 전에는 화면에 이것 하나뿐이므로, 위에 쏠리지 않고 남는
+   공간 가운데에 오도록 .stepsz 를 화면을 채우는 flex 축으로 둔다
+   (.toolstage 가 body의 남는 세로 공간을 다 가져가고, 그 안에서 다시
+   .stepsz 가 가운데 정렬). 구분을 고르면(body.has-stage) 문자 생성칸이
+   보여야 하므로 이 자리는 작은 띠로 접힌다 — 정사각형 그대로 두면 화면을
+   너무 많이 차지해 아래 내용이 밀려나기 때문. 카드 자체 크기(패딩·아이콘·
+   설명 줄)를 전환시켜 접고 펼치므로 방향 전환 없이 부드럽게 줄어든다. */
+/* ‼ 줄어드는 애니메이션이 실제로 "보이려면" 두 상태 모두 구체적인 길이 값이어야
+   한다 — aspect-ratio:auto 나 flex-basis:auto 처럼 한쪽이 auto/none 인 값은
+   브라우저가 중간값을 보간하지 못해 트랜지션이 순간적으로 툭 끊겨 버린다
+   (실제로 그랬음). 그래서 아래에서는 정사각형도 aspect-ratio 대신 height 를
+   구체적인 값(clamp)으로 직접 주고, .stepsz 도 flex-basis 는 0 으로 고정한 채
+   flex-grow 숫자만 1↔0 으로 바꾼다. */
+.toolstage{flex:1;display:flex;flex-direction:column;min-height:0}
+.stepsz{flex:1 1 0;display:flex;align-items:center;justify-content:center;
+  padding:26px 0;transition:flex-grow .5s var(--ease),padding .5s var(--ease)}
+body.has-stage .stepsz{flex-grow:0;padding:14px 0 10px}
+
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;width:100%;
+  max-width:760px;transition:max-width .5s var(--ease),gap .5s var(--ease)}
+body.has-stage .steps{max-width:1180px;gap:10px}
+
 .steps button.stp{
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:9px;
-  text-align:center;aspect-ratio:1/.86;min-height:132px;padding:16px 12px 14px;
+  text-align:center;width:100%;height:clamp(150px,20vw,210px);padding:18px 14px 16px;
   border:1.5px solid var(--line);background:var(--card);border-radius:16px;line-height:1.35;
   color:var(--ink);box-shadow:0 1px 2px rgba(18,40,70,.05);
-  transition:border-color .18s var(--ease),box-shadow .18s var(--ease),
-             transform .18s var(--ease),background .18s var(--ease)}
-.stp-ic{width:46px;height:46px;color:var(--brand);transition:color .18s var(--ease)}
+  transition:border-color .18s var(--ease),box-shadow .3s var(--ease),
+             transform .18s var(--ease),background .18s var(--ease),
+             height .45s var(--ease),
+             padding .4s var(--ease),border-radius .4s var(--ease),gap .4s var(--ease)}
+.stp-ic{width:46px;height:46px;color:var(--brand);flex:none;
+  transition:color .18s var(--ease),width .4s var(--ease),height .4s var(--ease)}
 .stp-ic svg{width:100%;height:100%;display:block}
-.steps button.stp b{display:block;font-size:15px;font-weight:800;letter-spacing:-.01em}
-.stp-d{font-size:11.5px;color:var(--ink3);font-weight:500;transition:color .18s var(--ease)}
+.steps button.stp b{display:block;font-size:15px;font-weight:800;letter-spacing:-.01em;
+  transition:font-size .4s var(--ease)}
+.stp-d{font-size:11.5px;color:var(--ink3);font-weight:500;max-height:2.4em;opacity:1;
+  transition:color .18s var(--ease),max-height .35s var(--ease),opacity .25s var(--ease),
+             margin .35s var(--ease)}
 .steps button.stp:hover{border-color:var(--brand);box-shadow:0 8px 20px rgba(11,87,164,.15);
   transform:translateY(-2px)}
 .steps button.stp:active{transform:translateY(0)}
@@ -95,9 +130,17 @@ body{
 .steps button.stp[aria-pressed=true] .stp-ic{color:#fff}
 .steps button.stp[aria-pressed=true] .stp-d{color:#cfe0f5}
 
+/* 구분을 고른 뒤 — 정사각형을 접어 작은 띠로. 시야를 덜 차지하도록
+   아이콘·글자를 줄이고 설명 줄은 높이째 접어 사라지게 한다. */
+body.has-stage .steps button.stp{height:60px;padding:8px 10px;border-radius:12px;gap:3px}
+body.has-stage .stp-ic{width:22px;height:22px}
+body.has-stage .steps button.stp b{font-size:12.5px}
+body.has-stage .stp-d{max-height:0;opacity:0;margin-top:-3px;pointer-events:none}
+body.has-stage .steps button.stp:hover{transform:none}
+
 /* ── 2단 레이아웃 ─────────────────────────────────── */
 .cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:16px;align-items:start;
-  animation:revealIn .38s var(--ease) both}
+  animation:slideUp .46s var(--ease) both}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
   box-shadow:0 1px 3px rgba(18,40,70,.05)}
 .panel > h2{margin:0;padding:11px 16px;font-size:13px;font-weight:700;color:var(--ink2);
@@ -108,7 +151,7 @@ body{
 
 /* ── 폼 ───────────────────────────────────────────── */
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:11px 12px}
-#fEvacExtra{animation:revealIn .3s var(--ease) both}
+#fEvacExtra{animation:slideDown .3s var(--ease) both}
 .f{display:flex;flex-direction:column;gap:4px;min-width:0}
 .f.wide{grid-column:1/-1}
 .f label{font-size:12.5px;font-weight:600;color:var(--ink2)}
@@ -259,7 +302,7 @@ button.sm{padding:5px 10px;font-size:12.5px}
 
 /* ── 대피장소 찾기 ────────────────────────────────── */
 .finder{border:1px solid var(--line);border-radius:7px;background:var(--panel);
-        padding:11px;margin-top:8px;animation:revealIn .3s var(--ease) both}
+        padding:11px;margin-top:8px;animation:slideDown .3s var(--ease) both}
 .finder .cntlbl{font-size:11.5px;color:var(--ink3);font-weight:400;margin-left:5px}
 
 /* ── 참고 사례 ────────────────────────────────────── */
@@ -302,12 +345,18 @@ button.sm{padding:5px 10px;font-size:12.5px}
 }
 @media (max-width:560px){
   .wrap{padding:0 12px 48px}
-  .steps{gap:7px;margin:14px 0 18px}
-  .steps button.stp{min-height:0;aspect-ratio:1/.92;padding:11px 6px 10px;
-    border-radius:13px;gap:6px}
-  .stp-ic{width:32px;height:32px}
+  .stepsz{padding:16px 0}
+  body.has-stage .stepsz{padding:10px 0 8px}
+  .steps{gap:7px}
+  /* 정사각형 크기도 height 로 직접 줘야 줄어들 때 매끄럽게 보간된다
+     (aspect-ratio 는 height 가 이미 정해져 있으면 무시되는 값이라 여기선 no-op) */
+  .steps button.stp{height:29vw;padding:9px 6px 8px;border-radius:13px;gap:6px}
+  .stp-ic{width:30px;height:30px}
   .steps button.stp b{font-size:12.5px}
   .stp-d{display:none}
+  body.has-stage .steps button.stp{height:52px;padding:6px 6px}
+  body.has-stage .stp-ic{width:19px;height:19px}
+  body.has-stage .steps button.stp b{font-size:11px}
   .panel .body{padding:13px}
   .msg{font-size:15.5px}
   .matbar dl{grid-template-columns:1fr;gap:1px}
@@ -315,8 +364,8 @@ button.sm{padding:5px 10px;font-size:12.5px}
 }
 @media print{
   .top{background:#fff;color:#000;border-bottom:2px solid #000}
-  .top .sub,.note,button,.noprint,.steps{display:none!important}
-  body{background:#fff;font-size:11pt}
+  .top .sub,.note,button,.noprint,.stepsz{display:none!important}
+  body{background:#fff;font-size:11pt;display:block}
   .cols{grid-template-columns:1fr}
   .panel{border:0}
   /* 인쇄물에서도 발송 경로가 구분되어야 합니다 (배경색은 인쇄되지 않을 수 있음) */
@@ -356,13 +405,13 @@ body.mapapp{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 
 .mbar-warn{flex:none;padding:8px 16px;background:var(--warn-l);
   border-bottom:1px solid #ebd0a4;color:var(--warn);font-size:12px;line-height:1.55;
-  animation:revealIn .26s var(--ease) both}
+  animation:slideDown .26s var(--ease) both}
 .mbar-warn a{color:var(--brand-d);font-weight:700}
 
 /* 영향 참고 반경 줄 */
 .mrad{flex:none;display:flex;align-items:center;gap:6px;flex-wrap:wrap;
   padding:7px 16px;background:var(--brand-l);border-bottom:1px solid #bcd4ea;
-  animation:revealIn .26s var(--ease) both}
+  animation:slideDown .26s var(--ease) both}
 .mr-lb{font-size:11.5px;font-weight:700;color:var(--brand-d)}
 .mr-nm{font-size:12.5px;color:var(--ink);margin-right:4px}
 .mr-none{font-size:12px;color:var(--warn);font-weight:600}
@@ -380,7 +429,7 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 /* 사고지점 요약 줄 — "이 근방에 무엇이 있나"를 한 줄로 */
 .msum{flex:none;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   padding:8px 16px;background:#0d3f70;color:#fff;font-size:12.5px;
-  animation:revealIn .26s var(--ease) both}
+  animation:slideDown .26s var(--ease) both}
 .ms-near{display:flex;align-items:baseline;gap:6px}
 .ms-near b{font-weight:700;color:#bcd3ec;font-size:11.5px}
 .ms-near em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
@@ -645,13 +694,13 @@ a.btnlink:hover{border-color:var(--brand)}
 
 /* 배경지도를 못 불러왔을 때의 안내 — 왜 안 되는지 적는다 */
 .shmap-warn{padding:8px 14px;background:var(--warn-l);border-bottom:1px solid #ebd0a4;
-  color:var(--warn);font-size:12px;line-height:1.55;flex:none;animation:revealIn .26s var(--ease) both}
+  color:var(--warn);font-size:12px;line-height:1.55;flex:none;animation:slideDown .26s var(--ease) both}
 .shmap-warn a{color:var(--brand-d);font-weight:700}
 
 /* 영향 참고 반경 줄 — 사고지점을 찍으면 나타난다 */
 .shmap-rad{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
   padding:8px 14px;background:var(--brand-l);border-bottom:1px solid #bcd4ea;flex:none;
-  animation:revealIn .26s var(--ease) both}
+  animation:slideDown .26s var(--ease) both}
 .shmap-rad .lb{font-size:11.5px;font-weight:700;color:var(--brand-d)}
 .shmap-rad button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);
   color:#fff;font-weight:700}
@@ -789,10 +838,13 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:12.5px;flex:no
   보내라고 지시받은 문자를 아래에서 고르세요.
 </div></div>
 
-<div class="wrap">
+<div class="wrap toolstage">
 
-  <!-- 발송 단계 -->
-  <div class="steps" id="stages"></div>
+  <!-- 발송 단계 — 고르기 전엔 남는 공간 가운데에 크게, 고른 뒤엔 작은 띠로 접혀
+       위로 올라간다(assets/shell.css 의 body.has-stage 규칙). -->
+  <div class="stepsz" id="stepsZone">
+    <div class="steps" id="stages"></div>
+  </div>
 
   <div class="cols" id="cols" hidden>
 
@@ -3415,16 +3467,27 @@ function bindFields(root) {
   };
 }
 
+/* 버튼 DOM 은 한 번만 만든다 — 고를 때마다 innerHTML 로 다시 그리면 방금 누른
+   버튼이 통째로 새 엘리먼트로 바뀌어 버려서, 그 버튼에 걸어 둔 "정사각형 →
+   작은 띠" 축소 트랜지션이 재생되지 못하고 곧장 최종 모습으로 툭 나타난다
+   (실제로 그랬음 — 브라우저가 "이전 모습"을 그려 볼 기회 자체가 없었던 것).
+   그래서 버튼은 처음 한 번만 만들고, 고른 뒤에는 aria-pressed 속성만 바꾼다. */
 function renderStages() {
-  $("#stages").innerHTML = STAGES.map(function (s) {
-    return '<button type="button" class="stp" data-s="' + s.id + '" aria-pressed="' + (state.stage === s.id) + '">'
-      + '<span class="stp-ic" aria-hidden="true">' + (STAGE_ICONS[s.id] || "") + "</span>"
-      + "<b>" + esc(s.이름) + "</b>"
-      + (s.짧은설명 ? '<span class="stp-d">' + esc(s.짧은설명) + "</span>" : "")
-      + "</button>";
-  }).join("");
+  var box = $("#stages");
+  if (!box.children.length) {
+    box.innerHTML = STAGES.map(function (s) {
+      return '<button type="button" class="stp" data-s="' + s.id + '" aria-pressed="false">'
+        + '<span class="stp-ic" aria-hidden="true">' + (STAGE_ICONS[s.id] || "") + "</span>"
+        + "<b>" + esc(s.이름) + "</b>"
+        + (s.짧은설명 ? '<span class="stp-d">' + esc(s.짧은설명) + "</span>" : "")
+        + "</button>";
+    }).join("");
+    $$("#stages button").forEach(function (b) {
+      b.onclick = function () { state.stage = b.dataset.s; save(); renderAll(); };
+    });
+  }
   $$("#stages button").forEach(function (b) {
-    b.onclick = function () { state.stage = b.dataset.s; save(); renderAll(); };
+    b.setAttribute("aria-pressed", String(state.stage === b.dataset.s));
   });
 }
 
@@ -3441,6 +3504,9 @@ function renderTypes() {
 function renderFields() {
   var on = !!state.stage, isEvac = state.stage === "evac";
   $("#cols").hidden = !on;
+  /* 구분을 고르면 위의 정사각형 버튼 3개를 작은 띠로 접어, 문자 생성칸이
+     화면을 더 넓게 쓸 수 있게 한다 (assets/shell.css body.has-stage 규칙) */
+  document.body.classList.toggle("has-stage", on);
   if (!on) { $("#noteBar").textContent = "보내라고 지시받은 문자를 위에서 고르세요."; return; }
 
   var stage = curStage();

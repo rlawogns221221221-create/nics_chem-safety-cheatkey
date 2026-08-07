@@ -23,10 +23,13 @@
   보내라고 지시받은 문자를 아래에서 고르세요.
 </div></div>
 
-<div class="wrap">
+<div class="wrap toolstage">
 
-  <!-- 발송 단계 -->
-  <div class="steps" id="stages"></div>
+  <!-- 발송 단계 — 고르기 전엔 남는 공간 가운데에 크게, 고른 뒤엔 작은 띠로 접혀
+       위로 올라간다(assets/shell.css 의 body.has-stage 규칙). -->
+  <div class="stepsz" id="stepsZone">
+    <div class="steps" id="stages"></div>
+  </div>
 
   <div class="cols" id="cols" hidden>
 

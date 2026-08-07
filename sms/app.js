@@ -476,16 +476,27 @@ function bindFields(root) {
   };
 }
 
+/* 버튼 DOM 은 한 번만 만든다 — 고를 때마다 innerHTML 로 다시 그리면 방금 누른
+   버튼이 통째로 새 엘리먼트로 바뀌어 버려서, 그 버튼에 걸어 둔 "정사각형 →
+   작은 띠" 축소 트랜지션이 재생되지 못하고 곧장 최종 모습으로 툭 나타난다
+   (실제로 그랬음 — 브라우저가 "이전 모습"을 그려 볼 기회 자체가 없었던 것).
+   그래서 버튼은 처음 한 번만 만들고, 고른 뒤에는 aria-pressed 속성만 바꾼다. */
 function renderStages() {
-  $("#stages").innerHTML = STAGES.map(function (s) {
-    return '<button type="button" class="stp" data-s="' + s.id + '" aria-pressed="' + (state.stage === s.id) + '">'
-      + '<span class="stp-ic" aria-hidden="true">' + (STAGE_ICONS[s.id] || "") + "</span>"
-      + "<b>" + esc(s.이름) + "</b>"
-      + (s.짧은설명 ? '<span class="stp-d">' + esc(s.짧은설명) + "</span>" : "")
-      + "</button>";
-  }).join("");
+  var box = $("#stages");
+  if (!box.children.length) {
+    box.innerHTML = STAGES.map(function (s) {
+      return '<button type="button" class="stp" data-s="' + s.id + '" aria-pressed="false">'
+        + '<span class="stp-ic" aria-hidden="true">' + (STAGE_ICONS[s.id] || "") + "</span>"
+        + "<b>" + esc(s.이름) + "</b>"
+        + (s.짧은설명 ? '<span class="stp-d">' + esc(s.짧은설명) + "</span>" : "")
+        + "</button>";
+    }).join("");
+    $$("#stages button").forEach(function (b) {
+      b.onclick = function () { state.stage = b.dataset.s; save(); renderAll(); };
+    });
+  }
   $$("#stages button").forEach(function (b) {
-    b.onclick = function () { state.stage = b.dataset.s; save(); renderAll(); };
+    b.setAttribute("aria-pressed", String(state.stage === b.dataset.s));
   });
 }
 
@@ -502,6 +513,9 @@ function renderTypes() {
 function renderFields() {
   var on = !!state.stage, isEvac = state.stage === "evac";
   $("#cols").hidden = !on;
+  /* 구분을 고르면 위의 정사각형 버튼 3개를 작은 띠로 접어, 문자 생성칸이
+     화면을 더 넓게 쓸 수 있게 한다 (assets/shell.css body.has-stage 규칙) */
+  document.body.classList.toggle("has-stage", on);
   if (!on) { $("#noteBar").textContent = "보내라고 지시받은 문자를 위에서 고르세요."; return; }
 
   var stage = curStage();
