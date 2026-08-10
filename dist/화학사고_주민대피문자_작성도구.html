@@ -514,10 +514,20 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 #map text.leelbl{fill:var(--warn);text-anchor:middle;font-weight:700;paint-order:stroke;
   stroke:#fff;stroke-width:.32em;stroke-linejoin:round;pointer-events:none}
 
-/* 사고지점 ↔ 고른 곳 연결선 */
-#map line.link{stroke:#0d3f70;stroke-width:1.8px;stroke-dasharray:5 4}
-#map text.linklbl{fill:#0d3f70;text-anchor:middle;font-weight:700;paint-order:stroke;
-  stroke:#fff;stroke-width:.38em;stroke-linejoin:round;pointer-events:none}
+/* ── 사고지점 ↔ 고른 곳 경로선 ────────────────────────────────
+   예전에는 얇은 점선이었는데, 배경지도를 깔면 도로 위에서 잘 보이지 않아
+   "어디로 가야 하는지"가 한눈에 안 들어왔습니다. 흰 테두리를 먼저 깔고
+   그 위에 굵은 색선을 올려 어떤 배경에서도 읽히게 합니다.
+
+   실선이 아니라 긴 점선인 것은 일부러입니다 — 이 선은 실제 도로 경로가
+   아니라 두 점을 잇는 직선이므로, 도로를 따라간 길로 보이면 안 됩니다. */
+#map path.route-cas,#map path.route{pointer-events:none}   /* 아래 마커를 가리지 않게 */
+#map path.route-cas{fill:none;stroke:#fff;stroke-width:9px;stroke-linecap:round;opacity:.92}
+#map path.route{fill:none;stroke:#e0218a;stroke-width:5px;stroke-linecap:round;
+  stroke-dasharray:15 9;animation:routeIn .42s var(--ease) both}
+@keyframes routeIn{from{stroke-dashoffset:70;opacity:0}to{stroke-dashoffset:0;opacity:1}}
+#map text.linklbl{fill:#b3156d;text-anchor:middle;font-weight:700;paint-order:stroke;
+  stroke:#fff;stroke-width:.42em;stroke-linejoin:round;pointer-events:none}
 
 /* 대피장소 */
 #map circle.mk{fill:#fff;stroke:var(--ok);stroke-width:1.8px;cursor:pointer}
@@ -536,6 +546,22 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 #map line.acc{stroke:var(--err);stroke-width:2.6px}
 #map circle.accdot{fill:none;stroke:var(--err);stroke-width:1.8px}
 #map text.acclbl{fill:var(--err);text-anchor:middle;font-weight:700;paint-order:stroke;
+  stroke:#fff;stroke-width:.32em;stroke-linejoin:round;pointer-events:none}
+
+/* ── 내 위치 ──────────────────────────────────────────────────
+   사고지점(빨강 십자)과 절대 헷갈리면 안 되므로 색도 모양도 다르게 둡니다
+   — 파란 동그라미입니다. 둘레의 옅은 원은 '이 안 어딘가'라는 뜻으로,
+   단말이 알려 준 오차 범위를 그대로 그린 것입니다. 실내에서는 이 원이
+   수백 미터까지 커지는데, 그 사실이 보여야 좌표를 곧이곧대로 믿지 않습니다. */
+#map circle.me,#map circle.meacc{pointer-events:none}
+#map circle.meacc{fill:rgba(22,104,216,.12);stroke:rgba(22,104,216,.45);stroke-width:1.2px}
+#map circle.mepulse{fill:none;stroke:#1668d8;stroke-width:2.2px;
+  transform-box:fill-box;transform-origin:center;
+  animation:mePulse 2.2s var(--ease) infinite;pointer-events:none}
+@keyframes mePulse{from{transform:scale(.3);opacity:.85}to{transform:scale(1);opacity:0}}
+#map circle.me{fill:#1668d8;stroke:#fff;stroke-width:2.6px;
+  filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
+#map text.melbl{fill:#0f4fa8;text-anchor:middle;font-weight:700;paint-order:stroke;
   stroke:#fff;stroke-width:.32em;stroke-linejoin:round;pointer-events:none}
 
 /* 배경지도가 깔렸을 때 — 도로·건물 위에서 묻히지 않게 대비를 올린다 */
@@ -559,6 +585,7 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .maplegend .dot.in{background:#fdeaea;border-color:var(--err)}
 .maplegend .dot.lee{background:rgba(138,79,6,.2);border-color:var(--warn)}
 .maplegend .dot.gr{background:none;border-style:dashed;border-color:#0d3f70}
+.maplegend .dot.me{background:#1668d8;border-color:#fff;box-shadow:0 0 0 1px #1668d8}
 .mapscale{position:absolute;left:10px;bottom:56px;display:flex;align-items:center;gap:6px;
   background:rgba(255,255,255,.92);border-radius:4px;padding:2px 7px;font-size:11px}
 .mapscale i{display:block;height:4px;border:1px solid var(--ink2);border-top:0}
@@ -573,6 +600,72 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .mapaddr span{display:block;color:var(--ink2);font-size:11.5px}
 .mapaddr em{font-style:normal;font-size:11.5px;color:var(--brand-d);font-weight:600}
 .mapaddr em + em::before{content:" · ";color:var(--ink3);font-weight:400}
+
+/* ── 유리 패널 ────────────────────────────────────────────────
+   지도 위에 겹쳐 놓는 것들만 반투명으로 둡니다. 아래에 깔린 도로·건물이
+   비쳐 보여야, 이 패널이 지금 지도의 어디를 가리고 있는지 알 수 있습니다.
+
+   오른쪽 목록과 위쪽 조건 줄에는 쓰지 않습니다. 거기는 오래 들여다보며
+   읽는 곳이라, 급할 때 읽을 글자를 지도 무늬 위에 얹으면 안 됩니다. */
+.maplegend,.mapscale,.mapaddr,.mnear,.mapctl button{
+  background:rgba(255,255,255,.66);
+  -webkit-backdrop-filter:blur(12px) saturate(1.5);
+  backdrop-filter:blur(12px) saturate(1.5);
+  border:1px solid rgba(255,255,255,.68);
+  box-shadow:0 4px 18px rgba(10,32,60,.16)}
+.mapctl button:hover{background:rgba(255,255,255,.9)}
+/* 흐림 효과를 지원하지 않는 브라우저에서는 글자가 지도 위에 그대로 얹혀
+   읽히지 않습니다. 그런 곳에서는 불투명에 가깝게 되돌립니다. */
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+  .maplegend,.mapscale,.mapaddr,.mnear,.mapctl button{background:rgba(255,255,255,.95)}
+}
+
+/* ── 가까운 3곳 ───────────────────────────────────────────────
+   오른쪽에 전체 목록이 이미 있는데도 따로 두는 이유는, 급할 때 필요한 것이
+   훑어볼 목록이 아니라 "그래서 어디로 보내면 되는가" 세 줄이기 때문입니다.
+   지도에서 눈을 떼지 않고 읽도록 지도 위에 겹쳐 둡니다. */
+.mnear{position:absolute;left:10px;top:46px;width:min(272px,calc(100% - 62px));
+  border-radius:9px;padding:8px 9px 9px;font-size:12px;
+  animation:revealIn .3s var(--ease) both}
+.mnear-h{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
+  color:var(--ink3);margin-bottom:4px}
+.mnear-h b{color:var(--brand-d);font-size:11.5px}
+.mnear-x{margin-left:auto;width:19px;height:19px;padding:0;border:0;background:none;
+  color:var(--ink3);font-size:13px;line-height:1;cursor:pointer;border-radius:4px}
+.mnear-x:hover{background:rgba(10,40,80,.12);color:var(--ink)}
+.mnear-it{display:block;width:100%;text-align:left;border:0;background:none;
+  padding:5px 6px;border-radius:6px;cursor:pointer;font:inherit;color:inherit}
+.mnear-it + .mnear-it{border-top:1px solid rgba(10,40,80,.13)}
+.mnear-it:hover{background:rgba(11,87,164,.12)}
+.mnear-it.on{background:rgba(11,87,164,.18)}
+.mnear-r{display:flex;align-items:baseline;gap:6px}
+.mnear-r b{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mnear-n{flex:none;width:15px;height:15px;border-radius:50%;background:var(--brand);
+  color:#fff;font-size:10px;font-weight:700;text-align:center;line-height:15px}
+.mnear-d{margin-left:auto;flex:none;font-variant-numeric:tabular-nums;font-weight:700;
+  color:var(--brand-d)}
+.mnear-t{display:block;color:var(--ink2);font-size:11px;margin:1px 0 0 21px}
+.mnear-t em{font-style:normal;font-weight:700;color:#0f4fa8}
+.mnear-note{margin-top:5px;padding-top:5px;border-top:1px solid rgba(10,40,80,.13);
+  font-size:10.5px;color:var(--ink3);line-height:1.45}
+
+/* 내 위치 찾기 결과 알림 — 지도 위에 잠깐 떴다 사라집니다.
+   실패했을 때 다음에 무엇을 하면 되는지까지 적으므로 두세 줄이 될 수
+   있어, 조건 줄에 끼워 넣지 않고 지도 위에 따로 띄웁니다. */
+.mtoast{position:absolute;left:50%;bottom:56px;transform:translateX(-50%);z-index:5;
+  max-width:min(430px,calc(100% - 32px));background:rgba(17,31,46,.92);color:#fff;
+  border-radius:8px;padding:8px 13px;font-size:12.5px;line-height:1.5;
+  box-shadow:0 6px 22px rgba(0,0,0,.3);animation:revealIn .26s var(--ease) both}
+.mtoast.err{background:rgba(134,21,21,.95)}
+.mtoast b{font-weight:700}
+
+/* 내 위치 단추 — 지도에 찍히는 파란 점과 같은 색으로 두어,
+   무엇이 어디에 표시되는 단추인지 누르기 전에 보이게 합니다. */
+.btnme{display:inline-flex;align-items:center;gap:4px;
+  border-color:#7fb0ea;color:#0f4fa8;font-weight:700}
+.btnme:hover{background:#eaf2fd;border-color:#1668d8}
+.btnme[aria-busy=true]{opacity:.6;pointer-events:none}
+.btnme svg{width:13px;height:13px;flex:none}
 
 /* 사고지점 조작 줄 — 지도 아래에 붙여 둔다 */
 .mapacc{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;
@@ -619,6 +712,10 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .ms-bar{height:3px;background:var(--line2);border-radius:2px;margin:4px 0 3px;overflow:hidden}
 .ms-bar i{display:block;height:100%;background:var(--brand);opacity:.55}
 .ms-it.ring .ms-bar i{background:var(--err);opacity:.7}
+/* 이동시간 줄 — 거리(미터)만으로는 대피 안내를 쓸 수 없어 함께 적는다.
+   어림값이라는 사실은 카드 아래 안내와 자료 출처에 적어 둔다. */
+.ms-it .l6{font-size:11.5px;margin-top:2px;color:var(--ink3)}
+.ms-it .l6 em{font-style:normal;font-weight:700;color:#0f4fa8}
 .ms-it .l2{color:var(--ink2);font-size:11.5px;margin-top:2px;line-height:1.5}
 .ms-it .l3{color:var(--brand-d);font-size:11.5px;margin-top:2px}
 .ms-it .l5{margin-top:3px;display:flex;gap:5px;flex-wrap:wrap}
@@ -653,6 +750,10 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
   .mapacc input[type=text]{width:84px;padding:3px 6px;font-size:12px}
   .mapacc .sm{padding:3px 9px}
   .mapscale{bottom:64px}
+  /* 좁은 화면에서는 지도가 이미 작습니다 — 3곳 카드가 지도를 절반 넘게
+     가리지 않도록 폭을 줄이고, 안내 문구는 뺍니다(목록에도 같은 값이 있음). */
+  .mnear{width:min(224px,calc(100% - 62px));padding:6px 8px 7px;font-size:11.5px}
+  .mnear .mnear-note{display:none}
   .mapaddr{bottom:92px}
 }
 @media print{
@@ -667,6 +768,12 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
   .mside{height:auto}
   .ms-list{overflow:visible}
   .ms-it{break-inside:avoid}
+  /* 유리 효과는 종이에서 배경이 빠져 글자만 흐리게 남습니다 — 불투명으로 되돌립니다.
+     '가까운 3곳'은 인쇄물에서도 결론에 해당하므로 남기고, 닫기 단추만 뺍니다. */
+  .maplegend,.mapscale,.mapaddr,.mnear{background:#fff!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
+    border:1px solid var(--line)!important;box-shadow:none!important}
+  .mnear-x{display:none!important}
 }
 
 a.btnlink{display:inline-block;text-decoration:none;color:var(--brand-d);font-weight:600;
@@ -2151,6 +2258,98 @@ function niceDist(target) {
   });
 }
 
+/* ══ 이동 시간 어림 ══════════════════════════════════════════
+   "1.2km" 만으로는 대피 안내를 쓸 수 없습니다. 주민에게는 "걸어서 몇 분",
+   방제업체에는 "차로 몇 분"이 실제로 필요한 값입니다.
+
+   ── 왜 길찾기 서버를 쓰지 않는가 ──────────────────────────
+   공개 길찾기 API(OSRM 등)로 실제 도로 경로를 받아 오는 방법이 있지만
+   이 도구에는 쓰지 않았습니다.
+     · 망분리된 행정망 PC에서는 어차피 실패합니다. 매번 응답을 기다렸다
+       실패하는 동안 화면이 멈춘 것처럼 보입니다.
+     · 사고지점 좌표를 외부(대개 해외) 서버로 보내게 됩니다. 대외 발표
+       전의 화학사고 위치는 그렇게 다룰 값이 아닙니다.
+     · 단일 파일 배포본이 내건 "외부 서버로 어떤 정보도 전송하지 않습니다"
+       약속이 깨집니다.
+
+   그래서 좌표만으로 계산하는 어림값을 씁니다. 대신 어림이라는 사실을
+   화면에도 적어 두어, 이 숫자를 확정된 소요시간으로 오해하지 않게 합니다.
+
+   ── 어떻게 어림하는가 ────────────────────────────────────
+   실제 길은 직선보다 돌아갑니다. 직선거리를 그대로 나누면 늘 짧게 나와
+   "가면 되겠네" 하고 판단을 그르칩니다. 도시부 도로망에서 실제 도로거리를
+   직선거리로 나눈 값은 대체로 1.3 안팎이라, 그만큼 늘려 잡습니다.
+   ═══════════════════════════════════════════════════════════ */
+
+var DETOUR = 1.3;                  // 실제 이동거리 ÷ 직선거리
+var WALK_MPM = 66.7;               // 성인 평균 도보 4km/h ≒ 66.7 m/분
+var WALKABLE = 3000;               // 이 거리를 넘으면 걸어서 대피시키지 않는다 (직선 m)
+
+/* 차량 평균속도 — 표지판 제한속도보다 느립니다(신호·좌회전 대기·정체).
+   멀수록 간선도로·국도 비중이 커져 평균이 올라갑니다. */
+function carMpm(m) {
+  if (m <= 5000) return 417;       // 시가지 25km/h
+  if (m <= 20000) return 667;      // 40km/h
+  return 917;                      // 55km/h
+}
+
+function tripMin(m, mode) {
+  var road = m * DETOUR;
+  return Math.max(1, Math.round(road / (mode === "walk" ? WALK_MPM : carMpm(m))));
+}
+
+function fmtMin(min) {
+  if (min < 60) return min + "분";
+  var h = Math.floor(min / 60), r = min % 60;
+  return h + "시간" + (r ? " " + r + "분" : "");
+}
+
+/* 한 마디로 읽히는 이동시간.
+   mode 를 주지 않으면 걸어갈 만한 거리인지 보고 스스로 고릅니다 —
+   4km 떨어진 대피장소에 "도보 78분"이라고 적어 봐야 쓸 데가 없고,
+   200m 앞 방제업체에 "차로 1분"도 마찬가지입니다. */
+function trip(m, mode) {
+  var use = mode === "walk" || mode === "car" ? mode : (m <= WALKABLE ? "walk" : "car");
+  var min = tripMin(m, use);
+  return { mode: use, min: min, walkable: m <= WALKABLE,
+           label: (use === "walk" ? "도보 " : "차로 ") + fmtMin(min) };
+}
+
+/* ══ 내 위치 ════════════════════════════════════════════════
+   브라우저에 들어 있는 기능이라 인터넷이 끊긴 곳에서도 동작합니다
+   (위성·기지국·와이파이로 단말이 직접 계산합니다). 단일 파일 배포본을
+   현장에서 휴대전화로 열어도 그대로 됩니다.
+
+   실패했을 때 "위치를 가져올 수 없습니다" 한 줄만 띄우면 사용자는 무엇을
+   해야 할지 알 수 없으므로, 원인별로 다음에 할 일까지 적어 돌려줍니다.
+   ═══════════════════════════════════════════════════════════ */
+
+var GEOMSG = {
+  1: "위치 권한이 거부되어 있습니다. 주소창 왼쪽 자물쇠(또는 ⓘ)를 눌러 "
+   + "위치 권한을 ‘허용’으로 바꾼 뒤 다시 눌러 주세요.",
+  2: "지금 위치를 확인하지 못했습니다. 건물 안쪽이나 지하에서는 신호가 "
+   + "닿지 않을 수 있습니다. 창가나 실외에서 다시 시도해 보세요.",
+  3: "위치를 찾는 데 너무 오래 걸립니다. 하늘이 보이는 곳에서 다시 눌러 주세요."
+};
+
+function locate(done) {
+  if (!navigator.geolocation)
+    return done({ err: "이 브라우저는 위치 찾기를 지원하지 않습니다." });
+  /* http:// 로 올린 페이지에서는 브라우저가 위치를 막습니다.
+     file:// 로 연 단일 파일과 https:// 는 허용됩니다. */
+  if (!window.isSecureContext && location.protocol !== "file:")
+    return done({ err: "http:// 주소에서는 브라우저가 위치 사용을 막습니다. "
+                     + "https:// 주소로 열거나, 내려받은 파일을 직접 열어 주세요." });
+  navigator.geolocation.getCurrentPosition(
+    function (p) {
+      done({ lat: p.coords.latitude, lon: p.coords.longitude,
+             acc: Math.round(p.coords.accuracy || 0) });
+    },
+    function (e) { done({ err: GEOMSG[e.code] || "위치를 찾지 못했습니다." }); },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+  );
+}
+
 /* ── 축척 막대 ────────────────────────────────────────────── */
 /* 화면 가로의 1/4 에 가까운 '떨어지는' 거리를 고른다 */
 function scale(vb) {
@@ -2336,6 +2535,22 @@ function boundaryPaths(vb, isOn) {
   return out.join("");
 }
 
+/* ── 경로선 ───────────────────────────────────────────────────
+   사고지점에서 고른 곳까지 어느 쪽으로 얼마나 가야 하는지 한눈에 보이도록
+   굵게 긋습니다. 실제 도로 경로가 아니라 직선입니다 — 도로를 따라가면
+   이보다 멉니다(위 '이동 시간 어림' 참고). 그래서 실선이 아닌 긴 점선으로
+   두어, 도로 경로처럼 보이지 않게 합니다.
+
+   배경지도가 깔리면 지도의 도로·건물 색과 겹쳐 선이 묻히므로 흰 테두리를
+   먼저 깔고 그 위에 색선을 올립니다. 색만으로 구분하지 않는 것과 같은
+   이유로, 굵기까지 확실히 키웁니다. */
+function routePath(x1, y1, x2, y2) {
+  var d = "M" + x1.toFixed(1) + " " + y1.toFixed(1)
+        + "L" + x2.toFixed(1) + " " + y2.toFixed(1);
+  return '<path class="route-cas" d="' + d + '"/>'
+       + '<path class="route" d="' + d + '"/>';
+}
+
 /* 2018년 경계 데이터와 현재 행정구역명이 다른 곳 */
 var ALIAS = { "미추홀구": "남구" };
 function matchSgg(bName, sgg) {
@@ -2431,8 +2646,10 @@ window.MAPCORE = {
   /* 거리·방위 */
   distM: distM, bearing: bearing, dirName: dirName,
   fmtDist: fmtDist, niceDist: niceDist, scale: scale,
+  /* 이동 시간 어림 · 내 위치 */
+  trip: trip, fmtMin: fmtMin, walkable: WALKABLE, locate: locate,
   /* 그리기 */
-  boundaryPaths: boundaryPaths, matchSgg: matchSgg,
+  boundaryPaths: boundaryPaths, matchSgg: matchSgg, routePath: routePath,
   /* 카메라 */
   camera: makeCamera,
   /* 데이터 */

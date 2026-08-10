@@ -53,6 +53,7 @@ var st = {
   q: "", sort: "dist",
   rings: true,
   mode: "pick",                     // "acc" = 다음 클릭이 사고지점
+  me: null,                         // 내 위치 {lat, lon, acc} — 사고지점과 별개
   all: [], show: [],
   sel: -1, hover: -1,
   mob: {},                          // 동원 목록에 담은 것 (key → 자원)
@@ -259,15 +260,16 @@ function draw() {
       + '" font-size="11">' + fmtDist(d) + "</text>");
   });
 
-  /* 사고지점 ↔ 고르거나 가리킨 곳 연결선 */
+  /* 사고지점 ↔ 고르거나 가리킨 곳 경로선. 방제자원은 장비를 싣고 차로
+     움직이므로 도보가 아니라 차량 기준 도착시간을 함께 적습니다. */
   var focus = st.hover >= 0 ? st.show[st.hover] : (st.sel >= 0 ? st.show[st.sel] : null);
   if (acc && focus) {
     var fx = pX(focus.lo), fy = pY(focus.la);
-    g.push('<line class="link" x1="' + ax.toFixed(1) + '" y1="' + ay.toFixed(1)
-      + '" x2="' + fx.toFixed(1) + '" y2="' + fy.toFixed(1) + '"/>');
+    g.push(MC.routePath(ax, ay, fx, fy));
     g.push('<text class="linklbl" x="' + ((ax + fx) / 2).toFixed(1)
-      + '" y="' + ((ay + fy) / 2 - 5).toFixed(1) + '" font-size="12.5">'
-      + fmtDist(focus.d) + " " + dirName(focus.b) + "쪽</text>");
+      + '" y="' + ((ay + fy) / 2 - 9).toFixed(1) + '" font-size="12.5">'
+      + fmtDist(focus.d) + " " + dirName(focus.b) + "쪽 · "
+      + MC.trip(focus.d, "car").label + "</text>");
   }
 
   /* 자원 마커 — 담아 둔 것은 테두리를 굵게 해서 한눈에 보이게 한다 */
@@ -289,6 +291,11 @@ function draw() {
     g.push('<text class="mkh" x="' + (vb.sw / 2) + '" y="' + (vb.sh - 10)
       + '" font-size="11">확대하거나 목록에서 가리키면 이름이 보입니다</text>');
 
+  /* 내 위치가 사고지점과 사실상 같은 자리인가 — 내 위치 단추로 찍은 직후가
+     늘 그렇습니다. 마커와 라벨을 겹쳐 그리지 않고 십자 하나로 합칩니다. */
+  var meIsAcc = !!(st.me && acc
+    && distM(acc.lat, acc.lon, st.me.lat, st.me.lon) <= Math.max(st.me.acc || 0, 25));
+
   if (acc) {
     var L2 = 13;
     g.push('<line class="acc" x1="' + (ax - L2).toFixed(1) + '" y1="' + ay.toFixed(1)
@@ -297,7 +304,23 @@ function draw() {
       + '" x2="' + ax.toFixed(1) + '" y2="' + (ay + L2).toFixed(1) + '"/>');
     g.push('<circle class="accdot" cx="' + ax.toFixed(1) + '" cy="' + ay.toFixed(1) + '" r="6"/>');
     g.push('<text class="acclbl" x="' + ax.toFixed(1) + '" y="' + (ay - L2 - 5).toFixed(1)
-      + '" font-size="12">사고지점</text>');
+      + '" font-size="12">사고지점' + (meIsAcc ? " · 내 위치" : "") + "</text>");
+  }
+
+  /* 내 위치 — 맨 나중에 그려 무엇에도 가리지 않게 한다 (②와 같은 방식) */
+  if (st.me) {
+    var mx = pX(st.me.lon), my = pY(st.me.lat);
+    if (st.me.acc > 0) {
+      var ar = pxLen(st.me.acc, st.me.lat);
+      if (ar > 6) g.push('<circle class="meacc" cx="' + mx.toFixed(1) + '" cy="'
+        + my.toFixed(1) + '" r="' + Math.min(ar, vb.sw).toFixed(1) + '"/>');
+    }
+    if (!meIsAcc) {
+      g.push('<circle class="mepulse" cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="19"/>');
+      g.push('<circle class="me" cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="6.6"/>');
+      g.push('<text class="melbl" x="' + mx.toFixed(1) + '" y="' + (my + 21).toFixed(1)
+        + '" font-size="11.5">내 위치</text>');
+    }
   }
 
   SVG.setAttribute("viewBox", "0 0 " + vb.sw + " " + vb.sh);
@@ -347,12 +370,12 @@ function renderSummary() {
       + esc(k.id) + '" data-key="' + esc(keyOf(near)) + '" title="'
       + esc(near.n) + " — " + esc(k.쓰임) + '">'
       + '<i class="rkdot rk-' + k.id + '"></i>' + esc(k.이름.replace(/ (업체|판매업체|보유기관|처리업체)$/, ""))
-      + " <em>" + fmtDist(nd) + "</em></button>");
+      + " <em>" + fmtDist(nd) + " · " + MC.trip(nd, "car").label + "</em></button>");
   });
 
   el.innerHTML = '<span class="ms-near"><b>가장 가까운 곳</b></span>'
     + '<span class="ms-bands">' + parts.join("") + "</span>"
-    + '<span class="ms-note">직선거리 · 연락 전 가동 여부를 확인하세요</span>';
+    + '<span class="ms-note">직선거리로 어림한 값 · 연락 전 가동 여부를 확인하세요</span>';
 
   $$(".ms-k", el).forEach(function (b) {
     b.onclick = function () { jumpToKey(b.dataset.k, b.dataset.key); };
@@ -432,6 +455,8 @@ function renderList() {
       + '<div class="l1"><i class="rkdot rk-' + s.t + '"></i><b>' + esc(s.n) + "</b>"
       + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
       + "</div>" + bar
+      + (acc ? '<div class="l6"><em>' + MC.trip(s.d, "car").label
+               + "</em> · 장비 상·하차 시간은 빠져 있습니다</div>" : "")
       + '<div class="rs-cap">' + esc(s.c || "") + "</div>"
       + '<div class="l2">' + esc(placeOf(s))
       + (s.ap === false ? ' <span class="rs-approx">대략 위치</span>' : "") + "</div>"
@@ -496,6 +521,7 @@ function renderLegend() {
     return '<span><i class="rkdot rk-' + k.id + '"></i>' + esc(k.이름) + "</span>";
   });
   if (st.acc) it.push('<span><i class="dot ac"></i>사고지점</span>');
+  if (st.me) it.push('<span><i class="dot me"></i>내 위치</span>');
   if (st.acc && st.rings) it.push('<span><i class="dot gr"></i>거리 눈금</span>');
   $("#mLeg").innerHTML = it.join("");
 }
@@ -529,7 +555,8 @@ function oneLine(s) {
   return s.n + " (" + (KIND_NAME[s.t] || "") + ") · " + placeOf(s)
     + " · 대표 " + (s.tel || "-")
     + (s.p ? " · 담당 " + s.p.n + " " + s.p.t : "")
-    + (s.d != null ? " · 사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽" : "")
+    + (s.d != null ? " · 사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽"
+                     + " (" + MC.trip(s.d, "car").label + ")" : "")
     + (s.c ? "\n  " + s.c : "");
 }
 
@@ -541,7 +568,8 @@ function mobText() {
   if (st.acc) L.push("사고지점: " + st.acc.lat + ", " + st.acc.lon);
   L.push("");
   mobList().forEach(function (s, i) { L.push((i + 1) + ". " + oneLine(s)); });
-  L.push("", "※ 거리는 직선거리이며 실제 도착 시간과 다릅니다."
+  L.push("", "※ 거리는 직선거리이고, 소요시간은 그것을 도로 사정에 맞춰 늘려 잡은"
+    + " 어림값입니다. 장비 상·하차와 통제 상황은 빠져 있으므로 실제 도착은 더 걸립니다."
     + " 연락 전 가동 여부·보유 상태를 확인하세요.");
   if (RESOURCE_META && RESOURCE_META.예시자료)
     L.push("※ 예시 자료로 만든 목록입니다 — 실제 업체가 아닙니다.");
@@ -619,6 +647,56 @@ function clearAcc() {
   st.sort = "name"; $("#mSort").value = "name";
   setMode("pick");
   refresh(true);
+}
+
+/* ── 내 위치 ──────────────────────────────────────────────────
+   ②(map/app.js)와 같은 방식입니다. 다만 여기서 잡는 기본 반경은 훨씬
+   넓습니다 — 방제자원은 관내에 아예 없는 경우가 흔해, 5km로 잡으면
+   빈 목록이 나오기 때문입니다. */
+var toastTimer = null;
+function toast(msg, isErr) {
+  var el = $("#mToast");
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  if (!msg) { el.hidden = true; return; }
+  el.hidden = false;
+  el.className = "mtoast noprint" + (isErr ? " err" : "");
+  el.innerHTML = msg;
+  toastTimer = setTimeout(function () { el.hidden = true; toastTimer = null; },
+                          isErr ? 11000 : 5000);
+}
+
+function locateMe() {
+  var b = $("#btnMe");
+  b.setAttribute("aria-busy", "true");
+  toast("위치를 찾고 있습니다…");
+  MC.locate(function (r) {
+    b.removeAttribute("aria-busy");
+    if (r.err) { st.me = null; toast("<b>내 위치를 찾지 못했습니다.</b> " + r.err, true); draw(); return; }
+    st.me = r;
+    var rough = r.acc > 300;
+    if (!st.acc) {
+      var wide = !st.scope && !st.sido && !st.sgg;
+      if (wide) st.scope = "20000";            // 방제자원은 관내에 없기 일쑤다
+      setAcc(r.lat, r.lon, true);
+      if (wide) $("#mScope").value = "20000";
+      toast("<b>내 위치를 사고지점으로 찍었습니다.</b> 오차 약 ±" + fmtDist(r.acc)
+        + (rough ? " — 실내라 넓게 잡혔습니다. 지도를 눌러 정확한 자리로 고쳐 주세요." : "")
+        + " 자리가 다르면 지도를 눌러 다시 찍으면 됩니다.", rough);
+    } else {
+      var d = distM(st.acc.lat, st.acc.lon, r.lat, r.lon);
+      toast("<b>내 위치를 표시했습니다.</b> 사고지점에서 " + fmtDist(d) + " · "
+        + MC.trip(d, "car").label + " 거리입니다. 사고지점은 그대로 두었습니다.");
+      moveToMe();
+    }
+    renderLegend(); draw();
+  });
+}
+
+function moveToMe() {
+  if (!st.me) return;
+  var w = mToWorld(Math.max(st.me.acc * 6, 900), st.me.lat);
+  if (!st.view) { st.view = { cx: wx(st.me.lon), cy: wy(st.me.lat), w: w }; draw(); return; }
+  CAM.animateTo({ cx: wx(st.me.lon), cy: wy(st.me.lat), w: Math.min(w, st.view.w) }, 420);
 }
 
 /* ── 주소·장소 검색 ────────────────────────────────────────────
@@ -928,6 +1006,7 @@ function init() {
 
   $("#btnAcc").onclick = function () { setMode(st.mode === "acc" ? "pick" : "acc"); };
   $("#btnAccClear").onclick = clearAcc;
+  $("#btnMe").onclick = locateMe;
 
   var latlon = function () {
     var la = parseFloat($("#acLat").value), lo = parseFloat($("#acLon").value);
@@ -940,8 +1019,9 @@ function init() {
   $("#btnPrint").onclick = function () { window.print(); };
   $("#btnClear").onclick = function () {
     st.sido = ""; st.sgg = ""; st.scope = ""; st.acc = null;
-    st.q = ""; st.sort = "name"; st.rings = true; st.mob = {};
+    st.q = ""; st.sort = "name"; st.rings = true; st.mob = {}; st.me = null;
     KINDS.forEach(function (k) { st.kinds[k.id] = true; });
+    toast("");
     ["mQ", "acLat", "acLon", "mAddrQ"].forEach(function (id) { $("#" + id).value = ""; });
     $("#mSido").value = ""; $("#mSido").onchange();
     $("#mScope").value = ""; $("#mSort").value = "name";

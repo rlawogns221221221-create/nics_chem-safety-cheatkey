@@ -80,6 +80,98 @@ function niceDist(target) {
   });
 }
 
+/* ══ 이동 시간 어림 ══════════════════════════════════════════
+   "1.2km" 만으로는 대피 안내를 쓸 수 없습니다. 주민에게는 "걸어서 몇 분",
+   방제업체에는 "차로 몇 분"이 실제로 필요한 값입니다.
+
+   ── 왜 길찾기 서버를 쓰지 않는가 ──────────────────────────
+   공개 길찾기 API(OSRM 등)로 실제 도로 경로를 받아 오는 방법이 있지만
+   이 도구에는 쓰지 않았습니다.
+     · 망분리된 행정망 PC에서는 어차피 실패합니다. 매번 응답을 기다렸다
+       실패하는 동안 화면이 멈춘 것처럼 보입니다.
+     · 사고지점 좌표를 외부(대개 해외) 서버로 보내게 됩니다. 대외 발표
+       전의 화학사고 위치는 그렇게 다룰 값이 아닙니다.
+     · 단일 파일 배포본이 내건 "외부 서버로 어떤 정보도 전송하지 않습니다"
+       약속이 깨집니다.
+
+   그래서 좌표만으로 계산하는 어림값을 씁니다. 대신 어림이라는 사실을
+   화면에도 적어 두어, 이 숫자를 확정된 소요시간으로 오해하지 않게 합니다.
+
+   ── 어떻게 어림하는가 ────────────────────────────────────
+   실제 길은 직선보다 돌아갑니다. 직선거리를 그대로 나누면 늘 짧게 나와
+   "가면 되겠네" 하고 판단을 그르칩니다. 도시부 도로망에서 실제 도로거리를
+   직선거리로 나눈 값은 대체로 1.3 안팎이라, 그만큼 늘려 잡습니다.
+   ═══════════════════════════════════════════════════════════ */
+
+var DETOUR = 1.3;                  // 실제 이동거리 ÷ 직선거리
+var WALK_MPM = 66.7;               // 성인 평균 도보 4km/h ≒ 66.7 m/분
+var WALKABLE = 3000;               // 이 거리를 넘으면 걸어서 대피시키지 않는다 (직선 m)
+
+/* 차량 평균속도 — 표지판 제한속도보다 느립니다(신호·좌회전 대기·정체).
+   멀수록 간선도로·국도 비중이 커져 평균이 올라갑니다. */
+function carMpm(m) {
+  if (m <= 5000) return 417;       // 시가지 25km/h
+  if (m <= 20000) return 667;      // 40km/h
+  return 917;                      // 55km/h
+}
+
+function tripMin(m, mode) {
+  var road = m * DETOUR;
+  return Math.max(1, Math.round(road / (mode === "walk" ? WALK_MPM : carMpm(m))));
+}
+
+function fmtMin(min) {
+  if (min < 60) return min + "분";
+  var h = Math.floor(min / 60), r = min % 60;
+  return h + "시간" + (r ? " " + r + "분" : "");
+}
+
+/* 한 마디로 읽히는 이동시간.
+   mode 를 주지 않으면 걸어갈 만한 거리인지 보고 스스로 고릅니다 —
+   4km 떨어진 대피장소에 "도보 78분"이라고 적어 봐야 쓸 데가 없고,
+   200m 앞 방제업체에 "차로 1분"도 마찬가지입니다. */
+function trip(m, mode) {
+  var use = mode === "walk" || mode === "car" ? mode : (m <= WALKABLE ? "walk" : "car");
+  var min = tripMin(m, use);
+  return { mode: use, min: min, walkable: m <= WALKABLE,
+           label: (use === "walk" ? "도보 " : "차로 ") + fmtMin(min) };
+}
+
+/* ══ 내 위치 ════════════════════════════════════════════════
+   브라우저에 들어 있는 기능이라 인터넷이 끊긴 곳에서도 동작합니다
+   (위성·기지국·와이파이로 단말이 직접 계산합니다). 단일 파일 배포본을
+   현장에서 휴대전화로 열어도 그대로 됩니다.
+
+   실패했을 때 "위치를 가져올 수 없습니다" 한 줄만 띄우면 사용자는 무엇을
+   해야 할지 알 수 없으므로, 원인별로 다음에 할 일까지 적어 돌려줍니다.
+   ═══════════════════════════════════════════════════════════ */
+
+var GEOMSG = {
+  1: "위치 권한이 거부되어 있습니다. 주소창 왼쪽 자물쇠(또는 ⓘ)를 눌러 "
+   + "위치 권한을 ‘허용’으로 바꾼 뒤 다시 눌러 주세요.",
+  2: "지금 위치를 확인하지 못했습니다. 건물 안쪽이나 지하에서는 신호가 "
+   + "닿지 않을 수 있습니다. 창가나 실외에서 다시 시도해 보세요.",
+  3: "위치를 찾는 데 너무 오래 걸립니다. 하늘이 보이는 곳에서 다시 눌러 주세요."
+};
+
+function locate(done) {
+  if (!navigator.geolocation)
+    return done({ err: "이 브라우저는 위치 찾기를 지원하지 않습니다." });
+  /* http:// 로 올린 페이지에서는 브라우저가 위치를 막습니다.
+     file:// 로 연 단일 파일과 https:// 는 허용됩니다. */
+  if (!window.isSecureContext && location.protocol !== "file:")
+    return done({ err: "http:// 주소에서는 브라우저가 위치 사용을 막습니다. "
+                     + "https:// 주소로 열거나, 내려받은 파일을 직접 열어 주세요." });
+  navigator.geolocation.getCurrentPosition(
+    function (p) {
+      done({ lat: p.coords.latitude, lon: p.coords.longitude,
+             acc: Math.round(p.coords.accuracy || 0) });
+    },
+    function (e) { done({ err: GEOMSG[e.code] || "위치를 찾지 못했습니다." }); },
+    { enableHighAccuracy: true, timeout: 12000, maximumAge: 30000 }
+  );
+}
+
 /* ── 축척 막대 ────────────────────────────────────────────── */
 /* 화면 가로의 1/4 에 가까운 '떨어지는' 거리를 고른다 */
 function scale(vb) {
@@ -265,6 +357,22 @@ function boundaryPaths(vb, isOn) {
   return out.join("");
 }
 
+/* ── 경로선 ───────────────────────────────────────────────────
+   사고지점에서 고른 곳까지 어느 쪽으로 얼마나 가야 하는지 한눈에 보이도록
+   굵게 긋습니다. 실제 도로 경로가 아니라 직선입니다 — 도로를 따라가면
+   이보다 멉니다(위 '이동 시간 어림' 참고). 그래서 실선이 아닌 긴 점선으로
+   두어, 도로 경로처럼 보이지 않게 합니다.
+
+   배경지도가 깔리면 지도의 도로·건물 색과 겹쳐 선이 묻히므로 흰 테두리를
+   먼저 깔고 그 위에 색선을 올립니다. 색만으로 구분하지 않는 것과 같은
+   이유로, 굵기까지 확실히 키웁니다. */
+function routePath(x1, y1, x2, y2) {
+  var d = "M" + x1.toFixed(1) + " " + y1.toFixed(1)
+        + "L" + x2.toFixed(1) + " " + y2.toFixed(1);
+  return '<path class="route-cas" d="' + d + '"/>'
+       + '<path class="route" d="' + d + '"/>';
+}
+
 /* 2018년 경계 데이터와 현재 행정구역명이 다른 곳 */
 var ALIAS = { "미추홀구": "남구" };
 function matchSgg(bName, sgg) {
@@ -360,8 +468,10 @@ window.MAPCORE = {
   /* 거리·방위 */
   distM: distM, bearing: bearing, dirName: dirName,
   fmtDist: fmtDist, niceDist: niceDist, scale: scale,
+  /* 이동 시간 어림 · 내 위치 */
+  trip: trip, fmtMin: fmtMin, walkable: WALKABLE, locate: locate,
   /* 그리기 */
-  boundaryPaths: boundaryPaths, matchSgg: matchSgg,
+  boundaryPaths: boundaryPaths, matchSgg: matchSgg, routePath: routePath,
   /* 카메라 */
   camera: makeCamera,
   /* 데이터 */

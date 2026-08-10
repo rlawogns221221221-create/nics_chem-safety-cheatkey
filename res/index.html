@@ -53,9 +53,16 @@
     <div class="maplegend" id="mLeg"></div>
     <div class="mapscale"><i id="scaleBar"></i><b id="scaleTxt"></b></div>
     <div class="mapaddr" id="mAddr" hidden></div>
+    <div class="mtoast noprint" id="mToast" hidden></div>
 
     <div class="mapacc noprint">
       <button id="btnAcc" type="button" class="sm">사고지점 찍기</button>
+      <button id="btnMe" type="button" class="sm btnme" title="이 기기의 위치를 지도에 표시합니다">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="3.4"/><circle cx="12" cy="12" r="8.4"/>
+          <path d="M12 1.4v3M12 19.6v3M1.4 12h3M19.6 12h3"/>
+        </svg>내 위치</button>
       <label>위도<input type="text" id="acLat" inputmode="decimal"></label>
       <label>경도<input type="text" id="acLon" inputmode="decimal"></label>
       <button id="btnAccClear" type="button" class="sm" title="사고지점 지우기">×</button>

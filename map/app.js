@@ -46,6 +46,8 @@ var st = {
   q: "", sort: "name",
   rings: true,                     // 거리 눈금 표시
   mode: "pick",                    // "acc" = 다음 클릭이 사고지점
+  me: null,                        // 내 위치 {lat, lon, acc} — 사고지점과 별개
+  nearOff: false,                  // 가까운 3곳 카드를 사용자가 닫았는가
   all: [], show: [],
   sel: -1, hover: -1,
   view: null
@@ -264,15 +266,16 @@ function draw() {
       + '" font-size="11.5">영향 참고 ' + fmtDist(st.radius) + "</text>");
   }
 
-  /* 사고지점 ↔ 고르거나 가리킨 곳 연결선 */
+  /* 사고지점 ↔ 고르거나 가리킨 곳 경로선 — 거리와 함께 "걸어서 몇 분"을
+     같이 적습니다. 대피 안내에 실제로 쓰는 값은 미터가 아니라 분입니다. */
   var focus = st.hover >= 0 ? st.show[st.hover] : (st.sel >= 0 ? st.show[st.sel] : null);
   if (acc && focus) {
     var fx = pX(focus.lon), fy = pY(focus.lat);
-    g.push('<line class="link" x1="' + ax.toFixed(1) + '" y1="' + ay.toFixed(1)
-      + '" x2="' + fx.toFixed(1) + '" y2="' + fy.toFixed(1) + '"/>');
+    g.push(MC.routePath(ax, ay, fx, fy));
     g.push('<text class="linklbl" x="' + ((ax + fx) / 2).toFixed(1)
-      + '" y="' + ((ay + fy) / 2 - 5).toFixed(1) + '" font-size="12.5">'
-      + fmtDist(focus.d) + " " + dirName(focus.b) + "쪽</text>");
+      + '" y="' + ((ay + fy) / 2 - 9).toFixed(1) + '" font-size="12.5">'
+      + fmtDist(focus.d) + " " + dirName(focus.b) + "쪽 · "
+      + MC.trip(focus.d).label + "</text>");
   }
 
   /* 대피장소 */
@@ -295,6 +298,12 @@ function draw() {
     g.push('<text class="mkh" x="' + (vb.sw / 2) + '" y="' + (vb.sh - 10)
       + '" font-size="11">확대하거나 목록에서 가리키면 이름이 보입니다</text>');
 
+  /* 내 위치가 사고지점과 사실상 같은 자리인가 — 내 위치 단추로 찍은 직후가
+     늘 그렇습니다. 이때 십자와 파란 점, 라벨 두 개를 겹쳐 그리면 무엇이
+     무엇인지 알아볼 수 없게 됩니다. 십자 하나로 합치고 라벨에 둘 다 적습니다. */
+  var meIsAcc = !!(st.me && acc
+    && distM(acc.lat, acc.lon, st.me.lat, st.me.lon) <= Math.max(st.me.acc || 0, 25));
+
   /* 사고지점 — 십자 */
   if (acc) {
     var L2 = 13;
@@ -304,7 +313,26 @@ function draw() {
       + '" x2="' + ax.toFixed(1) + '" y2="' + (ay + L2).toFixed(1) + '"/>');
     g.push('<circle class="accdot" cx="' + ax.toFixed(1) + '" cy="' + ay.toFixed(1) + '" r="6"/>');
     g.push('<text class="acclbl" x="' + ax.toFixed(1) + '" y="' + (ay - L2 - 5).toFixed(1)
-      + '" font-size="12">사고지점</text>');
+      + '" font-size="12">사고지점' + (meIsAcc ? " · 내 위치" : "") + "</text>");
+  }
+
+  /* 내 위치 — 맨 나중에 그려 무엇에도 가리지 않게 한다.
+     단말이 알려 준 오차 범위를 옅은 원으로 함께 그린다. 실내에서는 이 원이
+     수백 미터로 커지는데, 그게 보여야 좌표를 곧이곧대로 믿지 않는다. */
+  if (st.me) {
+    var mx = pX(st.me.lon), my = pY(st.me.lat);
+    if (st.me.acc > 0) {
+      var ar = pxLen(st.me.acc, st.me.lat);
+      if (ar > 6) g.push('<circle class="meacc" cx="' + mx.toFixed(1) + '" cy="'
+        + my.toFixed(1) + '" r="' + Math.min(ar, vb.sw).toFixed(1) + '"/>');
+    }
+    /* 사고지점과 같은 자리면 십자에 맡기고 점·라벨은 그리지 않는다 */
+    if (!meIsAcc) {
+      g.push('<circle class="mepulse" cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="19"/>');
+      g.push('<circle class="me" cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="6.6"/>');
+      g.push('<text class="melbl" x="' + mx.toFixed(1) + '" y="' + (my + 21).toFixed(1)
+        + '" font-size="11.5">내 위치</text>');
+    }
   }
 
   SVG.setAttribute("viewBox", "0 0 " + vb.sw + " " + vb.sh);
@@ -356,7 +384,8 @@ function renderSummary() {
   var near = sorted[0];
   var parts = [];
   parts.push('<span class="ms-near"><b>가장 가까운 곳</b>' + esc(near.name)
-    + '<em>' + fmtDist(near.d) + " " + dirName(near.b) + "쪽</em></span>");
+    + '<em>' + fmtDist(near.d) + " " + dirName(near.b) + "쪽 · "
+    + MC.trip(near.d).label + "</em></span>");
 
   var bands = BANDS.map(function (m) {
     var n = sorted.filter(function (s) { return s.d <= m; }).length;
@@ -397,6 +426,52 @@ function renderSummary() {
   };
 }
 
+/* ── 가까운 3곳 ───────────────────────────────────────────────
+   오른쪽에 전체 목록이 있는데도 지도 위에 세 줄을 따로 띄우는 이유는,
+   급할 때 필요한 것이 "훑어볼 목록"이 아니라 "그래서 어디로 보내면 되는가"
+   이기 때문입니다. 지도에서 눈을 떼지 않고 읽고, 눌러서 바로 경로선까지
+   보게 합니다.
+
+   여기 숫자는 검색어(st.q)와 무관하게 항상 실제 최근접 3곳입니다 —
+   목록을 걸러 놓은 상태에서 "가장 가까운 곳"이 달라져 보이면, 그게 곧
+   잘못된 대피 안내가 됩니다. */
+function renderNear() {
+  var el = $("#mNear");
+  if (!st.acc || st.nearOff || !st.all.length) { el.hidden = true; return; }
+  var top = st.all.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 3);
+  el.hidden = false;
+
+  el.innerHTML = '<div class="mnear-h"><b>가까운 대피장소</b> ' + top.length + '곳'
+    + '<button type="button" class="mnear-x" aria-label="가까운 곳 카드 닫기">✕</button></div>'
+    + top.map(function (s, n) {
+        var t = MC.trip(s.d);
+        var i = st.show.indexOf(s);                 // 목록에서 걸러졌으면 -1
+        return '<button type="button" class="mnear-it' + (i >= 0 && i === st.sel ? " on" : "")
+          + '" data-k="' + esc(s.key) + '">'
+          + '<span class="mnear-r"><i class="mnear-n">' + (n + 1) + "</i>"
+          + "<b>" + esc(s.name) + '</b><span class="mnear-d">' + fmtDist(s.d) + "</span></span>"
+          + '<span class="mnear-t"><em>' + t.label + "</em> · " + dirName(s.b) + "쪽"
+          + (s.cap ? " · 수용 " + Number(s.cap).toLocaleString() + "명" : "") + "</span>"
+          + "</button>";
+      }).join("")
+    + '<p class="mnear-note">직선거리를 도로 사정에 맞춰 늘려 잡은 어림값입니다. '
+    + "실제 소요시간은 지형·통제 상황에 따라 달라집니다.</p>";
+
+  $(".mnear-x", el).onclick = function () { st.nearOff = true; el.hidden = true; };
+  $$(".mnear-it", el).forEach(function (b) {
+    b.onclick = function () {
+      /* 검색어 때문에 목록에서 빠져 있으면 먼저 검색을 비운다 —
+         눌렀는데 아무 일도 안 일어나는 것처럼 보이면 안 된다. */
+      var find = function () {
+        return st.show.map(function (s) { return s.key; }).indexOf(b.dataset.k);
+      };
+      if (find() < 0) { st.q = ""; $("#mQ").value = ""; recompute(); renderList(); }
+      var i = find();
+      if (i >= 0) select(i, false);
+    };
+  });
+}
+
 /* 어디 소속인지 보이게 시·군·구를 앞에 붙인다 — 반경으로 찾으면 여러 시·군·구가
    섞이기 때문이다. 원자료의 주소는 시·군·구가 빠진 것이 원칙이지만 들어 있는
    행도 있어, 이미 있으면 덧붙이지 않는다("남구 광주 남구 …" 방지). */
@@ -435,6 +510,8 @@ function renderList() {
       + (s.detail ? '<span class="dt">' + esc(s.detail) + "</span>" : "")
       + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
       + "</div>" + bar
+      + (acc ? '<div class="l6"><em>' + MC.trip(s.d).label + "</em>"
+               + (MC.trip(s.d).mode === "car" ? " · 걸어서 가기 어려운 거리" : "") + "</div>" : "")
       + '<div class="l2">' + esc(placeOf(s))
       + (s.cap ? " · 수용 " + Number(s.cap).toLocaleString() + "명" : "")
       + (s.kind ? " · " + esc(s.kind) : "") + "</div>"
@@ -475,7 +552,7 @@ function renderList() {
 
 function select(i, fromMap) {
   st.sel = (st.sel === i ? -1 : i);
-  renderList(); draw(); showAddr();
+  renderList(); renderNear(); draw(); showAddr();
   if (st.sel >= 0 && !fromMap) moveTo(st.show[st.sel]);
   if (st.sel >= 0 && fromMap) {
     var el = $('#shList .ms-it[data-i="' + st.sel + '"]');
@@ -499,6 +576,7 @@ function showAddr() {
 function renderLegend() {
   var it = ['<span><i class="dot sh"></i>대피장소</span>'];
   if (st.acc) it.push('<span><i class="dot ac"></i>사고지점</span>');
+  if (st.me) it.push('<span><i class="dot me"></i>내 위치</span>');
   if (st.radius > 0) it.push('<span><i class="dot in"></i>영향 참고 반경 안</span>');
   if (st.acc && st.wind !== "") it.push('<span><i class="dot lee"></i>풍하방향</span>');
   if (st.acc && st.rings) it.push('<span><i class="dot gr"></i>거리 눈금</span>');
@@ -525,7 +603,7 @@ function fallbackCopy(t, done) {
 
 function refresh(refit) {
   recompute();
-  syncSort(); renderSummary(); renderList(); renderLegend();
+  syncSort(); renderSummary(); renderNear(); renderList(); renderLegend();
   if (refit) fit(); else draw();
   showAddr();
 }
@@ -650,7 +728,7 @@ function setAcc(lat, lon, jump) {
   if (st.sort === "name") { st.sort = "dist"; $("#mSort").value = "dist"; }
   setMode("pick");
   recompute();
-  syncSort(); renderSummary(); renderList(); renderLegend(); showAddr();
+  syncSort(); renderSummary(); renderNear(); renderList(); renderLegend(); showAddr();
   moveToAcc(!!jump);
 }
 
@@ -838,6 +916,65 @@ function clearAcc() {
   st.sort = "name"; $("#mSort").value = "name";
   setMode("pick");
   refresh(true);
+}
+
+/* ── 내 위치 ──────────────────────────────────────────────────
+   현장에 나가 휴대전화로 이 화면을 열었을 때, 위도·경도를 손으로 넣지
+   않고도 바로 주변 대피장소를 볼 수 있게 하려는 것입니다. 브라우저에
+   들어 있는 기능이라 인터넷이 끊긴 곳에서도 됩니다.
+
+   사고지점이 아직 없으면 내 위치를 사고지점으로도 찍습니다 — 현장에서
+   여는 경우가 그렇기 때문입니다. 이미 사고지점이 찍혀 있으면 건드리지
+   않고 파란 점만 더합니다. 사무실에서 눌렀다고 사고지점이 사무실로
+   옮겨가면 안 되기 때문입니다. */
+var toastTimer = null;
+function toast(msg, isErr) {
+  var el = $("#mToast");
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  if (!msg) { el.hidden = true; return; }
+  el.hidden = false;
+  el.className = "mtoast noprint" + (isErr ? " err" : "");
+  el.innerHTML = msg;
+  toastTimer = setTimeout(function () { el.hidden = true; toastTimer = null; },
+                          isErr ? 11000 : 5000);
+}
+
+function locateMe() {
+  var b = $("#btnMe");
+  b.setAttribute("aria-busy", "true");
+  toast("위치를 찾고 있습니다…");
+  MC.locate(function (r) {
+    b.removeAttribute("aria-busy");
+    if (r.err) { st.me = null; toast("<b>내 위치를 찾지 못했습니다.</b> " + r.err, true); draw(); return; }
+    st.me = r;
+    var rough = r.acc > 300;
+    if (!st.acc) {
+      /* 지역도 범위도 아직 안 골랐으면 '여기 주변 5km'로 함께 잡아 줍니다.
+         현장에서 단추 하나 누른 결과가 빈 목록이면 아무 쓸모가 없습니다.
+         범위를 먼저 넣고 setAcc 를 불러야 목록·시야가 한 번에 맞습니다. */
+      var wide = !st.scope && !st.sido && !st.sgg;
+      if (wide) st.scope = "5000";
+      setAcc(r.lat, r.lon, true);                 // 현장에서 연 경우 — 바로 기준점이 된다
+      if (wide) $("#mScope").value = "5000";
+      toast("<b>내 위치를 사고지점으로 찍었습니다.</b> 오차 약 ±" + fmtDist(r.acc)
+        + (rough ? " — 실내라 넓게 잡혔습니다. 지도를 눌러 정확한 자리로 고쳐 주세요." : "")
+        + " 자리가 다르면 지도를 눌러 다시 찍으면 됩니다.", rough);
+    } else {
+      var d = distM(st.acc.lat, st.acc.lon, r.lat, r.lon);
+      toast("<b>내 위치를 표시했습니다.</b> 사고지점에서 " + fmtDist(d) + " · "
+        + MC.trip(d).label + " 거리입니다. 사고지점은 그대로 두었습니다.");
+      moveToMe();
+    }
+    renderLegend(); draw();
+  });
+}
+
+/* 내 위치가 화면 밖이면 보이게 당긴다 */
+function moveToMe() {
+  if (!st.me) return;
+  var w = mToWorld(Math.max(st.me.acc * 6, 900), st.me.lat);
+  if (!st.view) { st.view = { cx: wx(st.me.lon), cy: wy(st.me.lat), w: w }; draw(); return; }
+  CAM.animateTo({ cx: wx(st.me.lon), cy: wy(st.me.lat), w: Math.min(w, st.view.w) }, 420);
 }
 
 /* ── 배경지도 ─────────────────────────────────────────────── */
@@ -1068,10 +1205,10 @@ function init() {
 
   $("#mScope").onchange = function () { st.scope = this.value; refresh(true); };
   $("#mQ").oninput = function () {
-    st.q = this.value; recompute(); renderList(); draw();
+    st.q = this.value; recompute(); renderList(); renderNear(); draw();
   };
   $("#mSort").onchange = function () {
-    st.sort = this.value; recompute(); renderList(); draw();
+    st.sort = this.value; recompute(); renderList(); renderNear(); draw();
   };
   $("#mMat").oninput = function () { st.mat = this.value.trim(); renderRad(); };
   bindWind();
@@ -1080,6 +1217,7 @@ function init() {
 
   $("#btnAcc").onclick = function () { setMode(st.mode === "acc" ? "pick" : "acc"); };
   $("#btnAccClear").onclick = clearAcc;
+  $("#btnMe").onclick = locateMe;
 
   var latlon = function () {
     var la = parseFloat($("#acLat").value), lo = parseFloat($("#acLon").value);
@@ -1094,12 +1232,14 @@ function init() {
   $("#btnClear").onclick = function () {
     st.sido = ""; st.sgg = ""; st.scope = ""; st.acc = null; st.radius = null;
     st.mat = ""; st.q = ""; st.sort = "name"; st.rings = true;
+    st.me = null; st.nearOff = false;
     ["mMat", "mQ", "acLat", "acLon", "mAddrQ"].forEach(function (id) { $("#" + id).value = ""; });
     $("#mSido").value = ""; $("#mSido").onchange();
     $("#mScope").value = ""; $("#mSort").value = "name";
     $("#cRings").checked = true;
     setWind("");
     renderRad();
+    toast("");
     setMode("pick");
   };
 
