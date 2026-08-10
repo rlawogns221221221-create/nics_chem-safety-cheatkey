@@ -532,6 +532,9 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 #map path.route-cas{fill:none;stroke:#fff;stroke-width:9px;stroke-linecap:round;opacity:.92}
 #map path.route{fill:none;stroke:#e0218a;stroke-width:5px;stroke-linecap:round;
   stroke-dasharray:15 9;animation:routeIn .42s var(--ease) both}
+/* 길찾기로 받아 온 실제 도로 경로 — 직선이 아니라 진짜 길이므로 실선으로
+   긋는다. 점선은 "이건 직선이다"라는 표시였다. */
+#map path.route.real{stroke-dasharray:none;stroke-linejoin:round;stroke-width:5.5px}
 @keyframes routeIn{from{stroke-dashoffset:70;opacity:0}to{stroke-dashoffset:0;opacity:1}}
 #map text.linklbl{fill:#b3156d;text-anchor:middle;font-weight:700;paint-order:stroke;
   stroke:#fff;stroke-width:.42em;stroke-linejoin:round;pointer-events:none}
@@ -683,7 +686,8 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .mapacc label{display:flex;align-items:center;gap:5px;font-size:11.5px;
   font-weight:700;color:var(--ink2)}
 .mapacc input[type=text]{width:104px;padding:4px 8px;font-size:12.5px}
-.mapacc .mapchk{margin-left:auto;font-weight:600}
+.mapacc .mapchks{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mapacc .mapchk{font-weight:600}
 .mapacc .mapchk input{width:15px;height:15px;accent-color:var(--brand)}
 
 /* ── 손가락으로 쓰는 화면 ─────────────────────────────────────
@@ -747,6 +751,9 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
    어림값이라는 사실은 카드 아래 안내와 자료 출처에 적어 둔다. */
 .ms-it .l6{font-size:11.5px;margin-top:2px;color:var(--ink3)}
 .ms-it .l6 em{font-style:normal;font-weight:700;color:#0f4fa8}
+/* 길찾기로 받아 온 값이라는 표시 — 직선 어림값과 눈으로 구분되어야 한다 */
+.ms-it .l6-tag{font-size:10.5px;font-weight:700;color:#b3156d;
+  background:rgba(224,33,138,.1);border-radius:20px;padding:1px 7px}
 .ms-it .l2{color:var(--ink2);font-size:11.5px;margin-top:2px;line-height:1.5}
 .ms-it .l3{color:var(--brand-d);font-size:11.5px;margin-top:2px}
 .ms-it .l5{margin-top:3px;display:flex;gap:5px;flex-wrap:wrap}
@@ -1000,6 +1007,13 @@ a.btnlink:hover{border-color:var(--brand)}
   white-space:nowrap;flex:none}
 .mpk-row .fq{font-size:10.5px;color:var(--ok);background:var(--ok-l);
   border-radius:20px;padding:1px 6px;white-space:nowrap;flex:none}
+/* 인터넷에서 찾은 장소의 주소·분류 — 같은 이름이 여럿일 때 무엇을 고를지
+   가르는 값이라 이름 옆에 함께 적는다 */
+.mpk-row .nm .sub{font-style:normal;font-weight:400;font-size:11.5px;color:var(--ink3)}
+/* 인터넷 검색 진행·실패 알림 — 목록 맨 아래 한 줄 */
+.mpk-busy{padding:7px 11px;font-size:11.5px;color:var(--ink3);
+  border-top:1px solid var(--line2);background:var(--panel)}
+.mpk-busy.off{color:var(--warn)}
 .mpk-none{padding:20px 12px;text-align:center;font-size:12.5px;color:var(--ink3);line-height:1.7}
 .mpk-ft{padding:5px 11px;border-top:1px solid var(--line2);background:var(--panel);
   font-size:11px;color:var(--ink3)}
@@ -1263,7 +1277,11 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:12.5px;flex:no
       <label>위도<input type="text" id="acLat" inputmode="decimal"></label>
       <label>경도<input type="text" id="acLon" inputmode="decimal"></label>
       <button id="btnAccClear" type="button" class="sm" title="사고지점 지우기">×</button>
-      <label class="mapchk"><input type="checkbox" id="cRings" checked>거리 눈금</label>
+      <span class="mapchks">
+        <label class="mapchk" title="고른 대피장소까지 실제로 걸어갈 수 있는 길을 찾아 그립니다. 인터넷이 필요하며, 사고지점 좌표가 길찾기 서버로 전송됩니다. 끄면 직선으로만 표시합니다.">
+          <input type="checkbox" id="cWalk" checked>도보 경로</label>
+        <label class="mapchk"><input type="checkbox" id="cRings" checked>거리 눈금</label>
+      </span>
     </div>
   </div>
 
@@ -1809,8 +1827,11 @@ function carMpm(m) {
   return 917;                      // 55km/h
 }
 
-function tripMin(m, mode) {
-  var road = m * DETOUR;
+/* roadKnown 이 참이면 m 이 이미 도로를 따라 잰 거리라는 뜻이라 우회계수를
+   곱하지 않습니다. 길찾기로 실제 경로를 받아 왔을 때가 그렇습니다 —
+   거기에 또 1.3을 곱하면 없는 우회를 두 번 세게 됩니다. */
+function tripMin(m, mode, roadKnown) {
+  var road = roadKnown ? m : m * DETOUR;
   return Math.max(1, Math.round(road / (mode === "walk" ? WALK_MPM : carMpm(m))));
 }
 
@@ -1824,9 +1845,9 @@ function fmtMin(min) {
    mode 를 주지 않으면 걸어갈 만한 거리인지 보고 스스로 고릅니다 —
    4km 떨어진 대피장소에 "도보 78분"이라고 적어 봐야 쓸 데가 없고,
    200m 앞 방제업체에 "차로 1분"도 마찬가지입니다. */
-function trip(m, mode) {
+function trip(m, mode, roadKnown) {
   var use = mode === "walk" || mode === "car" ? mode : (m <= WALKABLE ? "walk" : "car");
-  var min = tripMin(m, use);
+  var min = tripMin(m, use, roadKnown);
   return { mode: use, min: min, walkable: m <= WALKABLE,
            label: (use === "walk" ? "도보 " : "차로 ") + fmtMin(min) };
 }
@@ -2358,6 +2379,201 @@ window.MAPCORE = {
 })();
 
 </script>
+<!-- 인터넷이 있어야 되는 것(장소 검색·도보 경로). ② 대피장소만 부릅니다 —
+     ③ 방제자원은 개인정보 취급 방침이 정해질 때까지 좌표를 바깥으로
+     내보내지 않기로 해 이 파일을 부르지 않습니다. 없어도 화면은 돕니다. -->
+<script>
+/* ============================================================
+   인터넷이 있어야 되는 것 — 장소 검색 · 도보 경로
+
+   ② 대피장소 지도(map/index.html)만 이 파일을 불러옵니다.
+   ③ 방제자원은 부르지 않습니다 — 업체 담당자 개인정보 취급 방침이 아직
+   정해지지 않아, 사고지점·업체 좌표를 바깥으로 내보내는 기능을 붙이지
+   않기로 했습니다. 그래서 공용 엔진(mapcore.js)이 아니라 이 파일에
+   따로 둡니다. 파일이 분리돼 있으면 "누가 무엇을 바깥으로 보내는가"가
+   불러오는 목록만 봐도 드러납니다.
+
+   ── 바깥으로 나가는 것 ──────────────────────────────────────
+     장소 검색  검색어         → 국토교통부 브이월드 (api.vworld.kr)
+     도보 경로  두 지점의 좌표 → OSRM 공개 서버 (router.project-osrm.org)
+
+   대피장소는 공개 자료이고 검색어도 사용자가 직접 친 것이므로 내보내도
+   되는 값입니다. 다만 사고지점 좌표는 경로를 그릴 때 함께 나갑니다.
+   대외 발표 전 위치를 밖에 내보내면 안 되는 상황이라면 화면의
+   '도보 경로' 스위치를 끄면 됩니다(꺼도 직선 경로는 그대로 나옵니다).
+
+   ── 안 되면 어떻게 되는가 ───────────────────────────────────
+   인터넷이 없거나 서버가 응답하지 않아도 화면이 멈추지 않습니다.
+     장소 검색  도구 안에 든 자료(대피장소 이름·시군구·읍면동)로만 찾습니다
+     도보 경로  두 지점을 잇는 직선을 그립니다 (지금까지 하던 그대로)
+   ============================================================ */
+(function () {
+"use strict";
+
+/* 응답을 이만큼 기다리고 포기합니다. 급할 때 쓰는 도구라 오래 붙들고
+   있으면 안 됩니다 — 실패해도 곧바로 오프라인 결과가 보여야 합니다. */
+var TIMEOUT = 6000;
+
+/* 길찾기 서버. 기관 내부에 OSRM 을 세웠다면 이 주소만 바꾸면 됩니다.
+   공개 서버는 무보증이라 응답이 늦거나 막힐 수 있고, 그때는 직선으로
+   되돌아갑니다. */
+var OSRM = "https://router.project-osrm.org/route/v1/foot/";
+
+function key() {
+  return String((window.BASEMAP || {}).인증키 || "").trim();
+}
+
+/* ══ JSONP ═══════════════════════════════════════════════════
+   브이월드 검색 API 는 브라우저에서 직접 부를 때 CORS 가 열려 있지 않은
+   경우가 있어, 어느 쪽이든 되는 JSONP 로 부릅니다(<script> 로 불러오는
+   방식이라 CORS 를 타지 않습니다).
+
+   JSONP 는 실패를 알려 주지 못하므로 시간 제한을 직접 겁니다. 남겨진
+   전역 함수와 <script> 태그는 성공·실패·시간초과 어느 쪽이든 지웁니다. */
+var jsonpN = 0;
+function jsonp(url, done) {
+  var name = "__vwcb" + (++jsonpN);
+  var s = document.createElement("script");
+  var timer = null;
+  var finish = function (data, err) {
+    if (!name) return;                       // 이미 끝났다
+    clearTimeout(timer);
+    try { delete window[name]; } catch (e) { window[name] = undefined; }
+    if (s.parentNode) s.parentNode.removeChild(s);
+    name = null;
+    done(data, err);
+  };
+  window[name] = function (data) { finish(data, null); };
+  timer = setTimeout(function () { finish(null, "시간초과"); }, TIMEOUT);
+  s.onerror = function () { finish(null, "연결실패"); };
+  s.src = url + "&callback=" + name;
+  document.head.appendChild(s);
+}
+
+/* ══ 장소 검색 (브이월드) ════════════════════════════════════
+   "여수시청"처럼 이름만 알아도 찾히게 하려는 것입니다. 지금까지는 도구
+   안에 등록된 대피장소·시군구·읍면동 이름으로만 찾을 수 있었습니다.
+
+   두 종류를 함께 찾습니다.
+     place    사업장·건물·시설 이름 (예: ○○화학 여수공장, △△초등학교)
+     address  도로명·지번 주소
+   둘 다 좌표가 정확하므로, 고르면 그 자리를 사고지점으로 바로 찍습니다.
+   (도구 안에서 찾은 시군구·읍면동은 평균 좌표라 그렇게 하지 않습니다.)
+   ═══════════════════════════════════════════════════════════ */
+
+function url(type, q) {
+  return "https://api.vworld.kr/req/search?service=search&request=search"
+    + "&version=2.0&crs=EPSG:4326&size=10&page=1&format=json&errorformat=json"
+    + "&type=" + type
+    + (type === "address" ? "&category=road" : "")
+    + "&query=" + encodeURIComponent(q)
+    + "&key=" + encodeURIComponent(key());
+}
+
+/* 응답에서 쓸 것만 꺼낸다. 브이월드는 항목 모양이 종류마다 조금씩 달라
+   (장소는 title, 주소는 address 아래) 둘 다 훑는다. */
+function parse(data, kind) {
+  var r = data && data.response;
+  if (!r || r.status !== "OK") return [];
+  var items = (r.result && r.result.items) || [];
+  var out = [];
+  items.forEach(function (it) {
+    var p = it.point || {};
+    var lon = parseFloat(p.x), lat = parseFloat(p.y);
+    if (!isFinite(lat) || !isFinite(lon)) return;
+    var a = it.address || {};
+    var addr = a.road || a.parcel || "";
+    var name = it.title || addr;
+    if (!name) return;
+    out.push({
+      kind: kind,                       // "poi" | "addr"
+      label: name,
+      sub: kind === "poi" ? (addr || it.category || "") : (a.parcel || ""),
+      lat: lat, lon: lon,
+      exact: true                       // 좌표가 정확하다 = 사고지점으로 바로 써도 된다
+    });
+  });
+  return out;
+}
+
+/* 장소와 주소를 함께 찾아 한 목록으로 돌려준다.
+   둘 중 하나만 되어도 그것만 돌려준다 — 하나가 막혔다고 검색 전체가
+   실패한 것처럼 보이면 안 된다. */
+function search(q, done) {
+  q = String(q || "").trim();
+  if (!q) return done([], null);
+  if (!key()) return done([], "브이월드 인증키가 없습니다");
+
+  var got = 0, rows = [], errs = [];
+  var back = function (list, err) {
+    if (list) rows = rows.concat(list);
+    if (err) errs.push(err);
+    if (++got < 2) return;
+    /* 이름으로 찾은 것(place)을 먼저 — 사업장명을 치는 경우가 대부분이다 */
+    rows.sort(function (a, b) {
+      return (a.kind === "poi" ? 0 : 1) - (b.kind === "poi" ? 0 : 1);
+    });
+    done(rows, rows.length ? null : (errs[0] || null));
+  };
+  jsonp(url("place", q), function (d, e) { back(d ? parse(d, "poi") : null, e); });
+  jsonp(url("address", q), function (d, e) { back(d ? parse(d, "addr") : null, e); });
+}
+
+/* ══ 도보 경로 (OSRM) ════════════════════════════════════════
+   지금까지 그리던 직선은 "어느 쪽으로 얼마나"는 알려 주지만 실제로 걸어서
+   갈 수 있는 길인지는 알려 주지 못합니다. 강·철길·고속도로가 사이에 있으면
+   직선거리는 가까워도 한참 돌아가야 합니다.
+
+   실패하면 null 을 돌려줍니다. 부르는 쪽은 그때 직선을 그립니다 —
+   경로를 못 받았다고 아무것도 안 그리면 화면이 더 나빠집니다.
+   ═══════════════════════════════════════════════════════════ */
+function route(from, to, done) {
+  var u = OSRM + from.lon + "," + from.lat + ";" + to.lon + "," + to.lat
+        + "?overview=full&geometries=geojson&alternatives=false&steps=false";
+
+  /* 응답이 늦으면 끊는다. AbortController 가 없는 브라우저에서는
+     타이머만 걸어 두고 늦게 온 응답을 버린다. */
+  var ac = window.AbortController ? new AbortController() : null;
+  var dead = false;
+  var timer = setTimeout(function () {
+    dead = true;
+    if (ac) ac.abort();
+    done(null, "시간초과");
+  }, TIMEOUT);
+
+  var opt = ac ? { signal: ac.signal } : {};
+  fetch(u, opt).then(function (r) {
+    if (!r.ok) throw new Error("HTTP " + r.status);
+    return r.json();
+  }).then(function (d) {
+    if (dead) return;
+    clearTimeout(timer);
+    var rt = d && d.code === "Ok" && d.routes && d.routes[0];
+    if (!rt || !rt.geometry || !rt.geometry.coordinates) return done(null, "경로 없음");
+    done({
+      /* [[경도, 위도], ...] → 그리기 쉽게 {lat, lon} 으로 */
+      path: rt.geometry.coordinates.map(function (c) { return { lon: c[0], lat: c[1] }; }),
+      dist: Math.round(rt.distance)          // 도로를 따라간 거리 (m)
+    }, null);
+  }).catch(function (e) {
+    if (dead) return;
+    clearTimeout(timer);
+    done(null, e && e.name === "AbortError" ? "시간초과" : "연결실패");
+  });
+
+  return function abort() {                  // 다른 곳을 고르면 이전 요청을 끊는다
+    if (dead) return;
+    dead = true;
+    clearTimeout(timer);
+    if (ac) ac.abort();
+  };
+}
+
+window.ONLINE = { search: search, route: route, hasKey: function () { return !!key(); } };
+
+})();
+
+</script>
 <script>
 /* ============================================================
    화학사고 대피장소 지도
@@ -2409,6 +2625,9 @@ var st = {
   mode: "pick",                    // "acc" = 다음 클릭이 사고지점
   me: null,                        // 내 위치 {lat, lon, acc} — 사고지점과 별개
   nearOff: false,                  // 가까운 3곳 카드를 사용자가 닫았는가
+  walk: true,                      // 도보 경로를 길찾기로 받아올까 (인터넷 필요)
+  route: null,                     // 받아 온 경로 {key, path, dist}
+  routeBusy: false, routeErr: null,
   all: [], show: [],
   sel: -1, hover: -1,
   view: null
@@ -2463,6 +2682,9 @@ function recompute() {
   else st.show.sort(function (a, b) { return a.name.localeCompare(b.name, "ko"); });
 
   st.sel = -1; st.hover = -1;
+  /* 사고지점이나 조건이 바뀌면 받아 둔 경로는 더 이상 맞지 않는다.
+     지우지 않으면 옮긴 사고지점 기준의 목록에 예전 '실제 도로' 값이 남는다. */
+  st.route = null; st.routeErr = null; st.routeBusy = false;
 }
 
 /* ── 시야 ─────────────────────────────────────────────────── */
@@ -2628,15 +2850,33 @@ function draw() {
   }
 
   /* 사고지점 ↔ 고르거나 가리킨 곳 경로선 — 거리와 함께 "걸어서 몇 분"을
-     같이 적습니다. 대피 안내에 실제로 쓰는 값은 미터가 아니라 분입니다. */
+     같이 적습니다. 대피 안내에 실제로 쓰는 값은 미터가 아니라 분입니다.
+
+     길찾기로 실제 도로 경로를 받아 왔으면 그 길을 그대로 그립니다. 그때는
+     거리도 도로를 따라 잰 값이라 우회계수를 곱하지 않습니다. */
   var focus = st.hover >= 0 ? st.show[st.hover] : (st.sel >= 0 ? st.show[st.sel] : null);
   if (acc && focus) {
     var fx = pX(focus.lon), fy = pY(focus.lat);
-    g.push(MC.routePath(ax, ay, fx, fy));
-    g.push('<text class="linklbl" x="' + ((ax + fx) / 2).toFixed(1)
-      + '" y="' + ((ay + fy) / 2 - 9).toFixed(1) + '" font-size="12.5">'
-      + fmtDist(focus.d) + " " + dirName(focus.b) + "쪽 · "
-      + MC.trip(focus.d).label + "</text>");
+    var rt = st.route && st.route.key === focus.key ? st.route : null;
+    var lx, ly, txt;
+    if (rt && rt.path.length > 1) {
+      var d = "";
+      for (var pi = 0; pi < rt.path.length; pi++)
+        d += (pi ? "L" : "M") + pX(rt.path[pi].lon).toFixed(1)
+           + " " + pY(rt.path[pi].lat).toFixed(1);
+      g.push('<path class="route-cas" d="' + d + '"/>');
+      g.push('<path class="route real" d="' + d + '"/>');
+      var mid = rt.path[Math.floor(rt.path.length / 2)];
+      lx = pX(mid.lon); ly = pY(mid.lat) - 11;
+      txt = "도로 " + fmtDist(rt.dist) + " · " + MC.trip(rt.dist, "walk", true).label;
+    } else {
+      g.push(MC.routePath(ax, ay, fx, fy));
+      lx = (ax + fx) / 2; ly = (ay + fy) / 2 - 9;
+      txt = fmtDist(focus.d) + " " + dirName(focus.b) + "쪽 · " + MC.trip(focus.d).label
+          + (st.routeBusy && focus.key === (st.show[st.sel] || {}).key ? " · 길 찾는 중…" : "");
+    }
+    g.push('<text class="linklbl" x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1)
+      + '" font-size="12.5">' + esc(txt) + "</text>");
   }
 
   /* 대피장소 */
@@ -2858,6 +3098,18 @@ function placeOf(s) {
   return addr.indexOf(s.sgg) >= 0 ? addr : (s.sgg + " " + addr).trim();
 }
 
+/* 한 곳의 이동시간 한 줄. 실제 도로 경로를 받아 온 곳만 그 값을 쓰고,
+   나머지는 직선 어림값입니다. 둘을 눈으로 구분할 수 있어야 하므로 실제
+   경로에는 표시를 붙입니다 — 어림값을 확정된 값으로 오해하면 안 됩니다. */
+function tripLine(s) {
+  var rt = st.route && st.route.key === s.key ? st.route : null;
+  if (rt) return '<em>' + MC.trip(rt.dist, "walk", true).label + "</em>"
+    + ' <span class="l6-tag">실제 도로 ' + fmtDist(rt.dist) + "</span>";
+  var t = MC.trip(s.d);
+  return "<em>" + t.label + "</em>"
+    + (t.mode === "car" ? " · 걸어서 가기 어려운 거리" : " · 직선거리로 어림한 값");
+}
+
 /* ── 목록 ─────────────────────────────────────────────────── */
 function renderList() {
   var acc = st.acc;
@@ -2888,8 +3140,7 @@ function renderList() {
       + (s.detail ? '<span class="dt">' + esc(s.detail) + "</span>" : "")
       + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
       + "</div>" + bar
-      + (acc ? '<div class="l6"><em>' + MC.trip(s.d).label + "</em>"
-               + (MC.trip(s.d).mode === "car" ? " · 걸어서 가기 어려운 거리" : "") + "</div>" : "")
+      + (acc ? '<div class="l6">' + tripLine(s) + "</div>" : "")
       + '<div class="l2">' + esc(placeOf(s))
       + (s.cap ? " · 수용 " + Number(s.cap).toLocaleString() + "명" : "")
       + (s.kind ? " · " + esc(s.kind) : "") + "</div>"
@@ -2928,8 +3179,39 @@ function renderList() {
   });
 }
 
+/* ── 도보 경로 ────────────────────────────────────────────────
+   직선은 "어느 쪽으로 얼마나"는 알려 주지만 걸어서 갈 수 있는 길인지는
+   알려 주지 못합니다. 강·철길·고속도로가 사이에 있으면 직선으로는 가까워도
+   한참 돌아가야 합니다. 고른 곳 하나에 대해서만 실제 경로를 받아옵니다.
+
+   못 받아 오면 지금까지처럼 직선을 그립니다 — 경로가 없다고 아무것도 안
+   그리면 화면이 더 나빠집니다. 목록과 '가까운 3곳'은 직선 어림값 그대로
+   둡니다. 고를 때마다 세 건씩 더 부르면 느려지고, 급할 때 필요한 것은
+   목록의 정밀도가 아니라 지금 고른 한 곳의 실제 길입니다. */
+var routeAbort = null, routeSeq = 0;
+function requestRoute() {
+  if (routeAbort) { routeAbort(); routeAbort = null; }
+  routeSeq++;
+  st.route = null; st.routeErr = null; st.routeBusy = false;
+
+  var s = st.sel >= 0 ? st.show[st.sel] : null;
+  if (!s || !st.acc || !st.walk || !window.ONLINE) return;
+
+  var seq = routeSeq;
+  st.routeBusy = true;
+  routeAbort = ONLINE.route(st.acc, { lat: s.lat, lon: s.lon }, function (r, err) {
+    if (seq !== routeSeq) return;               // 그새 다른 곳을 골랐다
+    routeAbort = null;
+    st.routeBusy = false;
+    st.route = r ? { key: s.key, path: r.path, dist: r.dist } : null;
+    st.routeErr = err;
+    draw(); showAddr(); renderList();
+  });
+}
+
 function select(i, fromMap) {
   st.sel = (st.sel === i ? -1 : i);
+  requestRoute();
   renderList(); renderNear(); draw(); showAddr();
   if (st.sel >= 0 && !fromMap) moveTo(st.show[st.sel]);
   if (st.sel >= 0 && fromMap) {
@@ -2948,7 +3230,11 @@ function showAddr() {
     + (s.detail ? " <i>" + esc(s.detail) + "</i>" : "")
     + "<span>" + esc(placeOf(s)) + "</span>"
     + (s.cap ? "<em>수용 " + Number(s.cap).toLocaleString() + "명</em>" : "")
-    + (s.d != null ? "<em>사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽</em>" : "");
+    + (s.d != null ? "<em>사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽</em>" : "")
+    + (st.route && st.route.key === s.key
+        ? "<em>도로 " + fmtDist(st.route.dist) + " · "
+          + MC.trip(st.route.dist, "walk", true).label + "</em>"
+        : (st.routeBusy && st.sel >= 0 && st.show[st.sel] === s ? "<em>길 찾는 중…</em>" : ""));
 }
 
 function renderLegend() {
@@ -3210,25 +3496,81 @@ function searchPlaces(q) {
   });
   return rows.slice(0, 30);
 }
-var KIND_LABEL = { sgg: "시·군·구", dong: "읍·면·동", place: "대피장소" };
+var KIND_LABEL = { sgg: "시·군·구", dong: "읍·면·동", place: "대피장소",
+                   poi: "장소", addr: "주소" };
 var addrRows = [], addrSel = -1;
+
+/* ── 인터넷 장소 검색 ────────────────────────────────────────
+   도구 안에 든 자료로만 찾으면 "여수시청"이나 "○○화학 여수공장" 같은
+   이름은 나오지 않습니다. 사고는 등록된 대피장소가 아니라 그런 곳에서
+   납니다. 그래서 브이월드 검색을 함께 겁니다(assets/online.js).
+
+   도구 안 결과를 먼저 즉시 보여 주고, 인터넷 결과는 도착하는 대로 아래에
+   덧붙입니다 — 응답을 기다리느라 아무것도 안 보이는 시간이 없게 합니다.
+   인터넷이 안 되면 지금까지처럼 도구 안 결과만 나옵니다. */
+var addrQ = "";
+var addrOn = { q: "", rows: [], busy: false, err: null };
+var addrTimer = null, addrSeq = 0;
+
+function askOnline(q) {
+  var t = String(q || "").trim();
+  clearTimeout(addrTimer);
+  addrSeq++;
+  /* 한 글자로 부르면 결과가 너무 많고 요청만 늘어난다 */
+  if (!window.ONLINE || t.length < 2) {
+    addrOn = { q: t, rows: [], busy: false, err: null };
+    return;
+  }
+  addrOn = { q: t, rows: [], busy: true, err: null };
+  var seq = addrSeq;
+  addrTimer = setTimeout(function () {          // 치는 도중에 매번 부르지 않는다
+    ONLINE.search(t, function (rows, err) {
+      if (seq !== addrSeq) return;              // 그새 더 쳤다 — 늦게 온 응답은 버린다
+      addrOn = { q: t, rows: rows || [], busy: false, err: err };
+      if (!$("#addrPop").hidden) drawAddrPop();
+    });
+  }, 350);
+}
+
 function renderAddrPop(q) {
+  addrQ = q;
+  askOnline(q);
+  drawAddrPop();
+}
+
+function drawAddrPop() {
   var pop = $("#addrPop");
-  addrRows = searchPlaces(q);
-  if (!addrRows.length) {
-    pop.innerHTML = q.trim()
-      ? '<div class="mpk-none">‘' + esc(q) + "’ 과 맞는 곳이 없습니다.<br>"
-        + "등록된 대피장소 주소·시군구·읍면동 이름으로 찾을 수 있습니다.</div>"
-      : '<div class="mpk-none">등록된 대피장소 주소·시군구·읍면동 이름으로 찾습니다.</div>';
-    addrSel = -1;
+  var t = addrQ.trim();
+  var mine = searchPlaces(addrQ);
+  var net = addrOn.q === t ? addrOn.rows : [];
+  var busy = addrOn.q === t && addrOn.busy;
+  addrRows = mine.concat(net);
+  addrSel = -1;
+
+  var row = function (p, i) {
+    return '<div class="mpk-row" role="option" data-i="' + i + '">'
+      + '<span class="nm">' + esc(p.label)
+      + (p.sub ? ' <i class="sub">' + esc(p.sub) + "</i>" : "") + "</span>"
+      + '<span class="en">' + esc(KIND_LABEL[p.kind] || "") + "</span></div>";
+  };
+
+  if (!addrRows.length && !busy) {
+    pop.innerHTML = t
+      ? '<div class="mpk-none">‘' + esc(addrQ) + "’ 과 맞는 곳이 없습니다.<br>"
+        + "사업장·건물 이름이나 도로명 주소로도 찾을 수 있습니다.</div>"
+      : '<div class="mpk-none">사업장·건물 이름, 도로명 주소, 시군구·읍면동으로 찾습니다.<br>'
+        + "예) 여수시청 · 산단로 79 · 강릉시 옥계면</div>";
   } else {
-    pop.innerHTML = '<div class="mpk-list" id="addrList">' + addrRows.map(function (p, i) {
-      return '<div class="mpk-row" role="option" data-i="' + i + '">'
-        + '<span class="nm">' + esc(p.label) + "</span>"
-        + '<span class="en">' + esc(KIND_LABEL[p.kind]) + "</span></div>";
-    }).join("") + "</div>"
-    + '<div class="mpk-ft">고르면 그 언저리로 이동합니다 · 정확한 사고지점은 지도를 눌러 찍으세요</div>';
-    addrSel = -1;
+    var body = '<div class="mpk-list" id="addrList">' + addrRows.map(row).join("");
+    if (busy) body += '<div class="mpk-busy">인터넷에서 찾는 중…</div>';
+    else if (addrOn.q === t && addrOn.err && !net.length)
+      body += '<div class="mpk-busy off">인터넷 검색을 쓸 수 없습니다 ('
+        + esc(addrOn.err) + ") · 등록된 자료에서만 찾았습니다</div>";
+    pop.innerHTML = body + "</div>"
+      + '<div class="mpk-ft">'
+      + (net.length ? "장소·주소를 고르면 그 자리를 사고지점으로 찍습니다"
+                    : "고르면 그 언저리로 이동합니다 · 정확한 사고지점은 지도를 눌러 찍으세요")
+      + "</div>";
     $$(".mpk-row", pop).forEach(function (el) {
       el.onclick = function () { pickAddr(addrRows[+el.dataset.i]); };
     });
@@ -3251,6 +3593,20 @@ function closeAddrPop() { $("#addrPop").hidden = true; addrSel = -1; }
 function pickAddr(p) {
   closeAddrPop();
   $("#mAddrQ").value = p.label;
+
+  /* 인터넷에서 찾은 사업장·주소는 좌표가 그 건물의 것이라 정확합니다.
+     한 번 더 지도를 누르게 할 이유가 없으므로 바로 사고지점으로 찍습니다.
+     (도구 안에서 찾은 시군구·읍면동은 평균 좌표라 그렇게 하지 않습니다.) */
+  if (p.exact) {
+    var wide = !st.scope && !st.sido && !st.sgg;
+    if (wide) st.scope = "5000";
+    setAcc(p.lat, p.lon, true);
+    if (wide) $("#mScope").value = "5000";
+    toast("<b>‘" + esc(p.label) + "’ 을(를) 사고지점으로 찍었습니다.</b> "
+      + "자리가 다르면 지도를 눌러 다시 찍으면 됩니다.");
+    return;
+  }
+
   if (p.sido !== st.sido || p.sgg !== st.sgg) {
     $("#mSido").value = p.sido; $("#mSido").onchange();
     $("#mSgg").value = p.sgg; $("#mSgg").onchange();
@@ -3560,6 +3916,12 @@ function init() {
   bindWind();
   bindAddrSearch();
   $("#cRings").onchange = function () { st.rings = this.checked; renderLegend(); draw(); };
+  var walk = $("#cWalk");
+  if (walk) walk.onchange = function () {
+    st.walk = this.checked;
+    requestRoute();                    // 켜면 지금 고른 곳 경로를 바로 받아온다
+    renderLegend(); draw(); showAddr(); renderList();
+  };
 
   $("#btnAcc").onclick = function () { setMode(st.mode === "acc" ? "pick" : "acc"); };
   $("#btnAccClear").onclick = clearAcc;
@@ -3579,6 +3941,7 @@ function init() {
     st.sido = ""; st.sgg = ""; st.scope = ""; st.acc = null; st.radius = null;
     st.mat = ""; st.q = ""; st.sort = "name"; st.rings = true;
     st.me = null; st.nearOff = false;
+    st.route = null; st.routeErr = null; st.routeBusy = false;
     ["mMat", "mQ", "acLat", "acLon", "mAddrQ"].forEach(function (id) { $("#" + id).value = ""; });
     $("#mSido").value = ""; $("#mSido").onchange();
     $("#mScope").value = ""; $("#mSort").value = "name";

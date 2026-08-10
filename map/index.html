@@ -95,7 +95,11 @@
       <label>위도<input type="text" id="acLat" inputmode="decimal"></label>
       <label>경도<input type="text" id="acLon" inputmode="decimal"></label>
       <button id="btnAccClear" type="button" class="sm" title="사고지점 지우기">×</button>
-      <label class="mapchk"><input type="checkbox" id="cRings" checked>거리 눈금</label>
+      <span class="mapchks">
+        <label class="mapchk" title="고른 대피장소까지 실제로 걸어갈 수 있는 길을 찾아 그립니다. 인터넷이 필요하며, 사고지점 좌표가 길찾기 서버로 전송됩니다. 끄면 직선으로만 표시합니다.">
+          <input type="checkbox" id="cWalk" checked>도보 경로</label>
+        <label class="mapchk"><input type="checkbox" id="cRings" checked>거리 눈금</label>
+      </span>
     </div>
   </div>
 
@@ -148,6 +152,10 @@
 <script src="../data/boundaries.js"></script>
 <script src="../assets/matpicker.js"></script>
 <script src="../assets/mapcore.js"></script>
+<!-- 인터넷이 있어야 되는 것(장소 검색·도보 경로). ② 대피장소만 부릅니다 —
+     ③ 방제자원은 개인정보 취급 방침이 정해질 때까지 좌표를 바깥으로
+     내보내지 않기로 해 이 파일을 부르지 않습니다. 없어도 화면은 돕니다. -->
+<script src="../assets/online.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

@@ -115,8 +115,11 @@ function carMpm(m) {
   return 917;                      // 55km/h
 }
 
-function tripMin(m, mode) {
-  var road = m * DETOUR;
+/* roadKnown 이 참이면 m 이 이미 도로를 따라 잰 거리라는 뜻이라 우회계수를
+   곱하지 않습니다. 길찾기로 실제 경로를 받아 왔을 때가 그렇습니다 —
+   거기에 또 1.3을 곱하면 없는 우회를 두 번 세게 됩니다. */
+function tripMin(m, mode, roadKnown) {
+  var road = roadKnown ? m : m * DETOUR;
   return Math.max(1, Math.round(road / (mode === "walk" ? WALK_MPM : carMpm(m))));
 }
 
@@ -130,9 +133,9 @@ function fmtMin(min) {
    mode 를 주지 않으면 걸어갈 만한 거리인지 보고 스스로 고릅니다 —
    4km 떨어진 대피장소에 "도보 78분"이라고 적어 봐야 쓸 데가 없고,
    200m 앞 방제업체에 "차로 1분"도 마찬가지입니다. */
-function trip(m, mode) {
+function trip(m, mode, roadKnown) {
   var use = mode === "walk" || mode === "car" ? mode : (m <= WALKABLE ? "walk" : "car");
-  var min = tripMin(m, use);
+  var min = tripMin(m, use, roadKnown);
   return { mode: use, min: min, walkable: m <= WALKABLE,
            label: (use === "walk" ? "도보 " : "차로 ") + fmtMin(min) };
 }

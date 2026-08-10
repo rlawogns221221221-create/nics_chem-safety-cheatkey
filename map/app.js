@@ -48,6 +48,9 @@ var st = {
   mode: "pick",                    // "acc" = 다음 클릭이 사고지점
   me: null,                        // 내 위치 {lat, lon, acc} — 사고지점과 별개
   nearOff: false,                  // 가까운 3곳 카드를 사용자가 닫았는가
+  walk: true,                      // 도보 경로를 길찾기로 받아올까 (인터넷 필요)
+  route: null,                     // 받아 온 경로 {key, path, dist}
+  routeBusy: false, routeErr: null,
   all: [], show: [],
   sel: -1, hover: -1,
   view: null
@@ -102,6 +105,9 @@ function recompute() {
   else st.show.sort(function (a, b) { return a.name.localeCompare(b.name, "ko"); });
 
   st.sel = -1; st.hover = -1;
+  /* 사고지점이나 조건이 바뀌면 받아 둔 경로는 더 이상 맞지 않는다.
+     지우지 않으면 옮긴 사고지점 기준의 목록에 예전 '실제 도로' 값이 남는다. */
+  st.route = null; st.routeErr = null; st.routeBusy = false;
 }
 
 /* ── 시야 ─────────────────────────────────────────────────── */
@@ -267,15 +273,33 @@ function draw() {
   }
 
   /* 사고지점 ↔ 고르거나 가리킨 곳 경로선 — 거리와 함께 "걸어서 몇 분"을
-     같이 적습니다. 대피 안내에 실제로 쓰는 값은 미터가 아니라 분입니다. */
+     같이 적습니다. 대피 안내에 실제로 쓰는 값은 미터가 아니라 분입니다.
+
+     길찾기로 실제 도로 경로를 받아 왔으면 그 길을 그대로 그립니다. 그때는
+     거리도 도로를 따라 잰 값이라 우회계수를 곱하지 않습니다. */
   var focus = st.hover >= 0 ? st.show[st.hover] : (st.sel >= 0 ? st.show[st.sel] : null);
   if (acc && focus) {
     var fx = pX(focus.lon), fy = pY(focus.lat);
-    g.push(MC.routePath(ax, ay, fx, fy));
-    g.push('<text class="linklbl" x="' + ((ax + fx) / 2).toFixed(1)
-      + '" y="' + ((ay + fy) / 2 - 9).toFixed(1) + '" font-size="12.5">'
-      + fmtDist(focus.d) + " " + dirName(focus.b) + "쪽 · "
-      + MC.trip(focus.d).label + "</text>");
+    var rt = st.route && st.route.key === focus.key ? st.route : null;
+    var lx, ly, txt;
+    if (rt && rt.path.length > 1) {
+      var d = "";
+      for (var pi = 0; pi < rt.path.length; pi++)
+        d += (pi ? "L" : "M") + pX(rt.path[pi].lon).toFixed(1)
+           + " " + pY(rt.path[pi].lat).toFixed(1);
+      g.push('<path class="route-cas" d="' + d + '"/>');
+      g.push('<path class="route real" d="' + d + '"/>');
+      var mid = rt.path[Math.floor(rt.path.length / 2)];
+      lx = pX(mid.lon); ly = pY(mid.lat) - 11;
+      txt = "도로 " + fmtDist(rt.dist) + " · " + MC.trip(rt.dist, "walk", true).label;
+    } else {
+      g.push(MC.routePath(ax, ay, fx, fy));
+      lx = (ax + fx) / 2; ly = (ay + fy) / 2 - 9;
+      txt = fmtDist(focus.d) + " " + dirName(focus.b) + "쪽 · " + MC.trip(focus.d).label
+          + (st.routeBusy && focus.key === (st.show[st.sel] || {}).key ? " · 길 찾는 중…" : "");
+    }
+    g.push('<text class="linklbl" x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1)
+      + '" font-size="12.5">' + esc(txt) + "</text>");
   }
 
   /* 대피장소 */
@@ -497,6 +521,18 @@ function placeOf(s) {
   return addr.indexOf(s.sgg) >= 0 ? addr : (s.sgg + " " + addr).trim();
 }
 
+/* 한 곳의 이동시간 한 줄. 실제 도로 경로를 받아 온 곳만 그 값을 쓰고,
+   나머지는 직선 어림값입니다. 둘을 눈으로 구분할 수 있어야 하므로 실제
+   경로에는 표시를 붙입니다 — 어림값을 확정된 값으로 오해하면 안 됩니다. */
+function tripLine(s) {
+  var rt = st.route && st.route.key === s.key ? st.route : null;
+  if (rt) return '<em>' + MC.trip(rt.dist, "walk", true).label + "</em>"
+    + ' <span class="l6-tag">실제 도로 ' + fmtDist(rt.dist) + "</span>";
+  var t = MC.trip(s.d);
+  return "<em>" + t.label + "</em>"
+    + (t.mode === "car" ? " · 걸어서 가기 어려운 거리" : " · 직선거리로 어림한 값");
+}
+
 /* ── 목록 ─────────────────────────────────────────────────── */
 function renderList() {
   var acc = st.acc;
@@ -527,8 +563,7 @@ function renderList() {
       + (s.detail ? '<span class="dt">' + esc(s.detail) + "</span>" : "")
       + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
       + "</div>" + bar
-      + (acc ? '<div class="l6"><em>' + MC.trip(s.d).label + "</em>"
-               + (MC.trip(s.d).mode === "car" ? " · 걸어서 가기 어려운 거리" : "") + "</div>" : "")
+      + (acc ? '<div class="l6">' + tripLine(s) + "</div>" : "")
       + '<div class="l2">' + esc(placeOf(s))
       + (s.cap ? " · 수용 " + Number(s.cap).toLocaleString() + "명" : "")
       + (s.kind ? " · " + esc(s.kind) : "") + "</div>"
@@ -567,8 +602,39 @@ function renderList() {
   });
 }
 
+/* ── 도보 경로 ────────────────────────────────────────────────
+   직선은 "어느 쪽으로 얼마나"는 알려 주지만 걸어서 갈 수 있는 길인지는
+   알려 주지 못합니다. 강·철길·고속도로가 사이에 있으면 직선으로는 가까워도
+   한참 돌아가야 합니다. 고른 곳 하나에 대해서만 실제 경로를 받아옵니다.
+
+   못 받아 오면 지금까지처럼 직선을 그립니다 — 경로가 없다고 아무것도 안
+   그리면 화면이 더 나빠집니다. 목록과 '가까운 3곳'은 직선 어림값 그대로
+   둡니다. 고를 때마다 세 건씩 더 부르면 느려지고, 급할 때 필요한 것은
+   목록의 정밀도가 아니라 지금 고른 한 곳의 실제 길입니다. */
+var routeAbort = null, routeSeq = 0;
+function requestRoute() {
+  if (routeAbort) { routeAbort(); routeAbort = null; }
+  routeSeq++;
+  st.route = null; st.routeErr = null; st.routeBusy = false;
+
+  var s = st.sel >= 0 ? st.show[st.sel] : null;
+  if (!s || !st.acc || !st.walk || !window.ONLINE) return;
+
+  var seq = routeSeq;
+  st.routeBusy = true;
+  routeAbort = ONLINE.route(st.acc, { lat: s.lat, lon: s.lon }, function (r, err) {
+    if (seq !== routeSeq) return;               // 그새 다른 곳을 골랐다
+    routeAbort = null;
+    st.routeBusy = false;
+    st.route = r ? { key: s.key, path: r.path, dist: r.dist } : null;
+    st.routeErr = err;
+    draw(); showAddr(); renderList();
+  });
+}
+
 function select(i, fromMap) {
   st.sel = (st.sel === i ? -1 : i);
+  requestRoute();
   renderList(); renderNear(); draw(); showAddr();
   if (st.sel >= 0 && !fromMap) moveTo(st.show[st.sel]);
   if (st.sel >= 0 && fromMap) {
@@ -587,7 +653,11 @@ function showAddr() {
     + (s.detail ? " <i>" + esc(s.detail) + "</i>" : "")
     + "<span>" + esc(placeOf(s)) + "</span>"
     + (s.cap ? "<em>수용 " + Number(s.cap).toLocaleString() + "명</em>" : "")
-    + (s.d != null ? "<em>사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽</em>" : "");
+    + (s.d != null ? "<em>사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽</em>" : "")
+    + (st.route && st.route.key === s.key
+        ? "<em>도로 " + fmtDist(st.route.dist) + " · "
+          + MC.trip(st.route.dist, "walk", true).label + "</em>"
+        : (st.routeBusy && st.sel >= 0 && st.show[st.sel] === s ? "<em>길 찾는 중…</em>" : ""));
 }
 
 function renderLegend() {
@@ -849,25 +919,81 @@ function searchPlaces(q) {
   });
   return rows.slice(0, 30);
 }
-var KIND_LABEL = { sgg: "시·군·구", dong: "읍·면·동", place: "대피장소" };
+var KIND_LABEL = { sgg: "시·군·구", dong: "읍·면·동", place: "대피장소",
+                   poi: "장소", addr: "주소" };
 var addrRows = [], addrSel = -1;
+
+/* ── 인터넷 장소 검색 ────────────────────────────────────────
+   도구 안에 든 자료로만 찾으면 "여수시청"이나 "○○화학 여수공장" 같은
+   이름은 나오지 않습니다. 사고는 등록된 대피장소가 아니라 그런 곳에서
+   납니다. 그래서 브이월드 검색을 함께 겁니다(assets/online.js).
+
+   도구 안 결과를 먼저 즉시 보여 주고, 인터넷 결과는 도착하는 대로 아래에
+   덧붙입니다 — 응답을 기다리느라 아무것도 안 보이는 시간이 없게 합니다.
+   인터넷이 안 되면 지금까지처럼 도구 안 결과만 나옵니다. */
+var addrQ = "";
+var addrOn = { q: "", rows: [], busy: false, err: null };
+var addrTimer = null, addrSeq = 0;
+
+function askOnline(q) {
+  var t = String(q || "").trim();
+  clearTimeout(addrTimer);
+  addrSeq++;
+  /* 한 글자로 부르면 결과가 너무 많고 요청만 늘어난다 */
+  if (!window.ONLINE || t.length < 2) {
+    addrOn = { q: t, rows: [], busy: false, err: null };
+    return;
+  }
+  addrOn = { q: t, rows: [], busy: true, err: null };
+  var seq = addrSeq;
+  addrTimer = setTimeout(function () {          // 치는 도중에 매번 부르지 않는다
+    ONLINE.search(t, function (rows, err) {
+      if (seq !== addrSeq) return;              // 그새 더 쳤다 — 늦게 온 응답은 버린다
+      addrOn = { q: t, rows: rows || [], busy: false, err: err };
+      if (!$("#addrPop").hidden) drawAddrPop();
+    });
+  }, 350);
+}
+
 function renderAddrPop(q) {
+  addrQ = q;
+  askOnline(q);
+  drawAddrPop();
+}
+
+function drawAddrPop() {
   var pop = $("#addrPop");
-  addrRows = searchPlaces(q);
-  if (!addrRows.length) {
-    pop.innerHTML = q.trim()
-      ? '<div class="mpk-none">‘' + esc(q) + "’ 과 맞는 곳이 없습니다.<br>"
-        + "등록된 대피장소 주소·시군구·읍면동 이름으로 찾을 수 있습니다.</div>"
-      : '<div class="mpk-none">등록된 대피장소 주소·시군구·읍면동 이름으로 찾습니다.</div>';
-    addrSel = -1;
+  var t = addrQ.trim();
+  var mine = searchPlaces(addrQ);
+  var net = addrOn.q === t ? addrOn.rows : [];
+  var busy = addrOn.q === t && addrOn.busy;
+  addrRows = mine.concat(net);
+  addrSel = -1;
+
+  var row = function (p, i) {
+    return '<div class="mpk-row" role="option" data-i="' + i + '">'
+      + '<span class="nm">' + esc(p.label)
+      + (p.sub ? ' <i class="sub">' + esc(p.sub) + "</i>" : "") + "</span>"
+      + '<span class="en">' + esc(KIND_LABEL[p.kind] || "") + "</span></div>";
+  };
+
+  if (!addrRows.length && !busy) {
+    pop.innerHTML = t
+      ? '<div class="mpk-none">‘' + esc(addrQ) + "’ 과 맞는 곳이 없습니다.<br>"
+        + "사업장·건물 이름이나 도로명 주소로도 찾을 수 있습니다.</div>"
+      : '<div class="mpk-none">사업장·건물 이름, 도로명 주소, 시군구·읍면동으로 찾습니다.<br>'
+        + "예) 여수시청 · 산단로 79 · 강릉시 옥계면</div>";
   } else {
-    pop.innerHTML = '<div class="mpk-list" id="addrList">' + addrRows.map(function (p, i) {
-      return '<div class="mpk-row" role="option" data-i="' + i + '">'
-        + '<span class="nm">' + esc(p.label) + "</span>"
-        + '<span class="en">' + esc(KIND_LABEL[p.kind]) + "</span></div>";
-    }).join("") + "</div>"
-    + '<div class="mpk-ft">고르면 그 언저리로 이동합니다 · 정확한 사고지점은 지도를 눌러 찍으세요</div>';
-    addrSel = -1;
+    var body = '<div class="mpk-list" id="addrList">' + addrRows.map(row).join("");
+    if (busy) body += '<div class="mpk-busy">인터넷에서 찾는 중…</div>';
+    else if (addrOn.q === t && addrOn.err && !net.length)
+      body += '<div class="mpk-busy off">인터넷 검색을 쓸 수 없습니다 ('
+        + esc(addrOn.err) + ") · 등록된 자료에서만 찾았습니다</div>";
+    pop.innerHTML = body + "</div>"
+      + '<div class="mpk-ft">'
+      + (net.length ? "장소·주소를 고르면 그 자리를 사고지점으로 찍습니다"
+                    : "고르면 그 언저리로 이동합니다 · 정확한 사고지점은 지도를 눌러 찍으세요")
+      + "</div>";
     $$(".mpk-row", pop).forEach(function (el) {
       el.onclick = function () { pickAddr(addrRows[+el.dataset.i]); };
     });
@@ -890,6 +1016,20 @@ function closeAddrPop() { $("#addrPop").hidden = true; addrSel = -1; }
 function pickAddr(p) {
   closeAddrPop();
   $("#mAddrQ").value = p.label;
+
+  /* 인터넷에서 찾은 사업장·주소는 좌표가 그 건물의 것이라 정확합니다.
+     한 번 더 지도를 누르게 할 이유가 없으므로 바로 사고지점으로 찍습니다.
+     (도구 안에서 찾은 시군구·읍면동은 평균 좌표라 그렇게 하지 않습니다.) */
+  if (p.exact) {
+    var wide = !st.scope && !st.sido && !st.sgg;
+    if (wide) st.scope = "5000";
+    setAcc(p.lat, p.lon, true);
+    if (wide) $("#mScope").value = "5000";
+    toast("<b>‘" + esc(p.label) + "’ 을(를) 사고지점으로 찍었습니다.</b> "
+      + "자리가 다르면 지도를 눌러 다시 찍으면 됩니다.");
+    return;
+  }
+
   if (p.sido !== st.sido || p.sgg !== st.sgg) {
     $("#mSido").value = p.sido; $("#mSido").onchange();
     $("#mSgg").value = p.sgg; $("#mSgg").onchange();
@@ -1199,6 +1339,12 @@ function init() {
   bindWind();
   bindAddrSearch();
   $("#cRings").onchange = function () { st.rings = this.checked; renderLegend(); draw(); };
+  var walk = $("#cWalk");
+  if (walk) walk.onchange = function () {
+    st.walk = this.checked;
+    requestRoute();                    // 켜면 지금 고른 곳 경로를 바로 받아온다
+    renderLegend(); draw(); showAddr(); renderList();
+  };
 
   $("#btnAcc").onclick = function () { setMode(st.mode === "acc" ? "pick" : "acc"); };
   $("#btnAccClear").onclick = clearAcc;
@@ -1218,6 +1364,7 @@ function init() {
     st.sido = ""; st.sgg = ""; st.scope = ""; st.acc = null; st.radius = null;
     st.mat = ""; st.q = ""; st.sort = "name"; st.rings = true;
     st.me = null; st.nearOff = false;
+    st.route = null; st.routeErr = null; st.routeBusy = false;
     ["mMat", "mQ", "acLat", "acLon", "mAddrQ"].forEach(function (id) { $("#" + id).value = ""; });
     $("#mSido").value = ""; $("#mSido").onchange();
     $("#mScope").value = ""; $("#mSort").value = "name";
