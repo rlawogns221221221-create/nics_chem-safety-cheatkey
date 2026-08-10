@@ -516,9 +516,19 @@ function showAddr() {
     + (s.d != null ? "<em>사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽</em>" : "");
 }
 
+/* 종류 이름을 앞머리와 꼬리로 나눠 둔다("폐기물" + " 처리업체").
+   좁은 화면에서는 CSS 가 꼬리를 감춰 범례가 한 줄에 들어간다 — 네 종류를
+   전부 풀어 쓰면 세 줄(83px)이 되어 작은 지도의 22%를 덮었다.
+   긴 이름은 오른쪽 목록의 종류 칩에 그대로 남아 있다. */
+function legendName(name) {
+  var m = /^(.*?)( (?:판매업체|처리업체|보유기관|업체))$/.exec(name);
+  if (!m) return esc(name);
+  return esc(m[1]) + '<i class="lg-t">' + esc(m[2]) + "</i>";
+}
+
 function renderLegend() {
   var it = KINDS.filter(function (k) { return st.kinds[k.id]; }).map(function (k) {
-    return '<span><i class="rkdot rk-' + k.id + '"></i>' + esc(k.이름) + "</span>";
+    return '<span><i class="rkdot rk-' + k.id + '"></i>' + legendName(k.이름) + "</span>";
   });
   if (st.acc) it.push('<span><i class="dot ac"></i>사고지점</span>');
   if (st.me) it.push('<span><i class="dot me"></i>내 위치</span>');
@@ -840,61 +850,28 @@ function showSrc() {
 }
 
 /* ── 조작 ─────────────────────────────────────────────────── */
-function zoom(f, cx, cy) {
-  var v = st.view;
-  var nw = Math.max(0.0000015, Math.min(1.2, v.w * f));
-  if (cx != null) {
-    var ll = toLL(cx, cy);
-    var px = wx(ll.lon), py = wy(ll.lat);
-    var rx = (px - VB.x) / VB.w, ry = (py - VB.y) / VB.h;
-    var nh = nw * (VB.sh / VB.sw);
-    v.cx = px - (rx - 0.5) * nw;
-    v.cy = py - (ry - 0.5) * nh;
-  }
-  v.w = nw;
-  draw();
-}
 function zoomBtn(f) {
   var nw = Math.max(0.0000015, Math.min(1.2, st.view.w * f));
   CAM.animateTo({ cx: st.view.cx, cy: st.view.cy, w: nw }, 260);
 }
 
+/* 끌기·손가락 확대·휠은 세 지도가 같아야 하므로 assets/mapcore.js 에 있다 */
 function bindMap() {
-  var drag = null;
-  SVG.onpointerdown = function (e) {
-    CAM.stop();
-    drag = { x: e.clientX, y: e.clientY, cx: st.view.cx, cy: st.view.cy, moved: false };
-    try { SVG.setPointerCapture(e.pointerId); } catch (err) {}
-  };
-  SVG.onpointermove = function (e) {
-    if (!drag) return;
-    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
-    st.view.cx = drag.cx - dx / VB.sw * VB.w;
-    st.view.cy = drag.cy - dy / VB.sh * VB.h;
-    draw();
-  };
-  SVG.onpointerup = function (e) {
-    var moved = drag && drag.moved;
-    drag = null;
-    try { SVG.releasePointerCapture(e.pointerId); } catch (err) {}
-    if (moved) return;
-    if (st.mode === "acc") {
-      var ll = toLL(e.clientX, e.clientY);
-      setAcc(ll.lat, ll.lon);
-      return;
+  MC.panzoom(SVG, {
+    view: function () { return st.view; },
+    vb: function () { return VB; },
+    draw: draw,
+    camStop: CAM.stop,
+    onTap: function (x, y) {
+      if (st.mode === "acc") {
+        var ll = toLL(x, y);
+        setAcc(ll.lat, ll.lon);
+        return;
+      }
+      var i = hitMarker(x, y);
+      if (i >= 0) select(i, true);
     }
-    var i = hitMarker(e.clientX, e.clientY);
-    if (i >= 0) select(i, true);
-  };
-  SVG.onpointercancel = function (e) {
-    drag = null;
-    try { SVG.releasePointerCapture(e.pointerId); } catch (err) {}
-  };
-  SVG.onwheel = function (e) {
-    e.preventDefault(); CAM.stop();
-    zoom(e.deltaY > 0 ? 1.25 : 0.8, e.clientX, e.clientY);
-  };
+  });
   $("#zIn").onclick = function () { zoomBtn(0.7); };
   $("#zOut").onclick = function () { zoomBtn(1.42); };
   $("#zFit").onclick = function () { fit(); };
@@ -982,6 +959,7 @@ function initSrcModal() {
 
 function init() {
   SVG = $("#map");
+  MC.foldBar();            // 좁은 화면에서 조건 줄 접기
   initDataBar();
   initSelects();
   initSrcModal();

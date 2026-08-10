@@ -26,18 +26,29 @@
       주소·장소 검색
       <input type="text" id="mAddrQ" placeholder="예) 강릉시 옥계면, 개령서부초등학교" autocomplete="off">
     </label>
-    <label class="mb-f">영향반경 참고 물질<input type="text" id="mMat" data-matpicker autocomplete="off"></label>
-    <div class="mb-f mb-wind">
-      풍향
-      <button type="button" id="windBtn" class="windbtn" aria-haspopup="dialog" aria-expanded="false">
-        <svg class="windbtn-ic" id="windBtnIc" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="9"/>
-        </svg>
-        <span id="windBtnTxt">설정 안 함</span>
-      </button>
+    <!-- 좁은 화면에서는 아래 조건들이 세로로 쌓여 지도를 밀어냅니다.
+         주소 검색만 남기고 접어 두었다가 이 단추로 펴 봅니다(넓은 화면에서는
+         접을 이유가 없으므로 이 단추가 보이지 않습니다). -->
+    <button type="button" class="mb-toggle" id="mbToggle" aria-expanded="false" aria-controls="mbMore">
+      조건 더보기
+      <svg class="mb-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+
+    <div class="mb-more" id="mbMore">
+      <label class="mb-f">영향반경 참고 물질<input type="text" id="mMat" data-matpicker autocomplete="off"></label>
+      <div class="mb-f mb-wind">
+        풍향
+        <button type="button" id="windBtn" class="windbtn" aria-haspopup="dialog" aria-expanded="false">
+          <svg class="windbtn-ic" id="windBtnIc" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/>
+          </svg>
+          <span id="windBtnTxt">설정 안 함</span>
+        </button>
+      </div>
+      <div class="mb-lyr" id="mLyr" role="group" aria-label="배경지도 선택"></div>
     </div>
-    <div class="mb-lyr" id="mLyr" role="group" aria-label="배경지도 선택"></div>
   </div>
 </div>
 

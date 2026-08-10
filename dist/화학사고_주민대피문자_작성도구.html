@@ -398,6 +398,13 @@ body.mapapp{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .mb-f input[type=text]{min-width:170px}
 .mb-addr{position:relative}
 .mb-addr input[type=text]{min-width:260px}
+/* 조건 접기 단추 — 넓은 화면에서는 접을 이유가 없으므로 보이지 않는다 */
+.mb-toggle{display:none}
+.mb-toggle .mb-caret{width:13px;height:13px;flex:none}
+/* 접기 위해 감싼 상자. 넓은 화면에서는 이 상자가 없는 것처럼 동작해야 한다 —
+   그냥 두면 안에 든 물질·풍향·배경지도가 한 덩어리로 묶여 세로로 쌓이고,
+   .mb-lyr 의 margin-left:auto 도 .mbar-in 기준이 아니게 되어 자리가 틀어진다. */
+.mb-more{display:contents}
 
 /* 풍향 단추 — 실제 나침반(.windpop, JS 로 생성)은 이 단추를 누르면 뜬다 */
 .mb-wind{position:relative}
@@ -586,6 +593,8 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .maplegend .dot.lee{background:rgba(138,79,6,.2);border-color:var(--warn)}
 .maplegend .dot.gr{background:none;border-style:dashed;border-color:#0d3f70}
 .maplegend .dot.me{background:#1668d8;border-color:#fff;box-shadow:0 0 0 1px #1668d8}
+/* 종류 이름의 꼬리 — 넓은 화면에서는 그대로 보인다 (좁은 화면에서만 감춤) */
+.maplegend .lg-t{font-style:normal}
 .mapscale{position:absolute;left:10px;bottom:56px;display:flex;align-items:center;gap:6px;
   background:rgba(255,255,255,.92);border-radius:4px;padding:2px 7px;font-size:11px}
 .mapscale i{display:block;height:4px;border:1px solid var(--ink2);border-top:0}
@@ -676,6 +685,28 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .mapacc input[type=text]{width:104px;padding:4px 8px;font-size:12.5px}
 .mapacc .mapchk{margin-left:auto;font-weight:600}
 .mapacc .mapchk input{width:15px;height:15px;accent-color:var(--brand)}
+
+/* ── 손가락으로 쓰는 화면 ─────────────────────────────────────
+   마우스는 몇 픽셀이든 정확히 찍히지만 손가락은 그렇지 않습니다.
+   28px 짜리 단추는 마우스로는 충분해도 손으로는 자주 빗나가고, 사고 현장에서
+   장갑을 끼거나 급한 상태라면 더합니다. 손가락이 닿는 기기에서만 키웁니다
+   — 마우스 화면까지 키우면 지도를 덮는 면적만 늘어납니다.
+
+   pointer:coarse 는 '주 입력장치가 손가락'이라는 뜻이라 휴대전화·태블릿에서
+   켜지고, 마우스를 쓰는 노트북·데스크톱에서는 켜지지 않습니다. */
+@media (pointer: coarse) {
+  .mapacc{gap:6px;padding:6px 8px}
+  .mapacc .sm,.mapacc .btnme{min-height:40px;padding:0 12px}
+  .mapacc input[type=text]{min-height:38px;padding:6px 9px}
+  .mapacc .mapchk{min-height:40px;padding:0 4px}
+  .mapacc .mapchk input{width:20px;height:20px}
+  .mapctl button{width:40px;height:40px;font-size:17px}
+  .mapctl{gap:6px}
+  /* 경고 띠 안의 링크 — 글줄 사이에 끼어 있어 세로로 얇았다 */
+  .mbar-warn a{display:inline-block;padding:10px 0}
+  /* 요약 줄 안의 단추(범위 넓히기 등)도 손가락으로 누르는 것이다 */
+  .ms-more{min-height:40px;padding:0 14px;font-size:13px}
+}
 #btnAcc[aria-pressed=true]{background:var(--err);border-color:var(--err);color:#fff;font-weight:700}
 
 /* 목록 */
@@ -755,6 +786,55 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
   .mnear{width:min(224px,calc(100% - 62px));padding:6px 8px 7px;font-size:11.5px}
   .mnear .mnear-note{display:none}
   .mapaddr{bottom:92px}
+
+  /* ── 요약 줄 — 세로로 쌓이지 않게 ─────────────────────────
+     조각이 늘어날수록 줄바꿈으로 아래로 자랐습니다. ③은 종류 칩에 도착시간이
+     붙으면서 208px(화면의 3분의 1)까지 커졌고, 그만큼 지도가 밀려 사고지점
+     조작줄이 화면 밖으로 나갔습니다. 한 줄에 두고 옆으로 밀어 보게 합니다.
+     오른쪽 끝을 흐리게 해서 뒤에 더 있다는 것이 보이게 합니다. */
+  .msum{flex-wrap:nowrap;overflow-x:auto;gap:10px;padding:7px 12px;
+    scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);
+    mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
+  .msum::-webkit-scrollbar{display:none}
+  /* 표시할 것이 없다는 안내는 문구가 길어, 한 줄로 두면 '범위 넓히기'
+     단추가 화면 오른쪽 밖으로 밀려난다. 이때만 줄바꿈을 허용한다. */
+  .msum.is-empty{flex-wrap:wrap;overflow:visible;
+    -webkit-mask-image:none;mask-image:none}
+  .msum > *{flex:none}
+  .ms-bands{flex-wrap:nowrap}
+  .msum .ms-note{display:none}          /* 같은 안내가 목록 아래에도 있다 */
+  .msum .ms-more{margin-left:0}
+
+  /* ── 조건 줄 — 주소 검색만 남기고 접는다 ──────────────────
+     좁은 화면에서 조건이 세로로 쌓여 320px(화면 절반)을 차지했고, 정작 지도는
+     84px만 보였습니다. 주소·장소 검색은 가장 먼저 쓰는 것이라 늘 보이게 두고,
+     물질·풍향·배경지도는 필요할 때 펴 보게 합니다. */
+  .mbar-in{gap:10px;padding:10px 12px;min-height:0}
+  .mb-toggle{display:inline-flex;align-items:center;gap:5px;min-height:40px;
+    padding:0 12px;font-size:13px;font-weight:700;color:var(--ink2);flex:none}
+  .mb-toggle .mb-caret{transition:transform .2s var(--ease)}
+  .mb-toggle[aria-expanded=true] .mb-caret{transform:rotate(180deg)}
+  .mbar.folded .mb-more{display:none}
+  .mb-more{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;width:100%}
+  .mb-addr{flex:1 1 100%}
+  .mb-addr input[type=text]{width:100%}
+
+  /* 배경지도 경고 띠 — 원인 진단은 설치·설정하는 사람에게 필요한 내용이고,
+     현장에서 쓰는 사람에게는 굵은 첫 문장이면 충분합니다. 좁은 화면에서
+     여섯 줄까지 늘어나 지도를 밀어내므로 감춥니다.
+     망분리 환경에서는 이 띠가 늘 떠 있으므로 그냥 두면 계속 손해입니다. */
+  .mbar-warn{padding:7px 12px}
+  .mbar-warn .wd{display:none}
+
+  /* 범례 — ③은 종류가 넷이라 좁은 화면에서 세 줄(83px)이 되어 작은 지도의
+     22%를 덮었습니다. 글자 크기는 그대로 두고(줄이면 못 읽습니다) 종류 이름의
+     꼬리만 감춥니다: "폐기물 처리업체" → "폐기물".
+     풀어 쓴 이름은 오른쪽 목록의 종류 칩에 그대로 있습니다. */
+  .maplegend{gap:4px 8px;padding:3px 7px;max-width:calc(100% - 58px)}
+  .maplegend span{white-space:nowrap}
+  .maplegend .lg-t{display:none}
+  .maplegend .dot,.maplegend .rkdot{margin-right:3px}
 }
 @media print{
   body.mapapp{height:auto;overflow:visible;display:block}
@@ -2499,11 +2579,16 @@ function tileStatus() {
     var probe = tileUrl(d.주소, 15, 27960, 12854);       // 서울시청 부근 타일 한 장
     var link = ' <a href="' + escAttr(probe) + '" target="_blank" rel="noopener noreferrer">'
       + "타일 주소 직접 열어보기</a> — 새 창에 뜨는 메시지가 실제 원인입니다.";
+    /* 뒷부분(원인 진단·확인 방법)은 이 도구를 설치·설정하는 사람에게 필요한
+       내용이고, 현장에서 쓰는 사람에게는 굵은 첫 문장이면 충분합니다.
+       좁은 화면에서는 이 띠가 여섯 줄까지 늘어나 지도를 밀어내므로 감춥니다
+       (assets/shell.css 의 .wd). */
+    var detail = function (t) { return '<span class="wd">' + t + link + "</span>"; };
     warn = src
       ? "<b>" + escAttr(d.이름) + " 배경지도를 불러오지 못해 " + escAttr(src.이름)
-        + "(으)로 바꿨습니다.</b> " + escAttr(d.진단 || "") + link
+        + "(으)로 바꿨습니다.</b> " + detail(escAttr(d.진단 || ""))
       : "<b>배경지도를 불러오지 못해 행정경계선만 표시합니다.</b> "
-        + escAttr(d.진단 || "") + " 인터넷 연결이 차단된 환경인지도 확인하세요." + link;
+        + detail(escAttr(d.진단 || "") + " 인터넷 연결이 차단된 환경인지도 확인하세요.");
   }
   return { src: src, label: label, warn: warn };
 }
@@ -2639,6 +2724,170 @@ function makeCamera(getView, setView, redraw) {
   return { animateTo: animateTo, stop: stop, isAnimating: function () { return !!anim; } };
 }
 
+/* ══ 지도 조작 — 끌기 · 손가락 확대 · 휠 ══════════════════════
+   세 지도(①의 고르기 창, ② 대피장소, ③ 방제자원)가 똑같은 코드를 각자
+   복사해 쓰고 있었습니다. 그래서 손가락으로 확대하는 기능이 빠져 있다는
+   것이 세 곳에서 한꺼번에 문제가 되었고, 세 곳을 따로 고치면 다음에 또
+   어긋납니다. 한 곳에 모읍니다.
+
+   ── 왜 브라우저 기본 확대를 쓰지 않는가 ───────────────────
+   CSS 에 touch-action:none 을 걸어 두었습니다. 이걸 풀면 브라우저가 페이지
+   전체를 확대해 버려서, 지도만 확대되는 것이 아니라 조건 줄·목록까지 같이
+   커지고 화면 밖으로 밀려납니다. 지도 안에서만 확대되게 하려면 우리가
+   직접 처리해야 합니다.
+
+   ── 손가락 두 개를 어떻게 읽는가 ──────────────────────────
+   두 손가락이 닿는 순간의 간격(d0)과 그 중간점 아래에 있던 실제 지점을
+   기억해 둡니다. 그다음에는 매 순간
+       새 폭 = 처음 폭 × (d0 ÷ 지금 간격)
+   으로 잡고, 기억해 둔 지점이 지금 중간점 아래에 오도록 시야를 옮깁니다.
+   그래서 벌리면 확대되고, 두 손가락을 함께 움직이면 그만큼 따라 움직입니다.
+   매 프레임 상대적으로 곱해 나가면 오차가 쌓여 손가락과 지도가 어긋납니다.
+   ═══════════════════════════════════════════════════════════ */
+
+function panzoom(svg, o) {
+  var MINW = o.minW || 0.0000015;      // 최대 확대 — 화면 가로 약 50m
+  var MAXW = o.maxW || 1.2;            // 최소 확대 — 지구 한 바퀴 언저리
+  var TAP = 8;                         // 이만큼 안 움직이면 '눌렀다'로 본다 (px)
+
+  var pts = {};                        // 지금 닿아 있는 손가락 pointerId → {x,y}
+  var drag = null;                     // 한 손가락 끌기
+  var pinch = null;                    // 두 손가락 확대
+  var tapped = false;                  // 손가락 두 개가 닿은 적이 있으면 눌림 취소
+
+  function ids() { return Object.keys(pts); }
+  function rect() { return svg.getBoundingClientRect(); }
+
+  /* 화면 좌표 아래에 있는 세계좌표 */
+  function worldAt(x, y) {
+    var vb = o.vb(), r = rect();
+    return { x: vb.x + (x - r.left) / r.width * vb.w,
+             y: vb.y + (y - r.top) / r.height * vb.h };
+  }
+
+  /* 폭을 nw 로 바꾸되, 세계좌표 w 가 화면의 (x, y) 아래에 오게 한다 */
+  function apply(nw, w, x, y) {
+    var vb = o.vb(), r = rect(), v = o.view();
+    nw = Math.max(MINW, Math.min(MAXW, nw));
+    var nh = nw * (vb.sh / vb.sw);
+    var rx = (x - r.left) / r.width, ry = (y - r.top) / r.height;
+    v.cx = w.x - (rx - 0.5) * nw;
+    v.cy = w.y - (ry - 0.5) * nh;
+    v.w = nw;
+    o.draw();
+  }
+
+  function startPinch() {
+    var a = pts[ids()[0]], b = pts[ids()[1]];
+    var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    pinch = {
+      d0: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+      w0: o.view().w,
+      anchor: worldAt(mx, my)
+    };
+    drag = null;
+    tapped = false;
+  }
+
+  svg.addEventListener("pointerdown", function (e) {
+    if (o.camStop) o.camStop();
+    pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+    var n = ids().length;
+    if (n === 1) {
+      var v = o.view();
+      drag = { x: e.clientX, y: e.clientY, cx: v.cx, cy: v.cy, moved: false };
+      tapped = true;
+    } else if (n === 2) {
+      startPinch();
+    } else {
+      drag = null; pinch = null; tapped = false;   // 세 손가락 이상은 무시
+    }
+  });
+
+  svg.addEventListener("pointermove", function (e) {
+    if (!pts[e.pointerId]) return;
+    pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+
+    if (pinch && ids().length >= 2) {
+      var a = pts[ids()[0]], b = pts[ids()[1]];
+      var d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      apply(pinch.w0 * (pinch.d0 / d), pinch.anchor,
+            (a.x + b.x) / 2, (a.y + b.y) / 2);
+      return;
+    }
+    if (!drag) return;
+    var vb = o.vb(), v = o.view();
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > TAP) drag.moved = true;
+    v.cx = drag.cx - dx / vb.sw * vb.w;
+    v.cy = drag.cy - dy / vb.sh * vb.h;
+    o.draw();
+  });
+
+  function lift(e, cancelled) {
+    var had = !!pts[e.pointerId];
+    delete pts[e.pointerId];
+    try { svg.releasePointerCapture(e.pointerId); } catch (err) {}
+    if (!had) return;
+
+    var n = ids().length;
+    if (pinch) {
+      /* 한 손가락만 떼면 남은 손가락으로 계속 끌 수 있게 이어 준다 */
+      pinch = null;
+      if (n === 1) {
+        var v = o.view(), p = pts[ids()[0]];
+        drag = { x: p.x, y: p.y, cx: v.cx, cy: v.cy, moved: true };
+      }
+      return;
+    }
+    var moved = drag && drag.moved;
+    drag = null;
+    if (cancelled || moved || !tapped || n > 0) { tapped = false; return; }
+    tapped = false;
+    if (o.onTap) o.onTap(e.clientX, e.clientY);
+  }
+
+  svg.addEventListener("pointerup", function (e) { lift(e, false); });
+  svg.addEventListener("pointercancel", function (e) { lift(e, true); });
+
+  svg.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    if (o.camStop) o.camStop();
+    var v = o.view();
+    apply(v.w * (e.deltaY > 0 ? 1.25 : 0.8),
+          worldAt(e.clientX, e.clientY), e.clientX, e.clientY);
+  }, { passive: false });
+}
+
+/* ── 조건 줄 접기 ─────────────────────────────────────────────
+   좁은 화면에서 조건들이 세로로 쌓여 지도를 아래로 밀어냅니다(갤럭시S8에서
+   320px, 화면의 절반). 주소 검색만 남기고 접어 두었다가 필요할 때 폅니다.
+   접는 것은 CSS 미디어쿼리 안에서만 일어나므로, 넓은 화면에서는 이 클래스가
+   붙어 있어도 아무것도 가려지지 않습니다.
+
+   ②(map)와 ③(res)이 같은 구조를 쓰므로 여기에 둡니다. */
+function foldBar() {
+  var bar = document.querySelector(".mbar");
+  var btn = document.getElementById("mbToggle");
+  if (!bar || !btn) return;
+  var narrow = window.matchMedia("(max-width: 860px)");
+
+  function set(folded) {
+    bar.classList.toggle("folded", folded);
+    btn.setAttribute("aria-expanded", String(!folded));
+    btn.firstChild.nodeValue = folded ? "조건 더보기" : "조건 접기";
+  }
+  set(narrow.matches);
+  btn.onclick = function () { set(!bar.classList.contains("folded")); };
+
+  /* 화면을 돌리거나 창을 넓혔을 때 — 넓어지면 펴진 상태로 두어야
+     "접기" 단추만 남고 내용이 안 보이는 어정쩡한 상태가 안 된다 */
+  var on = function (e) { set(e.matches); };
+  if (narrow.addEventListener) narrow.addEventListener("change", on);
+  else if (narrow.addListener) narrow.addListener(on);
+}
+
 window.MAPCORE = {
   /* 투영 */
   wx: wx, wy: wy, wxInv: wxInv, wyInv: wyInv,
@@ -2650,8 +2899,8 @@ window.MAPCORE = {
   trip: trip, fmtMin: fmtMin, walkable: WALKABLE, locate: locate,
   /* 그리기 */
   boundaryPaths: boundaryPaths, matchSgg: matchSgg, routePath: routePath,
-  /* 카메라 */
-  camera: makeCamera,
+  /* 카메라 · 조작 */
+  camera: makeCamera, panzoom: panzoom, foldBar: foldBar,
   /* 데이터 */
   shelters: shelters, findSido: findSido, extLinks: extLinks,
   /* 배경지도 타일 */
@@ -3160,62 +3409,28 @@ function fillSgg() {
 }
 
 /* ── 지도 조작 ────────────────────────────────────────────── */
-function zoom(f, cx, cy) {
-  var v = st.view;
-  /* 최대 확대 한계 — 배경지도 타일의 최대 확대단계(z19)에 맞춘다.
-     화면 가로 약 50m. 픽셀 좌표계로 그리므로 더 당겨도 도형이 깨지지 않는다. */
-  var nw = Math.max(0.0000015, Math.min(1.2, v.w * f));
-  if (cx != null) {              // 커서 위치를 고정한 확대축소
-    var ll = toLL(cx, cy);
-    var px = wx(ll.lon), py = wy(ll.lat);
-    var rx = (px - VB.x) / VB.w, ry = (py - VB.y) / VB.h;
-    var nh = nw * (VB.sh / VB.sw);
-    v.cx = px - (rx - 0.5) * nw;
-    v.cy = py - (ry - 0.5) * nh;
-  }
-  v.w = nw;
-  draw();
-}
 /* ＋/－ 단추는 화면 가운데 기준으로, 얼마나 당겨지는지 보이게 부드럽게 움직인다.
-   휠·드래그는 연속 동작이라 지금처럼 그 자리서 바로 반응한다(zoom() 그대로). */
+   끌기·손가락 확대·휠은 그 자리서 바로 반응해야 하므로 트윈을 쓰지 않는다
+   (assets/mapcore.js 의 panzoom).
+   최대 확대 한계는 배경지도 타일의 z19 에 맞춘 화면 가로 약 50m 다. */
 function zoomBtn(f) {
   var nw = Math.max(0.0000015, Math.min(1.2, st.view.w * f));
   CAM.animateTo({ cx: st.view.cx, cy: st.view.cy, w: nw }, 260);
 }
 
+/* 끌기·손가락 확대·휠은 세 지도가 같아야 하므로 assets/mapcore.js 에 있다 */
 function bindMap() {
-  var drag = null;
-  SVG.onpointerdown = function (e) {
-    CAM.stop();
-    drag = { x: e.clientX, y: e.clientY, cx: st.view.cx, cy: st.view.cy, moved: false };
-    try { SVG.setPointerCapture(e.pointerId); } catch (err) {}
-  };
-  SVG.onpointermove = function (e) {
-    if (!drag) return;
-    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
-    st.view.cx = drag.cx - dx / VB.sw * VB.w;
-    st.view.cy = drag.cy - dy / VB.sh * VB.h;
-    draw();
-  };
-  SVG.onpointerup = function (e) {
-    var moved = drag && drag.moved;
-    drag = null;
-    try { SVG.releasePointerCapture(e.pointerId); } catch (err) {}
-    if (moved) return;                        // 끌었으면 선택이 아니다
-    if (st.mode === "acc") { setAcc(toLL(e.clientX, e.clientY)); return; }
-    var i = hitMarker(e.clientX, e.clientY);
-    if (i >= 0) toggle(i);
-  };
-  SVG.onpointercancel = function (e) {
-    drag = null;
-    try { SVG.releasePointerCapture(e.pointerId); } catch (err) {}
-  };
-  SVG.onwheel = function (e) {
-    e.preventDefault();
-    CAM.stop();
-    zoom(e.deltaY > 0 ? 1.25 : 0.8, e.clientX, e.clientY);
-  };
+  MC.panzoom(SVG, {
+    view: function () { return st.view; },
+    vb: function () { return VB; },
+    draw: draw,
+    camStop: CAM.stop,
+    onTap: function (x, y) {
+      if (st.mode === "acc") { setAcc(toLL(x, y)); return; }
+      var i = hitMarker(x, y);
+      if (i >= 0) toggle(i);
+    }
+  });
   $(".shmap-zi", box).onclick = function () { zoomBtn(0.7); };
   $(".shmap-zo", box).onclick = function () { zoomBtn(1.42); };
   $(".shmap-zf", box).onclick = function () { fit(); };

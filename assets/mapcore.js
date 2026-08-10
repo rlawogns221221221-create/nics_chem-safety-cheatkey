@@ -321,11 +321,16 @@ function tileStatus() {
     var probe = tileUrl(d.주소, 15, 27960, 12854);       // 서울시청 부근 타일 한 장
     var link = ' <a href="' + escAttr(probe) + '" target="_blank" rel="noopener noreferrer">'
       + "타일 주소 직접 열어보기</a> — 새 창에 뜨는 메시지가 실제 원인입니다.";
+    /* 뒷부분(원인 진단·확인 방법)은 이 도구를 설치·설정하는 사람에게 필요한
+       내용이고, 현장에서 쓰는 사람에게는 굵은 첫 문장이면 충분합니다.
+       좁은 화면에서는 이 띠가 여섯 줄까지 늘어나 지도를 밀어내므로 감춥니다
+       (assets/shell.css 의 .wd). */
+    var detail = function (t) { return '<span class="wd">' + t + link + "</span>"; };
     warn = src
       ? "<b>" + escAttr(d.이름) + " 배경지도를 불러오지 못해 " + escAttr(src.이름)
-        + "(으)로 바꿨습니다.</b> " + escAttr(d.진단 || "") + link
+        + "(으)로 바꿨습니다.</b> " + detail(escAttr(d.진단 || ""))
       : "<b>배경지도를 불러오지 못해 행정경계선만 표시합니다.</b> "
-        + escAttr(d.진단 || "") + " 인터넷 연결이 차단된 환경인지도 확인하세요." + link;
+        + detail(escAttr(d.진단 || "") + " 인터넷 연결이 차단된 환경인지도 확인하세요.");
   }
   return { src: src, label: label, warn: warn };
 }
@@ -461,6 +466,170 @@ function makeCamera(getView, setView, redraw) {
   return { animateTo: animateTo, stop: stop, isAnimating: function () { return !!anim; } };
 }
 
+/* ══ 지도 조작 — 끌기 · 손가락 확대 · 휠 ══════════════════════
+   세 지도(①의 고르기 창, ② 대피장소, ③ 방제자원)가 똑같은 코드를 각자
+   복사해 쓰고 있었습니다. 그래서 손가락으로 확대하는 기능이 빠져 있다는
+   것이 세 곳에서 한꺼번에 문제가 되었고, 세 곳을 따로 고치면 다음에 또
+   어긋납니다. 한 곳에 모읍니다.
+
+   ── 왜 브라우저 기본 확대를 쓰지 않는가 ───────────────────
+   CSS 에 touch-action:none 을 걸어 두었습니다. 이걸 풀면 브라우저가 페이지
+   전체를 확대해 버려서, 지도만 확대되는 것이 아니라 조건 줄·목록까지 같이
+   커지고 화면 밖으로 밀려납니다. 지도 안에서만 확대되게 하려면 우리가
+   직접 처리해야 합니다.
+
+   ── 손가락 두 개를 어떻게 읽는가 ──────────────────────────
+   두 손가락이 닿는 순간의 간격(d0)과 그 중간점 아래에 있던 실제 지점을
+   기억해 둡니다. 그다음에는 매 순간
+       새 폭 = 처음 폭 × (d0 ÷ 지금 간격)
+   으로 잡고, 기억해 둔 지점이 지금 중간점 아래에 오도록 시야를 옮깁니다.
+   그래서 벌리면 확대되고, 두 손가락을 함께 움직이면 그만큼 따라 움직입니다.
+   매 프레임 상대적으로 곱해 나가면 오차가 쌓여 손가락과 지도가 어긋납니다.
+   ═══════════════════════════════════════════════════════════ */
+
+function panzoom(svg, o) {
+  var MINW = o.minW || 0.0000015;      // 최대 확대 — 화면 가로 약 50m
+  var MAXW = o.maxW || 1.2;            // 최소 확대 — 지구 한 바퀴 언저리
+  var TAP = 8;                         // 이만큼 안 움직이면 '눌렀다'로 본다 (px)
+
+  var pts = {};                        // 지금 닿아 있는 손가락 pointerId → {x,y}
+  var drag = null;                     // 한 손가락 끌기
+  var pinch = null;                    // 두 손가락 확대
+  var tapped = false;                  // 손가락 두 개가 닿은 적이 있으면 눌림 취소
+
+  function ids() { return Object.keys(pts); }
+  function rect() { return svg.getBoundingClientRect(); }
+
+  /* 화면 좌표 아래에 있는 세계좌표 */
+  function worldAt(x, y) {
+    var vb = o.vb(), r = rect();
+    return { x: vb.x + (x - r.left) / r.width * vb.w,
+             y: vb.y + (y - r.top) / r.height * vb.h };
+  }
+
+  /* 폭을 nw 로 바꾸되, 세계좌표 w 가 화면의 (x, y) 아래에 오게 한다 */
+  function apply(nw, w, x, y) {
+    var vb = o.vb(), r = rect(), v = o.view();
+    nw = Math.max(MINW, Math.min(MAXW, nw));
+    var nh = nw * (vb.sh / vb.sw);
+    var rx = (x - r.left) / r.width, ry = (y - r.top) / r.height;
+    v.cx = w.x - (rx - 0.5) * nw;
+    v.cy = w.y - (ry - 0.5) * nh;
+    v.w = nw;
+    o.draw();
+  }
+
+  function startPinch() {
+    var a = pts[ids()[0]], b = pts[ids()[1]];
+    var mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+    pinch = {
+      d0: Math.hypot(a.x - b.x, a.y - b.y) || 1,
+      w0: o.view().w,
+      anchor: worldAt(mx, my)
+    };
+    drag = null;
+    tapped = false;
+  }
+
+  svg.addEventListener("pointerdown", function (e) {
+    if (o.camStop) o.camStop();
+    pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+    try { svg.setPointerCapture(e.pointerId); } catch (err) {}
+    var n = ids().length;
+    if (n === 1) {
+      var v = o.view();
+      drag = { x: e.clientX, y: e.clientY, cx: v.cx, cy: v.cy, moved: false };
+      tapped = true;
+    } else if (n === 2) {
+      startPinch();
+    } else {
+      drag = null; pinch = null; tapped = false;   // 세 손가락 이상은 무시
+    }
+  });
+
+  svg.addEventListener("pointermove", function (e) {
+    if (!pts[e.pointerId]) return;
+    pts[e.pointerId] = { x: e.clientX, y: e.clientY };
+
+    if (pinch && ids().length >= 2) {
+      var a = pts[ids()[0]], b = pts[ids()[1]];
+      var d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+      apply(pinch.w0 * (pinch.d0 / d), pinch.anchor,
+            (a.x + b.x) / 2, (a.y + b.y) / 2);
+      return;
+    }
+    if (!drag) return;
+    var vb = o.vb(), v = o.view();
+    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (Math.abs(dx) + Math.abs(dy) > TAP) drag.moved = true;
+    v.cx = drag.cx - dx / vb.sw * vb.w;
+    v.cy = drag.cy - dy / vb.sh * vb.h;
+    o.draw();
+  });
+
+  function lift(e, cancelled) {
+    var had = !!pts[e.pointerId];
+    delete pts[e.pointerId];
+    try { svg.releasePointerCapture(e.pointerId); } catch (err) {}
+    if (!had) return;
+
+    var n = ids().length;
+    if (pinch) {
+      /* 한 손가락만 떼면 남은 손가락으로 계속 끌 수 있게 이어 준다 */
+      pinch = null;
+      if (n === 1) {
+        var v = o.view(), p = pts[ids()[0]];
+        drag = { x: p.x, y: p.y, cx: v.cx, cy: v.cy, moved: true };
+      }
+      return;
+    }
+    var moved = drag && drag.moved;
+    drag = null;
+    if (cancelled || moved || !tapped || n > 0) { tapped = false; return; }
+    tapped = false;
+    if (o.onTap) o.onTap(e.clientX, e.clientY);
+  }
+
+  svg.addEventListener("pointerup", function (e) { lift(e, false); });
+  svg.addEventListener("pointercancel", function (e) { lift(e, true); });
+
+  svg.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    if (o.camStop) o.camStop();
+    var v = o.view();
+    apply(v.w * (e.deltaY > 0 ? 1.25 : 0.8),
+          worldAt(e.clientX, e.clientY), e.clientX, e.clientY);
+  }, { passive: false });
+}
+
+/* ── 조건 줄 접기 ─────────────────────────────────────────────
+   좁은 화면에서 조건들이 세로로 쌓여 지도를 아래로 밀어냅니다(갤럭시S8에서
+   320px, 화면의 절반). 주소 검색만 남기고 접어 두었다가 필요할 때 폅니다.
+   접는 것은 CSS 미디어쿼리 안에서만 일어나므로, 넓은 화면에서는 이 클래스가
+   붙어 있어도 아무것도 가려지지 않습니다.
+
+   ②(map)와 ③(res)이 같은 구조를 쓰므로 여기에 둡니다. */
+function foldBar() {
+  var bar = document.querySelector(".mbar");
+  var btn = document.getElementById("mbToggle");
+  if (!bar || !btn) return;
+  var narrow = window.matchMedia("(max-width: 860px)");
+
+  function set(folded) {
+    bar.classList.toggle("folded", folded);
+    btn.setAttribute("aria-expanded", String(!folded));
+    btn.firstChild.nodeValue = folded ? "조건 더보기" : "조건 접기";
+  }
+  set(narrow.matches);
+  btn.onclick = function () { set(!bar.classList.contains("folded")); };
+
+  /* 화면을 돌리거나 창을 넓혔을 때 — 넓어지면 펴진 상태로 두어야
+     "접기" 단추만 남고 내용이 안 보이는 어정쩡한 상태가 안 된다 */
+  var on = function (e) { set(e.matches); };
+  if (narrow.addEventListener) narrow.addEventListener("change", on);
+  else if (narrow.addListener) narrow.addListener(on);
+}
+
 window.MAPCORE = {
   /* 투영 */
   wx: wx, wy: wy, wxInv: wxInv, wyInv: wyInv,
@@ -472,8 +641,8 @@ window.MAPCORE = {
   trip: trip, fmtMin: fmtMin, walkable: WALKABLE, locate: locate,
   /* 그리기 */
   boundaryPaths: boundaryPaths, matchSgg: matchSgg, routePath: routePath,
-  /* 카메라 */
-  camera: makeCamera,
+  /* 카메라 · 조작 */
+  camera: makeCamera, panzoom: panzoom, foldBar: foldBar,
   /* 데이터 */
   shelters: shelters, findSido: findSido, extLinks: extLinks,
   /* 배경지도 타일 */

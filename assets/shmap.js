@@ -484,62 +484,28 @@ function fillSgg() {
 }
 
 /* ── 지도 조작 ────────────────────────────────────────────── */
-function zoom(f, cx, cy) {
-  var v = st.view;
-  /* 최대 확대 한계 — 배경지도 타일의 최대 확대단계(z19)에 맞춘다.
-     화면 가로 약 50m. 픽셀 좌표계로 그리므로 더 당겨도 도형이 깨지지 않는다. */
-  var nw = Math.max(0.0000015, Math.min(1.2, v.w * f));
-  if (cx != null) {              // 커서 위치를 고정한 확대축소
-    var ll = toLL(cx, cy);
-    var px = wx(ll.lon), py = wy(ll.lat);
-    var rx = (px - VB.x) / VB.w, ry = (py - VB.y) / VB.h;
-    var nh = nw * (VB.sh / VB.sw);
-    v.cx = px - (rx - 0.5) * nw;
-    v.cy = py - (ry - 0.5) * nh;
-  }
-  v.w = nw;
-  draw();
-}
 /* ＋/－ 단추는 화면 가운데 기준으로, 얼마나 당겨지는지 보이게 부드럽게 움직인다.
-   휠·드래그는 연속 동작이라 지금처럼 그 자리서 바로 반응한다(zoom() 그대로). */
+   끌기·손가락 확대·휠은 그 자리서 바로 반응해야 하므로 트윈을 쓰지 않는다
+   (assets/mapcore.js 의 panzoom).
+   최대 확대 한계는 배경지도 타일의 z19 에 맞춘 화면 가로 약 50m 다. */
 function zoomBtn(f) {
   var nw = Math.max(0.0000015, Math.min(1.2, st.view.w * f));
   CAM.animateTo({ cx: st.view.cx, cy: st.view.cy, w: nw }, 260);
 }
 
+/* 끌기·손가락 확대·휠은 세 지도가 같아야 하므로 assets/mapcore.js 에 있다 */
 function bindMap() {
-  var drag = null;
-  SVG.onpointerdown = function (e) {
-    CAM.stop();
-    drag = { x: e.clientX, y: e.clientY, cx: st.view.cx, cy: st.view.cy, moved: false };
-    try { SVG.setPointerCapture(e.pointerId); } catch (err) {}
-  };
-  SVG.onpointermove = function (e) {
-    if (!drag) return;
-    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
-    st.view.cx = drag.cx - dx / VB.sw * VB.w;
-    st.view.cy = drag.cy - dy / VB.sh * VB.h;
-    draw();
-  };
-  SVG.onpointerup = function (e) {
-    var moved = drag && drag.moved;
-    drag = null;
-    try { SVG.releasePointerCapture(e.pointerId); } catch (err) {}
-    if (moved) return;                        // 끌었으면 선택이 아니다
-    if (st.mode === "acc") { setAcc(toLL(e.clientX, e.clientY)); return; }
-    var i = hitMarker(e.clientX, e.clientY);
-    if (i >= 0) toggle(i);
-  };
-  SVG.onpointercancel = function (e) {
-    drag = null;
-    try { SVG.releasePointerCapture(e.pointerId); } catch (err) {}
-  };
-  SVG.onwheel = function (e) {
-    e.preventDefault();
-    CAM.stop();
-    zoom(e.deltaY > 0 ? 1.25 : 0.8, e.clientX, e.clientY);
-  };
+  MC.panzoom(SVG, {
+    view: function () { return st.view; },
+    vb: function () { return VB; },
+    draw: draw,
+    camStop: CAM.stop,
+    onTap: function (x, y) {
+      if (st.mode === "acc") { setAcc(toLL(x, y)); return; }
+      var i = hitMarker(x, y);
+      if (i >= 0) toggle(i);
+    }
+  });
   $(".shmap-zi", box).onclick = function () { zoomBtn(0.7); };
   $(".shmap-zo", box).onclick = function () { zoomBtn(1.42); };
   $(".shmap-zf", box).onclick = function () { fit(); };

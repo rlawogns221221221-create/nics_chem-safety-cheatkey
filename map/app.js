@@ -372,10 +372,27 @@ function hitMarker(clientX, clientY) {
 var BANDS = [1000, 2000, 5000];
 function renderSummary() {
   var el = $("#mSum");
+  /* 빈 상태에서는 좁은 화면의 '한 줄 가로 스크롤'을 풀어야 한다 —
+     안내 문구가 길어 단추가 화면 오른쪽 밖으로 밀려나기 때문이다. */
+  el.classList.toggle("is-empty", !st.all.length);
+
   if (!st.acc || !st.all.length) {
     el.hidden = !st.acc;
-    if (st.acc) el.innerHTML = '<span class="ms-none">사고지점 주변에 표시할 대피장소가 없습니다.'
-      + " 찾는 범위를 넓혀 보세요.</span>";
+    if (st.acc) {
+      /* 안내만 하고 끝내면 정작 '찾는 범위' 고르는 칸은 오른쪽 목록 안에 있어,
+         좁은 화면에서는 지도 아래로 한참 내려가야 보입니다. 여기서 바로
+         넓힐 수 있게 단추를 둡니다. */
+      el.innerHTML = '<span class="ms-none">사고지점 주변에 표시할 대피장소가 없습니다.</span>'
+        + (st.scope
+            ? '<span class="ms-none">찾는 범위를 더 넓혀 보세요.</span>'
+            : '<button type="button" class="ms-more noprint">반경 5km 안에서 찾기</button>');
+      var wide = $(".ms-more", el);
+      if (wide) wide.onclick = function () {
+        st.scope = "5000"; $("#mScope").value = "5000";
+        if (st.sort === "name") { st.sort = "dist"; $("#mSort").value = "dist"; }
+        refresh(true);
+      };
+    }
     return;
   }
   el.hidden = false;
@@ -1071,20 +1088,6 @@ function bindWind() {
 /* 마우스 휠은 계속 이어지는 동작이라(연달아 여러 번 굴러 온다) 매번 트윈을
    새로 걸면 오히려 버벅여 보인다 — 휠·드래그는 지금처럼 그 자리서 바로
    반응하고, "누르는" 동작(버튼)만 애니메이션을 태운다. */
-function zoom(f, cx, cy) {
-  var v = st.view;
-  var nw = Math.max(0.0000015, Math.min(1.2, v.w * f));
-  if (cx != null) {
-    var ll = toLL(cx, cy);
-    var px = wx(ll.lon), py = wy(ll.lat);
-    var rx = (px - VB.x) / VB.w, ry = (py - VB.y) / VB.h;
-    var nh = nw * (VB.sh / VB.sw);
-    v.cx = px - (rx - 0.5) * nw;
-    v.cy = py - (ry - 0.5) * nh;
-  }
-  v.w = nw;
-  draw();
-}
 /* ＋/－ 단추는 항상 화면 가운데를 기준으로 확대·축소하며, 얼마나 당겨지는지
    보이도록 부드럽게 움직인다 */
 function zoomBtn(f) {
@@ -1092,43 +1095,24 @@ function zoomBtn(f) {
   CAM.animateTo({ cx: st.view.cx, cy: st.view.cy, w: nw }, 260);
 }
 
+/* 끌기·손가락 확대·휠은 세 지도가 같아야 하므로 assets/mapcore.js 에 있다.
+   여기서는 "눌렀을 때 무엇을 고르는가"만 정한다. */
 function bindMap() {
-  var drag = null;
-  SVG.onpointerdown = function (e) {
-    CAM.stop();
-    drag = { x: e.clientX, y: e.clientY, cx: st.view.cx, cy: st.view.cy, moved: false };
-    try { SVG.setPointerCapture(e.pointerId); } catch (err) {}
-  };
-  SVG.onpointermove = function (e) {
-    if (!drag) return;
-    var dx = e.clientX - drag.x, dy = e.clientY - drag.y;
-    if (Math.abs(dx) + Math.abs(dy) > 3) drag.moved = true;
-    st.view.cx = drag.cx - dx / VB.sw * VB.w;
-    st.view.cy = drag.cy - dy / VB.sh * VB.h;
-    draw();
-  };
-  SVG.onpointerup = function (e) {
-    var moved = drag && drag.moved;
-    drag = null;
-    try { SVG.releasePointerCapture(e.pointerId); } catch (err) {}
-    if (moved) return;                       // 끌었으면 선택이 아니다
-    if (st.mode === "acc") {
-      var ll = toLL(e.clientX, e.clientY);
-      setAcc(ll.lat, ll.lon);                // 찍은 자리가 유지되도록 시야는 그대로
-      return;
+  MC.panzoom(SVG, {
+    view: function () { return st.view; },
+    vb: function () { return VB; },
+    draw: draw,
+    camStop: CAM.stop,
+    onTap: function (x, y) {
+      if (st.mode === "acc") {
+        var ll = toLL(x, y);
+        setAcc(ll.lat, ll.lon);              // 찍은 자리가 유지되도록 시야는 그대로
+        return;
+      }
+      var i = hitMarker(x, y);
+      if (i >= 0) select(i, true);
     }
-    var i = hitMarker(e.clientX, e.clientY);
-    if (i >= 0) select(i, true);
-  };
-  SVG.onpointercancel = function (e) {
-    drag = null;
-    try { SVG.releasePointerCapture(e.pointerId); } catch (err) {}
-  };
-  SVG.onwheel = function (e) {
-    e.preventDefault();
-    CAM.stop();
-    zoom(e.deltaY > 0 ? 1.25 : 0.8, e.clientX, e.clientY);
-  };
+  });
   $("#zIn").onclick = function () { zoomBtn(0.7); };
   $("#zOut").onclick = function () { zoomBtn(1.42); };
   $("#zFit").onclick = function () { fit(); };
@@ -1188,6 +1172,7 @@ function initSrcModal() {
 
 function init() {
   SVG = $("#map");
+  MC.foldBar();            // 좁은 화면에서 조건 줄 접기
   initSelects();
   initSrcModal();
   bindMap();

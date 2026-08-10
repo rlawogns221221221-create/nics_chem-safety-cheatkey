@@ -29,7 +29,17 @@
       주소·장소 검색
       <input type="text" id="mAddrQ" placeholder="예) 안산시, 여수시 신길" autocomplete="off">
     </label>
-    <div class="mb-lyr" id="mLyr" role="group" aria-label="배경지도 선택"></div>
+    <!-- 좁은 화면에서 조건이 세로로 쌓여 지도를 밀어내지 않도록 접어 둡니다.
+         넓은 화면에서는 이 단추가 보이지 않습니다. -->
+    <button type="button" class="mb-toggle" id="mbToggle" aria-expanded="false" aria-controls="mbMore">
+      조건 더보기
+      <svg class="mb-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+
+    <div class="mb-more" id="mbMore">
+      <div class="mb-lyr" id="mLyr" role="group" aria-label="배경지도 선택"></div>
+    </div>
   </div>
 </div>
 

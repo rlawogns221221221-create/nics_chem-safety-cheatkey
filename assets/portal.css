@@ -77,6 +77,9 @@ body{
   font-size:12.5px;color:var(--ink-3);text-decoration:none}
 .ext svg{width:11px;height:11px}
 .ext:hover{color:var(--navy)}
+/* 손가락으로 누르는 기기에서는 세로로 너무 얇았다(20px). 글자 크기는 그대로
+   두고 누를 수 있는 넓이만 넓힌다 — 상단 바 높이가 56px 이라 여유가 있다. */
+@media (pointer: coarse){ .ext{min-height:44px;padding:0 4px} }
 
 /* ── 어두운 캔버스 ─────────────────────────────────────────
    제공받은 산업단지 사진(assets/img/hero.jpg)을 배경으로 깔고, 그 위에
