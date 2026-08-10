@@ -569,8 +569,17 @@ https://rlawogns221221221-create.github.io/nics_chem-safety-cheatkey/
 ```
 
 `.github/workflows/pages.yml` 이 기본 브랜치에 푸시될 때마다 자동으로 다시 올립니다.
-처음 한 번은 워크플로가 Pages 를 켜 주므로 저장소 설정을 만질 필요도 없습니다.
 반영까지 1~2분 걸립니다.
+
+**처음 한 번만** 저장소에서 Pages 를 켜야 합니다.
+
+1. 저장소 → **Settings** → 왼쪽 **Pages**
+2. *Build and deployment* → **Source** 를 **GitHub Actions** 로 바꿈
+3. **Actions** 탭 → "사용자 테스트 사이트 배포" → **Re-run all jobs**
+
+Pages 를 켜는 것은 저장소 관리 권한이 있어야 하는 일이라 워크플로가 대신 해 줄 수
+없습니다(토큰에 그 권한이 없어 `Resource not accessible by integration` 으로 막힙니다).
+그 한 번만 사람이 누르면 그다음부터는 손댈 일이 없습니다.
 
 `index.html` 파일 하나만 따로 보내면 화면이 깨집니다. 그 파일은 옆에 있는
 `assets/` · `data/` · `sms/` · `map/` · `res/` 를 상대경로로 부르는데, 파일 하나만
