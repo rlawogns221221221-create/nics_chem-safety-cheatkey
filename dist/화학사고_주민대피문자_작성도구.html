@@ -97,6 +97,7 @@ body{
 .seedbar i{font-style:normal;display:inline-block;margin:2px 4px 0 0;padding:1px 7px;
   background:#fff;border:1px solid #b6ddc9;border-radius:20px;font-size:12px;color:#0a4e30}
 .seedbar i em{font-style:normal;color:var(--ink3);margin-right:4px}
+.seedbar .sb-warn{display:block;margin-top:5px;font-size:11.5px;color:var(--warn)}
 .seed-x{flex:none;border:0;background:transparent;color:#0a4e30;opacity:.6;
   padding:0 2px;font-size:15px;line-height:1;cursor:pointer}
 .seed-x:hover{opacity:1}
@@ -222,6 +223,27 @@ button.sm{padding:5px 10px;font-size:12.5px}
 .chips button{padding:6px 14px;font-size:13.5px;border-radius:20px;border-width:1.5px}
 .chips button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);
   color:#fff;font-weight:700}
+
+/* ── 하위 분류 고르는 줄 ────────────────────────────
+   한 발송 구분 안에서 상황에 따라 문안이 갈릴 때 씁니다(도로 우회 알림).
+   발송 구분 단추 바로 아래 — 구분을 한 번 더 좁히는 선택이므로 그 옆이
+   제자리이고, 좁은 화면에서 두 칸이 세로로 쌓여도 입력칸 위에 남습니다. */
+.catbar{display:flex;align-items:center;flex-wrap:wrap;gap:7px;
+  margin:0 0 14px;padding:11px 14px;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--r);
+  animation:slideDown .3s var(--ease) both}
+.catbar .cat-t{font-size:12px;font-weight:700;color:var(--ink2)}
+.catbar .cat{padding:7px 14px;font-size:13px;border-radius:20px;border-width:1.5px}
+.catbar .cat[aria-pressed=true]{background:var(--brand);border-color:var(--brand);
+  color:#fff;font-weight:700}
+.catbar .cat-ask{width:100%;font-size:11.5px;color:var(--ink3)}
+@media (pointer: coarse){ .catbar .cat{min-height:40px;padding:0 16px} }
+
+/* 분류를 고르기 전 — 빈 칸만 남기지 않고 할 일을 적는다 */
+.out-ask{margin:0;padding:26px 14px;text-align:center;font-size:13px;
+  color:var(--ink2);line-height:1.7}
+.out-ask b{color:var(--brand-d)}
+.out-ask span{display:block;margin-top:5px;font-size:11.5px;color:var(--ink3)}
 
 /* ── 결과 문안 ──────────────────────────────────────
    같은 사고정보로 알림 문안과 종료 문안이 함께 나오므로 그룹으로 묶어 표시하고,
@@ -500,6 +522,13 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .msum{flex:none;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   padding:8px 16px;background:#0d3f70;color:#fff;font-size:12.5px;
   animation:slideDown .26s var(--ease) both}
+/* 사고지점 주소 — 요약 줄 맨 앞. 문자로 넘어가는 값이므로 넘기기 전에
+   눈으로 확인할 수 있어야 한다. */
+.ms-acc{display:flex;align-items:baseline;gap:6px;
+  padding-right:14px;border-right:1px solid rgba(255,255,255,.22)}
+.ms-acc b{font-weight:700;color:#bcd3ec;font-size:11.5px}
+.ms-acc i{font-style:normal;font-size:10.5px;font-weight:700;color:#f0d9a8;
+  border:1px solid rgba(240,217,168,.5);border-radius:20px;padding:0 6px}
 .ms-near{display:flex;align-items:baseline;gap:6px}
 .ms-near b{font-weight:700;color:#bcd3ec;font-size:11.5px}
 .ms-near em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}
@@ -1256,6 +1285,13 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:12.5px;flex:no
     <div class="steps" id="stages"></div>
   </div>
 
+  <!-- 한 발송 구분 안에서 상황에 따라 문안이 갈릴 때 고르는 줄
+       (지금은 도로 우회 알림만 — 사고지역이 실내대피 중인가 대피명령 중인가).
+       발송 구분 단추 바로 아래에 둡니다. 이 선택은 구분을 한 번 더 좁히는
+       것이라 그 옆이 제자리이고, 좁은 화면에서 두 칸이 세로로 쌓일 때
+       입력칸 아래로 밀려나 "먼저 고르라"는 말과 순서가 뒤집히지 않습니다. -->
+  <div class="catbar noprint" id="catBar" hidden></div>
+
   <div class="cols" id="cols" hidden>
 
     <!-- 왼쪽: 입력 -->
@@ -1716,26 +1752,34 @@ var STAGES = [
       { 제목: "상황종료 시 문안", 단계: "indoor_end", 문안: ["6", "5"], 접힘: true }
     ] },
 
-  /* 도로 우회 알림 — 다른 두 구분과 같이 [발송 문안] + [상황종료 시 문안] 구조.
-     예전에는 발송 문안을 "실내대피 중일 때"(4·3번)와 "대피명령 발령 중일 때"
-     (10·9번)로 나눠 두었는데, 그 구분이 불필요하다는 의견을 받아 소제목을
-     없애고 네 문안을 한 묶음으로 나열합니다. 문안 자체는 표준(안)에 두 벌로
-     나와 있어 하나도 버리지 않았습니다 — 사고지역이 실내대피 중인지 대피명령
-     중인지에 따라 문구가 다르므로, 지금 상황에 맞는 것을 골라 쓰면 됩니다.
+  /* 도로 우회 알림 — 사고지역이 지금 어떤 상태인지에 따라 우회 문구가 다릅니다.
+     표준(안)이 문안을 두 벌로 주고 있어(4·3번 / 10·9번) 그 둘을 '사고지역 상황'
+     으로 갈라 두고, 고른 쪽 문안만 보여 줍니다. 네 개를 한꺼번에 늘어놓으면
+     지금 상황과 맞지 않는 문안까지 훑어야 하고, 급할 때 그 자리에서 잘못 고를
+     여지가 생깁니다.
 
      상황종료 문안은 표준(안)에 도로 우회 전용이 따로 없습니다. 대신 종료
      문안 네 개(6·5·12·11번)의 대상이 이미 "사고발생 지역 및 그 외 지역"이라
-     우회 안내를 받은 사람도 수신 대상입니다. 그래서 새로 짓지 않고 그대로
-     가져다 씁니다 — 근거 없는 문안을 만들지 않기 위한 것입니다. */
+     우회 안내를 받은 사람도 수신 대상입니다. 그래서 새로 짓지 않고, 사고지역
+     상황과 짝이 맞는 것을 각 상황 아래에 접어 둡니다 — 실내대피 중이었으면
+     실내대피 해제 문안(6·5번), 대피명령 중이었으면 주민복귀 문안(12·11번). */
   { id: "detour", 이름: "도로 우회 알림", 짧은설명: "지역 밖 주민·차량에게",
-    안내: "사고발생 지역 밖의 주민·통행 차량에게 보내는 문안입니다. 사고지역 상황(실내대피 중 / 대피명령 중)에 맞는 문안을 골라 쓰고, 상황이 끝나면 종료 문안을 보냅니다.",
+    안내: "사고발생 지역 밖의 주민·통행 차량에게 보내는 문안입니다. 사고지역이 지금 어떤 상태인지 먼저 고르세요 — 상태에 따라 우회 문구가 다릅니다.",
     라벨: { 사업장: "도로명·장소명" },
-    그룹: [
-      /* 단계를 적지 않는 것은 한 묶음 안에 실내대피 문안과 대피명령 문안이
-         함께 들어 있어 하나로 말할 수 없기 때문입니다. 검증은 그룹이 아니라
-         문안 하나하나의 단계(TEMPLATES[n].단계)로 하므로 문제되지 않습니다. */
-      { 제목: "발송 문안",        문안: ["4", "3", "10", "9"] },
-      { 제목: "상황종료 시 문안", 문안: ["6", "5", "12", "11"], 접힘: true }
+    분류제목: "사고지역 상황",
+    분류: [
+      { id: "indoor", 이름: "실내대피 중일 때",
+        짧은설명: "사고지역에 실내대피가 내려진 상태",
+        그룹: [
+          { 제목: "발송 문안",        단계: "indoor",     문안: ["4", "3"] },
+          { 제목: "상황종료 시 문안", 단계: "indoor_end", 문안: ["6", "5"], 접힘: true }
+        ] },
+      { id: "evac", 이름: "대피명령 발령 중일 때",
+        짧은설명: "사고지역에 주민소산(대피명령)이 내려진 상태",
+        그룹: [
+          { 제목: "발송 문안",        단계: "evac",     문안: ["10", "9"] },
+          { 제목: "상황종료 시 문안", 단계: "evac_end", 문안: ["12", "11"], 접힘: true }
+        ] }
     ] },
 
   { id: "evac", 이름: "주민소산(대피명령) 알림", 짧은설명: "대피소로 이동 지시",
@@ -2709,6 +2753,42 @@ function boundaryPaths(vb, isOn) {
   return out.join("");
 }
 
+/* ── 이 좌표는 어느 시·군·구인가 (인터넷 없이) ─────────────────
+   화면에 그리는 그 경계선(data/boundaries.js)으로 그대로 판정합니다. 눈에
+   보이는 경계와 도구가 말하는 시·군·구가 어긋나지 않게 하려는 것입니다.
+
+   경계선은 약 244m 로 단순화된 자료라 경계 바로 옆에서는 틀릴 수 있습니다.
+   인터넷이 되면 브이월드 주소(ONLINE.revgeo)가 정확하므로 그쪽을 먼저 씁니다 —
+   이 함수는 망분리 환경의 대비책입니다. 못 찾으면 null 을 돌려줍니다. */
+function sggAt(lat, lon) {
+  if (typeof window.BOUNDARIES === "undefined") return null;
+  /* 저장된 값은 경도·위도를 BOUNDARY_SCALE 배 한 정수다(투영 전 좌표).
+     경계 안팎만 가리면 되므로 그 좌표계에서 그대로 판정한다. */
+  var X = lon * window.BOUNDARY_SCALE, Y = lat * window.BOUNDARY_SCALE;
+  var hit = null;
+  window.BOUNDARIES.forEach(function (f) {
+    if (hit) return;
+    var inside = false;
+    f.r.forEach(function (ring) {
+      /* 델타 인코딩을 풀어 가며 광선 교차 횟수를 센다 (홀수면 안쪽).
+         구멍 링도 같은 배열에 있으므로 링마다 뒤집어 주면 자연히 처리된다. */
+      var px = 0, py = 0, fx = 0, fy = 0, lx = 0, ly = 0;
+      for (var i = 0; i < ring.length; i += 2) {
+        if (i === 0) { px = ring[0]; py = ring[1]; fx = px; fy = py; lx = px; ly = py; continue; }
+        px += ring[i]; py += ring[i + 1];
+        if ((py > Y) !== (ly > Y)
+            && X < (px - lx) * (Y - ly) / (py - ly) + lx) inside = !inside;
+        lx = px; ly = py;
+      }
+      /* 마지막 점 → 첫 점 (닫히지 않은 고리 대비) */
+      if ((fy > Y) !== (ly > Y)
+          && X < (fx - lx) * (Y - ly) / (fy - ly) + lx) inside = !inside;
+    });
+    if (inside) hit = { sido: f.s, sgg: f.n };
+  });
+  return hit;
+}
+
 /* ── 경로선 ───────────────────────────────────────────────────
    사고지점에서 고른 곳까지 어느 쪽으로 얼마나 가야 하는지 한눈에 보이도록
    굵게 긋습니다. 실제 도로 경로가 아니라 직선입니다 — 도로를 따라가면
@@ -2987,7 +3067,7 @@ window.MAPCORE = {
   /* 이동 시간 어림 · 내 위치 */
   trip: trip, tripPair: tripPair, fmtMin: fmtMin, walkable: WALKABLE, locate: locate,
   /* 그리기 */
-  boundaryPaths: boundaryPaths, matchSgg: matchSgg, routePath: routePath,
+  boundaryPaths: boundaryPaths, matchSgg: matchSgg, sggAt: sggAt, routePath: routePath,
   /* 카메라 · 조작 */
   camera: makeCamera, panzoom: panzoom, foldBar: foldBar,
   /* 데이터 */
@@ -3759,7 +3839,10 @@ var SESS = "nics.sms.draft.v1";
 /* openGrp — 접힌 문안 그룹 중 펼쳐 둔 것. 입력할 때마다 문안을 다시 그리므로
    열어 둔 상태를 state 에 둬야 글자 한 자 칠 때마다 닫히지 않습니다. */
 function blankState() {
-  return { stage: null, type: "누출", data: {}, unknownMat: false, use71: false, openGrp: {} };
+  /* cat — 하위 분류를 둔 구분에서 고른 것 {구분id: 분류id}.
+     지금은 도로 우회 알림만 씁니다(사고지역이 실내대피 중인가 대피명령 중인가). */
+  return { stage: null, cat: {}, type: "누출", data: {},
+           unknownMat: false, use71: false, openGrp: {} };
 }
 var state = blankState();
 
@@ -3775,6 +3858,7 @@ function load() {
     if (o && o.data) {
       state = o;
       if (!state.openGrp) state.openGrp = {};
+      if (!state.cat) state.cat = {};        // 하위 분류가 생기기 전 세션
       /* 발송 구분이 개편되기 전에 저장된 세션이면 구분만 비운다.
          (없어진 구분 id 가 남아 있으면 화면 조립이 실패한다) */
       if (state.stage && !STAGES.some(function (s) { return s.id === state.stage; }))
@@ -3821,7 +3905,7 @@ function takeSeed() {
     filled.push(k);
   });
   if (!filled.length) return;
-  seedInfo = { keys: filled, acc: o.acc || null };
+  seedInfo = { keys: filled, acc: o.acc || null, 어림: !!o.어림 };
   save();
 }
 
@@ -3838,6 +3922,13 @@ function renderSeedBar() {
     + seedInfo.keys.map(function (k) {
         return '<i><em>' + esc(names[k] || k) + "</em>" + esc(state.data[k]) + "</i>";
       }).join("")
+    /* 지도가 인터넷으로 주소를 확인하지 못하고 행정경계·가까운 대피장소로
+       어림잡았다면 그 사실을 적는다 — 발송 전에 한 번 더 보게 하려는 것이다. */
+    + (seedInfo.어림
+        ? '<span class="sb-warn">사고지점 주소를 인터넷으로 확인하지 못해 '
+          + "행정경계와 가까운 대피장소 주소로 어림잡았습니다. 보내기 전에 "
+          + "시·군·구와 읍·면·동이 맞는지 확인하세요.</span>"
+        : "")
     + "</span>"
     + '<button type="button" class="seed-x" id="seedX" aria-label="이 알림 닫기">✕</button>'
     + "</div>";
@@ -3977,11 +4068,32 @@ function fieldLabel(f) {
   return (s && s.라벨 && s.라벨[f.k]) || f.label;
 }
 
-/* 이번 구분에서 실제로 생성할 문안 — 그룹 단위로 돌려준다. 7-1번은 선택했을 때만 */
+/* ── 하위 분류 ────────────────────────────────────────────────
+   한 발송 구분 안에서 상황에 따라 문안이 갈리는 경우를 담습니다. 지금은
+   도로 우회 알림 하나뿐입니다 — 사고지역이 실내대피 중인지 대피명령 중인지에
+   따라 우회 문구가 다르고, 상황종료 문안도 그에 맞춰 짝이 달라집니다.
+   고른 쪽 문안만 보여 줍니다. 넷을 한꺼번에 늘어놓으면 지금 상황과 맞지 않는
+   문안까지 훑어야 하고, 급할 때 그 자리에서 잘못 고를 여지가 생깁니다. */
+function catsOf(stage) {
+  return (stage && stage.분류) || null;
+}
+function curCat(stage) {
+  var cs = catsOf(stage);
+  if (!cs) return null;
+  var id = state.cat && state.cat[stage.id];
+  return cs.filter(function (c) { return c.id === id; })[0] || null;
+}
+
+/* 이번 구분에서 실제로 생성할 문안 — 그룹 단위로 돌려준다. 7-1번은 선택했을 때만.
+   하위 분류가 있는 구분은 고르기 전까지 아무것도 만들지 않는다 — 상황을 정하지
+   않은 채로 문안이 떠 있으면 어느 쪽을 보는 것인지 알 수 없다. */
 function stageGroups(stage) {
-  return stage.그룹.map(function (g, gi) {
+  var cat = curCat(stage);
+  var groups = catsOf(stage) ? (cat ? cat.그룹 : []) : stage.그룹;
+  var pre = stage.id + (cat ? "/" + cat.id : "");
+  return groups.map(function (g, gi) {
     return {
-      제목: g.제목, 접힘: !!g.접힘, key: stage.id + ":" + gi,
+      제목: g.제목, 접힘: !!g.접힘, key: pre + ":" + gi,
       ids: g.문안.filter(function (id) { return !TEMPLATES[id].부가 || state.use71; })
     };
   }).filter(function (g) { return g.ids.length > 0; });
@@ -4283,6 +4395,33 @@ function renderTypes() {
   });
 }
 
+/* 하위 분류 고르는 줄 — 고르기 전에는 오른쪽 칸에 문안이 하나도 없으므로
+   여기서 무엇을 고르라는 말을 해 준다 */
+function renderCatBar() {
+  var el = $("#catBar");
+  if (!el) return;
+  var stage = curStage(), cats = catsOf(stage);
+  el.hidden = !cats;
+  if (!cats) return;
+
+  var cur = curCat(stage);
+  el.innerHTML = '<span class="cat-t">' + esc(stage.분류제목 || "상황") + "</span>"
+    + cats.map(function (c) {
+        return '<button type="button" class="cat" data-c="' + esc(c.id) + '"'
+          + ' aria-pressed="' + (cur && cur.id === c.id) + '"'
+          + (c.짧은설명 ? ' title="' + esc(c.짧은설명) + '"' : "") + ">"
+          + esc(c.이름) + "</button>";
+      }).join("")
+    + (cur ? "" : '<span class="cat-ask">둘 중 하나를 고르면 문안이 만들어집니다</span>');
+
+  $$("#catBar .cat").forEach(function (b) {
+    b.onclick = function () {
+      state.cat[stage.id] = (state.cat[stage.id] === b.dataset.c ? null : b.dataset.c);
+      save(); renderAll();
+    };
+  });
+}
+
 function renderFields() {
   var on = !!state.stage, isEvac = state.stage === "evac";
   $("#cols").hidden = !on;
@@ -4324,6 +4463,19 @@ var lastResults = [];
 function renderOut() {
   var stage = curStage();
   if (!stage) { lastResults = []; $("#btnTxt").disabled = true; return; }
+
+  /* 하위 분류를 아직 안 골랐으면 문안을 만들지 않는다 — 무엇을 보고 있는지
+     모르는 채로 문안이 떠 있으면 안 된다. 빈 칸만 남기지 말고 할 일을 적는다. */
+  if (catsOf(stage) && !curCat(stage)) {
+    lastResults = [];
+    $("#alerts").innerHTML = "";
+    $("#outCnt").textContent = "";
+    $("#out").innerHTML = '<p class="out-ask">위에서 <b>'
+      + esc(stage.분류제목 || "상황") + "</b>을 고르면 그 상황에 맞는 문안이 만들어집니다."
+      + "<span>사고지역 안의 상태에 따라 우회 문구와 상황종료 문안이 다릅니다.</span></p>";
+    $("#btnTxt").disabled = true;
+    return;
+  }
 
   /* 그룹 구조는 화면 표시용, lastResults 는 검증·기록·복사용 평면 목록 */
   lastResults = [];
@@ -4613,7 +4765,8 @@ function saveTxt() {
 /* ── 초기화 ───────────────────────────────────────────────── */
 
 function renderAll() {
-  renderStages(); renderTypes(); renderFields(); renderMatInfo(); renderOut(); renderSeedBar();
+  renderStages(); renderTypes(); renderFields(); renderCatBar();
+  renderMatInfo(); renderOut(); renderSeedBar();
 }
 
 function init() {

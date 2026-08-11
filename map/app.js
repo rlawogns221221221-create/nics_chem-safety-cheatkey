@@ -415,6 +415,20 @@ function setScope(v) {
   refresh(true);
 }
 
+/* 사고지점이 어디인지 글로도 적는다 — 좌표만 있으면 문자에 쓸 수 없고,
+   문자로 넘기기 전에 맞는 자리인지 눈으로 확인할 방법도 없다.
+   행정경계로 어림잡은 값은 '대략'이라고 적어 확정값과 구분한다. */
+function accChip() {
+  var a = st.accAddr;
+  if (!a) return "";
+  var txt = [a.sgg, a.emd, (a.road + " " + (a.no || "")).trim()]
+    .filter(Boolean).join(" ");
+  if (!txt) return "";
+  return '<span class="ms-acc"><b>사고지점</b>' + esc(txt)
+    + (a.exact ? "" : '<i title="행정경계와 가까운 대피장소 주소로 어림잡은 값입니다">대략</i>')
+    + "</span>";
+}
+
 function renderSummary() {
   var el = $("#mSum");
   /* 빈 상태에서는 좁은 화면의 '한 줄 가로 스크롤'을 풀어야 한다 —
@@ -428,7 +442,8 @@ function renderSummary() {
          좁은 화면에서는 지도 아래로 한참 내려가야 보입니다. 여기서 바로
          넓힐 수 있게 단추를 둡니다. */
       var next = nextScope();
-      el.innerHTML = '<span class="ms-none">사고지점 주변에 표시할 대피장소가 없습니다.</span>'
+      el.innerHTML = accChip()
+        + '<span class="ms-none">사고지점 주변에 표시할 대피장소가 없습니다.</span>'
         + (next
             ? '<button type="button" class="ms-more noprint">반경 '
               + fmtDist(+next) + " 안에서 찾기</button>"
@@ -443,6 +458,7 @@ function renderSummary() {
   var sorted = st.all.slice().sort(function (a, b) { return a.d - b.d; });
   var near = sorted[0];
   var parts = [];
+  parts.push(accChip());
   parts.push('<span class="ms-near"><b>가장 가까운 곳</b>' + esc(near.name)
     + '<em>' + fmtDist(near.d) + " " + dirName(near.b) + "쪽 · "
     + MC.tripPair(near.d).label + "</em></span>");
@@ -859,8 +875,57 @@ function setAcc(lat, lon, jump) {
   recompute();
   syncSort();                      // 범위 칸이 여기서 열린다 (사고지점이 있어야 열림)
   if (wide) $("#mScope").value = "5000";
+  lookupAccAddr();                 // 여기가 어느 시·군·구 어느 읍·면·동인가
   renderSummary(); renderNear(); renderList(); renderLegend(); renderToSms(); showAddr();
   moveToAcc(!!jump);
+}
+
+/* ── 사고지점의 주소 ──────────────────────────────────────────
+   주민대피 문자에는 "○○시 ○○동 ○○에서 발생한" 처럼 시·군·구와 읍·면·동이
+   들어갑니다. 좌표만으로는 그 칸을 채울 수 없어 담당자가 따로 찾아 넣어야
+   했는데, 지도가 이미 아는 것을 다시 찾게 하는 셈이었습니다.
+
+   두 단계로 채웁니다.
+     1) 인터넷 없이  — 그리고 있는 행정경계로 시·군·구를 가리고(MC.sggAt),
+        읍·면·동은 2km 안에 대피장소가 있으면 그 주소에서 뽑습니다.
+     2) 인터넷이 되면 — 브이월드 주소로 덮어씁니다. 이쪽이 정확합니다.
+   어느 쪽으로 알아냈는지 화면에 표시해, 어림값을 확정값으로 오해하지 않게
+   합니다. 못 알아내면 그 칸은 넘기지 않습니다 — 틀린 값보다 빈 칸이 낫습니다. */
+var ACC_EMD_MAX = 2000;            // 이보다 먼 대피장소의 읍·면·동은 쓰지 않는다
+var accSeq = 0;
+
+/* "개령면 감문로 277(신룡리)" → "개령면" / "시청1길 1(신음동)" → "신음동" */
+function emdOf(addr) {
+  var s = String(addr || "");
+  var m = /(^|[\s(])([가-힣0-9]+(?:읍|면|동))(?=[\s)]|$)/.exec(s);
+  return m ? m[2] : "";
+}
+
+function lookupAccAddr() {
+  st.accAddr = null;
+  accSeq++;
+  if (!st.acc) return;
+
+  /* 1) 인터넷 없이 — 어림값 */
+  var here = MC.sggAt(st.acc.lat, st.acc.lon);
+  var near = MC.shelters("", "").map(function (s) {
+    return { s: s, d: distM(st.acc.lat, st.acc.lon, s.lat, s.lon) };
+  }).sort(function (a, b) { return a.d - b.d; })[0];
+  var emd = near && near.d <= ACC_EMD_MAX ? emdOf(near.s.addr) : "";
+  if (here || emd) {
+    st.accAddr = { sido: here ? here.sido : "", sgg: here ? here.sgg : "",
+                   emd: emd, road: "", no: "", exact: false };
+  }
+
+  /* 2) 인터넷이 되면 — 정확한 값으로 덮어쓴다 */
+  if (!window.ONLINE || !ONLINE.revgeo) return;
+  var seq = accSeq;
+  ONLINE.revgeo(st.acc.lat, st.acc.lon, function (a) {
+    if (seq !== accSeq || !a) return;      // 그새 다른 곳을 찍었다
+    st.accAddr = { sido: a.sido, sgg: a.sgg, emd: a.emd,
+                   road: a.road, no: a.no, exact: true };
+    renderSummary(); renderToSms();
+  });
 }
 
 /* 사고지점으로 지도를 옮깁니다 — 한 번의 움직임으로 끝내야 "훅 튀어 보이는"
@@ -1110,7 +1175,8 @@ function bindAddrSearch() {
 }
 
 function clearAcc() {
-  st.acc = null; st.scope = "";
+  st.acc = null; st.scope = ""; st.accAddr = null; accSeq++;
+  pickedPlace = null;
   $("#acLat").value = ""; $("#acLon").value = ""; $("#mScope").value = "";
   st.sort = "name"; $("#mSort").value = "name";
   setMode("pick");
@@ -1122,13 +1188,14 @@ function clearAcc() {
    옮겨 적지 않고 그대로 문자 작성 화면에서 이어 쓰게 합니다.
 
    ── 무엇을 넘기는가 ──────────────────────────────────────
-   확실한 것만 넘깁니다. 지도가 아는 것과 문자 문안이 요구하는 것이 정확히
-   같지 않아, 어림으로 채우면 담당자가 틀린 값을 그대로 발송하게 됩니다.
+   문안이 요구하는 칸을 지도가 아는 만큼 채웁니다. 다만 어림으로 지어내지는
+   않습니다 — 모르면 빈 칸으로 두는 편이 틀린 값을 발송하는 것보다 낫습니다.
 
-     시군    사고지점에서 가장 가까운 대피장소의 시·군·구.
-             반경 안에 있는 곳이라 사고지점과 같은 시·군·구로 봐도 됩니다.
-     사업장  주소·장소 검색으로 찍었을 때만. 그때는 찍은 것이 곧 그 장소입니다.
-     읍면동  검색으로 찍었고 그 주소에서 읍·면·동을 뽑을 수 있을 때만.
+     시군    사고지점의 시·군·구 (사고지점 주소 → 행정경계 → 가까운 대피장소 순).
+     읍면동  사고지점의 읍·면·동 (브이월드 주소, 없으면 2km 안 대피장소 주소).
+     사업장  검색으로 찍었으면 그 장소 이름. 지도를 눌러 찍었으면 사고지점의
+             도로명 주소(예: "시청1길 1") — 이름을 모를 때 그 자리를 가리키는
+             가장 정확한 말이기 때문입니다.
      대피소  고른 곳이 있으면 그것, 없으면 가장 가까운 곳.
 
    대상지역(문자를 받을 지역)은 넘기지 않습니다 — 사고 위치가 아니라
@@ -1143,23 +1210,37 @@ function seedFromMap() {
   if (!st.acc) return null;
   var near = st.all.slice().sort(function (a, b) { return a.d - b.d; })[0] || null;
   var sel = st.sel >= 0 ? st.show[st.sel] : null;
+  var a = st.accAddr;
   var data = {};
 
-  if (sel || near) data["시군"] = (sel || near).sgg;
+  /* 시·군·구 — 사고지점 자체의 값이 가장 정확하다. 없으면 지금까지처럼
+     가까운 대피장소의 시·군·구(반경 안이므로 같은 시·군·구일 때가 많다). */
+  if (a && a.sgg) data["시군"] = a.sgg;
+  else if (sel || near) data["시군"] = (sel || near).sgg;
   else if (st.sgg) data["시군"] = st.sgg;
+
+  if (a && a.emd) data["읍면동"] = a.emd;
 
   if (pickedPlace) {
     data["사업장"] = pickedPlace.label;
-    /* "전남 여수시 신덕동 …" 처럼 주소에 읍·면·동이 있으면 뽑아 쓴다 */
-    var m = /([가-힣0-9]+(?:읍|면|동))(?:\s|$|,)/.exec(pickedPlace.sub || "");
-    if (m) data["읍면동"] = m[1];
+    /* 검색 결과 주소에 읍·면·동이 있으면, 주소를 못 받아 왔을 때 대신 쓴다 */
+    if (!data["읍면동"]) {
+      var m = emdOf(pickedPlace.sub);
+      if (m) data["읍면동"] = m;
+    }
+  } else if (a && a.road) {
+    /* 지도를 눌러 찍었으면 장소 이름을 알 수 없다. 도로명 주소가 그 자리를
+       가리키는 가장 정확한 말이므로 그것을 넣는다("○○길 12에서 발생한"). */
+    data["사업장"] = (a.road + " " + (a.no || "")).trim();
   }
 
   var shelter = sel || near;
   if (shelter) data["대피소"] = shelter.name;
 
   return { v: 1, from: "map", ts: Date.now(),
-           acc: { lat: st.acc.lat, lon: st.acc.lon }, data: data };
+           acc: { lat: st.acc.lat, lon: st.acc.lon },
+           /* 어림값으로 채운 것인지 알려 준다 — 문자 화면에서 표시한다 */
+           어림: !!(a && !a.exact), data: data };
 }
 
 /* 넘길 것이 있을 때만 단추를 보이고, 무엇이 넘어가는지 미리 알려 준다 —
@@ -1475,6 +1556,7 @@ function init() {
     st.me = null;
     st.nearFold = matchMedia("(max-width: 860px)").matches;
     st.route = null; st.routeErr = null; st.routeBusy = false;
+    st.accAddr = null; accSeq++;
     pickedPlace = null;
     ["mMat", "mQ", "acLat", "acLon", "mAddrQ"].forEach(function (id) { $("#" + id).value = ""; });
     $("#mSido").value = ""; $("#mSido").onchange();

@@ -45,7 +45,10 @@ var SESS = "nics.sms.draft.v1";
 /* openGrp — 접힌 문안 그룹 중 펼쳐 둔 것. 입력할 때마다 문안을 다시 그리므로
    열어 둔 상태를 state 에 둬야 글자 한 자 칠 때마다 닫히지 않습니다. */
 function blankState() {
-  return { stage: null, type: "누출", data: {}, unknownMat: false, use71: false, openGrp: {} };
+  /* cat — 하위 분류를 둔 구분에서 고른 것 {구분id: 분류id}.
+     지금은 도로 우회 알림만 씁니다(사고지역이 실내대피 중인가 대피명령 중인가). */
+  return { stage: null, cat: {}, type: "누출", data: {},
+           unknownMat: false, use71: false, openGrp: {} };
 }
 var state = blankState();
 
@@ -61,6 +64,7 @@ function load() {
     if (o && o.data) {
       state = o;
       if (!state.openGrp) state.openGrp = {};
+      if (!state.cat) state.cat = {};        // 하위 분류가 생기기 전 세션
       /* 발송 구분이 개편되기 전에 저장된 세션이면 구분만 비운다.
          (없어진 구분 id 가 남아 있으면 화면 조립이 실패한다) */
       if (state.stage && !STAGES.some(function (s) { return s.id === state.stage; }))
@@ -107,7 +111,7 @@ function takeSeed() {
     filled.push(k);
   });
   if (!filled.length) return;
-  seedInfo = { keys: filled, acc: o.acc || null };
+  seedInfo = { keys: filled, acc: o.acc || null, 어림: !!o.어림 };
   save();
 }
 
@@ -124,6 +128,13 @@ function renderSeedBar() {
     + seedInfo.keys.map(function (k) {
         return '<i><em>' + esc(names[k] || k) + "</em>" + esc(state.data[k]) + "</i>";
       }).join("")
+    /* 지도가 인터넷으로 주소를 확인하지 못하고 행정경계·가까운 대피장소로
+       어림잡았다면 그 사실을 적는다 — 발송 전에 한 번 더 보게 하려는 것이다. */
+    + (seedInfo.어림
+        ? '<span class="sb-warn">사고지점 주소를 인터넷으로 확인하지 못해 '
+          + "행정경계와 가까운 대피장소 주소로 어림잡았습니다. 보내기 전에 "
+          + "시·군·구와 읍·면·동이 맞는지 확인하세요.</span>"
+        : "")
     + "</span>"
     + '<button type="button" class="seed-x" id="seedX" aria-label="이 알림 닫기">✕</button>'
     + "</div>";
@@ -263,11 +274,32 @@ function fieldLabel(f) {
   return (s && s.라벨 && s.라벨[f.k]) || f.label;
 }
 
-/* 이번 구분에서 실제로 생성할 문안 — 그룹 단위로 돌려준다. 7-1번은 선택했을 때만 */
+/* ── 하위 분류 ────────────────────────────────────────────────
+   한 발송 구분 안에서 상황에 따라 문안이 갈리는 경우를 담습니다. 지금은
+   도로 우회 알림 하나뿐입니다 — 사고지역이 실내대피 중인지 대피명령 중인지에
+   따라 우회 문구가 다르고, 상황종료 문안도 그에 맞춰 짝이 달라집니다.
+   고른 쪽 문안만 보여 줍니다. 넷을 한꺼번에 늘어놓으면 지금 상황과 맞지 않는
+   문안까지 훑어야 하고, 급할 때 그 자리에서 잘못 고를 여지가 생깁니다. */
+function catsOf(stage) {
+  return (stage && stage.분류) || null;
+}
+function curCat(stage) {
+  var cs = catsOf(stage);
+  if (!cs) return null;
+  var id = state.cat && state.cat[stage.id];
+  return cs.filter(function (c) { return c.id === id; })[0] || null;
+}
+
+/* 이번 구분에서 실제로 생성할 문안 — 그룹 단위로 돌려준다. 7-1번은 선택했을 때만.
+   하위 분류가 있는 구분은 고르기 전까지 아무것도 만들지 않는다 — 상황을 정하지
+   않은 채로 문안이 떠 있으면 어느 쪽을 보는 것인지 알 수 없다. */
 function stageGroups(stage) {
-  return stage.그룹.map(function (g, gi) {
+  var cat = curCat(stage);
+  var groups = catsOf(stage) ? (cat ? cat.그룹 : []) : stage.그룹;
+  var pre = stage.id + (cat ? "/" + cat.id : "");
+  return groups.map(function (g, gi) {
     return {
-      제목: g.제목, 접힘: !!g.접힘, key: stage.id + ":" + gi,
+      제목: g.제목, 접힘: !!g.접힘, key: pre + ":" + gi,
       ids: g.문안.filter(function (id) { return !TEMPLATES[id].부가 || state.use71; })
     };
   }).filter(function (g) { return g.ids.length > 0; });
@@ -569,6 +601,33 @@ function renderTypes() {
   });
 }
 
+/* 하위 분류 고르는 줄 — 고르기 전에는 오른쪽 칸에 문안이 하나도 없으므로
+   여기서 무엇을 고르라는 말을 해 준다 */
+function renderCatBar() {
+  var el = $("#catBar");
+  if (!el) return;
+  var stage = curStage(), cats = catsOf(stage);
+  el.hidden = !cats;
+  if (!cats) return;
+
+  var cur = curCat(stage);
+  el.innerHTML = '<span class="cat-t">' + esc(stage.분류제목 || "상황") + "</span>"
+    + cats.map(function (c) {
+        return '<button type="button" class="cat" data-c="' + esc(c.id) + '"'
+          + ' aria-pressed="' + (cur && cur.id === c.id) + '"'
+          + (c.짧은설명 ? ' title="' + esc(c.짧은설명) + '"' : "") + ">"
+          + esc(c.이름) + "</button>";
+      }).join("")
+    + (cur ? "" : '<span class="cat-ask">둘 중 하나를 고르면 문안이 만들어집니다</span>');
+
+  $$("#catBar .cat").forEach(function (b) {
+    b.onclick = function () {
+      state.cat[stage.id] = (state.cat[stage.id] === b.dataset.c ? null : b.dataset.c);
+      save(); renderAll();
+    };
+  });
+}
+
 function renderFields() {
   var on = !!state.stage, isEvac = state.stage === "evac";
   $("#cols").hidden = !on;
@@ -610,6 +669,19 @@ var lastResults = [];
 function renderOut() {
   var stage = curStage();
   if (!stage) { lastResults = []; $("#btnTxt").disabled = true; return; }
+
+  /* 하위 분류를 아직 안 골랐으면 문안을 만들지 않는다 — 무엇을 보고 있는지
+     모르는 채로 문안이 떠 있으면 안 된다. 빈 칸만 남기지 말고 할 일을 적는다. */
+  if (catsOf(stage) && !curCat(stage)) {
+    lastResults = [];
+    $("#alerts").innerHTML = "";
+    $("#outCnt").textContent = "";
+    $("#out").innerHTML = '<p class="out-ask">위에서 <b>'
+      + esc(stage.분류제목 || "상황") + "</b>을 고르면 그 상황에 맞는 문안이 만들어집니다."
+      + "<span>사고지역 안의 상태에 따라 우회 문구와 상황종료 문안이 다릅니다.</span></p>";
+    $("#btnTxt").disabled = true;
+    return;
+  }
 
   /* 그룹 구조는 화면 표시용, lastResults 는 검증·기록·복사용 평면 목록 */
   lastResults = [];
@@ -899,7 +971,8 @@ function saveTxt() {
 /* ── 초기화 ───────────────────────────────────────────────── */
 
 function renderAll() {
-  renderStages(); renderTypes(); renderFields(); renderMatInfo(); renderOut(); renderSeedBar();
+  renderStages(); renderTypes(); renderFields(); renderCatBar();
+  renderMatInfo(); renderOut(); renderSeedBar();
 }
 
 function init() {

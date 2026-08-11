@@ -82,6 +82,7 @@ body{
 .seedbar i{font-style:normal;display:inline-block;margin:2px 4px 0 0;padding:1px 7px;
   background:#fff;border:1px solid #b6ddc9;border-radius:20px;font-size:12px;color:#0a4e30}
 .seedbar i em{font-style:normal;color:var(--ink3);margin-right:4px}
+.seedbar .sb-warn{display:block;margin-top:5px;font-size:11.5px;color:var(--warn)}
 .seed-x{flex:none;border:0;background:transparent;color:#0a4e30;opacity:.6;
   padding:0 2px;font-size:15px;line-height:1;cursor:pointer}
 .seed-x:hover{opacity:1}
@@ -207,6 +208,27 @@ button.sm{padding:5px 10px;font-size:12.5px}
 .chips button{padding:6px 14px;font-size:13.5px;border-radius:20px;border-width:1.5px}
 .chips button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);
   color:#fff;font-weight:700}
+
+/* ── 하위 분류 고르는 줄 ────────────────────────────
+   한 발송 구분 안에서 상황에 따라 문안이 갈릴 때 씁니다(도로 우회 알림).
+   발송 구분 단추 바로 아래 — 구분을 한 번 더 좁히는 선택이므로 그 옆이
+   제자리이고, 좁은 화면에서 두 칸이 세로로 쌓여도 입력칸 위에 남습니다. */
+.catbar{display:flex;align-items:center;flex-wrap:wrap;gap:7px;
+  margin:0 0 14px;padding:11px 14px;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--r);
+  animation:slideDown .3s var(--ease) both}
+.catbar .cat-t{font-size:12px;font-weight:700;color:var(--ink2)}
+.catbar .cat{padding:7px 14px;font-size:13px;border-radius:20px;border-width:1.5px}
+.catbar .cat[aria-pressed=true]{background:var(--brand);border-color:var(--brand);
+  color:#fff;font-weight:700}
+.catbar .cat-ask{width:100%;font-size:11.5px;color:var(--ink3)}
+@media (pointer: coarse){ .catbar .cat{min-height:40px;padding:0 16px} }
+
+/* 분류를 고르기 전 — 빈 칸만 남기지 않고 할 일을 적는다 */
+.out-ask{margin:0;padding:26px 14px;text-align:center;font-size:13px;
+  color:var(--ink2);line-height:1.7}
+.out-ask b{color:var(--brand-d)}
+.out-ask span{display:block;margin-top:5px;font-size:11.5px;color:var(--ink3)}
 
 /* ── 결과 문안 ──────────────────────────────────────
    같은 사고정보로 알림 문안과 종료 문안이 함께 나오므로 그룹으로 묶어 표시하고,
@@ -485,6 +507,13 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .msum{flex:none;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
   padding:8px 16px;background:#0d3f70;color:#fff;font-size:12.5px;
   animation:slideDown .26s var(--ease) both}
+/* 사고지점 주소 — 요약 줄 맨 앞. 문자로 넘어가는 값이므로 넘기기 전에
+   눈으로 확인할 수 있어야 한다. */
+.ms-acc{display:flex;align-items:baseline;gap:6px;
+  padding-right:14px;border-right:1px solid rgba(255,255,255,.22)}
+.ms-acc b{font-weight:700;color:#bcd3ec;font-size:11.5px}
+.ms-acc i{font-style:normal;font-size:10.5px;font-weight:700;color:#f0d9a8;
+  border:1px solid rgba(240,217,168,.5);border-radius:20px;padding:0 6px}
 .ms-near{display:flex;align-items:baseline;gap:6px}
 .ms-near b{font-weight:700;color:#bcd3ec;font-size:11.5px}
 .ms-near em{font-style:normal;font-weight:700;font-variant-numeric:tabular-nums}

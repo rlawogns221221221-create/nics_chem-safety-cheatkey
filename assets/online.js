@@ -9,8 +9,9 @@
    불러오는 목록만 봐도 드러납니다.
 
    ── 바깥으로 나가는 것 ──────────────────────────────────────
-     장소 검색  검색어         → 국토교통부 브이월드 (api.vworld.kr)
-     도보 경로  두 지점의 좌표 → OSRM 공개 서버 (router.project-osrm.org)
+     장소 검색    검색어         → 국토교통부 브이월드 (api.vworld.kr)
+     사고지점 주소 사고지점 좌표  → 국토교통부 브이월드 (api.vworld.kr)
+     도보 경로    두 지점의 좌표 → OSRM 공개 서버 (router.project-osrm.org)
 
    대피장소는 공개 자료이고 검색어도 사용자가 직접 친 것이므로 내보내도
    되는 값입니다. 다만 사고지점 좌표는 경로를 그릴 때 함께 나갑니다.
@@ -19,8 +20,9 @@
 
    ── 안 되면 어떻게 되는가 ───────────────────────────────────
    인터넷이 없거나 서버가 응답하지 않아도 화면이 멈추지 않습니다.
-     장소 검색  도구 안에 든 자료(대피장소 이름·시군구·읍면동)로만 찾습니다
-     도보 경로  두 지점을 잇는 직선을 그립니다 (지금까지 하던 그대로)
+     장소 검색    도구 안에 든 자료(대피장소 이름·시군구·읍면동)로만 찾습니다
+     사고지점 주소 행정경계(시·군·구)와 가장 가까운 대피장소 주소로 어림잡습니다
+     도보 경로    두 지점을 잇는 직선을 그립니다 (지금까지 하던 그대로)
    ============================================================ */
 (function () {
 "use strict";
@@ -134,6 +136,60 @@ function search(q, done) {
   jsonp(url("address", q), function (d, e) { back(d ? parse(d, "addr") : null, e); });
 }
 
+/* ══ 사고지점 주소 알아내기 (브이월드 역지오코딩) ═════════════
+   지도를 눌러 사고지점을 찍었을 때 그곳이 어느 읍·면·동인지 알아냅니다.
+   주민대피 문자에는 "○○시 ○○동 ○○에서 발생한" 처럼 읍·면·동이 들어가는데,
+   좌표만으로는 그 값을 채울 수 없어 담당자가 따로 찾아 넣어야 했습니다.
+
+   도로명 주소와 지번 주소를 함께 받습니다(type=BOTH).
+     지번 쪽  level3(읍·면) · level4A(법정동·리)  ← 읍·면·동은 여기서 나옵니다
+     도로명 쪽 level4L(도로명) · level5(건물번호) ← 장소 이름을 모를 때 대신 씁니다
+   시(市) 아래 동은 level3 이 비고 level4A 에 동이, 군(郡) 아래는 level3 에
+   읍·면이 들어옵니다. 그래서 level3 을 먼저 보고 없으면 level4A 를 씁니다.
+   ═══════════════════════════════════════════════════════════ */
+function revUrl(type, lat, lon) {
+  return "https://api.vworld.kr/req/address?service=address&request=getAddress"
+    + "&version=2.0&crs=EPSG:4326&format=json&errorformat=json&simple=false"
+    + "&type=" + type
+    + "&point=" + lon + "," + lat
+    + "&key=" + encodeURIComponent(key());
+}
+
+function revPick(data) {
+  var r = data && data.response;
+  if (!r || r.status !== "OK") return null;
+  var it = (r.result || [])[0];
+  if (!it) return null;
+  var s = it.structure || {};
+  return {
+    sido: s.level1 || "",
+    sgg: s.level2 || "",
+    /* 읍·면이 있으면 그것, 없으면 법정동 */
+    emd: s.level3 || s.level4A || "",
+    road: s.level4L || "",                 // 도로명 (예: 시청1길)
+    no: s.level5 || "",                    // 건물번호
+    text: it.text || ""
+  };
+}
+
+function revgeo(lat, lon, done) {
+  if (!key()) return done(null, "브이월드 인증키가 없습니다");
+  var got = 0, out = { sido: "", sgg: "", emd: "", road: "", no: "", text: "" }, err = null;
+  var back = function (v, e) {
+    if (v) {
+      /* 두 응답을 합친다 — 읍·면·동은 지번 쪽이, 도로명은 도로명 쪽이 정확하다 */
+      ["sido", "sgg", "emd", "road", "no"].forEach(function (k) {
+        if (!out[k] && v[k]) out[k] = v[k];
+      });
+      if (!out.text && v.text) out.text = v.text;
+    } else if (e && !err) err = e;
+    if (++got < 2) return;
+    done(out.sgg || out.emd ? out : null, out.sgg || out.emd ? null : (err || "주소 없음"));
+  };
+  jsonp(revUrl("parcel", lat, lon), function (d, e) { back(d ? revPick(d) : null, e); });
+  jsonp(revUrl("road", lat, lon), function (d, e) { back(d ? revPick(d) : null, e); });
+}
+
 /* ══ 도보 경로 (OSRM) ════════════════════════════════════════
    지금까지 그리던 직선은 "어느 쪽으로 얼마나"는 알려 주지만 실제로 걸어서
    갈 수 있는 길인지는 알려 주지 못합니다. 강·철길·고속도로가 사이에 있으면
@@ -184,6 +240,7 @@ function route(from, to, done) {
   };
 }
 
-window.ONLINE = { search: search, route: route, hasKey: function () { return !!key(); } };
+window.ONLINE = { search: search, revgeo: revgeo, route: route,
+                  hasKey: function () { return !!key(); } };
 
 })();

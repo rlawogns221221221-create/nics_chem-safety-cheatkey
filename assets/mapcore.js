@@ -380,6 +380,42 @@ function boundaryPaths(vb, isOn) {
   return out.join("");
 }
 
+/* ── 이 좌표는 어느 시·군·구인가 (인터넷 없이) ─────────────────
+   화면에 그리는 그 경계선(data/boundaries.js)으로 그대로 판정합니다. 눈에
+   보이는 경계와 도구가 말하는 시·군·구가 어긋나지 않게 하려는 것입니다.
+
+   경계선은 약 244m 로 단순화된 자료라 경계 바로 옆에서는 틀릴 수 있습니다.
+   인터넷이 되면 브이월드 주소(ONLINE.revgeo)가 정확하므로 그쪽을 먼저 씁니다 —
+   이 함수는 망분리 환경의 대비책입니다. 못 찾으면 null 을 돌려줍니다. */
+function sggAt(lat, lon) {
+  if (typeof window.BOUNDARIES === "undefined") return null;
+  /* 저장된 값은 경도·위도를 BOUNDARY_SCALE 배 한 정수다(투영 전 좌표).
+     경계 안팎만 가리면 되므로 그 좌표계에서 그대로 판정한다. */
+  var X = lon * window.BOUNDARY_SCALE, Y = lat * window.BOUNDARY_SCALE;
+  var hit = null;
+  window.BOUNDARIES.forEach(function (f) {
+    if (hit) return;
+    var inside = false;
+    f.r.forEach(function (ring) {
+      /* 델타 인코딩을 풀어 가며 광선 교차 횟수를 센다 (홀수면 안쪽).
+         구멍 링도 같은 배열에 있으므로 링마다 뒤집어 주면 자연히 처리된다. */
+      var px = 0, py = 0, fx = 0, fy = 0, lx = 0, ly = 0;
+      for (var i = 0; i < ring.length; i += 2) {
+        if (i === 0) { px = ring[0]; py = ring[1]; fx = px; fy = py; lx = px; ly = py; continue; }
+        px += ring[i]; py += ring[i + 1];
+        if ((py > Y) !== (ly > Y)
+            && X < (px - lx) * (Y - ly) / (py - ly) + lx) inside = !inside;
+        lx = px; ly = py;
+      }
+      /* 마지막 점 → 첫 점 (닫히지 않은 고리 대비) */
+      if ((fy > Y) !== (ly > Y)
+          && X < (fx - lx) * (Y - ly) / (fy - ly) + lx) inside = !inside;
+    });
+    if (inside) hit = { sido: f.s, sgg: f.n };
+  });
+  return hit;
+}
+
 /* ── 경로선 ───────────────────────────────────────────────────
    사고지점에서 고른 곳까지 어느 쪽으로 얼마나 가야 하는지 한눈에 보이도록
    굵게 긋습니다. 실제 도로 경로가 아니라 직선입니다 — 도로를 따라가면
@@ -658,7 +694,7 @@ window.MAPCORE = {
   /* 이동 시간 어림 · 내 위치 */
   trip: trip, tripPair: tripPair, fmtMin: fmtMin, walkable: WALKABLE, locate: locate,
   /* 그리기 */
-  boundaryPaths: boundaryPaths, matchSgg: matchSgg, routePath: routePath,
+  boundaryPaths: boundaryPaths, matchSgg: matchSgg, sggAt: sggAt, routePath: routePath,
   /* 카메라 · 조작 */
   camera: makeCamera, panzoom: panzoom, foldBar: foldBar,
   /* 데이터 */
