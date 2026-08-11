@@ -37,13 +37,6 @@
     <div class="steps" id="stages"></div>
   </div>
 
-  <!-- 한 발송 구분 안에서 상황에 따라 문안이 갈릴 때 고르는 줄
-       (지금은 도로 우회 알림만 — 사고지역이 실내대피 중인가 대피명령 중인가).
-       발송 구분 단추 바로 아래에 둡니다. 이 선택은 구분을 한 번 더 좁히는
-       것이라 그 옆이 제자리이고, 좁은 화면에서 두 칸이 세로로 쌓일 때
-       입력칸 아래로 밀려나 "먼저 고르라"는 말과 순서가 뒤집히지 않습니다. -->
-  <div class="catbar noprint" id="catBar" hidden></div>
-
   <div class="cols" id="cols" hidden>
 
     <!-- 왼쪽: 입력 -->
@@ -106,6 +99,10 @@
     <div class="panel sticky">
       <h2>생성 문안 <span id="outCnt" style="font-weight:400;color:var(--ink3)"></span></h2>
       <div class="body">
+        <!-- 한 발송 구분 안에서 상황에 따라 문안이 갈릴 때 고르는 줄
+             (지금은 도로 우회 알림만 — 사고지역이 실내대피 중인가 대피명령 중인가).
+             바뀌는 것이 바로 아래 문안 묶음이므로 그 위에 작게 둡니다. -->
+        <div class="catbar noprint" id="catBar" hidden></div>
         <div id="alerts"></div>
         <div id="out"></div>
       </div>

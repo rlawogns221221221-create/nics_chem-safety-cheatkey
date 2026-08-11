@@ -211,18 +211,15 @@ button.sm{padding:5px 10px;font-size:12.5px}
 
 /* ── 하위 분류 고르는 줄 ────────────────────────────
    한 발송 구분 안에서 상황에 따라 문안이 갈릴 때 씁니다(도로 우회 알림).
-   발송 구분 단추 바로 아래 — 구분을 한 번 더 좁히는 선택이므로 그 옆이
-   제자리이고, 좁은 화면에서 두 칸이 세로로 쌓여도 입력칸 위에 남습니다. */
-.catbar{display:flex;align-items:center;flex-wrap:wrap;gap:7px;
-  margin:0 0 14px;padding:11px 14px;background:var(--card);
-  border:1px solid var(--line);border-radius:var(--r);
-  animation:slideDown .3s var(--ease) both}
-.catbar .cat-t{font-size:12px;font-weight:700;color:var(--ink2)}
-.catbar .cat{padding:7px 14px;font-size:13px;border-radius:20px;border-width:1.5px}
+   바뀌는 것이 바로 아래 문안 묶음이므로 그 위에 붙이고, 문안 묶음 머리표
+   (.ohd)보다 눈에 덜 띄게 작게 둡니다 — 결론은 문안이지 이 줄이 아닙니다. */
+.catbar{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.catbar .cat{padding:4px 11px;font-size:12px;border-radius:20px;border-width:1.5px}
 .catbar .cat[aria-pressed=true]{background:var(--brand);border-color:var(--brand);
   color:#fff;font-weight:700}
-.catbar .cat-ask{width:100%;font-size:11.5px;color:var(--ink3)}
-@media (pointer: coarse){ .catbar .cat{min-height:40px;padding:0 16px} }
+/* 작게 두는 것은 눈에 덜 띄게 하려는 것이지 누르기 어렵게 하려는 것이 아니다 —
+   손가락으로 누르는 화면에서는 높이를 40px 로 되돌린다(글씨는 그대로 작게). */
+@media (pointer: coarse){ .catbar{gap:8px} .catbar .cat{min-height:40px;padding:0 14px} }
 
 /* 분류를 고르기 전 — 빈 칸만 남기지 않고 할 일을 적는다 */
 .out-ask{margin:0;padding:26px 14px;text-align:center;font-size:13px;

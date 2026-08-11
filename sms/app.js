@@ -610,15 +610,18 @@ function renderCatBar() {
   el.hidden = !cats;
   if (!cats) return;
 
+  /* 무엇을 고르는 줄인지는 단추 글씨("실내대피 중일 때")가 이미 말하고 있어
+     앞에 이름표를 따로 두지 않습니다. 화면에서 읽히는 이름은 aria-label 로만
+     남겨, 화면낭독기 사용자도 무엇을 고르는지 알 수 있게 합니다. */
   var cur = curCat(stage);
-  el.innerHTML = '<span class="cat-t">' + esc(stage.분류제목 || "상황") + "</span>"
-    + cats.map(function (c) {
+  el.setAttribute("role", "group");
+  el.setAttribute("aria-label", stage.분류제목 || "상황");
+  el.innerHTML = cats.map(function (c) {
         return '<button type="button" class="cat" data-c="' + esc(c.id) + '"'
           + ' aria-pressed="' + (cur && cur.id === c.id) + '"'
           + (c.짧은설명 ? ' title="' + esc(c.짧은설명) + '"' : "") + ">"
           + esc(c.이름) + "</button>";
-      }).join("")
-    + (cur ? "" : '<span class="cat-ask">둘 중 하나를 고르면 문안이 만들어집니다</span>');
+      }).join("");
 
   $$("#catBar .cat").forEach(function (b) {
     b.onclick = function () {
@@ -676,8 +679,10 @@ function renderOut() {
     lastResults = [];
     $("#alerts").innerHTML = "";
     $("#outCnt").textContent = "";
-    $("#out").innerHTML = '<p class="out-ask">위에서 <b>'
-      + esc(stage.분류제목 || "상황") + "</b>을 고르면 그 상황에 맞는 문안이 만들어집니다."
+    /* 고르는 줄에서 이름표를 뺐으므로, 무엇을 고르는 것인지는 여기서 말한다 */
+    var names = catsOf(stage).map(function (c) { return "<b>" + esc(c.이름) + "</b>"; });
+    $("#out").innerHTML = '<p class="out-ask">' + esc(stage.분류제목 || "상황")
+      + "을 위에서 고르세요 — " + names.join(" 또는 ") + "."
       + "<span>사고지역 안의 상태에 따라 우회 문구와 상황종료 문안이 다릅니다.</span></p>";
     $("#btnTxt").disabled = true;
     return;
