@@ -8,15 +8,15 @@
     python3 build/build_single.py --internal   + 방제자원 내부판 (담당자 직통 포함)
 
 ── 내부판에 대하여 ────────────────────────────────────────────
-③ 방제자원은 업체 담당자 개인 연락처가 필요한데 공개 배포에는 넣을 수
-없습니다. 그래서 데이터 파일만 바꿔 두 벌로 만듭니다(build/make_resources.py).
+③ 방제자원 자료(data/resources.js)에는 담당자 개인정보를 아예 싣지 않으므로
+공개판 하나로 충분합니다. 나중에 담당자 직통번호를 담은 자료를 따로 만들
+일이 생기면 data/resources.internal.js 를 두고 --internal 로 만드세요.
+그 파일은 .gitignore 로 저장소에서 제외되며, 메일로 돌리지 말고 내부망
+공유폴더·업무포털로만 전달해야 합니다.
 
-    공개판  data/resources.js            → 화학사고_방제자원_동원.html
-    내부판  data/resources.internal.js   → 화학사고_방제자원_동원_내부용.html
-
-내부판은 .gitignore 로 저장소에서 제외되며, 화면 위에 빨간 "내부용 ·
-외부 공유 금지" 띠가 자동으로 뜹니다(res/app.js 의 initDataBar).
-메일로 돌리지 말고 내부망 공유폴더·업무포털로만 전달하세요.
+── 있으면 넣고 없으면 넘어가는 파일 ───────────────────────────
+data/resources.geo.js — build/geocode.html 로 만드는 정확 좌표 파일입니다.
+없으면 그 <script> 줄을 빼고 만듭니다(주소로 잡은 어림 좌표를 씁니다).
 """
 import argparse
 import pathlib
@@ -33,6 +33,9 @@ PAGES = [
 ]
 INTERNAL_PAGE = (ROOT / "res" / "index.html", "화학사고_방제자원_동원_내부용.html",
                  ("../data/resources.js", "../data/resources.internal.js"))
+
+# 있으면 넣고 없으면 넘어가는 자료 파일
+OPTIONAL = ["resources.geo.js"]
 
 BANNER = """<!-- ────────────────────────────────────────────────────────────
      화학사고 지자체 대응 지원도구 — 오프라인 단일 파일
@@ -73,10 +76,16 @@ def build(page: pathlib.Path, out: pathlib.Path, swap=None) -> None:
         lambda m: "<style>\n" + read(base, m.group(1)) + "\n</style>",
         html,
     )
+    # 있으면 넣고 없으면 그 줄을 빼는 파일 — 정확 좌표(build/geocode.html 로 만듦)
+    for opt in OPTIONAL:
+        tag = f'<script src="../data/{opt}"></script>'
+        if tag in html and not (ROOT / "data" / opt).exists():
+            html = re.sub(r"[ \t]*" + re.escape(tag) + r"\n?", "", html)
+
     # 인터넷이 있어야 되는 기능(장소 검색·도보 경로)은 단일 파일판에 넣지
     # 않습니다. 이 파일은 망분리 PC용이라 바깥으로 나가는 코드가 아예 없어야
     # 하고, 있어도 어차피 닿지 않습니다. 화면은 그대로 돕니다 —
-    # map/app.js 가 window.ONLINE 이 없으면 등록된 대피장소 안에서만 찾습니다.
+    # app.js 들이 window.ONLINE 이 없으면 도구 안 자료로만 찾습니다.
     html = re.sub(r'[ \t]*<script src="[^"]*assets/online\.js"></script>\n?', "", html)
     html = re.sub(
         r'[ \t]*<script src="([^"]+)"></script>',
@@ -90,7 +99,7 @@ def build(page: pathlib.Path, out: pathlib.Path, swap=None) -> None:
     html = re.sub(r'[ \t]*<button[^>]*id="btnToSms"[^>]*>.*?</button>\n?', "",
                   html, flags=re.S)
     # 인터넷 기능이 빠졌으므로 '도보 경로' 켜고 끄기도 뺍니다 (눌러도 할 일이 없음)
-    html = re.sub(r'[ \t]*<label class="mapchk" title="고른 대피장소까지[^>]*>.*?</label>\n?',
+    html = re.sub(r'[ \t]*<label class="mapchk" title="고른 (?:대피장소까지|자원이)[^>]*>.*?</label>\n?',
                   "", html, flags=re.S)
 
     if 'src="' in html or 'href="assets' in html or 'href="../' in html:

@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>방제자원 좌표 정확하게 만들기</title>
+<style>
+  body{margin:0;padding:26px;font-family:"Pretendard","Malgun Gothic",sans-serif;
+    background:#eef1f5;color:#12181f;font-size:15px;line-height:1.65;word-break:keep-all}
+  .w{max-width:760px;margin:0 auto}
+  h1{font-size:21px;margin:0 0 6px}
+  .sub{color:#4a5563;font-size:13.5px;margin:0 0 18px}
+  .card{background:#fff;border:1px solid #d5dce3;border-radius:10px;padding:18px;margin-bottom:14px}
+  .note{background:#dbe7f4;border:1px solid #bed3e8;color:#0d3f70;border-radius:10px;
+    padding:13px 16px;font-size:13px;margin-bottom:14px}
+  ol{margin:0;padding-left:22px}
+  ol li{margin-bottom:7px}
+  button{font:inherit;padding:11px 20px;border:1px solid #0b57a4;background:#0b57a4;
+    color:#fff;border-radius:8px;font-weight:700;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  button.g{background:#fff;color:#0b57a4}
+  .bar{height:12px;background:#e8edf1;border-radius:20px;overflow:hidden;margin:14px 0 8px}
+  .bar i{display:block;height:100%;background:#0b57a4;width:0;transition:width .2s}
+  .st{font-size:13px;color:#4a5563;font-variant-numeric:tabular-nums}
+  .log{margin-top:12px;max-height:200px;overflow:auto;font-size:12px;color:#78838f;
+    font-family:ui-monospace,monospace;white-space:pre-wrap}
+  code{background:#f7f9fb;border:1px solid #e8edf1;border-radius:4px;padding:1px 5px;font-size:13px}
+  .warn{color:#8a4f06;font-weight:700}
+</style>
+</head>
+<body>
+<div class="w">
+
+<h1>방제자원 좌표 정확하게 만들기</h1>
+<p class="sub">한 번만 돌리면 됩니다. 결과 파일을 <code>data/</code> 에 넣으면
+③ 방제자원 지도의 위치가 주소 그대로 정확해집니다.</p>
+
+<div class="note">
+  <b>왜 필요한가</b><br>
+  방제자원 원자료에는 주소만 있고 좌표가 없습니다. 자료를 만든 자리에서는
+  주소검색 서버(브이월드)에 닿지 않아, 지금은 <b>행정경계·읍면동 평균으로 잡은
+  어림 좌표</b>를 씁니다. 시·군·구 단위(오차 수 km)가 대부분입니다.<br>
+  이 페이지는 <b>인터넷이 되는 PC</b>에서 주소를 하나씩 검색해 정확한 좌표를
+  받아옵니다. 받아온 좌표는 <code>data/resources.geo.js</code> 로 저장되고,
+  ③ 화면이 그 파일이 있으면 그쪽을 먼저 씁니다.
+</div>
+
+<div class="card">
+  <b>하는 방법</b>
+  <ol>
+    <li>이 파일을 저장소 폴더 그대로 두고 <b>인터넷이 되는 PC</b>에서 엽니다.
+        (<code>build/geocode.html</code> — 옆에 <code>../data/</code> 가 있어야 합니다)</li>
+    <li>아래 <b>시작</b>을 누릅니다. 470건이라 3~5분쯤 걸립니다.</li>
+    <li>끝나면 <b>파일 내려받기</b>를 눌러 <code>resources.geo.js</code> 를 받고,
+        저장소의 <code>data/</code> 폴더에 넣습니다.</li>
+    <li><code>python3 build/build_single.py</code> 로 단일 파일판을 다시 만들면
+        망분리 PC용 파일에도 정확한 좌표가 들어갑니다.</li>
+  </ol>
+  <p class="sub" style="margin:12px 0 0">
+    브이월드 인증키는 <code>data/basemap.js</code> 의 것을 그대로 씁니다.
+    <span class="warn">인증키 발급 시 등록한 활용 도메인</span>에서 열어야 응답이 옵니다
+    (<code>file://</code> 로 열면 막히는 경우가 있습니다 — 그때는 이 폴더를 웹서버로
+    띄우고 그 주소로 여세요).
+  </p>
+</div>
+
+<div class="card">
+  <button id="go">시작</button>
+  <button id="dl" class="g" disabled>파일 내려받기</button>
+  <div class="bar"><i id="pb"></i></div>
+  <div class="st" id="st">기다리는 중</div>
+  <div class="log" id="log"></div>
+</div>
+
+</div>
+
+<script src="../data/basemap.js"></script>
+<script src="../data/resources.js"></script>
+<script>
+(function () {
+"use strict";
+var $ = function (s) { return document.querySelector(s); };
+var rows = window.RESOURCES || [];
+var got = {}, done = 0, fail = 0;
+
+function log(t) {
+  var el = $("#log");
+  el.textContent += t + "\n";
+  el.scrollTop = el.scrollHeight;
+}
+function key() { return String((window.BASEMAP || {}).인증키 || "").trim(); }
+
+/* 주소 한 건. 도로명으로 먼저 찾고, 없으면 지번으로 다시 찾는다. */
+var n = 0;
+function jsonp(url, cb) {
+  var name = "__gc" + (++n), s = document.createElement("script"), t = null;
+  var fin = function (d) {
+    if (!name) return;
+    clearTimeout(t);
+    try { delete window[name]; } catch (e) { window[name] = undefined; }
+    if (s.parentNode) s.parentNode.removeChild(s);
+    name = null; cb(d);
+  };
+  window[name] = function (d) { fin(d); };
+  t = setTimeout(function () { fin(null); }, 8000);
+  s.onerror = function () { fin(null); };
+  s.src = url + "&callback=" + name;
+  document.head.appendChild(s);
+}
+function url(type, q) {
+  return "https://api.vworld.kr/req/address?service=address&request=getcoord"
+    + "&version=2.0&crs=EPSG:4326&format=json&errorformat=json&type=" + type
+    + "&address=" + encodeURIComponent(q) + "&key=" + encodeURIComponent(key());
+}
+function pick(d) {
+  var r = d && d.response;
+  if (!r || r.status !== "OK" || !r.result || !r.result.point) return null;
+  var x = parseFloat(r.result.point.x), y = parseFloat(r.result.point.y);
+  return (isFinite(x) && isFinite(y) && y > 32 && y < 40) ? { la: y, lo: x } : null;
+}
+
+/* 자료의 주소는 시·도/시·군·구를 떼어 둔 것이라 다시 붙여서 검색한다 */
+function fullAddr(r) {
+  var a = [r.sd, r.sg === r.sd ? "" : r.sg, r.a].filter(Boolean).join(" ");
+  return a.replace(/\s+/g, " ").trim();
+}
+
+function one(i, next) {
+  var r = rows[i];
+  /* 항만·유역 거점은 사람이 짚은 좌표라 건드리지 않는다 */
+  if (r.ap === "port" || r.ap === "base" || !r.a) { done++; return next(); }
+  var q = fullAddr(r);
+  jsonp(url("ROAD", q), function (d) {
+    var p = pick(d);
+    if (p) { got[r.t + "|" + r.n + "|" + r.sd + "|" + r.sg] = p; done++; return next(); }
+    jsonp(url("PARCEL", q), function (d2) {
+      var p2 = pick(d2);
+      if (p2) got[r.t + "|" + r.n + "|" + r.sd + "|" + r.sg] = p2;
+      else { fail++; log("못 찾음: " + q); }
+      done++; next();
+    });
+  });
+}
+
+function tick() {
+  var pct = Math.round(done / rows.length * 100);
+  $("#pb").style.width = pct + "%";
+  $("#st").textContent = done + " / " + rows.length + "건  ·  찾음 "
+    + Object.keys(got).length + "  ·  못 찾음 " + fail;
+}
+
+$("#go").onclick = function () {
+  if (!key()) { alert("data/basemap.js 에 브이월드 인증키가 없습니다."); return; }
+  $("#go").disabled = true;
+  log("시작 — 모두 " + rows.length + "건");
+  var i = 0;
+  (function step() {
+    tick();
+    if (i >= rows.length) {
+      log("끝. 찾음 " + Object.keys(got).length + " / 못 찾음 " + fail);
+      $("#dl").disabled = false;
+      $("#st").textContent += "  ·  이제 '파일 내려받기'를 누르세요";
+      return;
+    }
+    one(i++, function () { setTimeout(step, 60); });   // 서버를 몰아치지 않는다
+  })();
+};
+
+$("#dl").onclick = function () {
+  var head = "/* 방제자원 정확 좌표 — build/geocode.html 로 만든 파일입니다.\n"
+    + "   키: 종류|이름|시도|시군구  값: {la, lo}\n"
+    + "   이 파일이 있으면 ③ 방제자원 지도가 이 좌표를 먼저 씁니다.\n"
+    + "   만든 날: " + new Date().toISOString().slice(0, 10)
+    + "  ·  찾음 " + Object.keys(got).length + " / 모두 " + rows.length + " */\n";
+  var body = "var RESOURCE_GEO = " + JSON.stringify(got) + ";\n";
+  var b = new Blob([head + body], { type: "text/javascript;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(b);
+  a.download = "resources.geo.js";
+  a.click();
+};
+
+tick();
+})();
+</script>
+</body>
+</html>

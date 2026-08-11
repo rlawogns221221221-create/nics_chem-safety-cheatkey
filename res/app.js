@@ -1,29 +1,25 @@
 /* ============================================================
-   화학사고 방제자원 동원
+   화학사고 방제자원 지도
 
-   흩어져 있는 방제자원 네 가지(폐기물 처리업체 · 방제장비 판매업체 ·
-   중장비 업체 · 비상캡슐 보유기관)를 한 화면에 모아, 사고지점에서 가까운
-   순으로 찾아 바로 연락할 수 있게 합니다.
+   ② 대피장소 지도와 **같은 엔진·같은 조작**입니다(assets/mapcore.js).
+   사고지점을 찍는 네 가지 방법, 찾는 범위, 거리 눈금, 풍하방향, 가까운
+   3곳, 내 위치, 경로선, 손가락 확대, 인쇄까지 동작이 모두 같습니다.
+   두 화면에서 같은 사고지점을 찍으면 같은 거리가 나옵니다.
 
-   ①②(assets/shmap.js, map/app.js)와 같은 엔진(assets/mapcore.js)을 씁니다.
-   조작 방법도 ②와 같게 두어 새로 배울 것이 없게 했습니다 —
-   사고지점 찍기 → 거리순 목록 → 누르면 지도 가운데.
+   ── 이 화면만 하는 일 ──────────────────────────────────────
+   · 자원 종류 6가지를 켜고 끕니다(지자체 장비·비상캡슐·독성가스·폐기물·
+     해경 비축기지·수질방제센터).
+   · **필요한 것으로 찾기** — 종류를 몰라도 "굴착기가 필요하다", "보호구가
+     필요하다"로 고르면 그것을 가진 곳만 남습니다.
+   · **동원 목록** — 여러 곳을 담아 이름·번호·거리를 한 번에 복사합니다.
+     전화 걸기(tel:)도 목록에서 바로 됩니다.
+   · **좌표 정확도**를 각 건에 표시합니다. 원자료에 좌표가 없어 주소로
+     잡은 어림값이라, 어디까지 믿을 수 있는지 보이지 않으면 위험합니다.
 
-   ── ②와 다른 점 ────────────────────────────────────────────
-   · 자원 종류 — 필요한 자원(무엇을 시킬 것인가)으로 먼저 좁힙니다.
-   · 바로 전화 — 목록에서 번호를 누르면 걸립니다(tel:).
-   · 동원 목록 — 여러 곳을 담아 업체명·연락처·거리를 한 번에 복사합니다.
-     상황실 보고나 무전으로 부를 때 씁니다.
-
-   ── 개인정보 ────────────────────────────────────────────────
-   담당자 이름·직통번호는 공개판 데이터(data/resources.js)에 들어 있지
-   않습니다. 내부판(data/resources.internal.js)으로 빌드했을 때만 표시되며,
-   그 경우 화면 위에 "내부용 · 외부 공유 금지" 띠가 자동으로 뜹니다.
-
-   ── 판단하지 않는 것 ────────────────────────────────────────
-   어느 자원을 동원할지, 처리 방법이 적절한지는 정하지 않습니다.
-   거리는 직선거리라 실제 도착 시간과 다르고, 업체의 현재 가동 여부·보유
-   상태는 담아 둔 자료의 기준일 시점 값이라 연락해서 확인해야 합니다.
+   ── 판단하지 않는 것 ───────────────────────────────────────
+   어느 자원을 동원할지, 그 처리 방법이 적절한지는 정하지 않습니다.
+   보유 수량은 원자료 제출 시점의 것이고, 지금 쓸 수 있는지는 전화로
+   확인해야 합니다. 거리는 지형·도로를 무시한 직선거리입니다.
    ============================================================ */
 (function () {
 "use strict";
@@ -41,61 +37,127 @@ var wx = MC.wx, wy = MC.wy, wxInv = MC.wxInv, wyInv = MC.wyInv;
 var mToWorld = MC.mToWorld;
 var distM = MC.distM, bearing = MC.bearing, dirName = MC.dirName, fmtDist = MC.fmtDist;
 
+var LEE_DEG = 60;                  // 풍하방향으로 볼 각도 (풍향 반대쪽 ±60°)
+
+/* ── 자료 어댑터 ──────────────────────────────────────────────
+   지도 엔진은 대피장소 자료의 칸 이름(name·addr·lat·lon…)으로 짜여
+   있습니다. 방제자원 자료를 같은 칸 이름으로 바꿔 주면, 사고지점·거리·
+   범위·경로선 같은 공통 동작을 한 줄도 고치지 않고 그대로 씁니다.
+   ③ 에만 있는 것(종류·보유내용·정확도·번호)은 칸을 더해 싣습니다. */
 var KINDS = window.RESOURCE_KINDS || [];
+var NEEDS = window.RESOURCE_NEEDS || [];
+var ACCNOTE = window.RESOURCE_ACC || {};
 var KIND_NAME = {};
 KINDS.forEach(function (k) { KIND_NAME[k.id] = k.이름; });
 
+/* 정확 좌표 파일(data/resources.geo.js)이 있으면 그쪽을 먼저 씁니다.
+   build/geocode.html 을 인터넷 되는 PC 에서 한 번 돌려 만드는 파일이며,
+   없으면 주소로 잡은 어림 좌표를 그대로 씁니다. */
+var GEO = window.RESOURCE_GEO || null;
+function exact(r) {
+  if (!GEO) return null;
+  return GEO[r.t + "|" + r.n + "|" + r.sd + "|" + r.sg] || null;
+}
+
+var RES_CACHE = null;
+function allRes() {
+  if (RES_CACHE) return RES_CACHE;
+  RES_CACHE = (window.RESOURCES || []).map(function (r) {
+    var g = exact(r);
+    return {
+      key: r.t + "|" + r.sd + "|" + r.sg + "|" + r.n + "|" + r.la + "," + r.lo,
+      sido: r.sd, sgg: r.sg,
+      name: r.n, detail: r.dept || "", addr: r.a,
+      lat: g ? g.la : r.la, lon: g ? g.lo : r.lo,
+      kind: KIND_NAME[r.t] || "",
+      cap: 0,
+      /* ③ 고유 */
+      t: r.t, c: r.c || "", g: r.g || [], ap: g ? "exact" : (r.ap || ""),
+      tel: r.tel || "", agency: r.agency || "", src: r.src || "",
+      keep: r.keep || "", note: r.note || ""
+    };
+  });
+  return RES_CACHE;
+}
+
+/* 종류·필요한 것 거르개를 통과한 것만 */
+function passFilter(s) {
+  if (!st.kinds[s.t]) return false;
+  var need = NEEDS.filter(function (n) { return st.needs[n.id]; });
+  if (!need.length) return true;
+  return need.some(function (n) { return s.g.indexOf(n.id) >= 0; });
+}
+
+function resIn(sido, sgg) {
+  return allRes().filter(function (s) {
+    return (!sido || s.sido === sido) && (!sgg || s.sgg === sgg);
+  });
+}
+
+/* 시·도 → 시·군·구 고르개를 채우기 위한 나무 */
+var TREE_CACHE = null;
+function resTree() {
+  if (TREE_CACHE) return TREE_CACHE;
+  TREE_CACHE = {};
+  allRes().forEach(function (s) {
+    (TREE_CACHE[s.sido] = TREE_CACHE[s.sido] || {})[s.sgg] = 1;
+  });
+  return TREE_CACHE;
+}
+
 var st = {
   sido: "", sgg: "",
-  scope: "",                        // "" = 시·군·구 관내 / 숫자 = 사고지점 반경 (m)
-  acc: null,                        // 사고지점 {lat, lon}
-  kinds: {},                        // 켜 둔 자원 종류 (기본 전부)
-  q: "", sort: "dist",
-  rings: true,
-  mode: "pick",                     // "acc" = 다음 클릭이 사고지점
-  me: null,                         // 내 위치 {lat, lon, acc} — 사고지점과 별개
+  scope: "",                       // "" = 시·군·구 관내 / 숫자 = 사고지점 반경 (m)
+  acc: null,                       // 사고지점 {lat, lon}
+  radius: null,                    // 영향 참고 반경 (m)
+  wind: "", mat: "",
+  q: "", sort: "name",
+  rings: true,                     // 거리 눈금 표시
+  mode: "pick",                    // "acc" = 다음 클릭이 사고지점
+  me: null,                        // 내 위치 {lat, lon, acc} — 사고지점과 별개
+  /* 가까운 3곳 카드를 접어 두었는가.
+     휴대전화에서는 이 카드가 지도 한가운데를 덮어(작은 화면에서 지도의 4분의 1
+     ~ 5분의 2) 그 자리를 손가락으로 만질 수 없게 됩니다. 좁은 화면에서는 머리표만
+     남기고 접은 채로 시작하고, 필요할 때 눌러 폅니다. 가장 가까운 한 곳은
+     지도 위쪽 요약 띠(.msum)에 늘 적혀 있으므로 접혀 있어도 놓치지 않습니다. */
+  nearFold: matchMedia("(max-width: 860px)").matches,
+  kinds: {},                       // 켜 둔 자원 종류
+  needs: {},                       // 켜 둔 '필요한 것' (빈 값 = 전부)
+  mob: {},                         // 동원 목록에 담은 것 (key → 자원)
+  walk: true,                      // 도보 경로를 길찾기로 받아올까 (인터넷 필요)
+  route: null,                     // 받아 온 경로 {key, path, dist}
+  routeBusy: false, routeErr: null,
   all: [], show: [],
   sel: -1, hover: -1,
-  mob: {},                          // 동원 목록에 담은 것 (key → 자원)
   view: null
 };
 KINDS.forEach(function (k) { st.kinds[k.id] = true; });
 
 var SVG = null, VB = null;
+/* 모든 시야 이동(확대·축소·전체보기·조건 바뀜)이 이 카메라를 거친다 —
+   순간이동 없이 어디로 얼마나 움직였는지 보이게 하려는 것 (assets/mapcore.js) */
 var CAM = MC.camera(function () { return st.view; }, function (v) { st.view = v; }, draw);
 
+/* 새 배경지도 타일이 도착하면 다시 그린다 */
 MC.tiles.onChange(function () { if (st.view) { draw(); showSrc(); } });
 
-function keyOf(r) { return r.t + "|" + r.n + "|" + r.la + "," + r.lo; }
-
-/* 어디 소속인지 보이게 시·군·구를 앞에 붙인다 — 반경으로 찾으면 여러 시·군·구가
-   섞이기 때문이다. 원자료의 주소는 시·군·구가 빠진 것이 원칙이지만 들어 있는
-   행도 있어, 이미 있으면 덧붙이지 않는다("여수시 여수시 …" 방지). */
-function placeOf(r) {
-  var addr = String(r.a || "");
-  return addr.indexOf(r.sg) >= 0 ? addr : (r.sg + " " + addr).trim();
-}
-
-/* ── 표시 대상 고르기 ────────────────────────────────────────
-   방제자원은 대피장소와 달리 관내에 없을 수 있습니다(비상캡슐은 시·군에
-   한 곳도 없는 경우가 흔합니다). 그래서 반경으로 찾는 범위를 ②보다 넓게
-   (10~100km) 두었습니다 — 옆 시·도에서 불러야 하는 상황이 실제로 생깁니다. */
+/* ── 표시 대상 고르기 ──────────────────────────────────────────
+   범위를 반경으로 잡으면 행정구역을 보지 않고 전국에서 찾습니다.
+   사고가 시·군 경계 가까이에서 나면 옆 시·군 방제자원가 관내보다 가깝기
+   때문입니다. 목록에는 시·군·구를 함께 적어 어디 소속인지 보이게 합니다. */
 function sourceList() {
-  var ALL = window.RESOURCES || [];
-  var rows;
+  var pool;
   if (st.scope && st.acc) {
     var r = +st.scope;
-    rows = ALL.filter(function (s) {
-      return distM(st.acc.lat, st.acc.lon, s.la, s.lo) <= r;
+    pool = allRes().filter(function (s) {
+      return distM(st.acc.lat, st.acc.lon, s.lat, s.lon) <= r;
     });
-  } else if (st.sido || st.sgg) {
-    rows = ALL.filter(function (s) {
-      return (!st.sido || s.sd === st.sido) && (!st.sgg || s.sg === st.sgg);
-    });
+  } else if (!st.sido && !st.sgg) {
+    pool = [];
   } else {
-    rows = [];
+    pool = resIn(st.sido, st.sgg);
   }
-  return rows.filter(function (s) { return st.kinds[s.t]; });
+  return pool.filter(passFilter);
 }
 
 function recompute() {
@@ -103,22 +165,35 @@ function recompute() {
   var acc = st.acc;
   st.all.forEach(function (s) {
     if (acc) {
-      s.d = distM(acc.lat, acc.lon, s.la, s.lo);
-      s.b = bearing(acc.lat, acc.lon, s.la, s.lo);
-    } else { s.d = null; s.b = null; }
+      s.d = distM(acc.lat, acc.lon, s.lat, s.lon);
+      s.b = bearing(acc.lat, acc.lon, s.lat, s.lon);
+      s.inRing = st.radius > 0 && s.d <= st.radius;
+      /* 풍향은 '불어오는 쪽' — 바람이 향하는 쪽(풍하) = 풍향 + 180 */
+      if (st.wind !== "") {
+        var diff = Math.abs(((s.b - ((+st.wind + 180) % 360)) + 540) % 360 - 180);
+        s.lee = diff <= LEE_DEG;
+      } else s.lee = false;
+    } else { s.d = null; s.b = null; s.inRing = false; s.lee = false; }
   });
 
   var q = st.q.trim().toLowerCase();
   st.show = st.all.filter(function (s) {
     if (!q) return true;
-    return (s.n + " " + (s.a || "") + " " + (s.c || "") + " " + s.sg + " "
-            + (KIND_NAME[s.t] || "")).toLowerCase().indexOf(q) >= 0;
+    return (s.name + " " + (s.detail || "") + " " + (s.addr || "") + " "
+            + (s.kind || "") + " " + s.sgg + " " + s.c + " " + s.tel)
+           .toLowerCase().indexOf(q) >= 0;
   });
-
   if (st.sort === "dist" && acc) st.show.sort(function (a, b) { return a.d - b.d; });
-  else st.show.sort(function (a, b) { return a.n.localeCompare(b.n, "ko"); });
+  else if (st.sort === "kind") st.show.sort(function (a, b) {
+    return (a.kind || "").localeCompare(b.kind || "", "ko")
+        || a.name.localeCompare(b.name, "ko");
+  });
+  else st.show.sort(function (a, b) { return a.name.localeCompare(b.name, "ko"); });
 
   st.sel = -1; st.hover = -1;
+  /* 사고지점이나 조건이 바뀌면 받아 둔 경로는 더 이상 맞지 않는다.
+     지우지 않으면 옮긴 사고지점 기준의 목록에 예전 '실제 도로' 값이 남는다. */
+  st.route = null; st.routeErr = null; st.routeBusy = false;
 }
 
 /* ── 시야 ─────────────────────────────────────────────────── */
@@ -132,13 +207,16 @@ function sggBox() {
       for (var i = 0; i < ring.length; i += 2) {
         if (i === 0) { X = ring[0]; Y = ring[1]; } else { X += ring[i]; Y += ring[i + 1]; }
         var x = wx(X / window.BOUNDARY_SCALE), y = wy(Y / window.BOUNDARY_SCALE);
-        m = Math.min(m, x); M = Math.max(M, x); n = Math.min(n, y); N = Math.max(N, y); any = true;
+        m = Math.min(m, x); M = Math.max(M, x);
+        n = Math.min(n, y); N = Math.max(N, y);
+        any = true;
       }
     });
   });
   return any ? { m: m, M: M, n: n, N: N } : null;
 }
 
+/* 표시 대상·경계·사고지점이 다 들어오는 시야를 계산만 한다(적용은 fit() 이 함) */
 function fitTarget() {
   var m = 2, M = -1, n = 2, N = -1, any = false;
   var add = function (x, y) {
@@ -146,41 +224,52 @@ function fitTarget() {
     n = Math.min(n, y); N = Math.max(N, y);
     any = true;
   };
-  st.show.forEach(function (s) { add(wx(s.lo), wy(s.la)); });
+  st.show.forEach(function (s) { add(wx(s.lon), wy(s.lat)); });
+  /* 반경으로 찾는 중이면 관내 경계는 시야 기준으로 삼지 않는다 */
   if (!st.scope) {
     var b = sggBox();
     if (b) { add(b.m, b.n); add(b.M, b.N); }
   }
   if (st.acc) {
-    var far = st.scope ? +st.scope : 0;
+    var far = Math.max(st.radius > 0 ? st.radius : 0, st.scope ? +st.scope : 0);
     var r = far ? mToWorld(far, st.acc.lat) : 0;
     add(wx(st.acc.lon) - r, wy(st.acc.lat) - r);
     add(wx(st.acc.lon) + r, wy(st.acc.lat) + r);
   }
-  if (!any) return { cx: wx(127.8), cy: wy(36.3), w: 0.09 };      // 전국
+  if (!any) return { cx: wx(127.8), cy: wy(36.3), w: 0.09 };   // 전국
   var w = (M - m) * 1.22, h = (N - n) * 1.22;
   return { cx: (m + M) / 2, cy: (n + N) / 2, w: Math.max(w, h * 1.35, 0.00035) };
 }
 
+/* 시야를 다시 잡는다. 처음 여는 화면(아직 볼 시야가 없음)은 그 자리서 바로
+   보여 주고, 이미 뭔가 보고 있던 중이면 부드럽게 움직여 어디로 얼마나
+   옮겨 가는지 눈으로 좇을 수 있게 한다. */
 function fit() {
   var t = fitTarget();
   if (!st.view) { st.view = t; draw(); return; }
   CAM.animateTo(t, 420);
 }
 
-/* 고른 자원은 항상 화면 가운데로 옮깁니다. 사고지점은 무리 없이 함께 보일
-   때만 시야를 넓혀 포함시키고, 그보다 멀면 억지로 끼워 맞추지 않습니다 —
-   연결선이 화면 밖으로 이어지는 건 괜찮지만 고른 곳이 안 보이면 안 됩니다. */
+/* 고른 곳으로 지도를 옮긴다. 확대는 '너무 멀리 보고 있을 때만' 당깁니다 —
+   이미 가까이 보고 있는데 매번 확대가 바뀌면 주변을 비교하는 흐름이 끊깁니다.
+   사고지점이 있으면 둘이 한 화면에 들어오게 잡습니다. 거리를 눈으로
+   확인하려는 것이므로 한쪽만 크게 보여 주면 소용이 없습니다. */
 function moveTo(s) {
   if (!st.view) fit();
-  var base = Math.min(st.view.w, mToWorld(1600, s.la));
+  /* 고른 곳은 항상 화면 가운데에 온다 — 예전에는 사고지점이 있으면 둘의
+     중간점을 가운데로 잡았는데, 확대는 "이미 가까이 보고 있으면 그대로"
+     규칙 때문에 min() 으로 더 넓어지지 못하게 막혀 있어서, 사고지점과 먼
+     곳을 고르면 그 중간점 기준으로 고른 곳이 화면 가장자리나 밖으로
+     밀려났다(실제로 그랬음). 가운데는 고른 곳으로 고정하고, 사고지점은
+     "무리 없이 함께 보일 때만" 시야를 넓혀 포함시킨다. */
+  var base = Math.min(st.view.w, mToWorld(1400, s.lat));
   var want = base;
   if (st.acc) {
-    var span = Math.max(Math.abs(wx(s.lo) - wx(st.acc.lon)),
-                        Math.abs(wy(s.la) - wy(st.acc.lat)) * 1.35) * 2.6;
-    want = Math.min(Math.max(base, span), base * 6);
+    var span = Math.max(Math.abs(wx(s.lon) - wx(st.acc.lon)),
+                        Math.abs(wy(s.lat) - wy(st.acc.lat)) * 1.35) * 2.6;
+    want = Math.min(Math.max(base, span), base * 6);   // 너무 멀면 상한까지만 넓힌다
   }
-  CAM.animateTo({ cx: wx(s.lo), cy: wy(s.la), w: want }, 340);
+  CAM.animateTo({ cx: wx(s.lon), cy: wy(s.lat), w: want }, 340);
 }
 
 /* ── 좌표 변환 ────────────────────────────────────────────── */
@@ -203,35 +292,20 @@ function toLL(clientX, clientY) {
   return { lon: wxInv(x), lat: wyInv(y) };
 }
 
-/* ── 거리 눈금 ────────────────────────────────────────────── */
+/* ── 거리 눈금 ────────────────────────────────────────────────
+   사고지점 둘레에 '떨어지는' 거리로 고리를 그린다. 축척 막대만으로는
+   특정 방제자원가 얼마나 떨어졌는지 가늠하려면 눈으로 재야 하는데,
+   고리가 있으면 몇 번째 고리 안팎인지로 바로 읽힙니다.
+   확대 정도에 따라 간격을 바꿔 항상 2~3개가 보이게 합니다. */
 function ringDists(vb) {
   if (!st.acc || !st.rings) return [];
   var latC = wyInv(vb.y + vb.h / 2);
   var fullM = distM(latC, wxInv(vb.x), latC, wxInv(vb.x + vb.w));
   var step = MC.niceDist(fullM / 5);
-  var lim = fullM * 0.75;
+  var lim = fullM * 0.75;                    // 화면을 크게 넘는 고리는 안 그린다
   var out = [];
   for (var i = 1; i <= 5 && step * i <= lim; i++) out.push(step * i);
   return out;
-}
-
-/* ── 마커 모양 ────────────────────────────────────────────────
-   색만으로 구분하면 배경지도 위에서 헷갈리고 색각 이상이 있는 사람은
-   구분하지 못합니다. 그래서 종류마다 모양을 다르게 그립니다.
-     폐기물 ● 원   장비 ■ 사각   중장비 ▲ 삼각   비상캡슐 ◆ 마름모 */
-function markerShape(kind, x, y, r, cls, extra) {
-  var a = ' class="' + cls + '"' + (extra || "");
-  var f = function (v) { return v.toFixed(1); };
-  if (kind === "equip")
-    return '<rect x="' + f(x - r) + '" y="' + f(y - r) + '" width="' + f(r * 2)
-         + '" height="' + f(r * 2) + '" rx="1.5"' + a + "/>";
-  if (kind === "heavy")
-    return '<path d="M' + f(x) + " " + f(y - r * 1.15) + "L" + f(x + r * 1.1) + " " + f(y + r * 0.8)
-         + "L" + f(x - r * 1.1) + " " + f(y + r * 0.8) + 'Z"' + a + "/>";
-  if (kind === "capsule")
-    return '<path d="M' + f(x) + " " + f(y - r * 1.25) + "L" + f(x + r * 1.25) + " " + f(y)
-         + "L" + f(x) + " " + f(y + r * 1.25) + "L" + f(x - r * 1.25) + " " + f(y) + 'Z"' + a + "/>";
-  return '<circle cx="' + f(x) + '" cy="' + f(y) + '" r="' + f(r) + '"' + a + "/>";
 }
 
 /* ── 그리기 ───────────────────────────────────────────────── */
@@ -239,7 +313,7 @@ function draw() {
   if (!st.view) fit();
   VB = viewBox();
   var vb = VB, g = [];
-  var R = 6;
+  var R = 5.6;                                  // 마커 반지름 (px)
 
   g.push('<rect x="0" y="0" width="' + vb.sw + '" height="' + vb.sh + '" class="bg"/>');
   var tl = MC.tiles.layer(vb);
@@ -252,6 +326,21 @@ function draw() {
   var acc = st.acc, ax = 0, ay = 0;
   if (acc) { ax = pX(acc.lon); ay = pY(acc.lat); }
 
+  /* 풍하방향 부채꼴 — 바람이 향하는 쪽 ±60° */
+  if (acc && st.wind !== "") {
+    var down = (+st.wind + 180) % 360;
+    var L = Math.sqrt(vb.sw * vb.sw + vb.sh * vb.sh);
+    var p0 = ray(ax, ay, down - LEE_DEG, L), p1 = ray(ax, ay, down + LEE_DEG, L);
+    g.push('<path class="lee" d="M' + ax.toFixed(1) + " " + ay.toFixed(1)
+      + "L" + p0.x.toFixed(1) + " " + p0.y.toFixed(1)
+      + "A" + L.toFixed(1) + " " + L.toFixed(1) + " 0 0 1 "
+      + p1.x.toFixed(1) + " " + p1.y.toFixed(1) + 'Z"/>');
+    var lbl = ray(ax, ay, down, Math.min(L * 0.42, vb.sh * 0.42));
+    g.push('<text class="leelbl" x="' + lbl.x.toFixed(1) + '" y="' + lbl.y.toFixed(1)
+      + '" font-size="12">풍하방향</text>');
+  }
+
+  /* 거리 눈금 */
   ringDists(vb).forEach(function (d) {
     var rr = pxLen(d, acc.lat);
     g.push('<circle class="grid" cx="' + ax.toFixed(1) + '" cy="' + ay.toFixed(1)
@@ -260,42 +349,73 @@ function draw() {
       + '" font-size="11">' + fmtDist(d) + "</text>");
   });
 
-  /* 사고지점 ↔ 고르거나 가리킨 곳 경로선. 방제자원은 장비를 싣고 차로
-     움직이므로 도보가 아니라 차량 기준 도착시간을 함께 적습니다. */
-  var focus = st.hover >= 0 ? st.show[st.hover] : (st.sel >= 0 ? st.show[st.sel] : null);
-  if (acc && focus) {
-    var fx = pX(focus.lo), fy = pY(focus.la);
-    g.push(MC.routePath(ax, ay, fx, fy));
-    g.push('<text class="linklbl" x="' + ((ax + fx) / 2).toFixed(1)
-      + '" y="' + ((ay + fy) / 2 - 9).toFixed(1) + '" font-size="12.5">'
-      + fmtDist(focus.d) + " " + dirName(focus.b) + "쪽 · "
-      + MC.trip(focus.d, "car").label + "</text>");
+  /* 영향 참고 반경 */
+  if (acc && st.radius > 0) {
+    var pr = pxLen(st.radius, acc.lat);
+    g.push('<circle class="ring" cx="' + ax.toFixed(1) + '" cy="' + ay.toFixed(1)
+      + '" r="' + pr.toFixed(1) + '"/>');
+    g.push('<text class="ringlbl" x="' + ax.toFixed(1) + '" y="' + (ay + pr - 6).toFixed(1)
+      + '" font-size="11.5">영향 참고 ' + fmtDist(st.radius) + "</text>");
   }
 
-  /* 자원 마커 — 담아 둔 것은 테두리를 굵게 해서 한눈에 보이게 한다 */
-  st.show.forEach(function (s, i) {
-    var on = i === st.sel, hv = i === st.hover, inMob = !!st.mob[keyOf(s)];
-    var cls = "rk rk-" + s.t + (on ? " on" : "") + (hv ? " hv" : "")
-            + (inMob ? " mob" : "") + (s.ap === false ? " approx" : "");
-    g.push(markerShape(s.t, pX(s.lo), pY(s.la), on ? R * 1.5 : R, cls, ' data-i="' + i + '"'));
-  });
+  /* 사고지점 ↔ 고르거나 가리킨 곳 경로선 — 거리와 함께 "걸어서 몇 분"을
+     같이 적습니다. 동원 안내에 실제로 쓰는 값은 미터가 아니라 분입니다.
 
-  var cap = vb.sw < 560 ? 8 : (vb.sw < 900 ? 14 : 22);
+     길찾기로 실제 도로 경로를 받아 왔으면 그 길을 그대로 그립니다. 그때는
+     거리도 도로를 따라 잰 값이라 우회계수를 곱하지 않습니다. */
+  var focus = st.hover >= 0 ? st.show[st.hover] : (st.sel >= 0 ? st.show[st.sel] : null);
+  if (acc && focus) {
+    var fx = pX(focus.lon), fy = pY(focus.lat);
+    var rt = st.route && st.route.key === focus.key ? st.route : null;
+    var lx, ly, txt;
+    if (rt && rt.path.length > 1) {
+      var d = "";
+      for (var pi = 0; pi < rt.path.length; pi++)
+        d += (pi ? "L" : "M") + pX(rt.path[pi].lon).toFixed(1)
+           + " " + pY(rt.path[pi].lat).toFixed(1);
+      g.push('<path class="route-cas" d="' + d + '"/>');
+      g.push('<path class="route real" d="' + d + '"/>');
+      var mid = rt.path[Math.floor(rt.path.length / 2)];
+      lx = pX(mid.lon); ly = pY(mid.lat) - 11;
+      txt = "도로 " + fmtDist(rt.dist) + " · " + MC.tripPair(rt.dist, true).label;
+    } else {
+      g.push(MC.routePath(ax, ay, fx, fy));
+      lx = (ax + fx) / 2; ly = (ay + fy) / 2 - 9;
+      txt = fmtDist(focus.d) + " " + dirName(focus.b) + "쪽 · " + MC.tripPair(focus.d).label
+          + (st.routeBusy && focus.key === (st.show[st.sel] || {}).key ? " · 길 찾는 중…" : "");
+    }
+    g.push('<text class="linklbl" x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1)
+      + '" font-size="12.5">' + esc(txt) + "</text>");
+  }
+
+  /* 방제자원 */
   st.show.forEach(function (s, i) {
-    if (i !== st.sel && i !== st.hover && !st.mob[keyOf(s)] && st.show.length > cap) return;
-    g.push('<text class="mkl' + (i === st.sel ? " on" : "") + '" x="' + pX(s.lo).toFixed(1)
-      + '" y="' + (pY(s.la) - R * 2).toFixed(1) + '" font-size="12">'
-      + esc(s.n) + (s.d != null ? " " + fmtDist(s.d) : "") + "</text>");
+    var on = i === st.sel, hv = i === st.hover;
+    g.push('<circle class="rk rk-' + s.t + (s.ap === "sgg" || s.ap === "sido" ? " approx" : "")
+      + (s.inRing ? " in" : "") + (s.lee ? " lee" : "")
+      + (on ? " on" : "") + (hv ? " hv" : "") + '" cx="' + pX(s.lon).toFixed(1)
+      + '" cy="' + pY(s.lat).toFixed(1) + '" r="' + (on ? R * 1.6 : R).toFixed(1)
+      + '" data-i="' + i + '"/>');
+  });
+  /* 이름 — 고른 곳·가리킨 곳은 항상, 그 외에는 개수가 적을 때만 */
+  var cap = vb.sw < 560 ? 10 : (vb.sw < 900 ? 18 : 26);
+  st.show.forEach(function (s, i) {
+    if (i !== st.sel && i !== st.hover && st.show.length > cap) return;
+    g.push('<text class="mkl' + (i === st.sel ? " on" : "") + '" x="' + pX(s.lon).toFixed(1)
+      + '" y="' + (pY(s.lat) - R * 2).toFixed(1) + '" font-size="12">'
+      + esc(s.name) + (s.d != null ? " " + fmtDist(s.d) : "") + "</text>");
   });
   if (st.show.length > cap)
     g.push('<text class="mkh" x="' + (vb.sw / 2) + '" y="' + (vb.sh - 10)
       + '" font-size="11">확대하거나 목록에서 가리키면 이름이 보입니다</text>');
 
   /* 내 위치가 사고지점과 사실상 같은 자리인가 — 내 위치 단추로 찍은 직후가
-     늘 그렇습니다. 마커와 라벨을 겹쳐 그리지 않고 십자 하나로 합칩니다. */
+     늘 그렇습니다. 이때 십자와 파란 점, 라벨 두 개를 겹쳐 그리면 무엇이
+     무엇인지 알아볼 수 없게 됩니다. 십자 하나로 합치고 라벨에 둘 다 적습니다. */
   var meIsAcc = !!(st.me && acc
     && distM(acc.lat, acc.lon, st.me.lat, st.me.lon) <= Math.max(st.me.acc || 0, 25));
 
+  /* 사고지점 — 십자 */
   if (acc) {
     var L2 = 13;
     g.push('<line class="acc" x1="' + (ax - L2).toFixed(1) + '" y1="' + ay.toFixed(1)
@@ -307,7 +427,9 @@ function draw() {
       + '" font-size="12">사고지점' + (meIsAcc ? " · 내 위치" : "") + "</text>");
   }
 
-  /* 내 위치 — 맨 나중에 그려 무엇에도 가리지 않게 한다 (②와 같은 방식) */
+  /* 내 위치 — 맨 나중에 그려 무엇에도 가리지 않게 한다.
+     단말이 알려 준 오차 범위를 옅은 원으로 함께 그린다. 실내에서는 이 원이
+     수백 미터로 커지는데, 그게 보여야 좌표를 곧이곧대로 믿지 않는다. */
   if (st.me) {
     var mx = pX(st.me.lon), my = pY(st.me.lat);
     if (st.me.acc > 0) {
@@ -315,6 +437,7 @@ function draw() {
       if (ar > 6) g.push('<circle class="meacc" cx="' + mx.toFixed(1) + '" cy="'
         + my.toFixed(1) + '" r="' + Math.min(ar, vb.sw).toFixed(1) + '"/>');
     }
+    /* 사고지점과 같은 자리면 십자에 맡기고 점·라벨은 그리지 않는다 */
     if (!meIsAcc) {
       g.push('<circle class="mepulse" cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="19"/>');
       g.push('<circle class="me" cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="6.6"/>');
@@ -328,263 +451,499 @@ function draw() {
   drawScale(vb);
 }
 
+/* 방위각 deg 로 길이 L 만큼 간 화면 좌표 (북=0, 화면 y 는 아래로 증가) */
+function ray(x, y, deg, L) {
+  var a = deg * Math.PI / 180;
+  return { x: x + Math.sin(a) * L, y: y - Math.cos(a) * L };
+}
+
 function drawScale(vb) {
   var s = MC.scale(vb);
   $("#scaleBar").style.width = s.px + "px";
   $("#scaleTxt").textContent = s.label;
 }
 
+/* 눌린 곳에서 가장 가까운 마커 (없으면 -1)
+   마커마다 click 을 걸지 않는 이유: 끌기를 위해 포인터를 캡처하면 그 뒤의
+   이벤트가 모두 <svg> 로 향하므로 마커의 click 이 오지 않습니다. */
 function hitMarker(clientX, clientY) {
   var rc = SVG.getBoundingClientRect();
   var best = -1, bd = 1e9, TH = 18;
   st.show.forEach(function (s, i) {
-    var dx = rc.left + pX(s.lo) - clientX, dy = rc.top + pY(s.la) - clientY;
+    var dx = rc.left + pX(s.lon) - clientX, dy = rc.top + pY(s.lat) - clientY;
     var d = Math.sqrt(dx * dx + dy * dy);
     if (d < bd) { bd = d; best = i; }
   });
   return bd <= TH ? best : -1;
 }
 
-/* ── 요약 줄 — 종류별로 가장 가까운 곳 ──────────────────────────
-   ②는 "가장 가까운 대피장소 하나"가 답이지만, 방제자원은 종류마다 하나씩
-   필요합니다(폐기물 처리업체를 열 곳 아는 것보다, 네 종류를 하나씩 아는 게
-   쓸모 있습니다). 그래서 종류별 최근접을 한 줄로 보여주고, 누르면 그 자원이
-   바로 선택됩니다. */
+/* ── 요약 줄 ──────────────────────────────────────────────────
+   "이 근방에 무엇이 있나"를 한 줄로 답합니다. 목록을 다 훑지 않아도
+   가장 가까운 곳과 거리 구간별 개수가 바로 보이게 하려는 것입니다. */
+var BANDS = [5000, 10000, 20000];
+
+/* 지금보다 한 칸 넓은 반경. 관내만 보고 있으면(범위 미지정) 5km 부터.
+   더 넓힐 곳이 없으면 "" 를 돌려준다. */
+var SCOPES = ["5000", "10000", "20000", "50000", "100000"];
+function nextScope() {
+  if (!st.scope) return "20000";
+  var i = SCOPES.indexOf(st.scope);
+  return i >= 0 && i + 1 < SCOPES.length ? SCOPES[i + 1] : "";
+}
+function setScope(v) {
+  st.scope = v;
+  $("#mScope").value = v;
+  if (st.sort === "name") { st.sort = "dist"; $("#mSort").value = "dist"; }
+  refresh(true);
+}
+
+/* 사고지점이 어디인지 글로도 적는다 — 좌표만 있으면 문자에 쓸 수 없고,
+   문자로 넘기기 전에 맞는 자리인지 눈으로 확인할 방법도 없다.
+   행정경계로 어림잡은 값은 '대략'이라고 적어 확정값과 구분한다. */
+function accChip() {
+  var a = st.accAddr;
+  if (!a) return "";
+  var txt = [a.sgg, a.emd, (a.road + " " + (a.no || "")).trim()]
+    .filter(Boolean).join(" ");
+  if (!txt) return "";
+  return '<span class="ms-acc"><b>사고지점</b>' + esc(txt)
+    + (a.exact ? "" : '<i title="행정경계와 가까운 방제자원 주소로 어림잡은 값입니다">대략</i>')
+    + "</span>";
+}
+
 function renderSummary() {
   var el = $("#mSum");
-  if (!st.acc) { el.hidden = true; return; }
+  /* 빈 상태에서는 좁은 화면의 '한 줄 가로 스크롤'을 풀어야 한다 —
+     안내 문구가 길어 단추가 화면 오른쪽 밖으로 밀려나기 때문이다. */
+  el.classList.toggle("is-empty", !st.all.length);
+
+  if (!st.acc || !st.all.length) {
+    el.hidden = !st.acc;
+    if (st.acc) {
+      /* 안내만 하고 끝내면 정작 '찾는 범위' 고르는 칸은 오른쪽 목록 안에 있어,
+         좁은 화면에서는 지도 아래로 한참 내려가야 보입니다. 여기서 바로
+         넓힐 수 있게 단추를 둡니다. */
+      var next = nextScope();
+      el.innerHTML = accChip()
+        + '<span class="ms-none">사고지점 주변에 표시할 방제자원가 없습니다.</span>'
+        + (next
+            ? '<button type="button" class="ms-more noprint">반경 '
+              + fmtDist(+next) + " 안에서 찾기</button>"
+            : '<span class="ms-none">가장 넓은 범위(100km)에도 등록된 방제자원이 없습니다.</span>');
+      var wide = $(".ms-more", el);
+      if (wide) wide.onclick = function () { setScope(next); };
+    }
+    return;
+  }
   el.hidden = false;
 
+  var sorted = st.all.slice().sort(function (a, b) { return a.d - b.d; });
+  var near = sorted[0];
   var parts = [];
-  KINDS.forEach(function (k) {
-    var pool = (window.RESOURCES || []).filter(function (s) { return s.t === k.id; });
-    if (!pool.length) return;
-    var near = null, nd = Infinity;
-    pool.forEach(function (s) {
-      var d = distM(st.acc.lat, st.acc.lon, s.la, s.lo);
-      if (d < nd) { nd = d; near = s; }
-    });
-    if (!near) return;
-    var off = !st.kinds[k.id];
-    parts.push('<button type="button" class="ms-k' + (off ? " z" : "") + '" data-k="'
-      + esc(k.id) + '" data-key="' + esc(keyOf(near)) + '" title="'
-      + esc(near.n) + " — " + esc(k.쓰임) + '">'
-      + '<i class="rkdot rk-' + k.id + '"></i>' + esc(k.이름.replace(/ (업체|판매업체|보유기관|처리업체)$/, ""))
-      + " <em>" + fmtDist(nd) + " · " + MC.trip(nd, "car").label + "</em></button>");
-  });
+  parts.push(accChip());
+  parts.push('<span class="ms-near"><b>가장 가까운 곳</b>' + esc(near.name)
+    + '<em>' + fmtDist(near.d) + " " + dirName(near.b) + "쪽 · "
+    + MC.tripPair(near.d).label + "</em></span>");
 
-  el.innerHTML = '<span class="ms-near"><b>가장 가까운 곳</b></span>'
-    + '<span class="ms-bands">' + parts.join("") + "</span>"
-    + '<span class="ms-note">직선거리로 어림한 값 · 연락 전 가동 여부를 확인하세요</span>';
-
-  $$(".ms-k", el).forEach(function (b) {
-    b.onclick = function () { jumpToKey(b.dataset.k, b.dataset.key); };
-  });
-}
-
-/* 요약 줄에서 종류를 누르면 — 꺼져 있던 종류면 켜고, 그 자원을 골라 보여준다 */
-function jumpToKey(kind, key) {
-  if (!st.kinds[kind]) { st.kinds[kind] = true; renderChips(); }
-  if (!st.scope) {                       // 관내에 없을 수 있으므로 반경으로 넓힌다
-    var t = window.RESOURCES.filter(function (s) { return keyOf(s) === key; })[0];
-    if (t) {
-      var d = distM(st.acc.lat, st.acc.lon, t.la, t.lo);
-      var pick = ["10000", "20000", "50000", "100000"].filter(function (v) { return +v >= d; })[0];
-      if (pick) { st.scope = pick; $("#mScope").value = pick; }
-    }
-  }
-  if (st.sort !== "dist") { st.sort = "dist"; $("#mSort").value = "dist"; }
-  recompute(); renderList(); renderLegend();
-  var i = -1;
-  st.show.forEach(function (s, k) { if (keyOf(s) === key) i = k; });
-  if (i >= 0) select(i, false);
-  else { draw(); }
-}
-
-/* ── 종류 칩 ──────────────────────────────────────────────── */
-function renderChips() {
-  $("#rKinds").innerHTML = KINDS.map(function (k) {
-    return '<button type="button" class="rk-chip" data-k="' + esc(k.id) + '"'
-      + ' aria-pressed="' + (st.kinds[k.id] ? "true" : "false") + '"'
-      + ' title="' + esc(k.쓰임) + '">'
-      + '<i class="rkdot rk-' + k.id + '"></i>' + esc(k.이름) + "</button>";
+  var bands = BANDS.map(function (m) {
+    var n = sorted.filter(function (s) { return s.d <= m; }).length;
+    return '<span class="ms-b' + (n ? "" : " z") + '">' + fmtDist(m) + " 안 <b>" + n + "</b>곳</span>";
   }).join("");
-  $$("#rKinds .rk-chip").forEach(function (b) {
+  parts.push('<span class="ms-bands">' + bands + "</span>");
+
+  if (st.radius > 0) {
+    var inR = st.all.filter(function (s) { return s.inRing; }).length;
+    parts.push('<span class="ms-warn' + (inR ? " on" : "") + '">영향 참고 반경 '
+      + fmtDist(st.radius) + " 안 <b>" + inR + "</b>곳"
+      + (inR ? " · 영향권일 수 있으니 확인하세요" : "") + "</span>");
+  }
+  if (st.wind !== "") {
+    var lee = st.all.filter(function (s) { return s.lee; }).length;
+    parts.push('<span class="ms-b">풍하방향 <b>' + lee + "</b>곳</span>");
+  }
+
+  /* 관내만 보고 있으면, 반경 안에 다른 시·군·구 방제자원가 더 있는지 알려준다.
+     경계 근처 사고에서 더 가까운 곳을 놓치지 않게 하려는 것입니다. */
+  if (!st.scope) {
+    var have = {};
+    st.all.forEach(function (s) { have[s.key] = true; });
+    var more = allRes().filter(function (s) {
+      return !have[s.key] && distM(st.acc.lat, st.acc.lon, s.lat, s.lon) <= 20000;
+    }).length;
+    if (more)
+      parts.push('<button type="button" class="ms-more noprint">반경 20km 안 다른 시·군·구에 '
+        + more + "곳 더 있습니다 · 범위 넓히기</button>");
+  }
+
+  el.innerHTML = parts.join("");
+  var b = $(".ms-more", el);
+  if (b) b.onclick = function () { setScope("20000"); };
+}
+
+/* ── 가까운 3곳 ───────────────────────────────────────────────
+   오른쪽에 전체 목록이 있는데도 지도 위에 세 줄을 따로 띄우는 이유는,
+   급할 때 필요한 것이 "훑어볼 목록"이 아니라 "그래서 어디로 보내면 되는가"
+   이기 때문입니다. 지도에서 눈을 떼지 않고 읽고, 눌러서 바로 경로선까지
+   보게 합니다.
+
+   여기 숫자는 검색어(st.q)와 무관하게 항상 실제 최근접 3곳입니다 —
+   목록을 걸러 놓은 상태에서 "가장 가까운 곳"이 달라져 보이면, 그게 곧
+   잘못된 동원 안내가 됩니다. */
+function renderNear() {
+  var el = $("#mNear");
+  if (!st.acc || !st.all.length) { el.hidden = true; return; }
+  var top = st.all.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 3);
+  el.hidden = false;
+  el.classList.toggle("folded", st.nearFold);
+
+  /* 머리표는 접기·펴기 단추 자체입니다 — 닫아 놓고 되돌릴 방법이 없으면 안 됩니다 */
+  var head = '<button type="button" class="mnear-h" id="mNearH" aria-expanded="'
+    + (st.nearFold ? "false" : "true") + '">'
+    + '<b>가까운 방제자원</b> ' + top.length + "곳"
+    + '<svg class="mnear-c" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M6 9l6 6 6-6"/></svg></button>';
+
+  if (st.nearFold) {
+    el.innerHTML = head;
+    $("#mNearH").onclick = function () { st.nearFold = false; renderNear(); };
+    return;
+  }
+
+  el.innerHTML = head
+    + top.map(function (s, n) {
+        var t = MC.tripPair(s.d);
+        var i = st.show.indexOf(s);                 // 목록에서 걸러졌으면 -1
+        return '<button type="button" class="mnear-it' + (i >= 0 && i === st.sel ? " on" : "")
+          + '" data-k="' + esc(s.key) + '">'
+          + '<span class="mnear-r"><i class="mnear-n">' + (n + 1) + "</i>"
+          + "<b>" + esc(s.name) + '</b><span class="mnear-d">' + fmtDist(s.d) + "</span></span>"
+          + '<span class="mnear-t"><em>' + t.label + "</em> · " + dirName(s.b) + "쪽"
+          + (s.cap ? " · 수용 " + Number(s.cap).toLocaleString() + "명" : "") + "</span>"
+          + "</button>";
+      }).join("")
+    + '<p class="mnear-note">직선거리를 도로 사정에 맞춰 늘려 잡은 어림값입니다. '
+    + "실제 소요시간은 지형·통제 상황에 따라 달라집니다.</p>";
+
+  $("#mNearH").onclick = function () { st.nearFold = true; renderNear(); };
+  $$(".mnear-it", el).forEach(function (b) {
     b.onclick = function () {
-      st.kinds[b.dataset.k] = !st.kinds[b.dataset.k];
-      /* 전부 꺼 두면 화면이 비어 당황하게 되므로 최소 하나는 남긴다 */
-      if (!KINDS.some(function (k) { return st.kinds[k.id]; })) st.kinds[b.dataset.k] = true;
-      renderChips(); refresh(false);
+      /* 검색어 때문에 목록에서 빠져 있으면 먼저 검색을 비운다 —
+         눌렀는데 아무 일도 안 일어나는 것처럼 보이면 안 된다. */
+      var find = function () {
+        return st.show.map(function (s) { return s.key; }).indexOf(b.dataset.k);
+      };
+      if (find() < 0) { st.q = ""; $("#mQ").value = ""; recompute(); renderList(); }
+      var i = find();
+      if (i >= 0) select(i, false);
     };
   });
 }
 
-/* ── 목록 ─────────────────────────────────────────────────── */
-function telLink(num, cls) {
-  var t = String(num || "").trim();
-  if (!t) return "";
-  return '<a class="' + cls + '" href="tel:' + esc(t.replace(/[^0-9+]/g, "")) + '">'
-    + esc(t) + "</a>";
+/* 어디 소속인지 보이게 시·군·구를 앞에 붙인다 — 반경으로 찾으면 여러 시·군·구가
+   섞이기 때문이다. 원자료의 주소는 시·군·구가 빠진 것이 원칙이지만 들어 있는
+   행도 있어, 이미 있으면 덧붙이지 않는다("남구 광주 남구 …" 방지). */
+function placeOf(s) {
+  var addr = String(s.addr || "");
+  return addr.indexOf(s.sgg) >= 0 ? addr : (s.sgg + " " + addr).trim();
 }
 
+/* 한 곳의 이동시간 한 줄. 실제 도로 경로를 받아 온 곳만 그 값을 쓰고,
+   나머지는 직선 어림값입니다. 둘을 눈으로 구분할 수 있어야 하므로 실제
+   경로에는 표시를 붙입니다 — 어림값을 확정된 값으로 오해하면 안 됩니다. */
+function tripLine(s) {
+  var rt = st.route && st.route.key === s.key ? st.route : null;
+  if (rt) return '<em>' + MC.tripPair(rt.dist, true).label + "</em>"
+    + ' <span class="l6-tag">실제 도로 ' + fmtDist(rt.dist) + "</span>";
+  var t = MC.tripPair(s.d);
+  return "<em>" + t.label + "</em>"
+    + (!t.walk ? " · 걸어서 가기 어려운 거리" : " · 직선거리로 어림한 값");
+}
+
+/* 좌표가 얼마나 정확한지 — 원자료에 좌표가 없어 주소로 잡은 어림값이다.
+   "여기서 3km"라고 믿고 차를 보내는 판단을 하게 되므로, 어디까지 믿을
+   수 있는지 보이지 않으면 안 된다. */
+function accTag(s) {
+  if (!s.ap || s.ap === "exact" || s.ap === "road") return "";
+  var t = { emd: "읍·면·동 단위 위치", sgg: "시·군·구 단위 위치",
+            sido: "시·도 단위 위치", port: "항만 위치", base: "유역 거점" }[s.ap];
+  if (!t) return "";
+  return ' <span class="ap-tag" title="' + esc(ACCNOTE[s.ap] || "")
+    + '">' + esc(t) + "</span>";
+}
+
+/* 번호 줄 — 급할 때는 눌러서 바로 걸려야 한다.
+   번호가 없는 곳은 비워 두지 않고 "번호 확인 필요"라고 적는다. 원자료에
+   번호가 없거나 개인 휴대전화뿐이라 싣지 않은 것이며, 화면이 조용하면
+   담당자는 번호가 있는 줄 알고 찾다가 시간을 버린다. */
+function telRow(s) {
+  if (s.tel) {
+    return '<div class="l3"><a class="rs-num" href="tel:'
+      + esc(s.tel.replace(/[^0-9+]/g, "")) + '">' + esc(s.tel) + "</a>"
+      + (s.detail ? ' <span class="rs-dept">' + esc(s.detail) + "</span>" : "") + "</div>";
+  }
+  if (s.agency) {
+    return '<div class="l3"><span class="rs-none">대표번호 없음</span> '
+      + esc(s.agency) + " 문의</div>";
+  }
+  return '<div class="l3"><span class="rs-none">번호 확인 필요</span> '
+    + "원자료에 사업장 번호가 없습니다</div>";
+}
+
+function anyFilterOff() {
+  return KINDS.some(function (k) { return !st.kinds[k.id]; })
+      || NEEDS.some(function (n) { return st.needs[n.id]; });
+}
+
+/* ── 자원 종류 · 필요한 것 거르개 ─────────────────────────────
+   종류는 "무엇을 가진 곳인가", 필요한 것은 "지금 나에게 무엇이 필요한가"
+   입니다. 담당자는 보통 종류를 모르고 필요한 물건만 압니다("굴착기가
+   필요한데 어디 있지"). 그래서 둘 다 둡니다. */
+function renderFilters() {
+  var kb = $("#rKinds");
+  if (kb) {
+    kb.innerHTML = KINDS.map(function (k) {
+      var n = allRes().filter(function (s) { return s.t === k.id; }).length;
+      return '<button type="button" class="rk-chip" data-k="' + esc(k.id) + '"'
+        + ' aria-pressed="' + (st.kinds[k.id] ? "true" : "false") + '"'
+        + ' title="' + esc(k.쓰임) + '">'
+        + '<i class="rkdot rk-' + esc(k.id) + '"></i>' + esc(k.이름)
+        + '<span class="rk-n">' + n + "</span></button>";
+    }).join("");
+    $$("#rKinds .rk-chip").forEach(function (b) {
+      b.onclick = function () {
+        st.kinds[b.dataset.k] = !st.kinds[b.dataset.k];
+        /* 전부 끄면 지도가 텅 빈다 — 마지막 하나는 다시 켠다 */
+        if (!KINDS.some(function (k) { return st.kinds[k.id]; }))
+          st.kinds[b.dataset.k] = true;
+        refresh();
+      };
+    });
+  }
+
+  var nb = $("#rNeeds");
+  if (nb) {
+    nb.innerHTML = NEEDS.map(function (n) {
+      return '<button type="button" class="rk-chip need" data-n="' + esc(n.id) + '"'
+        + ' aria-pressed="' + (st.needs[n.id] ? "true" : "false") + '"'
+        + ' title="' + esc(n.설명) + '">' + esc(n.이름) + "</button>";
+    }).join("");
+    $$("#rNeeds .rk-chip").forEach(function (b) {
+      b.onclick = function () {
+        st.needs[b.dataset.n] = !st.needs[b.dataset.n];
+        refresh();
+      };
+    });
+  }
+}
+
+/* ── 동원 목록 ────────────────────────────────────────────────
+   여러 곳에 연달아 전화를 걸어야 하는 일이라, 고른 곳을 담아 두었다가
+   이름·번호·거리를 한 번에 복사해 상황실 기록으로 넘깁니다. */
+function toggleMob(s) {
+  if (!s) return;
+  if (st.mob[s.key]) delete st.mob[s.key];
+  else st.mob[s.key] = s;
+  renderMob(); renderList();
+}
+
+function mobList() {
+  return Object.keys(st.mob).map(function (k) { return st.mob[k]; });
+}
+
+function renderMob() {
+  var el = $("#rMob");
+  if (!el) return;
+  var rows = mobList();
+  el.hidden = !rows.length;
+  if (!rows.length) return;
+  el.innerHTML = '<span class="mob-n">동원 목록 <b>' + rows.length + "</b>곳</span>"
+    + rows.map(function (s) {
+        return '<span class="mob-it">' + esc(s.name)
+          + '<button type="button" class="mob-x" data-k="' + esc(s.key)
+          + '" aria-label="빼기">✕</button></span>';
+      }).join("")
+    + '<span class="mob-act">'
+    + '<button type="button" class="sm p" id="mobCopy">목록 복사</button>'
+    + '<button type="button" class="sm" id="mobClear">비우기</button></span>';
+
+  $$("#rMob .mob-x").forEach(function (b) {
+    b.onclick = function () { delete st.mob[b.dataset.k]; renderMob(); renderList(); draw(); };
+  });
+  $("#mobCopy").onclick = function () { copyText(mobText(), $("#mobCopy")); };
+  $("#mobClear").onclick = function () { st.mob = {}; renderMob(); renderList(); draw(); };
+}
+
+function mobText() {
+  var d = new Date();
+  var p = function (n) { return (n < 10 ? "0" : "") + n; };
+  var L = ["화학사고 방제자원 동원 목록",
+           "작성 " + d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate())
+           + " " + p(d.getHours()) + ":" + p(d.getMinutes())];
+  if (st.acc) L.push("사고지점 " + st.acc.lat + ", " + st.acc.lon);
+  L.push("");
+  mobList().sort(function (a, b) { return (a.d || 0) - (b.d || 0); })
+    .forEach(function (s, i) {
+      L.push((i + 1) + ". " + s.name + " (" + s.kind + ")");
+      L.push("   " + placeOf(s));
+      L.push("   " + (s.tel ? "대표 " + s.tel
+                            : s.agency ? s.agency + " 문의" : "번호 확인 필요"));
+      L.push("   보유 " + s.c);
+      if (s.d != null) L.push("   사고지점에서 " + fmtDist(s.d) + " "
+                              + dirName(s.b) + "쪽 · " + MC.tripPair(s.d).label);
+      L.push("");
+    });
+  L.push("※ 거리는 직선거리 어림값이고 보유 수량은 원자료 제출 시점의 것입니다.");
+  L.push("   동원 전 전화로 가동 여부와 보유 상태를 확인하세요.");
+  return L.join("\n");
+}
+
+/* ── 목록 ─────────────────────────────────────────────────── */
 function renderList() {
   var acc = st.acc;
   $("#listCnt").textContent = st.all.length
     ? (st.q ? st.show.length + " / " + st.all.length + "곳" : st.all.length + "곳") : "";
 
   if (!st.show.length) {
-    $("#resList").innerHTML = '<p class="ms-empty">'
+    $("#shList").innerHTML = '<p class="ms-empty">'
       + (!st.sido && !st.sgg && !st.scope
-          ? "시·도와 시·군·구를 고르세요.<br>사고지점을 찍은 뒤 <b>찾는 범위</b>를 반경으로 바꾸면 행정구역과 상관없이 찾습니다."
+          ? "시·도와 시·군·구를 고르세요.<br>사고지점을 찍으면 반경 20km 안을 행정구역과 상관없이 찾습니다."
          : st.q ? "‘" + esc(st.q) + "’ 과(와) 맞는 곳이 없습니다."
-         : "선택한 범위에 등록된 방제자원이 없습니다.<br>범위를 넓히거나 자원 종류를 더 켜 보세요.")
-      + "</p>";
+         : anyFilterOff()
+           ? "고른 조건에 맞는 방제자원이 없습니다.<br>위의 <b>자원 종류</b>나 <b>필요한 것</b>을 넓혀 보세요."
+           : "선택한 범위에 등록된 방제자원이 없습니다.") + "</p>";
     return;
   }
 
+  /* 거리 막대 — 줄끼리 견주어 보라고 넣습니다. 가장 먼 곳을 100 으로 둡니다 */
   var maxD = 0;
   if (acc) st.show.forEach(function (s) { maxD = Math.max(maxD, s.d); });
 
-  $("#resList").innerHTML = st.show.map(function (s, i) {
-    var on = i === st.sel, inMob = !!st.mob[keyOf(s)];
+  $("#shList").innerHTML = st.show.map(function (s, i) {
+    var on = i === st.sel;
     var bar = acc && maxD
       ? '<div class="ms-bar"><i style="width:' + Math.max(2, Math.round(s.d / maxD * 100)) + '%"></i></div>'
       : "";
-    return '<div class="ms-it rs-it' + (on ? " on" : "") + (inMob ? " inmob" : "")
+    return '<div class="ms-it' + (on ? " on" : "") + (s.inRing ? " ring" : "")
       + '" data-i="' + i + '" role="button" tabindex="0" aria-pressed="' + (on ? "true" : "false") + '">'
-      + '<div class="l1"><i class="rkdot rk-' + s.t + '"></i><b>' + esc(s.n) + "</b>"
+      + '<div class="l1"><i class="rkdot rk-' + esc(s.t) + '"></i><b>' + esc(s.name) + "</b>"
+      + (s.detail ? '<span class="dt">' + esc(s.detail) + "</span>" : "")
       + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
       + "</div>" + bar
-      + (acc ? '<div class="l6"><em>' + MC.trip(s.d, "car").label
-               + "</em> · 장비 상·하차 시간은 빠져 있습니다</div>" : "")
-      + '<div class="rs-cap">' + esc(s.c || "") + "</div>"
-      + '<div class="l2">' + esc(placeOf(s))
-      + (s.ap === false ? ' <span class="rs-approx">대략 위치</span>' : "") + "</div>"
-      + '<div class="rs-tel">'
-        + '<span class="rs-t1">대표</span>' + telLink(s.tel, "rs-num")
-        + (s.p ? '<span class="rs-t1 rs-in">담당 ' + esc(s.p.n) + "</span>"
-                 + telLink(s.p.t, "rs-num rs-num-in") : "")
-      + "</div>"
-      + (on ? '<div class="l4 noprint">'
-              + '<button class="sm ' + (inMob ? "" : "p ") + 'rs-mob" type="button" data-mob="' + i + '">'
-              + (inMob ? "동원 목록에서 빼기" : "동원 목록에 담기") + "</button>"
-              + '<button class="sm" type="button" data-cp="' + i + '">정보 복사</button>'
-              + "</div>" : "")
+      + (acc ? '<div class="l6">' + tripLine(s) + "</div>" : "")
+      + '<div class="l2">' + esc(placeOf(s)) + accTag(s) + "</div>"
+      + '<div class="l7">' + esc(s.c) + "</div>"
+      + (s.inRing || s.lee
+          ? '<div class="l5">'
+            + (s.inRing ? '<span class="tag danger">영향 참고 반경 안</span>' : "")
+            + (s.lee ? '<span class="tag lee">풍하방향</span>' : "") + "</div>" : "")
+      + telRow(s)
+      + (on ? '<div class="l4">' + MC.extLinks(s)
+              + '<span class="ms-cp noprint">'
+              + '<button class="sm" type="button" data-cp="' + i + '">이름 복사</button>'
+              + '<button class="sm" type="button" data-cpa="' + i + '">이름+주소 복사</button>'
+              + '<button class="sm' + (st.mob[s.key] ? " p" : "") + '" type="button" data-mob="'
+              + i + '">' + (st.mob[s.key] ? "동원 목록에서 빼기" : "동원 목록에 담기")
+              + "</button></span></div>" : "")
       + "</div>";
   }).join("");
 
-  $$("#resList .ms-it").forEach(function (el) {
+  $$("#shList button[data-mob]").forEach(function (b) {
+    b.onclick = function (e) {
+      e.stopPropagation();
+      toggleMob(st.show[+b.dataset.mob]);
+    };
+  });
+  $$("#shList .ms-it").forEach(function (el) {
     var i = +el.dataset.i;
     el.onclick = function (e) {
       if (e.target.tagName === "A" || e.target.tagName === "BUTTON") return;
       select(i, false);
     };
     el.onkeydown = function (e) {
-      if (e.target.tagName === "A") return;
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(i, false); }
     };
     el.onmouseenter = function () { st.hover = i; draw(); showAddr(); };
     el.onmouseleave = function () { if (st.hover === i) { st.hover = -1; draw(); showAddr(); } };
   });
-  $$("#resList button[data-mob]").forEach(function (b) {
-    b.onclick = function (e) { e.stopPropagation(); toggleMob(st.show[+b.dataset.mob]); };
+  $$("#shList button[data-cp], #shList button[data-cpa]").forEach(function (btn) {
+    btn.onclick = function (e) {
+      e.stopPropagation();
+      var full = btn.hasAttribute("data-cpa");
+      var s = st.show[+(btn.dataset.cp != null ? btn.dataset.cp : btn.dataset.cpa)];
+      copyText(full ? s.name + " (" + placeOf(s) + ")" : s.name, btn);
+    };
   });
-  $$("#resList button[data-cp]").forEach(function (b) {
-    b.onclick = function (e) { e.stopPropagation(); copyText(oneLine(st.show[+b.dataset.cp]), b); };
+}
+
+/* ── 도보 경로 ────────────────────────────────────────────────
+   직선은 "어느 쪽으로 얼마나"는 알려 주지만 걸어서 갈 수 있는 길인지는
+   알려 주지 못합니다. 강·철길·고속도로가 사이에 있으면 직선으로는 가까워도
+   한참 돌아가야 합니다. 고른 곳 하나에 대해서만 실제 경로를 받아옵니다.
+
+   못 받아 오면 지금까지처럼 직선을 그립니다 — 경로가 없다고 아무것도 안
+   그리면 화면이 더 나빠집니다. 목록과 '가까운 3곳'은 직선 어림값 그대로
+   둡니다. 고를 때마다 세 건씩 더 부르면 느려지고, 급할 때 필요한 것은
+   목록의 정밀도가 아니라 지금 고른 한 곳의 실제 길입니다. */
+var routeAbort = null, routeSeq = 0;
+function requestRoute() {
+  if (routeAbort) { routeAbort(); routeAbort = null; }
+  routeSeq++;
+  st.route = null; st.routeErr = null; st.routeBusy = false;
+
+  var s = st.sel >= 0 ? st.show[st.sel] : null;
+  if (!s || !st.acc || !st.walk || !window.ONLINE) return;
+
+  var seq = routeSeq;
+  st.routeBusy = true;
+  routeAbort = ONLINE.route(st.acc, { lat: s.lat, lon: s.lon }, function (r, err) {
+    if (seq !== routeSeq) return;               // 그새 다른 곳을 골랐다
+    routeAbort = null;
+    st.routeBusy = false;
+    st.route = r ? { key: s.key, path: r.path, dist: r.dist } : null;
+    st.routeErr = err;
+    draw(); showAddr(); renderList();
   });
 }
 
 function select(i, fromMap) {
   st.sel = (st.sel === i ? -1 : i);
-  renderList(); draw(); showAddr();
+  requestRoute();
+  renderList(); renderNear(); renderToSms(); draw(); showAddr();
   if (st.sel >= 0 && !fromMap) moveTo(st.show[st.sel]);
   if (st.sel >= 0 && fromMap) {
-    var el = $('#resList .ms-it[data-i="' + st.sel + '"]');
+    var el = $('#shList .ms-it[data-i="' + st.sel + '"]');
     if (el) el.scrollIntoView({ block: "nearest" });
   }
 }
 
+/* 지도 위 주소 표시 — 지금 보고 있는 곳이 어딘지 확인용 */
 function showAddr() {
   var el = $("#mAddr");
   var s = st.hover >= 0 ? st.show[st.hover] : (st.sel >= 0 ? st.show[st.sel] : null);
   if (!s) { el.hidden = true; return; }
   el.hidden = false;
-  el.innerHTML = "<b>" + esc(s.n) + "</b>"
-    + " <i>" + esc(KIND_NAME[s.t] || "") + "</i>"
+  el.innerHTML = "<b>" + esc(s.name) + "</b>"
+    + (s.detail ? " <i>" + esc(s.detail) + "</i>" : "")
     + "<span>" + esc(placeOf(s)) + "</span>"
-    + (s.c ? "<span>" + esc(s.c) + "</span>" : "")
-    + (s.d != null ? "<em>사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽</em>" : "");
-}
-
-/* 종류 이름을 앞머리와 꼬리로 나눠 둔다("폐기물" + " 처리업체").
-   좁은 화면에서는 CSS 가 꼬리를 감춰 범례가 한 줄에 들어간다 — 네 종류를
-   전부 풀어 쓰면 세 줄(83px)이 되어 작은 지도의 22%를 덮었다.
-   긴 이름은 오른쪽 목록의 종류 칩에 그대로 남아 있다. */
-function legendName(name) {
-  var m = /^(.*?)( (?:판매업체|처리업체|보유기관|업체))$/.exec(name);
-  if (!m) return esc(name);
-  return esc(m[1]) + '<i class="lg-t">' + esc(m[2]) + "</i>";
+    + (s.cap ? "<em>수용 " + Number(s.cap).toLocaleString() + "명</em>" : "")
+    + (s.d != null ? "<em>사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽</em>" : "")
+    + (st.route && st.route.key === s.key
+        ? "<em>도로 " + fmtDist(st.route.dist) + " · "
+          + MC.tripPair(st.route.dist, true).label + "</em>"
+        : (st.routeBusy && st.sel >= 0 && st.show[st.sel] === s ? "<em>길 찾는 중…</em>" : ""));
 }
 
 function renderLegend() {
   var it = KINDS.filter(function (k) { return st.kinds[k.id]; }).map(function (k) {
-    return '<span><i class="rkdot rk-' + k.id + '"></i>' + legendName(k.이름) + "</span>";
+    return '<span><i class="rkdot rk-' + k.id + '"></i>'
+      + esc(k.이름.replace(/\(ERCV\)|업체|센터$/g, "").trim() || k.이름) + "</span>";
   });
-  if (st.acc) it.push('<span><i class="dot ac"></i>사고지점</span>');
-  if (st.me) it.push('<span><i class="dot me"></i>내 위치</span>');
-  if (st.acc && st.rings) it.push('<span><i class="dot gr"></i>거리 눈금</span>');
+  if (st.acc) it.push('<span><i class="dot acc"></i>사고지점</span>');
+  if (st.rings && st.acc) it.push('<span><i class="dot grid"></i>거리 눈금</span>');
   $("#mLeg").innerHTML = it.join("");
 }
 
-/* ── 동원 목록 ────────────────────────────────────────────────
-   여러 곳을 담아 한 번에 복사합니다. 상황실 보고나 무전으로 부를 때
-   업체명·연락처·거리를 하나씩 옮겨 적는 수고를 덜기 위한 것입니다. */
-function toggleMob(s) {
-  var k = keyOf(s);
-  if (st.mob[k]) delete st.mob[k]; else st.mob[k] = s;
-  renderList(); renderMob(); draw();
-}
-
-function mobList() {
-  return Object.keys(st.mob).map(function (k) { return st.mob[k]; })
-    .sort(function (a, b) { return (a.d || 0) - (b.d || 0); });
-}
-
-function renderMob() {
-  var el = $("#mobBar"), n = Object.keys(st.mob).length;
-  el.hidden = !n;
-  if (!n) return;
-  el.innerHTML = '<span class="mob-n">동원 목록 <b>' + n + "</b>곳</span>"
-    + '<button type="button" class="sm p" id="mobCopy">전체 복사</button>'
-    + '<button type="button" class="sm" id="mobClear">비우기</button>';
-  $("#mobCopy").onclick = function () { copyText(mobText(), $("#mobCopy")); };
-  $("#mobClear").onclick = function () { st.mob = {}; renderList(); renderMob(); draw(); };
-}
-
-function oneLine(s) {
-  return s.n + " (" + (KIND_NAME[s.t] || "") + ") · " + placeOf(s)
-    + " · 대표 " + (s.tel || "-")
-    + (s.p ? " · 담당 " + s.p.n + " " + s.p.t : "")
-    + (s.d != null ? " · 사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽"
-                     + " (" + MC.trip(s.d, "car").label + ")" : "")
-    + (s.c ? "\n  " + s.c : "");
-}
-
-function mobText() {
-  var now = new Date(), p = function (n) { return String(n).padStart(2, "0"); };
-  var ts = now.getFullYear() + "-" + p(now.getMonth() + 1) + "-" + p(now.getDate())
-         + " " + p(now.getHours()) + ":" + p(now.getMinutes());
-  var L = ["화학사고 방제자원 동원 목록", "작성일시: " + ts];
-  if (st.acc) L.push("사고지점: " + st.acc.lat + ", " + st.acc.lon);
-  L.push("");
-  mobList().forEach(function (s, i) { L.push((i + 1) + ". " + oneLine(s)); });
-  L.push("", "※ 거리는 직선거리이고, 소요시간은 그것을 도로 사정에 맞춰 늘려 잡은"
-    + " 어림값입니다. 장비 상·하차와 통제 상황은 빠져 있으므로 실제 도착은 더 걸립니다."
-    + " 연락 전 가동 여부·보유 상태를 확인하세요.");
-  if (RESOURCE_META && RESOURCE_META.예시자료)
-    L.push("※ 예시 자료로 만든 목록입니다 — 실제 업체가 아닙니다.");
-  return L.join("\n");
-}
 
 function copyText(t, btn) {
   var done = function () {
@@ -606,7 +965,8 @@ function fallbackCopy(t, done) {
 
 function refresh(refit) {
   recompute();
-  syncSort(); renderSummary(); renderList(); renderLegend(); renderMob();
+  syncSort(); renderFilters(); renderMob();
+  renderSummary(); renderNear(); renderList(); renderLegend();
   if (refit) fit(); else draw();
   showAddr();
 }
@@ -615,6 +975,104 @@ function syncSort() {
   $$("#mSort option").forEach(function (o) { if (o.value === "dist") o.disabled = !st.acc; });
   if (!st.acc && st.sort === "dist") { st.sort = "name"; $("#mSort").value = "name"; }
   $$("#mScope option").forEach(function (o) { if (o.value) o.disabled = !st.acc; });
+}
+
+/* ── 물질 → 영향 참고 반경 ────────────────────────────────── */
+function normName(x) { return String(x).replace(/[\s·,()]/g, "").toLowerCase(); }
+var MATIDX = null;
+function findMaterial(name) {
+  if (!MATIDX) {
+    MATIDX = {};
+    MATERIALS.forEach(function (m) {
+      [m.n].concat(m.a || []).concat(m.c ? [m.c] : []).forEach(function (k) {
+        var key = normName(k);
+        if (key && !MATIDX[key]) MATIDX[key] = m;
+      });
+    });
+  }
+  var q = normName(name);
+  return MATIDX[q] || MATIDX[q.replace(/\d+(\.\d+)?%?$/, "")] || null;
+}
+
+/* "소규모 반경 60m / 대규모 반경 1km 이내" 같은 문장에서 거리 값을 뽑는다 */
+function pickDistances(txt) {
+  var out = [];
+  String(txt).replace(/([\d.]+)\s*(km|m)\b/gi, function (all, n, u) {
+    var v = Math.round(parseFloat(n) * (u.toLowerCase() === "km" ? 1000 : 1));
+    if (v > 0 && out.indexOf(v) < 0) out.push(v);
+    return all;
+  });
+  return out.sort(function (a, b) { return a - b; });
+}
+
+function renderRad() {
+  var box = $("#mRad");
+  var m = st.mat ? findMaterial(st.mat) : null;
+
+  if (!st.mat && st.radius == null) { box.hidden = true; box.innerHTML = ""; return; }
+  box.hidden = false;
+
+  if (st.mat && !m) {
+    box.innerHTML = '<span class="mr-none">‘' + esc(st.mat)
+      + "’은(는) 물질정보 460종 목록에 없습니다. 반경을 직접 입력하세요.</span>"
+      + radInput();
+    bindRad();
+    return;
+  }
+
+  var rows = [], btns = [];
+  if (m) {
+    [["초기이격거리 (전 방향)", m.d1], ["방호활동거리 (풍하방향)", m.d2],
+     ["화재 동반 시 대피거리", m.d3]].forEach(function (x) {
+      if (!x[1]) return;
+      rows.push("<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>");
+      pickDistances(x[1]).forEach(function (v) {
+        if (btns.indexOf(v) < 0) btns.push(v);
+      });
+    });
+    btns.sort(function (a, b) { return a - b; });
+  }
+
+  box.innerHTML = '<span class="mr-lb">영향 참고 반경</span>'
+    + (m ? '<b class="mr-nm">' + esc(m.n) + "</b>" : "")
+    + btns.slice(0, 6).map(function (v) {
+        return '<button type="button" class="sm" data-r="' + v + '"'
+          + (st.radius === v ? ' aria-pressed="true"' : "") + ">" + fmtDist(v) + "</button>";
+      }).join("")
+    + radInput()
+    + (rows.length
+        ? '<details class="mr-more noprint"><summary>물질정보 원문</summary>'
+          + "<dl>" + rows.join("") + "</dl>"
+          + '<p class="src">' + esc(VERSION.물질정보_출처)
+          + " 에 적힌 참고 거리입니다. 확산 모델링 결과가 아니며, 대피 범위 판단은 담당자가 합니다.</p>"
+          + "</details>"
+        : "");
+  bindRad();
+}
+function radInput() {
+  return '<input type="text" class="mr-in" id="mRadIn" inputmode="numeric" placeholder="m"'
+    + ' value="' + (st.radius || "") + '" aria-label="반경 직접 입력 (m)">'
+    + '<button type="button" class="sm" id="mRadX" title="반경 지우기">×</button>';
+}
+function bindRad() {
+  $$("#mRad button[data-r]").forEach(function (b) {
+    b.onclick = function () { setRadius(+b.dataset.r); };
+  });
+  var inp = $("#mRadIn");
+  if (inp) inp.oninput = function () {
+    var v = parseInt(String(inp.value).replace(/[^\d]/g, ""), 10);
+    setRadius(isNaN(v) ? null : v, true);
+  };
+  var x = $("#mRadX");
+  if (x) x.onclick = function () { setRadius(null); };
+}
+function setRadius(m, keepInput) {
+  st.radius = m && m > 0 ? m : null;
+  recompute(); renderSummary(); renderList(); renderLegend(); draw();
+  if (!keepInput) renderRad();
+  else $$("#mRad button[data-r]").forEach(function (b) {
+    b.setAttribute("aria-pressed", String(st.radius === +b.dataset.r));
+  });
 }
 
 /* ── 사고지점 ─────────────────────────────────────────────── */
@@ -626,93 +1084,113 @@ function setMode(m) {
   SVG.classList.toggle("crosshair", m === "acc");
 }
 
+/* 사고지점을 찍는 곳은 네 군데다 — 지도 누르기, 위경도 입력, 주소 검색,
+   내 위치. 예전에는 범위(반경)를 잡아 주는 코드가 주소 검색과 내 위치에만
+   있어서, 지도를 눌러 찍으면 지역도 범위도 정해지지 않은 채로 남아 목록이
+   빈 채로 나왔다. 찍는 방법에 따라 결과가 달라지면 안 되므로, 범위 기본값을
+   여기 한 곳에서 잡는다.
+
+   반경 5km 로 잡는 이유: 사고지점을 찍었다는 것은 "여기 주변을 보겠다"는
+   뜻이고, 시·군 경계 근처 사고에서는 옆 시·군 방제자원가 관내보다 가깝다.
+   이미 지역이나 범위를 골라 둔 사용자의 선택은 건드리지 않는다. */
 function setAcc(lat, lon, jump) {
   st.acc = { lat: Math.round(lat * 1e5) / 1e5, lon: Math.round(lon * 1e5) / 1e5 };
   $("#acLat").value = st.acc.lat;
   $("#acLon").value = st.acc.lon;
+
+  /* ②는 5km 지만 방제자원은 관내에 아예 없는 경우가 흔해 20km 로 잡는다 */
+  var wide = !st.scope && !st.sido && !st.sgg;
+  if (wide) st.scope = "20000";
+
   if (st.sort === "name") { st.sort = "dist"; $("#mSort").value = "dist"; }
   setMode("pick");
   recompute();
-  syncSort(); renderSummary(); renderList(); renderLegend(); showAddr();
+  syncSort();                      // 범위 칸이 여기서 열린다 (사고지점이 있어야 열림)
+  if (wide) $("#mScope").value = "20000";
+  lookupAccAddr();                 // 여기가 어느 시·군·구 어느 읍·면·동인가
+  renderSummary(); renderNear(); renderList(); renderLegend(); showAddr();
   moveToAcc(!!jump);
 }
 
+/* ── 사고지점의 주소 ──────────────────────────────────────────
+   주민대피 문자에는 "○○시 ○○동 ○○에서 발생한" 처럼 시·군·구와 읍·면·동이
+   들어갑니다. 좌표만으로는 그 칸을 채울 수 없어 담당자가 따로 찾아 넣어야
+   했는데, 지도가 이미 아는 것을 다시 찾게 하는 셈이었습니다.
+
+   두 단계로 채웁니다.
+     1) 인터넷 없이  — 그리고 있는 행정경계로 시·군·구를 가리고(MC.sggAt),
+        읍·면·동은 2km 안에 방제자원가 있으면 그 주소에서 뽑습니다.
+     2) 인터넷이 되면 — 브이월드 주소로 덮어씁니다. 이쪽이 정확합니다.
+   어느 쪽으로 알아냈는지 화면에 표시해, 어림값을 확정값으로 오해하지 않게
+   합니다. 못 알아내면 그 칸은 넘기지 않습니다 — 틀린 값보다 빈 칸이 낫습니다. */
+var ACC_EMD_MAX = 2000;            // 이보다 먼 방제자원의 읍·면·동은 쓰지 않는다
+var accSeq = 0;
+
+/* "개령면 감문로 277(신룡리)" → "개령면" / "시청1길 1(신음동)" → "신음동" */
+function emdOf(addr) {
+  var s = String(addr || "");
+  var m = /(^|[\s(])([가-힣0-9]+(?:읍|면|동))(?=[\s)]|$)/.exec(s);
+  return m ? m[2] : "";
+}
+
+function lookupAccAddr() {
+  st.accAddr = null;
+  accSeq++;
+  if (!st.acc) return;
+
+  /* 1) 인터넷 없이 — 어림값 */
+  var here = MC.sggAt(st.acc.lat, st.acc.lon);
+  var near = allRes().map(function (s) {
+    return { s: s, d: distM(st.acc.lat, st.acc.lon, s.lat, s.lon) };
+  }).sort(function (a, b) { return a.d - b.d; })[0];
+  var emd = near && near.d <= ACC_EMD_MAX ? emdOf(near.s.addr) : "";
+  if (here || emd) {
+    st.accAddr = { sido: here ? here.sido : "", sgg: here ? here.sgg : "",
+                   emd: emd, road: "", no: "", exact: false };
+  }
+
+  /* 2) 인터넷이 되면 — 정확한 값으로 덮어쓴다 */
+  if (!window.ONLINE || !ONLINE.revgeo) return;
+  var seq = accSeq;
+  ONLINE.revgeo(st.acc.lat, st.acc.lon, function (a) {
+    if (seq !== accSeq || !a) return;      // 그새 다른 곳을 찍었다
+    st.accAddr = { sido: a.sido, sgg: a.sgg, emd: a.emd,
+                   road: a.road, no: a.no, exact: true };
+    renderSummary(); renderToSms();
+  });
+}
+
+/* 사고지점으로 지도를 옮깁니다 — 한 번의 움직임으로 끝내야 "훅 튀어 보이는"
+   순간이 없다(예전엔 refresh(true) 가 먼저 전체 시야로 순간이동하고 나서
+   이 함수가 다시 근방으로 당겨, 두 단계로 보였다).
+   지도를 직접 눌러 찍었을 때(jump=false)는 이미 보이는 자리이므로 너무
+   멀리 보고 있을 때만 당깁니다. 주소검색·위도경도 입력처럼 지금 화면 밖일
+   수도 있는 경우(jump=true)는 멀든 가깝든 반드시 그리로 움직입니다. */
 function moveToAcc(jump) {
   var near = st.all.length
-    ? st.all.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 3) : [];
+    ? st.all.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 3)
+    : [];
   var reach = Math.max(near.length ? near[near.length - 1].d : 0,
-                       st.scope ? +st.scope : 0) || 3000;
-  var w = mToWorld(reach * 2.6, st.acc.lat);
+                       st.radius > 0 ? st.radius : 0,
+                       st.scope ? +st.scope : 0) || 1200;
+  var w = mToWorld(reach * 2.6, st.acc.lat);          // 지름 + 여유
+
   if (!st.view) { st.view = { cx: wx(st.acc.lon), cy: wy(st.acc.lat), w: w }; draw(); return; }
+
   var farAway = Math.abs(wx(st.acc.lon) - st.view.cx) > st.view.w
              || Math.abs(wy(st.acc.lat) - st.view.cy) > st.view.w;
-  if (!jump && !farAway && w >= st.view.w * 0.85) { draw(); return; }
+  if (!jump && !farAway && w >= st.view.w * 0.85) return;   // 이미 그만큼 가까이 보고 있다
   var tw = farAway ? Math.max(w, st.view.w * 0.5) : Math.min(w, st.view.w);
   CAM.animateTo({ cx: wx(st.acc.lon), cy: wy(st.acc.lat), w: tw }, 420);
 }
 
-function clearAcc() {
-  st.acc = null; st.scope = "";
-  $("#acLat").value = ""; $("#acLon").value = ""; $("#mScope").value = "";
-  st.sort = "name"; $("#mSort").value = "name";
-  setMode("pick");
-  refresh(true);
-}
-
-/* ── 내 위치 ──────────────────────────────────────────────────
-   ②(map/app.js)와 같은 방식입니다. 다만 여기서 잡는 기본 반경은 훨씬
-   넓습니다 — 방제자원은 관내에 아예 없는 경우가 흔해, 5km로 잡으면
-   빈 목록이 나오기 때문입니다. */
-var toastTimer = null;
-function toast(msg, isErr) {
-  var el = $("#mToast");
-  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
-  if (!msg) { el.hidden = true; return; }
-  el.hidden = false;
-  el.className = "mtoast noprint" + (isErr ? " err" : "");
-  el.innerHTML = msg;
-  toastTimer = setTimeout(function () { el.hidden = true; toastTimer = null; },
-                          isErr ? 11000 : 5000);
-}
-
-function locateMe() {
-  var b = $("#btnMe");
-  b.setAttribute("aria-busy", "true");
-  toast("위치를 찾고 있습니다…");
-  MC.locate(function (r) {
-    b.removeAttribute("aria-busy");
-    if (r.err) { st.me = null; toast("<b>내 위치를 찾지 못했습니다.</b> " + r.err, true); draw(); return; }
-    st.me = r;
-    var rough = r.acc > 300;
-    if (!st.acc) {
-      var wide = !st.scope && !st.sido && !st.sgg;
-      if (wide) st.scope = "20000";            // 방제자원은 관내에 없기 일쑤다
-      setAcc(r.lat, r.lon, true);
-      if (wide) $("#mScope").value = "20000";
-      toast("<b>내 위치를 사고지점으로 찍었습니다.</b> 오차 약 ±" + fmtDist(r.acc)
-        + (rough ? " — 실내라 넓게 잡혔습니다. 지도를 눌러 정확한 자리로 고쳐 주세요." : "")
-        + " 자리가 다르면 지도를 눌러 다시 찍으면 됩니다.", rough);
-    } else {
-      var d = distM(st.acc.lat, st.acc.lon, r.lat, r.lon);
-      toast("<b>내 위치를 표시했습니다.</b> 사고지점에서 " + fmtDist(d) + " · "
-        + MC.trip(d, "car").label + " 거리입니다. 사고지점은 그대로 두었습니다.");
-      moveToMe();
-    }
-    renderLegend(); draw();
-  });
-}
-
-function moveToMe() {
-  if (!st.me) return;
-  var w = mToWorld(Math.max(st.me.acc * 6, 900), st.me.lat);
-  if (!st.view) { st.view = { cx: wx(st.me.lon), cy: wy(st.me.lat), w: w }; draw(); return; }
-  CAM.animateTo({ cx: wx(st.me.lon), cy: wy(st.me.lat), w: Math.min(w, st.view.w) }, 420);
-}
-
 /* ── 주소·장소 검색 ────────────────────────────────────────────
-   ②와 같은 방식이되 찾는 대상이 대피장소가 아니라 방제자원입니다.
-   임의의 도로명 주소를 다 찾아 주는 것이 아니라, 이 도구가 담고 있는
-   자료 안에서만 찾습니다(오프라인). */
+   인터넷 지도 서비스처럼 임의의 도로명 주소를 다 찾아 주는 것은 아닙니다 —
+   이 도구 안에 이미 있는 데이터(등록된 방제자원 주소, 시·군·구, 그 주소에
+   적힌 읍·면·동 이름)에서만 찾습니다. 사고지점을 정확히 찍기 전에 대략
+   그 언저리로 지도를 옮기는 용도이며, 고른다고 곧바로 사고지점이 찍히지는
+   않습니다 — 근사한 위치(읍·면·동 평균 좌표 등)를 사고지점으로 오인하지
+   않도록, 옮겨간 자리에서 정확한 곳을 직접 눌러 찍게 합니다. */
 var PLACE_IDX = null;
 function boundaryCenter(sido, sgg) {
   if (typeof window.BOUNDARIES === "undefined") return null;
@@ -732,22 +1210,43 @@ function boundaryCenter(sido, sgg) {
 }
 function placeIndex() {
   if (PLACE_IDX) return PLACE_IDX;
-  var out = [], seen = {};
-  (window.RESOURCES || []).forEach(function (r) {
-    out.push({ label: r.n + " · " + placeOf(r), lat: r.la, lon: r.lo,
-               sido: r.sd, sgg: r.sg, kind: "place" });
-    var key = r.sd + "|" + r.sg;
-    if (!seen[key]) {
-      seen[key] = true;
-      var c = boundaryCenter(r.sd, r.sg);
-      out.push({ label: r.sd + " " + r.sg, lat: c ? c.lat : r.la, lon: c ? c.lon : r.lo,
-                 sido: r.sd, sgg: r.sg, kind: "sgg" });
-    }
+  var out = [], dong = {};
+  var S = resTree();
+  Object.keys(S).forEach(function (sido) {
+    Object.keys(S[sido]).forEach(function (sgg) {
+      var rows = S[sido][sgg], any = false;
+      rows.forEach(function (r) {
+        if (r[5] == null || r[6] == null) return;
+        any = true;
+        out.push({ label: r[0] + " · " + sgg + " " + (r[2] || ""), lat: r[5], lon: r[6],
+                   sido: sido, sgg: sgg, kind: "place" });
+        /* "개령면 감문로 277(신룡리)" → "개령면", "신룡리" */
+        var addr = String(r[2] || "");
+        var m1 = /^([가-힣0-9]+(?:읍|면|동))\s/.exec(addr);
+        var m2 = /\(([가-힣0-9]+(?:동|리|가))\)/.exec(addr);
+        [m1 && m1[1], m2 && m2[1]].forEach(function (nm) {
+          if (!nm) return;
+          var key = sido + "|" + sgg + "|" + nm;
+          var d = dong[key] || (dong[key] = { sido: sido, sgg: sgg, nm: nm, sx: 0, sy: 0, n: 0 });
+          d.sx += r[6]; d.sy += r[5]; d.n++;
+        });
+      });
+      if (any) {
+        var c = boundaryCenter(sido, sgg);
+        out.push({ label: sido + " " + sgg, lat: c ? c.lat : rows[0][5], lon: c ? c.lon : rows[0][6],
+                   sido: sido, sgg: sgg, kind: "sgg" });
+      }
+    });
+  });
+  Object.keys(dong).forEach(function (key) {
+    var d = dong[key];
+    out.push({ label: d.sido + " " + d.sgg + " " + d.nm, lat: d.sy / d.n, lon: d.sx / d.n,
+               sido: d.sido, sgg: d.sgg, kind: "dong" });
   });
   PLACE_IDX = out;
   return out;
 }
-var KIND_ORDER = { sgg: 0, place: 1 };
+var KIND_ORDER = { sgg: 0, dong: 1, place: 2 };
 function searchPlaces(q) {
   var nq = String(q || "").trim().replace(/\s+/g, "");
   if (nq.length < 1) return [];
@@ -761,25 +1260,81 @@ function searchPlaces(q) {
   });
   return rows.slice(0, 30);
 }
-var KIND_LABEL = { sgg: "시·군·구", place: "방제자원" };
+var KIND_LABEL = { sgg: "시·군·구", dong: "읍·면·동", place: "방제자원",
+                   poi: "장소", addr: "주소" };
 var addrRows = [], addrSel = -1;
+
+/* ── 인터넷 장소 검색 ────────────────────────────────────────
+   도구 안에 든 자료로만 찾으면 "여수시청"이나 "○○화학 여수공장" 같은
+   이름은 나오지 않습니다. 사고는 등록된 방제자원가 아니라 그런 곳에서
+   납니다. 그래서 브이월드 검색을 함께 겁니다(assets/online.js).
+
+   도구 안 결과를 먼저 즉시 보여 주고, 인터넷 결과는 도착하는 대로 아래에
+   덧붙입니다 — 응답을 기다리느라 아무것도 안 보이는 시간이 없게 합니다.
+   인터넷이 안 되면 지금까지처럼 도구 안 결과만 나옵니다. */
+var addrQ = "";
+var addrOn = { q: "", rows: [], busy: false, err: null };
+var addrTimer = null, addrSeq = 0;
+
+function askOnline(q) {
+  var t = String(q || "").trim();
+  clearTimeout(addrTimer);
+  addrSeq++;
+  /* 한 글자로 부르면 결과가 너무 많고 요청만 늘어난다 */
+  if (!window.ONLINE || t.length < 2) {
+    addrOn = { q: t, rows: [], busy: false, err: null };
+    return;
+  }
+  addrOn = { q: t, rows: [], busy: true, err: null };
+  var seq = addrSeq;
+  addrTimer = setTimeout(function () {          // 치는 도중에 매번 부르지 않는다
+    ONLINE.search(t, function (rows, err) {
+      if (seq !== addrSeq) return;              // 그새 더 쳤다 — 늦게 온 응답은 버린다
+      addrOn = { q: t, rows: rows || [], busy: false, err: err };
+      if (!$("#addrPop").hidden) drawAddrPop();
+    });
+  }, 350);
+}
+
 function renderAddrPop(q) {
+  addrQ = q;
+  askOnline(q);
+  drawAddrPop();
+}
+
+function drawAddrPop() {
   var pop = $("#addrPop");
-  addrRows = searchPlaces(q);
-  if (!addrRows.length) {
-    pop.innerHTML = q.trim()
-      ? '<div class="mpk-none">‘' + esc(q) + "’ 과 맞는 곳이 없습니다.<br>"
-        + "등록된 방제자원 이름·주소·시군구로 찾을 수 있습니다.</div>"
-      : '<div class="mpk-none">등록된 방제자원 이름·주소·시군구로 찾습니다.</div>';
-    addrSel = -1;
+  var t = addrQ.trim();
+  var mine = searchPlaces(addrQ);
+  var net = addrOn.q === t ? addrOn.rows : [];
+  var busy = addrOn.q === t && addrOn.busy;
+  addrRows = mine.concat(net);
+  addrSel = -1;
+
+  var row = function (p, i) {
+    return '<div class="mpk-row" role="option" data-i="' + i + '">'
+      + '<span class="nm">' + esc(p.label)
+      + (p.sub ? ' <i class="sub">' + esc(p.sub) + "</i>" : "") + "</span>"
+      + '<span class="en">' + esc(KIND_LABEL[p.kind] || "") + "</span></div>";
+  };
+
+  if (!addrRows.length && !busy) {
+    pop.innerHTML = t
+      ? '<div class="mpk-none">‘' + esc(addrQ) + "’ 과 맞는 곳이 없습니다.<br>"
+        + "사업장·건물 이름이나 도로명 주소로도 찾을 수 있습니다.</div>"
+      : '<div class="mpk-none">사업장·건물 이름, 도로명 주소, 시군구·읍면동으로 찾습니다.<br>'
+        + "예) 여수시청 · 산단로 79 · 강릉시 옥계면</div>";
   } else {
-    pop.innerHTML = '<div class="mpk-list">' + addrRows.map(function (p, i) {
-      return '<div class="mpk-row" role="option" data-i="' + i + '">'
-        + '<span class="nm">' + esc(p.label) + "</span>"
-        + '<span class="en">' + esc(KIND_LABEL[p.kind]) + "</span></div>";
-    }).join("") + "</div>"
-    + '<div class="mpk-ft">고르면 그 언저리로 이동합니다 · 정확한 사고지점은 지도를 눌러 찍으세요</div>';
-    addrSel = -1;
+    var body = '<div class="mpk-list" id="addrList">' + addrRows.map(row).join("");
+    if (busy) body += '<div class="mpk-busy">인터넷에서 찾는 중…</div>';
+    else if (addrOn.q === t && addrOn.err && !net.length)
+      body += '<div class="mpk-busy off">인터넷 검색을 쓸 수 없습니다 ('
+        + esc(addrOn.err) + ") · 등록된 자료에서만 찾았습니다</div>";
+    pop.innerHTML = body + "</div>"
+      + '<div class="mpk-ft">'
+      + (net.length ? "장소·주소를 고르면 그 자리를 사고지점으로 찍습니다"
+                    : "고르면 그 언저리로 이동합니다 · 정확한 사고지점은 지도를 눌러 찍으세요")
+      + "</div>";
     $$(".mpk-row", pop).forEach(function (el) {
       el.onclick = function () { pickAddr(addrRows[+el.dataset.i]); };
     });
@@ -797,21 +1352,36 @@ function markAddr(i) {
   }
 }
 function closeAddrPop() { $("#addrPop").hidden = true; addrSel = -1; }
+/* 고른 곳으로 지도를 옮기고, 사고지점 찍기 모드를 켠다 — 근사 좌표(시군구·
+   읍면동 평균)를 그대로 사고지점으로 오인하지 않도록 마지막 클릭은 사용자가 한다 */
 function pickAddr(p) {
   closeAddrPop();
   $("#mAddrQ").value = p.label;
+
+  /* 인터넷에서 찾은 사업장·주소는 좌표가 그 건물의 것이라 정확합니다.
+     한 번 더 지도를 누르게 할 이유가 없으므로 바로 사고지점으로 찍습니다.
+     (도구 안에서 찾은 시군구·읍면동은 평균 좌표라 그렇게 하지 않습니다.) */
+  if (p.exact) {
+    pickedPlace = { label: p.label, sub: p.sub || "" };   // 문자로 넘길 장소명
+    setAcc(p.lat, p.lon, true);          // 범위 기본값은 setAcc 이 잡는다
+    toast("<b>‘" + esc(p.label) + "’ 을(를) 사고지점으로 찍었습니다.</b> "
+      + "자리가 다르면 지도를 눌러 다시 찍으면 됩니다.");
+    return;
+  }
+
   if (p.sido !== st.sido || p.sgg !== st.sgg) {
     $("#mSido").value = p.sido; $("#mSido").onchange();
     $("#mSgg").value = p.sgg; $("#mSgg").onchange();
   }
   if (!st.view) fit();
-  var w = mToWorld(2500, p.lat);
+  var w = mToWorld(900, p.lat);
   var farAway = Math.abs(wx(p.lon) - st.view.cx) > st.view.w
              || Math.abs(wy(p.lat) - st.view.cy) > st.view.w;
   CAM.animateTo({ cx: wx(p.lon), cy: wy(p.lat),
     w: farAway ? Math.max(w, st.view.w * 0.5) : Math.min(w, st.view.w) }, 420);
   setMode("acc");
 }
+/* 입력칸·풍향 단추 밑에 붙는 작은 창들의 공통 위치 계산 */
 function placePopover(pop, anchor, growWidth) {
   var r = anchor.getBoundingClientRect();
   var w = growWidth ? Math.max(r.width, 300) : pop.offsetWidth;
@@ -836,6 +1406,77 @@ function bindAddrSearch() {
   window.addEventListener("resize", function () { if (!pop.hidden) placePopover(pop, input, true); });
 }
 
+function clearAcc() {
+  st.acc = null; st.scope = ""; st.accAddr = null; accSeq++;
+  pickedPlace = null;
+  $("#acLat").value = ""; $("#acLon").value = ""; $("#mScope").value = "";
+  st.sort = "name"; $("#mSort").value = "name";
+  setMode("pick");
+  refresh(true);
+}
+
+/* ③ 에는 문자 작성으로 넘기는 단추가 없습니다 — 방제자원 동원은 주민에게
+   보내는 문자와 다른 일입니다. 대신 '동원 목록'으로 모아 복사합니다. */
+function renderToSms() {}
+
+/* 사고지점이 검색으로 찍혔을 때 그 장소 이름·주소를 기억해 둔다
+   (사고지점 주소 표시에 씁니다 — ② 와 같은 동작) */
+var pickedPlace = null;
+
+/* ── 내 위치 ──────────────────────────────────────────────────
+   현장에 나가 휴대전화로 이 화면을 열었을 때, 위도·경도를 손으로 넣지
+   않고도 바로 주변 방제자원를 볼 수 있게 하려는 것입니다. 브라우저에
+   들어 있는 기능이라 인터넷이 끊긴 곳에서도 됩니다.
+
+   사고지점이 아직 없으면 내 위치를 사고지점으로도 찍습니다 — 현장에서
+   여는 경우가 그렇기 때문입니다. 이미 사고지점이 찍혀 있으면 건드리지
+   않고 파란 점만 더합니다. 사무실에서 눌렀다고 사고지점이 사무실로
+   옮겨가면 안 되기 때문입니다. */
+var toastTimer = null;
+function toast(msg, isErr) {
+  var el = $("#mToast");
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+  if (!msg) { el.hidden = true; return; }
+  el.hidden = false;
+  el.className = "mtoast noprint" + (isErr ? " err" : "");
+  el.innerHTML = msg;
+  toastTimer = setTimeout(function () { el.hidden = true; toastTimer = null; },
+                          isErr ? 11000 : 5000);
+}
+
+function locateMe() {
+  var b = $("#btnMe");
+  b.setAttribute("aria-busy", "true");
+  toast("위치를 찾고 있습니다…");
+  MC.locate(function (r) {
+    b.removeAttribute("aria-busy");
+    if (r.err) { st.me = null; toast("<b>내 위치를 찾지 못했습니다.</b> " + r.err, true); draw(); return; }
+    st.me = r;
+    var rough = r.acc > 300;
+    if (!st.acc) {
+      pickedPlace = null;                         // 내 위치는 장소 이름이 아니다
+      setAcc(r.lat, r.lon, true);                 // 현장에서 연 경우 — 바로 기준점이 된다
+      toast("<b>내 위치를 사고지점으로 찍었습니다.</b> 오차 약 ±" + fmtDist(r.acc)
+        + (rough ? " — 실내라 넓게 잡혔습니다. 지도를 눌러 정확한 자리로 고쳐 주세요." : "")
+        + " 자리가 다르면 지도를 눌러 다시 찍으면 됩니다.", rough);
+    } else {
+      var d = distM(st.acc.lat, st.acc.lon, r.lat, r.lon);
+      toast("<b>내 위치를 표시했습니다.</b> 사고지점에서 " + fmtDist(d) + " · "
+        + MC.trip(d).label + " 거리입니다. 사고지점은 그대로 두었습니다.");
+      moveToMe();
+    }
+    renderLegend(); draw();
+  });
+}
+
+/* 내 위치가 화면 밖이면 보이게 당긴다 */
+function moveToMe() {
+  if (!st.me) return;
+  var w = mToWorld(Math.max(st.me.acc * 6, 900), st.me.lat);
+  if (!st.view) { st.view = { cx: wx(st.me.lon), cy: wy(st.me.lat), w: w }; draw(); return; }
+  CAM.animateTo({ cx: wx(st.me.lon), cy: wy(st.me.lat), w: Math.min(w, st.view.w) }, 420);
+}
+
 /* ── 배경지도 ─────────────────────────────────────────────── */
 function showSrc() {
   var s = MC.tiles.status();
@@ -849,13 +1490,96 @@ function showSrc() {
   w.innerHTML = s.warn;
 }
 
+/* ── 풍향 (나침반) ────────────────────────────────────────────
+   "풍향(불어오는 쪽)" 이라는 말 자체가 헷갈리기 쉽다 — 실제로 궁금한 것은
+   "그래서 어느 쪽으로 퍼지는가"(풍하방향)다. 목록에서 방위 하나를 고르는
+   대신, 나침반에서 바람이 불어오는 쪽을 찍으면 반대쪽(풍하방향)으로 화살표가
+   함께 보이도록 했다. st.wind 에 담기는 값(도, 북=0)은 이전과 같다. */
+var WIND_DIRS = [
+  { deg: 0, ko: "북" }, { deg: 45, ko: "북동" }, { deg: 90, ko: "동" }, { deg: 135, ko: "남동" },
+  { deg: 180, ko: "남" }, { deg: 225, ko: "남서" }, { deg: 270, ko: "서" }, { deg: 315, ko: "북서" }
+];
+function windKo(deg) { return WIND_DIRS.filter(function (d) { return d.deg === +deg; })[0].ko; }
+function buildWindPop() {
+  var btns = WIND_DIRS.map(function (d) {
+    var rad = d.deg * Math.PI / 180;
+    var x = 50 + Math.sin(rad) * 38, y = 50 - Math.cos(rad) * 38;
+    return '<button type="button" class="wr-b" data-deg="' + d.deg + '"'
+      + ' style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%"'
+      + ' aria-pressed="false" title="' + d.ko + '풍 — ' + d.ko + '쪽에서 불어옴">' + d.ko + "</button>";
+  }).join("");
+  $("#windPop").innerHTML =
+    '<div class="windpop-hd">바람이 <b>불어오는 쪽</b>을 고르세요</div>'
+    + '<div class="windrose"><div class="wr-ring"></div>'
+      + '<div class="wr-arrow" id="wrArrow" hidden></div>'
+      + '<div class="wr-hub"></div>'
+      + btns
+    + "</div>"
+    + '<div class="wr-cap" id="wrCap">방향을 고르면<br>퍼지는 쪽이 함께 보입니다</div>'
+    + '<button type="button" class="sm windpop-clear" id="windClear">모름 / 표시 안 함</button>';
+  $$("#windPop .wr-b").forEach(function (b) {
+    b.onclick = function () { setWind(b.dataset.deg); };
+  });
+  $("#windClear").onclick = function () { setWind(""); };
+}
+function updateWindUI() {
+  var has = st.wind !== "";
+  $("#windBtn").classList.toggle("on", has);
+  $("#windBtnTxt").textContent = has ? windKo(st.wind) + "풍" : "설정 안 함";
+  $$("#windPop .wr-b").forEach(function (b) {
+    b.setAttribute("aria-pressed", String(has && +b.dataset.deg === +st.wind));
+  });
+  var arrow = $("#wrArrow"), cap = $("#wrCap");
+  if (has) {
+    var down = (+st.wind + 180) % 360;
+    arrow.hidden = false;
+    arrow.style.transform = "translateX(-50%) rotate(" + down + "deg)";
+    cap.innerHTML = "<b>" + windKo(st.wind) + "풍</b> — " + windKo(down) + "쪽으로 퍼집니다";
+  } else {
+    arrow.hidden = true;
+    cap.innerHTML = "방향을 고르면<br>퍼지는 쪽이 함께 보입니다";
+  }
+}
+function setWind(deg) {
+  st.wind = deg;
+  updateWindUI();
+  recompute(); renderSummary(); renderList(); renderLegend(); draw();
+}
+function openWindPop() {
+  $("#windPop").hidden = false;
+  placePopover($("#windPop"), $("#windBtn"));
+  $("#windBtn").setAttribute("aria-expanded", "true");
+}
+function closeWindPop() {
+  $("#windPop").hidden = true;
+  $("#windBtn").setAttribute("aria-expanded", "false");
+}
+function bindWind() {
+  buildWindPop();
+  updateWindUI();
+  $("#windBtn").onclick = function () {
+    if ($("#windPop").hidden) openWindPop(); else closeWindPop();
+  };
+  document.addEventListener("mousedown", function (e) {
+    var pop = $("#windPop"), btn = $("#windBtn");
+    if (!pop.hidden && e.target !== btn && !btn.contains(e.target) && !pop.contains(e.target)) closeWindPop();
+  });
+  window.addEventListener("resize", function () { if (!$("#windPop").hidden) placePopover($("#windPop"), $("#windBtn")); });
+}
+
 /* ── 조작 ─────────────────────────────────────────────────── */
+/* 마우스 휠은 계속 이어지는 동작이라(연달아 여러 번 굴러 온다) 매번 트윈을
+   새로 걸면 오히려 버벅여 보인다 — 휠·드래그는 지금처럼 그 자리서 바로
+   반응하고, "누르는" 동작(버튼)만 애니메이션을 태운다. */
+/* ＋/－ 단추는 항상 화면 가운데를 기준으로 확대·축소하며, 얼마나 당겨지는지
+   보이도록 부드럽게 움직인다 */
 function zoomBtn(f) {
   var nw = Math.max(0.0000015, Math.min(1.2, st.view.w * f));
   CAM.animateTo({ cx: st.view.cx, cy: st.view.cy, w: nw }, 260);
 }
 
-/* 끌기·손가락 확대·휠은 세 지도가 같아야 하므로 assets/mapcore.js 에 있다 */
+/* 끌기·손가락 확대·휠은 세 지도가 같아야 하므로 assets/mapcore.js 에 있다.
+   여기서는 "눌렀을 때 무엇을 고르는가"만 정한다. */
 function bindMap() {
   MC.panzoom(SVG, {
     view: function () { return st.view; },
@@ -865,7 +1589,8 @@ function bindMap() {
     onTap: function (x, y) {
       if (st.mode === "acc") {
         var ll = toLL(x, y);
-        setAcc(ll.lat, ll.lon);
+        pickedPlace = null;                  // 손으로 찍었으면 장소 이름을 알 수 없다
+        setAcc(ll.lat, ll.lon);              // 찍은 자리가 유지되도록 시야는 그대로
         return;
       }
       var i = hitMarker(x, y);
@@ -881,68 +1606,39 @@ function bindMap() {
 /* ── 초기화 ───────────────────────────────────────────────── */
 function initSelects() {
   var sido = $("#mSido"), sgg = $("#mSgg");
-  var byS = {};
-  (window.RESOURCES || []).forEach(function (r) {
-    (byS[r.sd] = byS[r.sd] || {})[r.sg] = true;
-  });
   sido.innerHTML = '<option value="">선택</option>'
-    + Object.keys(byS).sort().map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
+    + Object.keys(resTree()).sort().map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
   var fillSgg = function () {
-    var m = byS[sido.value] || {};
+    var m = resTree()[sido.value] || {};
     var ks = Object.keys(m).sort();
     sgg.innerHTML = '<option value="">' + (sido.value ? "시·도 전체" : "시·도 먼저") + "</option>"
       + ks.map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
   };
   fillSgg();
-  sido.onchange = function () { st.sido = sido.value; st.sgg = ""; fillSgg(); refresh(true); };
+  sido.onchange = function () {
+    st.sido = sido.value; st.sgg = ""; fillSgg(); refresh(true);
+  };
   sgg.onchange = function () { st.sgg = sgg.value; refresh(true); };
 }
 
-/* 예시 자료 / 내부용 — 무엇을 보고 있는지 화면에서 바로 알 수 있어야 합니다.
-   특히 내부판은 개인 연락처가 들어 있어 실수로 외부에 공유되면 안 됩니다. */
-function initDataBar() {
-  var meta = window.RESOURCE_META || {};
-  var bar = $("#dataBar"), msg = [];
-  if (meta.담당자포함)
-    msg.push('<span class="db-in"><b>내부용</b> 업체 담당자 개인 연락처가 들어 있습니다 · '
-      + "외부 공유 금지</span>");
-  if (meta.예시자료)
-    msg.push('<span class="db-ex"><b>예시 자료</b> 화면 확인용으로 만든 가짜 자료입니다 · '
-      + "실제 업체가 아니며 전화번호도 실제 번호가 아닙니다</span>");
-  bar.hidden = !msg.length;
-  bar.className = "databar noprint" + (meta.담당자포함 ? " is-internal" : " is-example");
-  bar.innerHTML = msg.join("");
-}
-
 function initSrcModal() {
-  var meta = window.RESOURCE_META || {};
-  var kinds = KINDS.map(function (k) {
-    return "<li><b>" + esc(k.이름) + "</b> — " + esc(k.쓰임) + "</li>";
-  }).join("");
   $("#ver").innerHTML =
-    "<p><b>방제자원</b> — " + esc(meta.출처 || "-") + " · 기준일 " + esc(meta.기준일 || "-")
-      + " (" + (meta.총건수 || 0).toLocaleString() + "곳)</p>"
-    + "<p>담고 있는 자원은 네 가지입니다.</p><ul>" + kinds + "</ul>"
-    + (meta.예시자료
-        ? '<p class="alert w" style="padding:8px 11px"><b>예시 자료</b> 지금 보고 계신 것은 '
-          + "화면을 확인하려고 만든 가짜 자료입니다. 실제 업체·연락처가 아닙니다.</p>"
-        : "")
-    + "<p><b>개인정보</b> — 공개판에는 업체 담당자의 이름·직통번호를 넣지 않고 "
-      + "사업장 대표번호만 표시합니다. 담당자 직통이 필요한 경우 내부용으로 따로 배포되며, "
-      + "그때는 화면 위에 <b>내부용</b> 띠가 표시됩니다."
-      + (meta.담당자포함 ? " <b>지금 보고 계신 것은 내부용입니다.</b>" : "") + "</p>"
-    + "<p><b>좌표</b> — 원자료에 위경도가 없어 주소를 좌표로 변환해 넣었습니다. "
-      + "변환에 실패한 곳은 시·군·구 중심 좌표를 쓰고 목록에 <b>대략 위치</b>로 표시합니다.</p>"
+    "<p><b>방제자원</b> — " + esc(VERSION.방제자원_출처) + " · 기준일 "
+      + esc(VERSION.방제자원_기준일) + " ("
+      + SHELTER_META.총건수.toLocaleString() + "곳 · 좌표 포함)</p>"
     + "<p><b>배경지도</b> — " + esc(VERSION.배경지도) + ". 인터넷이 되는 환경에서만 표시되며, "
       + "안 되면 행정경계선만 그립니다.</p>"
     + "<p><b>행정경계</b> — " + esc(VERSION.경계_출처) + ". "
-      + "<b>위치를 가늠하기 위한 배경선이며 법적 행정경계가 아닙니다.</b></p>"
-    + "<p><b>거리</b> — 지형·도로를 고려하지 않은 직선거리(하버사인)입니다. "
-      + "실제 이동거리·도착 시간은 이보다 깁니다.</p>"
-    + "<p><b>반드시 확인하세요</b> — 업체는 폐업하고 담당자는 바뀝니다. 보유 장비도 "
-      + "다른 현장에 나가 있을 수 있습니다. 이 도구의 값은 기준일 시점의 것이므로, "
-      + "동원 전 전화로 가동 여부와 보유 상태를 확인해야 합니다.</p>"
-    + '<p class="src">도구 버전 ' + esc(VERSION.도구버전) + " · 반영일 " + esc(VERSION.반영일) + "</p>";
+      + "<b>위치를 가늠하기 위한 배경선이며 법적 행정경계가 아닙니다.</b> "
+      + "정식 배포 전 원내 정본 데이터로 교체를 권장합니다.</p>"
+    + "<p><b>영향 참고 반경</b> — " + esc(VERSION.물질정보_출처) + ". "
+      + "물질정보에 적힌 참고 거리이며 확산 모델링 결과가 아닙니다.</p>"
+    + "<p><b>거리·방위</b> — 지형·도로를 고려하지 않은 직선거리(하버사인)입니다. "
+      + "실제 이동거리는 이보다 깁니다.</p>"
+    + "<p><b>풍하방향</b> — 입력한 풍향의 반대쪽 ±" + LEE_DEG + "° 를 칠한 것입니다. "
+      + "지형·풍속·물질 밀도를 반영하지 않습니다.</p>"
+    + "<p>담당자 개인 이름·연락처는 데이터에 포함하지 않았습니다. 관할부서 대표번호만 표시합니다.</p>"
+    + "<p class=\"src\">도구 버전 " + esc(VERSION.도구버전) + " · 반영일 " + esc(VERSION.반영일) + "</p>";
 
   var open = function () { $("#srcModal").hidden = false; document.body.style.overflow = "hidden"; };
   var close = function () { $("#srcModal").hidden = true; document.body.style.overflow = ""; };
@@ -952,6 +1648,7 @@ function initSrcModal() {
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
     if (!$("#srcModal").hidden) { close(); return; }
+    if (!$("#windPop").hidden) { closeWindPop(); return; }
     if (!$("#addrPop").hidden) { closeAddrPop(); return; }
     if (st.mode === "acc") setMode("pick");
   });
@@ -960,13 +1657,11 @@ function initSrcModal() {
 function init() {
   SVG = $("#map");
   MC.foldBar();            // 좁은 화면에서 조건 줄 접기
-  initDataBar();
   initSelects();
   initSrcModal();
-  renderChips();
   bindMap();
-  bindAddrSearch();
 
+  /* 배경지도 고르기 */
   $("#mLyr").innerHTML = MC.tiles.sources().map(function (s) {
     return '<button type="button" data-s="' + esc(s.id) + '">' + esc(s.이름) + "</button>";
   }).join("");
@@ -978,33 +1673,58 @@ function init() {
   });
 
   $("#mScope").onchange = function () { st.scope = this.value; refresh(true); };
-  $("#mQ").oninput = function () { st.q = this.value; recompute(); renderList(); draw(); };
-  $("#mSort").onchange = function () { st.sort = this.value; recompute(); renderList(); draw(); };
+  $("#mQ").oninput = function () {
+    st.q = this.value; recompute(); renderList(); renderNear(); draw();
+  };
+  $("#mSort").onchange = function () {
+    st.sort = this.value; recompute(); renderList(); renderNear(); draw();
+  };
+  $("#mMat").oninput = function () { st.mat = this.value.trim(); renderRad(); };
+  bindWind();
+  bindAddrSearch();
   $("#cRings").onchange = function () { st.rings = this.checked; renderLegend(); draw(); };
+  var walk = $("#cWalk");
+  if (walk) walk.onchange = function () {
+    st.walk = this.checked;
+    requestRoute();                    // 켜면 지금 고른 곳 경로를 바로 받아온다
+    renderLegend(); draw(); showAddr(); renderList();
+  };
 
   $("#btnAcc").onclick = function () { setMode(st.mode === "acc" ? "pick" : "acc"); };
   $("#btnAccClear").onclick = clearAcc;
   $("#btnMe").onclick = locateMe;
+  /* 단일 파일판(dist)에는 옆에 문자도구가 없어 이 단추를 빼고 만듭니다 */
+
 
   var latlon = function () {
     var la = parseFloat($("#acLat").value), lo = parseFloat($("#acLon").value);
-    if (isFinite(la) && isFinite(lo) && la > 32 && la < 40 && lo > 123 && lo < 133)
+    /* 우리나라 범위 밖 값은 오타로 보고 무시한다 */
+    if (isFinite(la) && isFinite(lo) && la > 32 && la < 40 && lo > 123 && lo < 133) {
+      pickedPlace = null;
       setAcc(la, lo, true);
+    }
   };
   $("#acLat").oninput = latlon;
   $("#acLon").oninput = latlon;
 
   $("#btnPrint").onclick = function () { window.print(); };
   $("#btnClear").onclick = function () {
-    st.sido = ""; st.sgg = ""; st.scope = ""; st.acc = null;
-    st.q = ""; st.sort = "name"; st.rings = true; st.mob = {}; st.me = null;
+    st.sido = ""; st.sgg = ""; st.scope = ""; st.acc = null; st.radius = null;
+    st.mat = ""; st.q = ""; st.sort = "name"; st.rings = true;
+    st.me = null;
+    st.nearFold = matchMedia("(max-width: 860px)").matches;
+    st.route = null; st.routeErr = null; st.routeBusy = false;
+    st.accAddr = null; accSeq++;
+    pickedPlace = null;
+    st.needs = {}; st.mob = {};
     KINDS.forEach(function (k) { st.kinds[k.id] = true; });
-    toast("");
-    ["mQ", "acLat", "acLon", "mAddrQ"].forEach(function (id) { $("#" + id).value = ""; });
+    ["mMat", "mQ", "acLat", "acLon", "mAddrQ"].forEach(function (id) { $("#" + id).value = ""; });
     $("#mSido").value = ""; $("#mSido").onchange();
     $("#mScope").value = ""; $("#mSort").value = "name";
     $("#cRings").checked = true;
-    renderChips();
+    setWind("");
+    renderRad();
+    toast("");
     setMode("pick");
   };
 

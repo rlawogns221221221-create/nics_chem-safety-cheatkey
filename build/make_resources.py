@@ -297,12 +297,49 @@ ACC_NOTE = {
 }
 
 
+def spread(rows):
+    """같은 대표점에 겹친 것들을 작은 고리로 흩는다.
+
+    시·군·구 대표점을 쓰면 한 시·군의 자원 열댓 개가 한 점에 포개져 지도에서
+    한 개로만 보이고 누를 수도 없습니다. 그래서 겹친 것들을 300m 남짓 고리에
+    올려 놓습니다.
+
+    **이것은 위치를 지어내는 것이 아닙니다.** 원래 좌표부터가 "이 시·군 어딘가"
+    라는 뜻이고, 그 사실은 마커(속 빈 동그라미)와 각 줄의 '시·군·구 단위 위치'
+    표시로 계속 드러납니다. 흩지 않으면 있는 자원이 화면에서 사라집니다.
+    순서는 이름순으로 고정해 다시 만들어도 같은 자리에 옵니다.
+    """
+    import math
+    from collections import defaultdict
+    by = defaultdict(list)
+    for r in rows:
+        if r["ap"] in ("sgg", "sido"):
+            by[(r["la"], r["lo"])].append(r)
+    for (la, lo), group in by.items():
+        if len(group) < 2:
+            continue
+        group.sort(key=lambda r: (r["t"], r["n"]))
+        # 한 고리에 8개씩, 안쪽 고리부터 채운다
+        for i, r in enumerate(group):
+            ring, pos = divmod(i, 8)
+            n = min(8, len(group) - ring * 8)
+            ang = 2 * math.pi * pos / n + (ring * 0.4)
+            m = 300 + ring * 260                      # 고리 반지름 (m)
+            dlat = (m * math.cos(ang)) / 111_320
+            dlon = (m * math.sin(ang)) / (111_320 * math.cos(math.radians(la)))
+            r["la"] = round(la + dlat, 5)
+            r["lo"] = round(lo + dlon, 5)
+            r["sp"] = 1                               # 흩어 놓은 점이라는 표시
+    return rows
+
+
 def main():
     anchor = Anchor()
     rows = (read_local(anchor) + read_capsule(anchor) + read_toxgas(anchor)
             + read_waste(anchor) + read_marine() + read_water())
     rows = [r for r in rows if r["la"] is not None]
     rows.sort(key=lambda r: (r["sd"], r["sg"], r["t"], r["n"]))
+    rows = spread(rows)
 
     # ── 개인정보 검사 — 하나라도 남으면 만들다 멈춘다 ──
     blob = json.dumps(rows, ensure_ascii=False)
@@ -332,6 +369,7 @@ def main():
         "     sd  시도            sg 시군구\n"
         "     la  위도            lo 경도\n"
         "     ap  좌표 정확도 — road/emd/sgg/port/base/exact (RESOURCE_ACC 참고)\n"
+        "     sp  1 이면 같은 대표점에 겹쳐 작은 고리로 흩어 놓은 점\n"
         "     c   보유·처리 내용 (원표기 그대로 · 검색 대상)\n"
         "     g   무엇에 쓰나 (RESOURCE_NEEDS 의 id 들)\n"
         "     tel 사업장·기관 대표번호   src 출처 자료명\n"
@@ -358,6 +396,7 @@ def main():
     for k in KINDS:
         print(f"   {k['이름']:<16} {kinds.get(k['id'], 0):>4}건")
     print("   좌표 정확도:", anchor.stat)
+    print(f"   한 점에 겹쳐 흩어 놓은 것 {sum(1 for r in rows if r.get('sp'))}건")
     notel = sum(1 for r in rows if not r["tel"] and not r.get("agency"))
     print(f"   대표번호 없음 {notel}건 — 화면에 '번호 확인 필요'로 표시됩니다")
     print("   개인정보 검사 통과 — 이름·휴대전화·이메일 없음")

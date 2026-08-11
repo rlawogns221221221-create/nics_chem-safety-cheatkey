@@ -82,6 +82,10 @@ def check_output(out: pathlib.Path) -> None:
 
 
 # ── ② 깨진 참조 검사 ─────────────────────────────────────────
+# 있으면 쓰고 없으면 화면이 그냥 넘어가는 파일 (build/geocode.html 로 만듦)
+OPTIONAL = {"resources.geo.js"}
+
+
 def check_links(site: pathlib.Path) -> None:
     """HTML 이 부르는 파일이 폴더 안에 실제로 있는지 본다."""
     missing = []
@@ -92,6 +96,8 @@ def check_links(site: pathlib.Path) -> None:
             if ref.startswith(("http://", "https://", "#", "mailto:", "tel:", "data:")):
                 continue
             checked += 1
+            if ref.rsplit("/", 1)[-1] in OPTIONAL:
+                continue          # 있으면 쓰고 없으면 넘어가는 파일
             if not (html.parent / ref).resolve().exists():
                 missing.append(f"{html.relative_to(site)} → {ref}")
     if missing:
