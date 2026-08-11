@@ -71,6 +71,65 @@ function load() {
   return false;
 }
 
+/* ══ 대피장소 지도에서 넘어온 값 받기 ════════════════════════
+   ② 대피장소 지도에서 사고지점을 찍고 대피장소를 확인한 뒤 "이 내용으로
+   문자 만들기"를 누르면, 그 값이 sessionStorage 에 담겨 이 화면으로
+   넘어옵니다(map/app.js 의 goToSms). 같은 내용을 두 번 입력하지 않게
+   하려는 것입니다.
+
+   ── 받은 값을 어떻게 다루는가 ────────────────────────────
+   덮어씁니다. 지도에서 방금 정하고 온 값이 이 화면에 남아 있던 값보다
+   최신이기 때문입니다. 대신 무엇이 채워졌는지 화면에 그대로 적어 둡니다 —
+   모르는 사이에 값이 바뀌어 있으면 그게 더 위험합니다.
+
+   발송 구분은 고르지 않습니다. 어느 문안을 보낼지는 지시받아 정하는
+   것이지 지도가 정할 수 있는 것이 아닙니다.
+   ═══════════════════════════════════════════════════════════ */
+var SEED = "nics.sms.seed.v1";
+var seedInfo = null;                 // 이번에 넘어온 것 (안내 표시용)
+
+function takeSeed() {
+  var raw = null;
+  try {
+    raw = sessionStorage.getItem(SEED);
+    sessionStorage.removeItem(SEED);   // 한 번만 쓴다 — 새로고침해도 다시 덮지 않게
+  } catch (e) { return; }
+  if (!raw) return;
+  var o;
+  try { o = JSON.parse(raw); } catch (e) { return; }
+  if (!o || o.v !== 1 || !o.data) return;
+
+  var filled = [];
+  Object.keys(o.data).forEach(function (k) {
+    var v = String(o.data[k] == null ? "" : o.data[k]).trim();
+    if (!v) return;
+    state.data[k] = v;
+    filled.push(k);
+  });
+  if (!filled.length) return;
+  seedInfo = { keys: filled, acc: o.acc || null };
+  save();
+}
+
+/* 무엇이 어디서 넘어왔는지 화면에 적는다 */
+function renderSeedBar() {
+  var el = $("#seedBar");
+  if (!el) return;
+  el.hidden = !seedInfo;
+  if (!seedInfo) return;
+  var names = { 시군: "사고 시·군·구", 읍면동: "사고 읍·면·동",
+                사업장: "사업장·장소명", 대피소: "대피소" };
+  el.innerHTML = '<div class="wrap"><span class="sb-t">'
+    + "<b>대피장소 지도에서 넘어왔습니다.</b> "
+    + seedInfo.keys.map(function (k) {
+        return '<i><em>' + esc(names[k] || k) + "</em>" + esc(state.data[k]) + "</i>";
+      }).join("")
+    + "</span>"
+    + '<button type="button" class="seed-x" id="seedX" aria-label="이 알림 닫기">✕</button>'
+    + "</div>";
+  $("#seedX").onclick = function () { seedInfo = null; renderSeedBar(); };
+}
+
 /* ── 문안 조립 ─────────────────────────────────────────────── */
 
 function matValue() {
@@ -516,7 +575,10 @@ function renderFields() {
   /* 구분을 고르면 위의 정사각형 버튼 3개를 작은 띠로 접어, 문자 생성칸이
      화면을 더 넓게 쓸 수 있게 한다 (assets/shell.css body.has-stage 규칙) */
   document.body.classList.toggle("has-stage", on);
-  if (!on) { $("#noteBar").textContent = "보내라고 지시받은 문자를 위에서 고르세요."; return; }
+  /* 고르기 전에는 안내 띠 자체를 감춘다 — 바로 위 큰 단추 3개가 이미
+     "무엇을 고르라"는 말을 하고 있어 같은 말이 두 번 나온다. */
+  $("#noteWrap").hidden = !on;
+  if (!on) { $("#noteBar").textContent = ""; return; }
 
   var stage = curStage();
   $("#noteBar").innerHTML = "<b>" + esc(stage.이름) + "</b> — " + esc(stage.안내)
@@ -836,10 +898,13 @@ function saveTxt() {
 
 /* ── 초기화 ───────────────────────────────────────────────── */
 
-function renderAll() { renderStages(); renderTypes(); renderFields(); renderMatInfo(); renderOut(); }
+function renderAll() {
+  renderStages(); renderTypes(); renderFields(); renderMatInfo(); renderOut(); renderSeedBar();
+}
 
 function init() {
   var resumed = load();
+  takeSeed();              // 지도에서 넘어온 값이 있으면 채운다 (load 뒤에 와야 덮인다)
   initShelters();
   renderCases();
   renderAll();
@@ -850,6 +915,7 @@ function init() {
     if (!confirm("입력한 사고정보를 모두 지우고 처음으로 돌아갑니다. 계속할까요?")) return;
     try { sessionStorage.removeItem(SESS); } catch (e) {}
     state = blankState();
+    seedInfo = null;
     $("#sessTag").hidden = true;
     var f = $("#finder");
     if (f) { f.hidden = true; $("#btnFinder").textContent = "관내 대피장소 목록에서 찾기"; }

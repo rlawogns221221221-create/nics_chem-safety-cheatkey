@@ -67,6 +67,25 @@ body{
       font-size:12.5px;padding:8px 0;margin-bottom:16px}
 .note .wrap{padding-bottom:0}
 
+/* ── 지도에서 값을 들고 왔을 때 알리는 띠 ─────────────────
+   내가 입력하지 않은 값이 칸에 들어가 있는 상태이므로, 어느 칸에 무엇이
+   채워졌는지 그대로 적어 둔다(모르는 채로 발송되는 것이 가장 위험하다).
+   한 번만 뜨고, 닫으면 사라진다. */
+/* 아래 여백을 두지 않는 이유: 바로 뒤에 안내 띠(.note)가 붙어 두 줄짜리 머리띠가
+   되고, 안내 띠가 없을 때는 발송 구분 칸이 남는 공간 가운데로 정렬되기 때문. */
+.seedbar{background:var(--ok-l);border-bottom:1px solid #b6ddc9;color:#0a4e30;
+  font-size:12.5px;padding:9px 0;
+  animation:revealIn .3s var(--ease) both}
+.seedbar .wrap{padding-bottom:0;display:flex;align-items:flex-start;gap:10px}
+.seedbar .sb-t{flex:1;min-width:0}
+.seedbar b{font-weight:700}
+.seedbar i{font-style:normal;display:inline-block;margin:2px 4px 0 0;padding:1px 7px;
+  background:#fff;border:1px solid #b6ddc9;border-radius:20px;font-size:12px;color:#0a4e30}
+.seedbar i em{font-style:normal;color:var(--ink3);margin-right:4px}
+.seed-x{flex:none;border:0;background:transparent;color:#0a4e30;opacity:.6;
+  padding:0 2px;font-size:15px;line-height:1;cursor:pointer}
+.seed-x:hover{opacity:1}
+
 /* ── 발송 구분 선택 ───────────────────────────────────
    버튼을 고르기 전에는 화면에 이것 하나뿐이므로, 위에 쏠리지 않고 남는
    공간 가운데에 오도록 .stepsz 를 화면을 채우는 flex 축으로 둔다
@@ -624,12 +643,18 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .mnear{position:absolute;left:10px;top:46px;width:min(272px,calc(100% - 62px));
   border-radius:9px;padding:8px 9px 9px;font-size:12px;
   animation:revealIn .3s var(--ease) both}
-.mnear-h{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;
-  color:var(--ink3);margin-bottom:4px}
+/* 접힘 — 머리표만 남기고 지도를 비워 준다. 휴대전화의 기본 모습이다.
+   너비도 글자 길이에 맞춰 줄여야 지도를 가리지 않는다. */
+.mnear.folded{width:auto;padding:0}
+.mnear-h{display:flex;align-items:center;gap:5px;width:100%;font-size:11px;font-weight:700;
+  color:var(--ink3);margin-bottom:4px;padding:0;border:0;background:none;
+  font-family:inherit;text-align:left;cursor:pointer;border-radius:6px}
+.mnear-h:hover b{color:var(--brand)}
 .mnear-h b{color:var(--brand-d);font-size:11.5px}
-.mnear-x{margin-left:auto;width:19px;height:19px;padding:0;border:0;background:none;
-  color:var(--ink3);font-size:13px;line-height:1;cursor:pointer;border-radius:4px}
-.mnear-x:hover{background:rgba(10,40,80,.12);color:var(--ink)}
+.mnear.folded .mnear-h{margin:0;padding:6px 9px}
+.mnear-c{margin-left:auto;flex:none;width:14px;height:14px;color:var(--ink3);
+  transition:transform .22s var(--ease)}
+.mnear.folded .mnear-c{transform:rotate(-90deg)}
 .mnear-it{display:block;width:100%;text-align:left;border:0;background:none;
   padding:5px 6px;border-radius:6px;cursor:pointer;font:inherit;color:inherit}
 .mnear-it + .mnear-it{border-top:1px solid rgba(10,40,80,.13)}
@@ -695,6 +720,9 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
   .mbar-warn a{display:inline-block;padding:10px 0}
   /* 요약 줄 안의 단추(범위 넓히기 등)도 손가락으로 누르는 것이다 */
   .ms-more{min-height:40px;padding:0 14px;font-size:13px}
+  /* '가까운 3곳' 펴기 — 접혀 있을 때는 이것만 보이므로 누르기 쉬워야 한다 */
+  .mnear.folded .mnear-h{min-height:40px;padding:0 12px;font-size:12px}
+  .mnear-it{min-height:42px;padding:6px 7px}
 }
 #btnAcc[aria-pressed=true]{background:var(--err);border-color:var(--err);color:#fff;font-weight:700}
 
@@ -708,6 +736,15 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 .ms-find-row .mb-f{flex:1;min-width:0}
 .ms-find .mb-f.wide{width:100%}
 .ms-find .mb-f select{width:100%;min-width:0}
+/* 여기까지 정한 사고지점·대피장소를 그대로 문자 작성으로 넘기는 단추.
+   목록 위, 조건 바로 아래 — "찾았으니 이제 문자" 순서 그대로 놓는다. */
+.ms-tosms{flex:none;display:flex;align-items:center;gap:8px;width:100%;
+  padding:10px 13px;border:0;border-bottom:1px solid var(--line2);border-radius:0;
+  background:var(--brand);color:#fff;font-size:12.5px;font-weight:700;
+  text-align:left;cursor:pointer;animation:slideDown .28s var(--ease) both}
+.ms-tosms:hover{background:var(--brand-d)}
+.ms-tosms svg{flex:none;width:17px;height:17px}
+.ms-tosms span{flex:1;min-width:0}
 .ms-hd{flex:none;padding:9px 13px;font-size:12.5px;font-weight:700;color:var(--ink2);
   border-bottom:1px solid var(--line2)}
 .ms-hd span{font-weight:400;color:var(--ink3)}
@@ -841,11 +878,11 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
   .ms-list{overflow:visible}
   .ms-it{break-inside:avoid}
   /* 유리 효과는 종이에서 배경이 빠져 글자만 흐리게 남습니다 — 불투명으로 되돌립니다.
-     '가까운 3곳'은 인쇄물에서도 결론에 해당하므로 남기고, 닫기 단추만 뺍니다. */
+     '가까운 3곳'은 인쇄물에서도 결론에 해당하므로 남기고, 접기 화살표만 뺍니다. */
   .maplegend,.mapscale,.mapaddr,.mnear{background:#fff!important;
     -webkit-backdrop-filter:none!important;backdrop-filter:none!important;
     border:1px solid var(--line)!important;box-shadow:none!important}
-  .mnear-x{display:none!important}
+  .mnear-c{display:none!important}
 }
 
 a.btnlink{display:inline-block;text-decoration:none;color:var(--brand-d);font-weight:600;

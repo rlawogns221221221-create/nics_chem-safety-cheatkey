@@ -140,6 +140,21 @@ function trip(m, mode, roadKnown) {
            label: (use === "walk" ? "도보 " : "차로 ") + fmtMin(min) };
 }
 
+/* 걸어서·차로 둘 다 한 줄로.
+   대피에 차를 쓰는 경우가 많아 "걸어서 몇 분"만으로는 판단이 안 됩니다.
+   다만 아주 가까우면 차로 재는 것이 오히려 방해가 됩니다 — 200m 앞을
+   "차로 1분"이라고 적어 봐야 쓸 데가 없고, 그 거리는 타는 시간이 더 깁니다.
+   반대로 걸어서 갈 수 없는 거리는 도보를 적지 않습니다. */
+var CARWORTH = 400;                // 이 아래로는 차로 표시하지 않는다 (m)
+
+function tripPair(m, roadKnown) {
+  var w = trip(m, "walk", roadKnown);
+  var c = trip(m, "car", roadKnown);
+  if (m <= CARWORTH) return { label: w.label, walk: w, car: null };
+  if (m > WALKABLE)  return { label: c.label, walk: null, car: c };
+  return { label: w.label + " · " + c.label, walk: w, car: c };
+}
+
 /* ══ 내 위치 ════════════════════════════════════════════════
    브라우저에 들어 있는 기능이라 인터넷이 끊긴 곳에서도 동작합니다
    (위성·기지국·와이파이로 단말이 직접 계산합니다). 단일 파일 배포본을
@@ -641,7 +656,7 @@ window.MAPCORE = {
   distM: distM, bearing: bearing, dirName: dirName,
   fmtDist: fmtDist, niceDist: niceDist, scale: scale,
   /* 이동 시간 어림 · 내 위치 */
-  trip: trip, fmtMin: fmtMin, walkable: WALKABLE, locate: locate,
+  trip: trip, tripPair: tripPair, fmtMin: fmtMin, walkable: WALKABLE, locate: locate,
   /* 그리기 */
   boundaryPaths: boundaryPaths, matchSgg: matchSgg, routePath: routePath,
   /* 카메라 · 조작 */

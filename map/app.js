@@ -47,7 +47,12 @@ var st = {
   rings: true,                     // 거리 눈금 표시
   mode: "pick",                    // "acc" = 다음 클릭이 사고지점
   me: null,                        // 내 위치 {lat, lon, acc} — 사고지점과 별개
-  nearOff: false,                  // 가까운 3곳 카드를 사용자가 닫았는가
+  /* 가까운 3곳 카드를 접어 두었는가.
+     휴대전화에서는 이 카드가 지도 한가운데를 덮어(작은 화면에서 지도의 4분의 1
+     ~ 5분의 2) 그 자리를 손가락으로 만질 수 없게 됩니다. 좁은 화면에서는 머리표만
+     남기고 접은 채로 시작하고, 필요할 때 눌러 폅니다. 가장 가까운 한 곳은
+     지도 위쪽 요약 띠(.msum)에 늘 적혀 있으므로 접혀 있어도 놓치지 않습니다. */
+  nearFold: matchMedia("(max-width: 860px)").matches,
   walk: true,                      // 도보 경로를 길찾기로 받아올까 (인터넷 필요)
   route: null,                     // 받아 온 경로 {key, path, dist}
   routeBusy: false, routeErr: null,
@@ -291,11 +296,11 @@ function draw() {
       g.push('<path class="route real" d="' + d + '"/>');
       var mid = rt.path[Math.floor(rt.path.length / 2)];
       lx = pX(mid.lon); ly = pY(mid.lat) - 11;
-      txt = "도로 " + fmtDist(rt.dist) + " · " + MC.trip(rt.dist, "walk", true).label;
+      txt = "도로 " + fmtDist(rt.dist) + " · " + MC.tripPair(rt.dist, true).label;
     } else {
       g.push(MC.routePath(ax, ay, fx, fy));
       lx = (ax + fx) / 2; ly = (ay + fy) / 2 - 9;
-      txt = fmtDist(focus.d) + " " + dirName(focus.b) + "쪽 · " + MC.trip(focus.d).label
+      txt = fmtDist(focus.d) + " " + dirName(focus.b) + "쪽 · " + MC.tripPair(focus.d).label
           + (st.routeBusy && focus.key === (st.show[st.sel] || {}).key ? " · 길 찾는 중…" : "");
     }
     g.push('<text class="linklbl" x="' + lx.toFixed(1) + '" y="' + ly.toFixed(1)
@@ -394,6 +399,22 @@ function hitMarker(clientX, clientY) {
    "이 근방에 무엇이 있나"를 한 줄로 답합니다. 목록을 다 훑지 않아도
    가장 가까운 곳과 거리 구간별 개수가 바로 보이게 하려는 것입니다. */
 var BANDS = [1000, 2000, 5000];
+
+/* 지금보다 한 칸 넓은 반경. 관내만 보고 있으면(범위 미지정) 5km 부터.
+   더 넓힐 곳이 없으면 "" 를 돌려준다. */
+var SCOPES = ["2000", "5000", "10000", "20000"];
+function nextScope() {
+  if (!st.scope) return "5000";
+  var i = SCOPES.indexOf(st.scope);
+  return i >= 0 && i + 1 < SCOPES.length ? SCOPES[i + 1] : "";
+}
+function setScope(v) {
+  st.scope = v;
+  $("#mScope").value = v;
+  if (st.sort === "name") { st.sort = "dist"; $("#mSort").value = "dist"; }
+  refresh(true);
+}
+
 function renderSummary() {
   var el = $("#mSum");
   /* 빈 상태에서는 좁은 화면의 '한 줄 가로 스크롤'을 풀어야 한다 —
@@ -406,16 +427,14 @@ function renderSummary() {
       /* 안내만 하고 끝내면 정작 '찾는 범위' 고르는 칸은 오른쪽 목록 안에 있어,
          좁은 화면에서는 지도 아래로 한참 내려가야 보입니다. 여기서 바로
          넓힐 수 있게 단추를 둡니다. */
+      var next = nextScope();
       el.innerHTML = '<span class="ms-none">사고지점 주변에 표시할 대피장소가 없습니다.</span>'
-        + (st.scope
-            ? '<span class="ms-none">찾는 범위를 더 넓혀 보세요.</span>'
-            : '<button type="button" class="ms-more noprint">반경 5km 안에서 찾기</button>');
+        + (next
+            ? '<button type="button" class="ms-more noprint">반경 '
+              + fmtDist(+next) + " 안에서 찾기</button>"
+            : '<span class="ms-none">가장 넓은 범위(20km)에도 등록된 대피장소가 없습니다.</span>');
       var wide = $(".ms-more", el);
-      if (wide) wide.onclick = function () {
-        st.scope = "5000"; $("#mScope").value = "5000";
-        if (st.sort === "name") { st.sort = "dist"; $("#mSort").value = "dist"; }
-        refresh(true);
-      };
+      if (wide) wide.onclick = function () { setScope(next); };
     }
     return;
   }
@@ -426,7 +445,7 @@ function renderSummary() {
   var parts = [];
   parts.push('<span class="ms-near"><b>가장 가까운 곳</b>' + esc(near.name)
     + '<em>' + fmtDist(near.d) + " " + dirName(near.b) + "쪽 · "
-    + MC.trip(near.d).label + "</em></span>");
+    + MC.tripPair(near.d).label + "</em></span>");
 
   var bands = BANDS.map(function (m) {
     var n = sorted.filter(function (s) { return s.d <= m; }).length;
@@ -460,11 +479,7 @@ function renderSummary() {
 
   el.innerHTML = parts.join("");
   var b = $(".ms-more", el);
-  if (b) b.onclick = function () {
-    st.scope = "5000"; $("#mScope").value = "5000";
-    if (st.sort === "name") { st.sort = "dist"; $("#mSort").value = "dist"; }
-    refresh(true);
-  };
+  if (b) b.onclick = function () { setScope("5000"); };
 }
 
 /* ── 가까운 3곳 ───────────────────────────────────────────────
@@ -478,14 +493,28 @@ function renderSummary() {
    잘못된 대피 안내가 됩니다. */
 function renderNear() {
   var el = $("#mNear");
-  if (!st.acc || st.nearOff || !st.all.length) { el.hidden = true; return; }
+  if (!st.acc || !st.all.length) { el.hidden = true; return; }
   var top = st.all.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 3);
   el.hidden = false;
+  el.classList.toggle("folded", st.nearFold);
 
-  el.innerHTML = '<div class="mnear-h"><b>가까운 대피장소</b> ' + top.length + '곳'
-    + '<button type="button" class="mnear-x" aria-label="가까운 곳 카드 닫기">✕</button></div>'
+  /* 머리표는 접기·펴기 단추 자체입니다 — 닫아 놓고 되돌릴 방법이 없으면 안 됩니다 */
+  var head = '<button type="button" class="mnear-h" id="mNearH" aria-expanded="'
+    + (st.nearFold ? "false" : "true") + '">'
+    + '<b>가까운 대피장소</b> ' + top.length + "곳"
+    + '<svg class="mnear-c" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+    + '<path d="M6 9l6 6 6-6"/></svg></button>';
+
+  if (st.nearFold) {
+    el.innerHTML = head;
+    $("#mNearH").onclick = function () { st.nearFold = false; renderNear(); };
+    return;
+  }
+
+  el.innerHTML = head
     + top.map(function (s, n) {
-        var t = MC.trip(s.d);
+        var t = MC.tripPair(s.d);
         var i = st.show.indexOf(s);                 // 목록에서 걸러졌으면 -1
         return '<button type="button" class="mnear-it' + (i >= 0 && i === st.sel ? " on" : "")
           + '" data-k="' + esc(s.key) + '">'
@@ -498,7 +527,7 @@ function renderNear() {
     + '<p class="mnear-note">직선거리를 도로 사정에 맞춰 늘려 잡은 어림값입니다. '
     + "실제 소요시간은 지형·통제 상황에 따라 달라집니다.</p>";
 
-  $(".mnear-x", el).onclick = function () { st.nearOff = true; el.hidden = true; };
+  $("#mNearH").onclick = function () { st.nearFold = true; renderNear(); };
   $$(".mnear-it", el).forEach(function (b) {
     b.onclick = function () {
       /* 검색어 때문에 목록에서 빠져 있으면 먼저 검색을 비운다 —
@@ -526,11 +555,11 @@ function placeOf(s) {
    경로에는 표시를 붙입니다 — 어림값을 확정된 값으로 오해하면 안 됩니다. */
 function tripLine(s) {
   var rt = st.route && st.route.key === s.key ? st.route : null;
-  if (rt) return '<em>' + MC.trip(rt.dist, "walk", true).label + "</em>"
+  if (rt) return '<em>' + MC.tripPair(rt.dist, true).label + "</em>"
     + ' <span class="l6-tag">실제 도로 ' + fmtDist(rt.dist) + "</span>";
-  var t = MC.trip(s.d);
+  var t = MC.tripPair(s.d);
   return "<em>" + t.label + "</em>"
-    + (t.mode === "car" ? " · 걸어서 가기 어려운 거리" : " · 직선거리로 어림한 값");
+    + (!t.walk ? " · 걸어서 가기 어려운 거리" : " · 직선거리로 어림한 값");
 }
 
 /* ── 목록 ─────────────────────────────────────────────────── */
@@ -635,7 +664,7 @@ function requestRoute() {
 function select(i, fromMap) {
   st.sel = (st.sel === i ? -1 : i);
   requestRoute();
-  renderList(); renderNear(); draw(); showAddr();
+  renderList(); renderNear(); renderToSms(); draw(); showAddr();
   if (st.sel >= 0 && !fromMap) moveTo(st.show[st.sel]);
   if (st.sel >= 0 && fromMap) {
     var el = $('#shList .ms-it[data-i="' + st.sel + '"]');
@@ -656,7 +685,7 @@ function showAddr() {
     + (s.d != null ? "<em>사고지점에서 " + fmtDist(s.d) + " " + dirName(s.b) + "쪽</em>" : "")
     + (st.route && st.route.key === s.key
         ? "<em>도로 " + fmtDist(st.route.dist) + " · "
-          + MC.trip(st.route.dist, "walk", true).label + "</em>"
+          + MC.tripPair(st.route.dist, true).label + "</em>"
         : (st.routeBusy && st.sel >= 0 && st.show[st.sel] === s ? "<em>길 찾는 중…</em>" : ""));
 }
 
@@ -690,7 +719,7 @@ function fallbackCopy(t, done) {
 
 function refresh(refit) {
   recompute();
-  syncSort(); renderSummary(); renderNear(); renderList(); renderLegend();
+  syncSort(); renderSummary(); renderNear(); renderList(); renderLegend(); renderToSms();
   if (refit) fit(); else draw();
   showAddr();
 }
@@ -808,14 +837,29 @@ function setMode(m) {
   SVG.classList.toggle("crosshair", m === "acc");
 }
 
+/* 사고지점을 찍는 곳은 네 군데다 — 지도 누르기, 위경도 입력, 주소 검색,
+   내 위치. 예전에는 범위(반경)를 잡아 주는 코드가 주소 검색과 내 위치에만
+   있어서, 지도를 눌러 찍으면 지역도 범위도 정해지지 않은 채로 남아 목록이
+   빈 채로 나왔다. 찍는 방법에 따라 결과가 달라지면 안 되므로, 범위 기본값을
+   여기 한 곳에서 잡는다.
+
+   반경 5km 로 잡는 이유: 사고지점을 찍었다는 것은 "여기 주변을 보겠다"는
+   뜻이고, 시·군 경계 근처 사고에서는 옆 시·군 대피장소가 관내보다 가깝다.
+   이미 지역이나 범위를 골라 둔 사용자의 선택은 건드리지 않는다. */
 function setAcc(lat, lon, jump) {
   st.acc = { lat: Math.round(lat * 1e5) / 1e5, lon: Math.round(lon * 1e5) / 1e5 };
   $("#acLat").value = st.acc.lat;
   $("#acLon").value = st.acc.lon;
+
+  var wide = !st.scope && !st.sido && !st.sgg;
+  if (wide) st.scope = "5000";
+
   if (st.sort === "name") { st.sort = "dist"; $("#mSort").value = "dist"; }
   setMode("pick");
   recompute();
-  syncSort(); renderSummary(); renderNear(); renderList(); renderLegend(); showAddr();
+  syncSort();                      // 범위 칸이 여기서 열린다 (사고지점이 있어야 열림)
+  if (wide) $("#mScope").value = "5000";
+  renderSummary(); renderNear(); renderList(); renderLegend(); renderToSms(); showAddr();
   moveToAcc(!!jump);
 }
 
@@ -1021,10 +1065,8 @@ function pickAddr(p) {
      한 번 더 지도를 누르게 할 이유가 없으므로 바로 사고지점으로 찍습니다.
      (도구 안에서 찾은 시군구·읍면동은 평균 좌표라 그렇게 하지 않습니다.) */
   if (p.exact) {
-    var wide = !st.scope && !st.sido && !st.sgg;
-    if (wide) st.scope = "5000";
-    setAcc(p.lat, p.lon, true);
-    if (wide) $("#mScope").value = "5000";
+    pickedPlace = { label: p.label, sub: p.sub || "" };   // 문자로 넘길 장소명
+    setAcc(p.lat, p.lon, true);          // 범위 기본값은 setAcc 이 잡는다
     toast("<b>‘" + esc(p.label) + "’ 을(를) 사고지점으로 찍었습니다.</b> "
       + "자리가 다르면 지도를 눌러 다시 찍으면 됩니다.");
     return;
@@ -1075,6 +1117,72 @@ function clearAcc() {
   refresh(true);
 }
 
+/* ══ 문자 작성으로 넘기기 ════════════════════════════════════
+   지도에서 사고지점을 찍고 대피장소를 확인한 뒤, 그 내용을 다시 손으로
+   옮겨 적지 않고 그대로 문자 작성 화면에서 이어 쓰게 합니다.
+
+   ── 무엇을 넘기는가 ──────────────────────────────────────
+   확실한 것만 넘깁니다. 지도가 아는 것과 문자 문안이 요구하는 것이 정확히
+   같지 않아, 어림으로 채우면 담당자가 틀린 값을 그대로 발송하게 됩니다.
+
+     시군    사고지점에서 가장 가까운 대피장소의 시·군·구.
+             반경 안에 있는 곳이라 사고지점과 같은 시·군·구로 봐도 됩니다.
+     사업장  주소·장소 검색으로 찍었을 때만. 그때는 찍은 것이 곧 그 장소입니다.
+     읍면동  검색으로 찍었고 그 주소에서 읍·면·동을 뽑을 수 있을 때만.
+     대피소  고른 곳이 있으면 그것, 없으면 가장 가까운 곳.
+
+   대상지역(문자를 받을 지역)은 넘기지 않습니다 — 사고 위치가 아니라
+   "어디까지 보낼 것인가"라는 판단이고, 그 판단은 도구가 하지 않습니다.
+   ═══════════════════════════════════════════════════════════ */
+var SMS_SEED = "nics.sms.seed.v1";
+
+/* 사고지점이 검색으로 찍혔을 때 그 장소 이름·주소를 기억해 둔다 */
+var pickedPlace = null;
+
+function seedFromMap() {
+  if (!st.acc) return null;
+  var near = st.all.slice().sort(function (a, b) { return a.d - b.d; })[0] || null;
+  var sel = st.sel >= 0 ? st.show[st.sel] : null;
+  var data = {};
+
+  if (sel || near) data["시군"] = (sel || near).sgg;
+  else if (st.sgg) data["시군"] = st.sgg;
+
+  if (pickedPlace) {
+    data["사업장"] = pickedPlace.label;
+    /* "전남 여수시 신덕동 …" 처럼 주소에 읍·면·동이 있으면 뽑아 쓴다 */
+    var m = /([가-힣0-9]+(?:읍|면|동))(?:\s|$|,)/.exec(pickedPlace.sub || "");
+    if (m) data["읍면동"] = m[1];
+  }
+
+  var shelter = sel || near;
+  if (shelter) data["대피소"] = shelter.name;
+
+  return { v: 1, from: "map", ts: Date.now(),
+           acc: { lat: st.acc.lat, lon: st.acc.lon }, data: data };
+}
+
+/* 넘길 것이 있을 때만 단추를 보이고, 무엇이 넘어가는지 미리 알려 준다 —
+   눌러 보고 나서야 무엇이 채워졌는지 알게 하면 안 된다. */
+function renderToSms() {
+  var b = $("#btnToSms");
+  if (!b) return;
+  var seed = seedFromMap();
+  b.hidden = !seed;
+  if (!seed) return;
+  var keys = Object.keys(seed.data);
+  $("#toSmsTxt").textContent = keys.length
+    ? "이 내용으로 문자 만들기 (" + keys.join("·") + ")"
+    : "주민대피 문자 만들기";
+}
+
+function goToSms() {
+  var seed = seedFromMap();
+  if (!seed) return;
+  try { sessionStorage.setItem(SMS_SEED, JSON.stringify(seed)); } catch (e) {}
+  location.href = "../sms/index.html";
+}
+
 /* ── 내 위치 ──────────────────────────────────────────────────
    현장에 나가 휴대전화로 이 화면을 열었을 때, 위도·경도를 손으로 넣지
    않고도 바로 주변 대피장소를 볼 수 있게 하려는 것입니다. 브라우저에
@@ -1106,13 +1214,8 @@ function locateMe() {
     st.me = r;
     var rough = r.acc > 300;
     if (!st.acc) {
-      /* 지역도 범위도 아직 안 골랐으면 '여기 주변 5km'로 함께 잡아 줍니다.
-         현장에서 단추 하나 누른 결과가 빈 목록이면 아무 쓸모가 없습니다.
-         범위를 먼저 넣고 setAcc 를 불러야 목록·시야가 한 번에 맞습니다. */
-      var wide = !st.scope && !st.sido && !st.sgg;
-      if (wide) st.scope = "5000";
+      pickedPlace = null;                         // 내 위치는 장소 이름이 아니다
       setAcc(r.lat, r.lon, true);                 // 현장에서 연 경우 — 바로 기준점이 된다
-      if (wide) $("#mScope").value = "5000";
       toast("<b>내 위치를 사고지점으로 찍었습니다.</b> 오차 약 ±" + fmtDist(r.acc)
         + (rough ? " — 실내라 넓게 잡혔습니다. 지도를 눌러 정확한 자리로 고쳐 주세요." : "")
         + " 자리가 다르면 지도를 눌러 다시 찍으면 됩니다.", rough);
@@ -1246,6 +1349,7 @@ function bindMap() {
     onTap: function (x, y) {
       if (st.mode === "acc") {
         var ll = toLL(x, y);
+        pickedPlace = null;                  // 손으로 찍었으면 장소 이름을 알 수 없다
         setAcc(ll.lat, ll.lon);              // 찍은 자리가 유지되도록 시야는 그대로
         return;
       }
@@ -1349,12 +1453,17 @@ function init() {
   $("#btnAcc").onclick = function () { setMode(st.mode === "acc" ? "pick" : "acc"); };
   $("#btnAccClear").onclick = clearAcc;
   $("#btnMe").onclick = locateMe;
+  /* 단일 파일판(dist)에는 옆에 문자도구가 없어 이 단추를 빼고 만듭니다 */
+  var toSms = $("#btnToSms");
+  if (toSms) toSms.onclick = goToSms;
 
   var latlon = function () {
     var la = parseFloat($("#acLat").value), lo = parseFloat($("#acLon").value);
     /* 우리나라 범위 밖 값은 오타로 보고 무시한다 */
-    if (isFinite(la) && isFinite(lo) && la > 32 && la < 40 && lo > 123 && lo < 133)
+    if (isFinite(la) && isFinite(lo) && la > 32 && la < 40 && lo > 123 && lo < 133) {
+      pickedPlace = null;
       setAcc(la, lo, true);
+    }
   };
   $("#acLat").oninput = latlon;
   $("#acLon").oninput = latlon;
@@ -1363,8 +1472,10 @@ function init() {
   $("#btnClear").onclick = function () {
     st.sido = ""; st.sgg = ""; st.scope = ""; st.acc = null; st.radius = null;
     st.mat = ""; st.q = ""; st.sort = "name"; st.rings = true;
-    st.me = null; st.nearOff = false;
+    st.me = null;
+    st.nearFold = matchMedia("(max-width: 860px)").matches;
     st.route = null; st.routeErr = null; st.routeBusy = false;
+    pickedPlace = null;
     ["mMat", "mQ", "acLat", "acLon", "mAddrQ"].forEach(function (id) { $("#" + id).value = ""; });
     $("#mSido").value = ""; $("#mSido").onchange();
     $("#mScope").value = ""; $("#mSort").value = "name";

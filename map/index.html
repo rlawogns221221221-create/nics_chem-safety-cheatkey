@@ -119,6 +119,16 @@
         </select>
       </label>
     </div>
+    <!-- 여기서 정한 사고지점·대피장소를 그대로 들고 문자 작성으로 넘어간다.
+         사고지점을 찍기 전에는 넘길 것이 없으므로 감춰 둔다. -->
+    <button type="button" class="ms-tosms noprint" id="btnToSms" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M4 5h16v12H8l-4 4V5z"/><path d="M8 9h8M8 13h5"/>
+      </svg>
+      <span id="toSmsTxt">이 내용으로 주민대피 문자 만들기</span>
+    </button>
+
     <div class="ms-hd">대피장소 <span id="listCnt"></span></div>
     <div class="ms-tools noprint">
       <input type="text" id="mQ" placeholder="이름·주소로 찾기" aria-label="대피장소 검색" autocomplete="off">

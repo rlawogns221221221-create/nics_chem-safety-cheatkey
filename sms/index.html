@@ -19,9 +19,15 @@
   </div>
 </div>
 
-<div class="note noprint"><div class="wrap" id="noteBar">
-  보내라고 지시받은 문자를 아래에서 고르세요.
-</div></div>
+<!-- 대피장소 지도에서 값을 들고 왔을 때 무엇이 채워졌는지 알리는 띠.
+     모르는 사이에 값이 바뀌어 있으면 그게 더 위험하므로 항목을 그대로 적는다.
+     "어디서 왔는지"가 먼저, "지금 무엇을 쓰고 있는지"(아래 안내 띠)가 다음이다. -->
+<div class="seedbar noprint" id="seedBar" hidden></div>
+
+<!-- 안내 띠 — 발송 구분을 고른 뒤에만 나옵니다. 고르기 전에 "위에서 고르세요"
+     같은 문구를 띄우면, 바로 아래 큰 단추 3개가 이미 그 말을 하고 있어
+     같은 말을 두 번 하는 셈이 됩니다. -->
+<div class="note noprint" id="noteWrap" hidden><div class="wrap" id="noteBar"></div></div>
 
 <div class="wrap toolstage">
 

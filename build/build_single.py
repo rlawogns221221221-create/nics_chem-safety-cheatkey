@@ -73,6 +73,11 @@ def build(page: pathlib.Path, out: pathlib.Path, swap=None) -> None:
         lambda m: "<style>\n" + read(base, m.group(1)) + "\n</style>",
         html,
     )
+    # 인터넷이 있어야 되는 기능(장소 검색·도보 경로)은 단일 파일판에 넣지
+    # 않습니다. 이 파일은 망분리 PC용이라 바깥으로 나가는 코드가 아예 없어야
+    # 하고, 있어도 어차피 닿지 않습니다. 화면은 그대로 돕니다 —
+    # map/app.js 가 window.ONLINE 이 없으면 등록된 대피장소 안에서만 찾습니다.
+    html = re.sub(r'[ \t]*<script src="[^"]*assets/online\.js"></script>\n?', "", html)
     html = re.sub(
         r'[ \t]*<script src="([^"]+)"></script>',
         lambda m: "<script>\n" + read(base, m.group(1)) + "\n</script>",
@@ -80,6 +85,13 @@ def build(page: pathlib.Path, out: pathlib.Path, swap=None) -> None:
     )
     # 다른 도구로 가는 링크는 단일 파일에서 열 수 없으므로 안내로 바꾼다
     html = re.sub(r'<a class="sm btnlink"[^>]*>.*?</a>', "", html, flags=re.S)
+    # ② → ① 이어쓰기 단추도 마찬가지 — 옆 파일이 없으므로 아예 뺍니다
+    # (map/app.js 의 renderToSms 는 단추가 없으면 그냥 넘어갑니다)
+    html = re.sub(r'[ \t]*<button[^>]*id="btnToSms"[^>]*>.*?</button>\n?', "",
+                  html, flags=re.S)
+    # 인터넷 기능이 빠졌으므로 '도보 경로' 켜고 끄기도 뺍니다 (눌러도 할 일이 없음)
+    html = re.sub(r'[ \t]*<label class="mapchk" title="고른 대피장소까지[^>]*>.*?</label>\n?',
+                  "", html, flags=re.S)
 
     if 'src="' in html or 'href="assets' in html or 'href="../' in html:
         sys.exit(f"인라인되지 않은 외부 참조가 남아 있습니다: {page.name}")
