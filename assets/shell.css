@@ -423,6 +423,13 @@ body.mapapp{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .mb-addr input[type=text]{min-width:260px}
 /* 조건 접기 단추 — 넓은 화면에서는 접을 이유가 없으므로 보이지 않는다 */
 .mb-toggle{display:none}
+/* ③ 은 물질·풍향·배경지도까지 접어 둡니다 — 화면에 처음부터 고를 것이 많으면
+   어디부터 손대야 하는지 알 수 없습니다. 좁은 화면 규칙(.mb-toggle)과 같은
+   접기이되, 넓은 화면에서도 접힌 채로 시작합니다. */
+.mb-toggle.always{display:inline-flex;align-items:center;gap:5px;
+  padding:6px 12px;font-size:12.5px;font-weight:700;color:var(--brand-d);
+  background:var(--panel);border-radius:20px;align-self:flex-end}
+.resapp .mbar.folded .mb-more{display:none}
 .mb-toggle .mb-caret{width:13px;height:13px;flex:none}
 /* 접기 위해 감싼 상자. 넓은 화면에서는 이 상자가 없는 것처럼 동작해야 한다 —
    그냥 두면 안에 든 물질·풍향·배경지도가 한 덩어리로 묶여 세로로 쌓이고,
@@ -700,11 +707,18 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:12.5px;flex:none}
 /* 내 위치 찾기 결과 알림 — 지도 위에 잠깐 떴다 사라집니다.
    실패했을 때 다음에 무엇을 하면 되는지까지 적으므로 두세 줄이 될 수
    있어, 조건 줄에 끼워 넣지 않고 지도 위에 따로 띄웁니다. */
-.mtoast{position:absolute;left:50%;bottom:56px;transform:translateX(-50%);z-index:5;
-  max-width:min(430px,calc(100% - 32px));background:rgba(17,31,46,.92);color:#fff;
+/* 가운데 정렬을 transform 으로 하면 안 됩니다 — 나타나는 애니메이션
+   (revealIn)이 transform 을 덮어써서 가운데가 아니라 오른쪽으로 밀립니다.
+   left/right 를 잡고 margin:auto 로 가운데에 둡니다. 오른쪽은 확대·축소
+   단추만큼 비워, 가로로 눕힌 휴대전화처럼 지도가 낮아도 부딪히지 않습니다. */
+.mtoast{position:absolute;left:12px;right:64px;bottom:56px;margin:0 auto;
+  width:fit-content;z-index:5;
+  max-width:min(430px,100%);background:rgba(17,31,46,.92);color:#fff;
   border-radius:8px;padding:8px 13px;font-size:12.5px;line-height:1.5;
   box-shadow:0 6px 22px rgba(0,0,0,.3);animation:revealIn .26s var(--ease) both}
 .mtoast.err{background:rgba(134,21,21,.95)}
+/* 좁은 화면에서는 폭을 다 쓰므로 축척 막대(왼쪽 아래) 위로 올립니다 */
+@media (max-width:520px){ .mtoast{bottom:92px;right:12px} }
 .mtoast b{font-weight:700}
 
 /* 내 위치 단추 — 지도에 찍히는 파란 점과 같은 색으로 두어,
@@ -942,11 +956,68 @@ a.btnlink:hover{border-color:var(--brand)}
 .rkdot.rk-marine{background:var(--rk-marine);border-radius:2px}
 .rkdot.rk-water{background:var(--rk-water);border-radius:2px}
 
+/* ══ 시작 화면 ═══════════════════════════════════════════════
+   처음 들어오면 이것 하나만 보입니다. 방제자원 찾기는 결국 "사고지점에서
+   가까운 순"이라 사고지점 없이는 아무것도 못 하는데, 화면을 한꺼번에
+   펼쳐 두면 어디부터 손대야 하는지 알 수 없습니다. 한 가지만 묻습니다. */
+.rstart{flex:1;display:flex;align-items:center;justify-content:center;
+  padding:28px 18px 60px;animation:revealIn .34s var(--ease) both}
+body.has-acc .rstart{display:none}
+/* 사고지점이 정해지기 전에는 지도·조건·목록을 아예 두지 않습니다.
+   ③(body.resapp)에만 거는 규칙입니다 — ②는 시작 화면이 없습니다. */
+body.resapp:not(.has-acc) .mbar,
+body.resapp:not(.has-acc) .rbar,
+body.resapp:not(.has-acc) .mbar-warn,
+body.resapp:not(.has-acc) .mrad,
+body.resapp:not(.has-acc) .msum,
+body.resapp:not(.has-acc) .mmain{display:none!important}
+/* 시작 화면에서 주소를 치는 동안에는 조건 줄만 잠깐 드러납니다 —
+   검색 결과 목록이 그 아래에 붙어 뜨기 때문입니다. */
+body.resapp:not(.has-acc).start-search .mbar{display:block!important;
+  opacity:0;height:0;overflow:hidden;padding:0;border:0}
+
+.rs-in{width:100%;max-width:660px;text-align:center}
+.rstart h2{margin:0 0 8px;font-size:26px;font-weight:800;letter-spacing:-.02em}
+.rs-lead{margin:0 0 26px;font-size:14.5px;color:var(--ink2);line-height:1.75}
+.rs-lead b{color:var(--brand-d)}
+
+.rs-ways{display:flex;flex-direction:column;gap:11px;text-align:left}
+.rs-way{position:relative;display:block;width:100%;background:var(--card);
+  border:1.5px solid var(--line);border-radius:12px;padding:16px 18px 16px 56px;
+  font:inherit;color:inherit;text-align:left;cursor:pointer;
+  transition:border-color .16s,box-shadow .16s}
+.rs-way:hover{border-color:var(--brand);box-shadow:0 2px 10px rgba(11,87,164,.12)}
+.rs-way-main{cursor:default}
+.rs-way-main:hover{border-color:var(--line);box-shadow:none}
+.rs-way-main:focus-within{border-color:var(--brand);box-shadow:0 2px 10px rgba(11,87,164,.12)}
+.rs-num2{position:absolute;left:16px;top:16px;width:26px;height:26px;border-radius:50%;
+  background:var(--brand);color:#fff;font-size:13px;font-weight:800;
+  display:flex;align-items:center;justify-content:center}
+.rs-wt{display:block;font-size:16px;font-weight:700;line-height:1.4}
+.rs-wd{display:block;margin-top:3px;font-size:12.5px;color:var(--ink3);line-height:1.5}
+.rs-way input[type=text]{width:100%;margin-top:11px;padding:11px 13px;font-size:15px}
+.rs-skip{margin-top:20px;background:none;border:0;color:var(--ink3);
+  font-size:13px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.rs-skip:hover{color:var(--brand-d)}
+
+/* 처음 화면으로 — 요약 줄 오른쪽 끝. 따로 띠를 두면 "사고지점 ○○"가
+   두 줄에 두 번 나온다. */
+.ms-again{margin-left:auto;flex:none;padding:3px 11px;font-size:12px;
+  background:rgba(255,255,255,.16);border-color:rgba(255,255,255,.4);color:#fff}
+.ms-again:hover{background:rgba(255,255,255,.3);border-color:#fff}
+
 /* ── 자원 종류 · 필요한 것 고르는 줄 ─────────────────────────
-   조건 줄 바로 아래 한 줄씩. 종류는 "무엇을 가진 곳인가", 필요한 것은
-   "지금 나에게 무엇이 필요한가" — 담당자는 보통 후자만 압니다. */
+   평소엔 접혀 있습니다. 고르지 않아도 전부 나오므로 꼭 봐야 하는 것이
+   아니라 "좁히고 싶을 때" 여는 것입니다. */
 .rbar{flex:none;background:var(--card);border-bottom:1px solid var(--line);
-  padding:7px 16px 8px}
+  padding:0 16px}
+.rbar-toggle{display:flex;align-items:center;gap:6px;width:100%;padding:9px 0;
+  background:none;border:0;font:inherit;font-size:12.5px;font-weight:700;
+  color:var(--brand-d);cursor:pointer;text-align:left}
+.rbar-toggle:hover{color:var(--brand)}
+.rbar-caret{width:15px;height:15px;transition:transform .2s var(--ease)}
+.rbar-toggle[aria-expanded=true] .rbar-caret{transform:rotate(180deg)}
+.rbar-more{padding-bottom:9px}
 .rbar-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .rbar-row + .rbar-row{margin-top:6px;padding-top:6px;border-top:1px solid var(--line2)}
 .rbar-t{flex:none;width:58px;font-size:11.5px;font-weight:700;color:var(--ink2)}
@@ -1023,7 +1094,11 @@ a.btnlink:hover{border-color:var(--brand)}
 #map.hasbg circle.rk{stroke-width:2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 
 @media (max-width:860px){
-  .rbar{padding:6px 12px 7px}
+  .rstart{padding:20px 14px 44px}
+  .rstart h2{font-size:21px}
+  .rs-way{padding:14px 15px 14px 50px}
+  .rs-wt{font-size:15px}
+  .rbar{padding:0 12px}
   .rbar-t{width:100%}
   .rbar-row + .rbar-row{margin-top:5px;padding-top:5px}
 }
@@ -1034,7 +1109,7 @@ a.btnlink:hover{border-color:var(--brand)}
 @media print{
   .databar.is-internal{background:#fff;color:#000;border:2px solid #000}
   .databar.is-example{background:#fff;color:#000;border:1px solid #000}
-  .rbar,.rmob{display:none!important}
+  .rbar,.rmob,.rstart,.ms-again{display:none!important}
   .rs-num{color:#000}
   .ap-tag,.rs-none{background:#fff;border:1px solid #000;color:#000}
 }

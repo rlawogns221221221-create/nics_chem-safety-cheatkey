@@ -6,7 +6,7 @@
 <title>화학사고 방제자원 지도</title>
 <link rel="stylesheet" href="../assets/shell.css">
 </head>
-<body class="mapapp">
+<body class="mapapp resapp">
 
 <div class="top">
   <div class="wrap">
@@ -16,6 +16,46 @@
       <button id="btnPrint" type="button">인쇄</button>
       <button id="btnClear" type="button">초기화</button>
     </div>
+  </div>
+</div>
+
+<!-- ══ 시작 화면 ══════════════════════════════════════════
+     처음 들어오면 이것 하나만 보입니다. 지도·조건·목록은 사고지점이
+     정해진 뒤에 나옵니다(body.has-acc).
+
+     방제자원 찾기는 결국 "사고지점에서 가까운 순"이라 사고지점 없이는
+     아무것도 못 합니다. 그런데 화면을 한꺼번에 펼쳐 두면 어디부터
+     손대야 하는지 알 수 없습니다. 그래서 첫 화면은 한 가지만 묻습니다. -->
+<div class="rstart" id="rStart">
+  <div class="rs-in">
+    <h2>사고지점이 어디인가요?</h2>
+    <p class="rs-lead">방제자원은 사고지점에서 가까운 순으로 찾습니다.<br>
+      아래 <b>셋 중 하나만</b> 하시면 됩니다.</p>
+
+    <div class="rs-ways">
+      <div class="rs-way rs-way-main">
+        <span class="rs-num2">1</span>
+        <div class="rs-wt">주소나 사업장 이름으로 찾기</div>
+        <div class="rs-wd">예) 김천시 신음동 · ○○화학 여수공장</div>
+        <input type="text" id="startQ" placeholder="주소 또는 사업장 이름" autocomplete="off">
+      </div>
+
+      <button type="button" class="rs-way" id="startPick">
+        <span class="rs-num2">2</span>
+        <span class="rs-wt">지도에서 직접 찍기</span>
+        <span class="rs-wd">주소를 모를 때. 지도를 눌러 표시합니다</span>
+      </button>
+
+      <button type="button" class="rs-way" id="startMe">
+        <span class="rs-num2">3</span>
+        <span class="rs-wt">지금 내가 있는 곳</span>
+        <span class="rs-wd">현장에 나와 있을 때</span>
+      </button>
+    </div>
+
+    <button type="button" class="rs-skip" id="startSkip">
+      사고지점 없이 지역으로 둘러보기
+    </button>
   </div>
 </div>
 
@@ -29,7 +69,7 @@
     <!-- 좁은 화면에서는 아래 조건들이 세로로 쌓여 지도를 밀어냅니다.
          주소 검색만 남기고 접어 두었다가 이 단추로 펴 봅니다(넓은 화면에서는
          접을 이유가 없으므로 이 단추가 보이지 않습니다). -->
-    <button type="button" class="mb-toggle" id="mbToggle" aria-expanded="false" aria-controls="mbMore">
+    <button type="button" class="mb-toggle always" id="mbToggle" aria-expanded="false" aria-controls="mbMore">
       조건 더보기
       <svg class="mb-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"
            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
@@ -53,13 +93,24 @@
   <!-- 자원 종류(무엇을 가진 곳인가) · 필요한 것(지금 나에게 필요한 물건).
        담당자는 보통 종류를 모르고 필요한 물건만 압니다 — 둘 다 둡니다. -->
   <div class="rbar noprint">
+    <!-- 평소엔 접혀 있습니다. 고르지 않아도 전부 나오므로, 꼭 봐야 하는
+         것이 아니라 "좁히고 싶을 때" 여는 것입니다. -->
+    <button type="button" class="rbar-toggle" id="rbToggle" aria-expanded="false"
+            aria-controls="rbMore">
+      <span id="rbTxt">무엇이 필요하세요?</span>
+      <svg class="rbar-caret" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+           stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"
+           aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+    </button>
+    <div class="rbar-more" id="rbMore" hidden>
+    <div class="rbar-row">
+      <span class="rbar-t">필요한 것</span>
+      <div class="rk-chips" id="rNeeds" role="group" aria-label="필요한 것으로 찾기"></div>
+    </div>
     <div class="rbar-row">
       <span class="rbar-t">자원 종류</span>
       <div class="rk-chips" id="rKinds" role="group" aria-label="자원 종류 고르기"></div>
     </div>
-    <div class="rbar-row">
-      <span class="rbar-t">필요한 것</span>
-      <div class="rk-chips" id="rNeeds" role="group" aria-label="필요한 것으로 찾기"></div>
     </div>
   </div>
 </div>

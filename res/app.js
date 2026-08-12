@@ -124,6 +124,7 @@ var st = {
   kinds: {},                       // 켜 둔 자원 종류
   needs: {},                       // 켜 둔 '필요한 것' (빈 값 = 전부)
   mob: {},                         // 동원 목록에 담은 것 (key → 자원)
+  begun: false,                    // 시작 화면을 벗어났는가
   walk: true,                      // 도보 경로를 길찾기로 받아올까 (인터넷 필요)
   route: null,                     // 받아 온 경로 {key, path, dist}
   routeBusy: false, routeErr: null,
@@ -500,6 +501,12 @@ function setScope(v) {
 /* 사고지점이 어디인지 글로도 적는다 — 좌표만 있으면 문자에 쓸 수 없고,
    문자로 넘기기 전에 맞는 자리인지 눈으로 확인할 방법도 없다.
    행정경계로 어림잡은 값은 '대략'이라고 적어 확정값과 구분한다. */
+/* 처음 화면으로 돌아가는 단추 — 요약 줄 오른쪽 끝. 따로 띠를 두면
+   "사고지점 ○○"가 두 줄에 두 번 나온다. */
+function againBtn() {
+  return '<button type="button" class="ms-again noprint" id="rhAgain">다시 정하기</button>';
+}
+
 function accChip() {
   var a = st.accAddr;
   if (!a) return "";
@@ -530,8 +537,11 @@ function renderSummary() {
             ? '<button type="button" class="ms-more noprint">반경 '
               + fmtDist(+next) + " 안에서 찾기</button>"
             : '<span class="ms-none">가장 넓은 범위(100km)에도 등록된 방제자원이 없습니다.</span>');
+      el.innerHTML += againBtn();
       var wide = $(".ms-more", el);
       if (wide) wide.onclick = function () { setScope(next); };
+      var ag = $("#rhAgain", el);
+      if (ag) ag.onclick = backToStart;
     }
     return;
   }
@@ -540,7 +550,8 @@ function renderSummary() {
   var sorted = st.all.slice().sort(function (a, b) { return a.d - b.d; });
   var near = sorted[0];
   var parts = [];
-  parts.push(accChip());
+  parts.push(accChip() || '<span class="ms-acc"><b>보는 지역</b>'
+    + esc([st.sido, st.sgg].filter(Boolean).join(" ")) + "</span>");
   parts.push('<span class="ms-near"><b>가장 가까운 곳</b>' + esc(near.name)
     + '<em>' + fmtDist(near.d) + " " + dirName(near.b) + "쪽 · "
     + MC.tripPair(near.d).label + "</em></span>");
@@ -575,9 +586,12 @@ function renderSummary() {
         + more + "곳 더 있습니다 · 범위 넓히기</button>");
   }
 
+  parts.push(againBtn());
   el.innerHTML = parts.join("");
   var b = $(".ms-more", el);
   if (b) b.onclick = function () { setScope("20000"); };
+  var again = $("#rhAgain", el);
+  if (again) again.onclick = backToStart;
 }
 
 /* ── 가까운 3곳 ───────────────────────────────────────────────
@@ -693,6 +707,109 @@ function telRow(s) {
 function anyFilterOff() {
   return KINDS.some(function (k) { return !st.kinds[k.id]; })
       || NEEDS.some(function (n) { return st.needs[n.id]; });
+}
+
+/* ══ 시작 화면 ═══════════════════════════════════════════════
+   처음에는 "사고지점이 어디인가요?" 하나만 묻고, 지도·조건·목록은
+   답이 나온 뒤에 보여 줍니다(body.has-acc). 방제자원 찾기는 결국
+   사고지점에서 가까운 순이라 그것 없이는 할 수 있는 일이 없는데,
+   화면을 한꺼번에 펼쳐 두면 어디부터 손대야 하는지 알 수 없습니다. */
+/* 시작 화면을 벗어났는가. 사고지점이 정해졌거나, 지역을 골랐거나,
+   "지도에서 찍기"처럼 사용자가 이미 다음 단계로 넘어간 경우. */
+function started() {
+  return !!(st.begun || st.acc || st.sido || st.sgg);
+}
+
+function renderStart() {
+  document.body.classList.toggle("has-acc", started());
+}
+
+function backToStart() {
+  st.begun = false;
+  st.acc = null; st.accAddr = null; accSeq++;
+  st.sido = ""; st.sgg = ""; st.scope = "";
+  st.q = ""; st.sel = -1; st.hover = -1;
+  st.route = null; st.routeErr = null; st.routeBusy = false;
+  pickedPlace = null;
+  ["acLat", "acLon", "mQ", "mAddrQ"].forEach(function (id) {
+    var e = $("#" + id); if (e) e.value = "";
+  });
+  $("#mSido").value = ""; $("#mSido").onchange();
+  $("#mScope").value = "";
+  setMode("pick");
+  refresh(true);
+  var q = $("#startQ"); if (q) { q.value = ""; }
+  window.scrollTo(0, 0);
+}
+
+function initStart() {
+  /* 1. 주소·사업장 이름 — 위 조건 줄의 검색과 같은 창을 씁니다.
+        여기에 치면 그쪽으로 옮겨 붙여 같은 결과 목록을 띄웁니다. */
+  var q = $("#startQ"), main = $("#mAddrQ");
+  if (q && main) {
+    q.oninput = function () {
+      main.value = q.value;
+      /* 결과 목록은 조건 줄 아래에 뜨므로, 시작 화면에서도 보이게
+         조건 줄을 잠깐 드러냅니다(사고지점을 고르면 정상으로 돌아갑니다) */
+      document.body.classList.add("start-search");
+      main.dispatchEvent(new Event("input"));
+    };
+    q.onkeydown = function (e) {
+      if (e.key === "ArrowDown" || e.key === "Enter") {
+        main.focus();
+        main.dispatchEvent(new KeyboardEvent("keydown", { key: e.key, bubbles: true }));
+        e.preventDefault();
+      }
+    };
+  }
+  /* 2. 지도에서 찍기 — 지도를 보여 주고 바로 '찍기' 모드로 */
+  var pick = $("#startPick");
+  if (pick) pick.onclick = function () {
+    st.sido = ""; st.sgg = ""; st.begun = true;
+    refresh(true);
+    setMode("acc");
+    toast("<b>지도를 눌러 사고지점을 표시하세요.</b> 누른 자리에서 가까운 순으로 찾습니다.");
+    var m = $(".mmap"); if (m) m.scrollIntoView({ block: "center", behavior: "smooth" });
+  };
+  /* 3. 내 위치 */
+  var me = $("#startMe");
+  if (me) me.onclick = function () { locateMe(); };
+  /* 사고지점 없이 지역으로 둘러보기 */
+  var skip = $("#startSkip");
+  if (skip) skip.onclick = function () {
+    st.begun = true;
+    renderStart();
+    var sel = $("#mSido");
+    if (sel) { sel.scrollIntoView({ block: "center" }); sel.focus(); }
+  };
+}
+
+/* ── 조건 접기 ────────────────────────────────────────────────
+   자원 종류·필요한 것은 고르지 않아도 전부 나옵니다. 꼭 봐야 하는 것이
+   아니라 좁히고 싶을 때 여는 것이라, 평소엔 접어 둡니다. */
+function initRbar() {
+  var b = $("#rbToggle"), box = $("#rbMore");
+  if (!b || !box) return;
+  b.onclick = function () {
+    var open = box.hidden;
+    box.hidden = !open;
+    b.setAttribute("aria-expanded", String(open));
+    if (!open) return;
+    renderFilters();
+  };
+}
+
+/* 접혀 있어도 무엇으로 좁혀 놨는지는 알려 준다 */
+function renderRbarLabel() {
+  var t = $("#rbTxt");
+  if (!t) return;
+  var need = NEEDS.filter(function (n) { return st.needs[n.id]; });
+  var off = KINDS.filter(function (k) { return !st.kinds[k.id]; });
+  if (!need.length && !off.length) { t.textContent = "무엇이 필요하세요?"; return; }
+  var bits = [];
+  if (need.length) bits.push(need.map(function (n) { return n.이름; }).join("·"));
+  if (off.length) bits.push("종류 " + (KINDS.length - off.length) + "/" + KINDS.length);
+  t.textContent = "좁혀 보는 중 — " + bits.join(" · ");
 }
 
 /* ── 자원 종류 · 필요한 것 거르개 ─────────────────────────────
@@ -965,7 +1082,7 @@ function fallbackCopy(t, done) {
 
 function refresh(refit) {
   recompute();
-  syncSort(); renderFilters(); renderMob();
+  syncSort(); renderStart(); renderFilters(); renderRbarLabel(); renderMob();
   renderSummary(); renderNear(); renderList(); renderLegend();
   if (refit) fit(); else draw();
   showAddr();
@@ -1107,7 +1224,9 @@ function setAcc(lat, lon, jump) {
   recompute();
   syncSort();                      // 범위 칸이 여기서 열린다 (사고지점이 있어야 열림)
   if (wide) $("#mScope").value = "20000";
+  document.body.classList.remove("start-search");
   lookupAccAddr();                 // 여기가 어느 시·군·구 어느 읍·면·동인가
+  renderStart();
   renderSummary(); renderNear(); renderList(); renderLegend(); showAddr();
   moveToAcc(!!jump);
 }
@@ -1156,7 +1275,7 @@ function lookupAccAddr() {
     if (seq !== accSeq || !a) return;      // 그새 다른 곳을 찍었다
     st.accAddr = { sido: a.sido, sgg: a.sgg, emd: a.emd,
                    road: a.road, no: a.no, exact: true };
-    renderSummary(); renderToSms();
+    renderSummary(); renderStart();
   });
 }
 
@@ -1445,6 +1564,7 @@ function toast(msg, isErr) {
 }
 
 function locateMe() {
+  st.begun = true;
   var b = $("#btnMe");
   b.setAttribute("aria-busy", "true");
   toast("위치를 찾고 있습니다…");
@@ -1656,7 +1776,14 @@ function initSrcModal() {
 
 function init() {
   SVG = $("#map");
-  MC.foldBar();            // 좁은 화면에서 조건 줄 접기
+  /* ③ 은 넓은 화면에서도 조건을 접어 둡니다 (MC.foldBar 는 좁은 화면만) */
+  var bar = $(".mbar");
+  if (bar) bar.classList.add("folded");
+  var mb = $("#mbToggle");
+  if (mb) mb.onclick = function () {
+    var open = bar.classList.toggle("folded");
+    mb.setAttribute("aria-expanded", String(!open));
+  };            // 좁은 화면에서 조건 줄 접기
   initSelects();
   initSrcModal();
   bindMap();
@@ -1718,6 +1845,11 @@ function init() {
     pickedPlace = null;
     st.needs = {}; st.mob = {};
     KINDS.forEach(function (k) { st.kinds[k.id] = true; });
+    st.begun = false;
+    document.body.classList.remove("has-acc", "start-search");
+    var box = $("#rbMore");
+    if (box) { box.hidden = true; $("#rbToggle").setAttribute("aria-expanded", "false"); }
+    var sq = $("#startQ"); if (sq) sq.value = "";
     ["mMat", "mQ", "acLat", "acLon", "mAddrQ"].forEach(function (id) { $("#" + id).value = ""; });
     $("#mSido").value = ""; $("#mSido").onchange();
     $("#mScope").value = ""; $("#mSort").value = "name";
@@ -1728,6 +1860,8 @@ function init() {
     setMode("pick");
   };
 
+  initStart();
+  initRbar();
   setMode("pick");
   showSrc();
   refresh(true);
