@@ -123,6 +123,10 @@ python3 build/make_release.py    # release/ 배포 폴더 + zip
 | `build/fetch_tempshelter.html` | `data/tempshelters.js` | 이재민 임시주거시설 (행안부 오픈API) |
 | `build/geocode.html` | `data/resources.geo.js` | 방제자원 정확 좌표 (브이월드) |
 
+자료를 **파일로 내려받아** 건네받을 수도 있습니다. 그때는
+`python3 build/make_tempshelters.py <내려받은.csv|xlsx>` — 위 페이지와 같은 규칙으로
+같은 결과를 만듭니다. 사용자가 파일을 붙여 줄 수 있으면 이 길이 더 확실합니다.
+
 둘 다 **있으면 쓰고 없으면 그 기능만 빠지는** 선택 파일입니다
 (`build_single.py` 의 `OPTIONAL`, `make_release.py` 의 `OPTIONAL`).
 
@@ -159,10 +163,20 @@ python3 build/make_release.py    # release/ 배포 폴더 + zip
 검증 16묶음 전부 통과. 가장 최근 작업은 ② 지도에 **이재민 임시주거시설 층**을
 붙인 것입니다(`7eafed7`, `29290f7`).
 
-**바로 다음 (사용자가 할 일)**
-- `build/fetch_tempshelter.html` 을 인터넷 되는 PC에서 열어
-  `data/tempshelters.js` 를 만들어 넣기. 그 전까지 그 층은 화면에 나오지 않습니다.
-  넣은 뒤에는 `tests/run.sh tmp2` 로 확인하고 `build_single.py` 를 다시 돌립니다.
+**바로 다음 — 이재민 임시주거시설 자료를 아직 못 구했습니다**
+
+사용자가 준 오픈API(`uddi:78c724b6-…`)는 **시·도별 집계표**였습니다.
+17개 시·도 × 시설구분 3종 = 51줄이고, 개소·면적·수용능력만 있어
+**시설의 이름·주소·좌표가 없습니다.** 그래서 지도에 찍을 수 없습니다
+(2026-08-13 에 실제로 받아 확인. 그 전 `27f35a8` 에서 되돌린 CSV 와 같은 표입니다).
+
+필요한 것은 **시설 하나하나가 한 줄인 목록** — `시설명 · 주소 · 위도 · 경도` 가
+있는 자료입니다. 사용자가 포털에서 그 자료를 찾아 URL 을 주거나, 파일로 내려받아
+건네주면 `build/make_tempshelters.py` 로 바로 만들 수 있습니다.
+자료가 들어오면 `tests/run.sh tmp2` 로 확인하고 `build_single.py` 를 다시 돌리세요.
+
+그 파일이 없는 동안에는 ② 지도에 그 층이 나오지 않고 화면은 예전 그대로입니다
+(정상 동작입니다 — 고장이 아닙니다).
 
 **아직 남은 것**
 - ③ 방제자원 — 구글 드라이브에 올려 둔 나머지 DB 파일 9종이 아직 안 들어갔습니다.

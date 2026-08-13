@@ -52,6 +52,21 @@ chk(r[0] === '판교초등학교 체육관' && r[1] === '1,200㎡' && r[3] === 2
 chk(ctx.TEMPSHELTER_META && ctx.TEMPSHELTER_META.총건수 === 5, '메타에 건수가 들어간다');
 chk(!js.includes('serviceKey') && !js.includes('인증키'), '만든 파일에 인증키가 들어가지 않는다');
 
+/* ── 집계표를 받았을 때 — 빈 파일을 만들면 안 된다 ──────────────
+   사용자가 실제로 이 자료(시·도별 개소·수용능력만 있는 51줄짜리 통계표)를
+   받아 왔고, 그때 아무 말 없이 0줄짜리 파일이 만들어져 무엇이 잘못됐는지
+   알 수 없었다. 그 일이 다시 없게 여기서 잡는다. */
+await P.goto(ROOT + 'build/fetch_tempshelter.html');
+await P.waitForTimeout(400);
+await P.setInputFiles('#file', RPATH + '/tests/fixtures/sample_api_agg.json');
+await P.waitForTimeout(700);
+chk(await P.isHidden('#dlCard'), '쓸 줄이 없으면 내려받기 단추를 주지 않는다');
+chk(!!(await P.$('.bad')), '왜 안 되는지 화면에 뜬다');
+const why = await P.textContent('.bad');
+chk(why.includes('시·도별 집계표'), '집계표를 받았다고 짚어 준다');
+chk(why.includes('시설명') && why.includes('위도'), '어떤 칸이 있어야 하는지 알려 준다');
+chk(why.includes('개소') && why.includes('수용능력'), '받은 자료의 칸 이름을 그대로 보여 준다');
+
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length);
 bad.forEach(m => console.log('  FAIL ' + m));
 if (errs.length) { console.log('오류:'); errs.forEach(e => console.log('  ' + e)); }

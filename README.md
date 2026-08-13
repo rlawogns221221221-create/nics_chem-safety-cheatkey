@@ -464,6 +464,21 @@ crop.save("결과.png")
 브라우저 보안(CORS)으로 막히면, 주소창에서 JSON 을 직접 열어 저장한 뒤
 `내려받아 둔 JSON 파일로 하기` 로 그 파일을 고르면 결과가 같습니다.
 
+**자료를 파일로 내려받았다면** 오픈API 대신 이쪽이 더 간단합니다.
+
+```bash
+python3 build/make_tempshelters.py 내려받은파일.csv     # xlsx 도 됩니다
+```
+
+같은 규칙으로 같은 `data/tempshelters.js` 를 만듭니다.
+
+> **집계표로는 지도를 만들 수 없습니다.** 같은 이름의 자료라도 시·도별
+> 개소·수용능력만 있는 통계표가 있고, 시설 하나하나의 이름·주소·좌표가 있는
+> 목록이 따로 있습니다. 필요한 것은 뒤엣것입니다. 집계표를 넣으면 페이지와
+> 스크립트가 **파일을 만들지 않고 왜 안 되는지 알려 줍니다**
+> (2026-08-13 에 오픈API `uddi:78c724b6-…` 가 집계표여서 실제로 걸렸습니다 —
+> 51줄·개소와 수용능력만 있음).
+
 > **인증키가 이 파일에 적혀 있습니다.** 열자마자 돌아가게 하려고 넣은 것입니다.
 > 저장소를 공개로 두면 키도 함께 공개되며, 그 키로 할 수 있는 일은 공개된 자료를
 > 내려받는 것뿐이지만 **하루 호출 한도는 소진될 수 있습니다.** 키가 샜다고 판단되면
@@ -741,6 +756,7 @@ build/extract_mat.py  물질정보 hwpx → 구조화 JSON
 build/make_data.py    원자료 → data/*.js 재생성
 build/make_boundary.py 행정경계 TopoJSON → data/boundaries.js
 build/make_resources.py 방제자원 → data/resources*.js (공개판·내부판)
+build/make_tempshelters.py  내려받은 이재민 임시주거시설 목록 → data/tempshelters.js
 build/build_single.py 단일 HTML 빌드
 build/make_release.py 배포 폴더·압축파일 만들기
 build/fetch_tempshelter.html  이재민 임시주거시설 자료 받기 (브라우저에서 1회)
