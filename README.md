@@ -734,6 +734,7 @@ data/cases.js         실제 발송 사례 42건 (자동 생성)
 data/boundaries.js    시·군·구 경계선 250개 (자동 생성)
 data/resources.js     방제자원 — 공개판 (자동 생성)
 data/resources.internal.js  방제자원 — 내부판, 담당자 포함 · git 제외
+data/tempshelters.js  이재민 임시주거시설 — 있으면 쓰고 없으면 그 층이 안 나옴
 source/               원자료 (PDF·HWPX·XLSX·XLS)
 build/hwpx.py         HWPX 표 구조 파서
 build/extract_mat.py  물질정보 hwpx → 구조화 JSON
@@ -741,9 +742,27 @@ build/make_data.py    원자료 → data/*.js 재생성
 build/make_boundary.py 행정경계 TopoJSON → data/boundaries.js
 build/make_resources.py 방제자원 → data/resources*.js (공개판·내부판)
 build/build_single.py 단일 HTML 빌드
+build/make_release.py 배포 폴더·압축파일 만들기
+build/fetch_tempshelter.html  이재민 임시주거시설 자료 받기 (브라우저에서 1회)
+build/geocode.html    방제자원 정확 좌표 받기 (브라우저에서 1회)
+tests/                화면 검증 — 실제 브라우저로 눌러 봄 (tests/run.sh)
 dist/                 배포용 단일 파일
 docs/                 분석·변경점 기록
+CLAUDE.md             함께 일하는 규칙 — 새 대화에서 이어 작업할 때 먼저 읽는 파일
 ```
+
+### 화면 검증
+
+```bash
+tests/run.sh              # 16개 묶음 모두 (10분쯤)
+tests/run.sh t8 addr      # 고른 것만
+tests/run.sh -l           # 묶음 목록
+```
+
+실제 Chromium 을 띄워 화면을 눌러 보고 확인합니다(문안 생성·지도·모바일·접근성·
+단일 파일·자료 변환까지). 화면을 고쳤으면 관련 묶음을, 커밋 전에는 모두 돌립니다.
+`playwright` 는 이미 깔린 것을 링크로 가져다 쓰므로 따로 설치할 것이 없습니다.
+배경지도 타일을 못 받아 나는 `ERR_TUNNEL_CONNECTION_FAILED` 는 정상입니다.
 
 데이터를 `.json` 이 아닌 `.js` 로 둔 이유: `file://` 로 열었을 때 `fetch()` 는 차단되지만
 `<script src>` 는 동작하므로, 망분리 환경에서도 모듈 구조 그대로 쓸 수 있습니다.
