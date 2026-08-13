@@ -578,8 +578,45 @@ function tripLine(s) {
     + (!t.walk ? " · 걸어서 가기 어려운 거리" : " · 직선거리로 어림한 값");
 }
 
+/* ── 이재민 임시주거시설 한 줄 ────────────────────────────────
+   이 지도에 실린 '화학사고 대피장소'는 화학사고 대비로 미리 지정해 둔
+   곳입니다. 그런데 주민이 실제로 그곳까지 가는 큰 화학사고는 아직 없었고,
+   실제 대피가 일어나면 주민은 이재민 임시주거시설로 갑니다.
+
+   화면이 화학사고 대피장소만 보여 주면 담당자가 "우리 지역 대피처는 이게
+   전부"라고 오해하게 되므로, 그 시·도에 임시주거시설이 얼마나 있는지 한 줄로
+   적어 둡니다.
+
+   지도에 점으로 찍지 않는 이유: 원자료(행정안전부 통계연보)가 시·도별
+   집계표라 개별 시설의 이름·주소·좌표가 아예 없습니다. 없는 좌표를 지어내
+   찍으면 그 자리로 사람을 보내게 됩니다. */
+function tempSidoOf() {
+  if (st.acc && st.accAddr && st.accAddr.sido) return st.accAddr.sido;
+  if (st.sido) return st.sido;
+  var s = st.all[0];
+  return s ? s.sido : "";
+}
+
+function renderTemp() {
+  var el = $("#mTemp");
+  if (!el) return;
+  var T = window.TEMPSHELTER || {};
+  var sido = tempSidoOf();
+  var d = T[sido];
+  el.hidden = !d || !d["이재민"];
+  if (el.hidden) return;
+
+  var n = d["이재민"].n, cap = d["이재민"].cap;
+  el.innerHTML = '<b>실제 대피는 이재민 임시주거시설로</b> '
+    + esc(sido) + " <em>" + n.toLocaleString() + "</em>개소 · 수용 <em>"
+    + cap.toLocaleString() + "</em>명"
+    + '<button type="button" class="ms-temp-q" id="mTempQ" aria-label="자세히">?</button>';
+  $("#mTempQ").onclick = function () { $("#btnSrc").click(); };
+}
+
 /* ── 목록 ─────────────────────────────────────────────────── */
 function renderList() {
+  renderTemp();
   var acc = st.acc;
   $("#listCnt").textContent = st.all.length
     ? (st.q ? st.show.length + " / " + st.all.length + "곳" : st.all.length + "곳") : "";
@@ -924,7 +961,7 @@ function lookupAccAddr() {
     if (seq !== accSeq || !a) return;      // 그새 다른 곳을 찍었다
     st.accAddr = { sido: a.sido, sgg: a.sgg, emd: a.emd,
                    road: a.road, no: a.no, exact: true };
-    renderSummary(); renderToSms();
+    renderSummary(); renderTemp(); renderToSms();
   });
 }
 
@@ -1319,6 +1356,25 @@ function moveToMe() {
 }
 
 /* ── 배경지도 ─────────────────────────────────────────────── */
+/* 자료 출처 창에 붙이는 설명 — 왜 두 가지 대피처가 있는지 */
+function tempSrcHtml() {
+  var M = window.TEMPSHELTER_META;
+  if (!M) return "";
+  var t = M["합계"] || {};
+  return '<p><b>이재민 임시주거시설</b> — 이 지도에 찍히는 것은 '
+    + '<b>화학사고 대피장소</b>입니다(화학사고 대비로 미리 지정해 둔 곳). '
+    + '실제로 주민이 그곳까지 가는 큰 화학사고는 아직 없었고, 대피가 일어나면 '
+    + '주민은 수해·지진에 쓰는 <b>이재민 임시주거시설</b>로 가는 경우가 많습니다. '
+    + '전국에 ' + (t["이재민"] ? t["이재민"].n.toLocaleString() : "?") + '개소, 수용 '
+    + (t["이재민"] ? t["이재민"].cap.toLocaleString() : "?") + '명입니다.</p>'
+    + '<p><b>왜 지도에 점으로 안 찍히나요?</b> 이 자료(' + esc(M["출처"] || "")
+    + ', 기준 ' + esc(M["기준일"] || "") + ')는 <b>시·도별 집계표</b>라 개별 시설의 '
+    + '이름·주소·좌표가 들어 있지 않습니다. 없는 좌표를 지어내 찍으면 그 자리로 '
+    + '사람을 보내게 되므로 숫자만 적습니다. '
+    + '개별 위치는 <b>관할 시·군·구 재난안전과</b>에 확인하시거나, 공공데이터포털의 '
+    + '표준데이터를 받아 넣으면 지도에도 함께 찍을 수 있습니다.</p>';
+}
+
 function showSrc() {
   var s = MC.tiles.status();
   $$("#mLyr button").forEach(function (b) {
@@ -1467,6 +1523,7 @@ function initSrcModal() {
     "<p><b>대피장소</b> — " + esc(VERSION.대피장소_출처) + " · 기준일 "
       + esc(VERSION.대피장소_기준일) + " ("
       + SHELTER_META.총건수.toLocaleString() + "곳 · 좌표 포함)</p>"
+    + tempSrcHtml()
     + "<p><b>배경지도</b> — " + esc(VERSION.배경지도) + ". 인터넷이 되는 환경에서만 표시되며, "
       + "안 되면 행정경계선만 그립니다.</p>"
     + "<p><b>행정경계</b> — " + esc(VERSION.경계_출처) + ". "
