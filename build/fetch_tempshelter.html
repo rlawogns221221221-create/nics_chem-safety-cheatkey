@@ -43,37 +43,50 @@
 <div class="w">
 
 <h1>이재민 임시주거시설 자료 받기</h1>
-<p class="sub">한 번만 돌리면 됩니다. 결과 파일을 <code>data/</code> 에 넣으면
-② 대피장소 지도에 <b>이재민 임시주거시설</b>이 화학사고 대피장소와 별개의 층으로 함께 나옵니다.</p>
+<p class="sub">이 파일을 열면 자료를 <b>저절로 받아옵니다.</b> 인증키는 이미 넣어 두었으니
+따로 입력할 것이 없습니다.</p>
 
 <div class="note">
-  <b>왜 이렇게 받나</b><br>
-  자료를 만든 자리(개발 환경)에서는 공공데이터포털 서버에 닿지 않습니다. 그래서
-  <b>인터넷이 되는 PC</b>에서 이 페이지를 열어 받아 오고, 만들어진
-  <code>data/tempshelters.js</code> 파일만 저장소에 넣는 방식으로 합니다.
-  자료가 갱신되면(보통 1년 단위) 이 페이지를 다시 돌리면 됩니다.
+  <b>세 걸음이면 끝납니다</b>
+  <ol style="margin:6px 0 8px">
+    <li><b>기다립니다</b> — 아래에서 자료를 받아옵니다(1분 안팎).</li>
+    <li><b>‘tempshelters.js 내려받기’</b> 를 누릅니다. 다 받으면 그 단추가 생깁니다.</li>
+    <li>받은 파일을 저장소의 <code>data/</code> 폴더에 <b>넣습니다.</b>
+        그러면 ② 대피장소 지도에 <b>이재민 임시주거시설</b> 층이 생깁니다.</li>
+  </ol>
+  <b>인터넷이 되는 PC</b>에서 열어야 합니다(개발 환경에서는 공공데이터포털 서버에 닿지
+  않습니다). 자료가 갱신되면 — 보통 1년에 한 번입니다 — 이 파일을 다시 열면 됩니다.
 </div>
 
 <div class="card">
-  <h2>1. 자료 주소와 인증키</h2>
-  <label for="url">자료 주소 — 공공데이터포털 &gt; 행정안전부_이재민임시주거시설정보 &gt; 상세기능 URL</label>
-  <input type="text" id="url" spellcheck="false"
-         value="https://api.odcloud.kr/api/15124965/v1/uddi:78c724b6-8ee3-4998-946b-802f1f091336">
-  <label for="key">일반 인증키 (Decoding) — 포털 &gt; 마이페이지 &gt; 인증키 발급현황</label>
-  <input type="text" id="key" spellcheck="false" placeholder="포털에서 받은 인증키를 붙여넣으세요"
-         autocomplete="off">
-  <p class="sub" style="margin:8px 0 0">
-    인증키는 이 브라우저에만 저장되고(<code>localStorage</code>) 저장소 파일에는 들어가지 않습니다.
-    <span class="warn">인증키를 저장소·메일로 돌리지 마세요.</span>
-  </p>
-  <div class="row">
-    <button id="go">받아오기 시작</button>
-    <button id="pick" class="g">내려받아 둔 JSON 파일로 하기</button>
-    <input type="file" id="file" accept=".json,application/json" hidden>
-  </div>
+  <h2>1. 받아오는 중</h2>
   <div class="bar"><i id="pb"></i></div>
   <div class="st" id="st">기다리는 중</div>
   <div class="log" id="log"></div>
+  <div class="row">
+    <button id="go">다시 받기</button>
+    <button id="pick" class="g">내려받아 둔 JSON 파일로 하기</button>
+    <input type="file" id="file" accept=".json,application/json" hidden>
+  </div>
+
+  <details style="margin-top:16px">
+    <summary style="cursor:pointer;font-size:13px;color:#4a5563;font-weight:700">
+      인증키·자료 주소 바꾸기 — 평소에는 건드릴 필요 없습니다</summary>
+    <label for="url">자료 주소 — 공공데이터포털 &gt; 행정안전부_이재민임시주거시설정보 &gt; 상세기능 URL</label>
+    <input type="text" id="url" spellcheck="false"
+           value="https://api.odcloud.kr/api/15124965/v1/uddi:78c724b6-8ee3-4998-946b-802f1f091336">
+    <label for="key">일반 인증키 (Decoding) — 포털 &gt; 마이페이지 &gt; 인증키 발급현황</label>
+    <input type="text" id="key" spellcheck="false" autocomplete="off"
+           value="b1650a7c4b0938477047108ae1381583aa49940f730a4d6c086767287d73b775">
+    <p class="sub" style="margin:8px 0 0">
+      <span class="warn">이 파일에는 인증키가 적혀 있습니다.</span>
+      저장소를 공개로 두면 키도 함께 공개됩니다. 키가 새면
+      공공데이터포털 &gt; 마이페이지에서 <b>인증키를 다시 발급</b>받고 위 칸을 고치면 됩니다.
+      (이 키로 할 수 있는 일은 공개된 자료를 내려받는 것뿐이며,
+      너무 자주 부르면 하루 한도에 걸립니다.)<br>
+      여기서 고친 값은 이 브라우저에도 기억되어, 다음에 열면 고친 값으로 시작합니다.
+    </p>
+  </details>
 </div>
 
 <div class="card" id="prevCard" hidden>
@@ -117,8 +130,16 @@ var $ = function (s) { return document.querySelector(s); };
 function log(t) { var el = $("#log"); el.textContent += t + "\n"; el.scrollTop = el.scrollHeight; }
 function setBar(p, t) { $("#pb").style.width = Math.round(p) + "%"; $("#st").textContent = t; }
 
-var KEYLS = "nics.odcloud.key";
-try { $("#key").value = localStorage.getItem(KEYLS) || ""; } catch (e) {}
+/* 인증키·자료 주소는 파일에 적어 두었습니다(그냥 열면 바로 돌아가게).
+   여기서 고친 적이 있으면 그 값을 우선합니다 — 자료 주소가 해마다 바뀌는데
+   그때마다 파일을 고치라고 하면 안 되기 때문입니다. */
+var KEYLS = "nics.odcloud.key", URLLS = "nics.odcloud.url";
+try {
+  var savedKey = localStorage.getItem(KEYLS);
+  var savedUrl = localStorage.getItem(URLLS);
+  if (savedKey) $("#key").value = savedKey;
+  if (savedUrl) $("#url").value = savedUrl;
+} catch (e) {}
 
 /* ── 칸 이름 짝짓기 ──────────────────────────────────────────
    원자료의 칸 이름이 해마다 조금씩 달라집니다("시설명"/"명칭",
@@ -304,10 +325,14 @@ function showPreview(rows) {
 
 /* ── 받아오기 ─────────────────────────────────────────────── */
 var PER = 1000;
+/* 돌고 있는 받아오기가 몇 번째인가 — 파일로 불러오거나 다시 받기를 누르면
+   앞의 것이 나중에 도착해도 결과를 덮어쓰지 않게 한다. */
+var runSeq = 0;
 function fetchAll() {
+  var seq = ++runSeq;
   var key = $("#key").value.trim(), base = $("#url").value.trim();
   if (!key) { alert("인증키를 넣어 주세요."); return; }
-  try { localStorage.setItem(KEYLS, key); } catch (e) {}
+  try { localStorage.setItem(KEYLS, key); localStorage.setItem(URLLS, base); } catch (e) {}
   $("#go").disabled = true;
   RAW = [];
   var page = 1, total = 0;
@@ -319,10 +344,12 @@ function fetchAll() {
   };
 
   var step = function () {
+    if (seq !== runSeq) return;                 // 그새 다른 것으로 갈아탔다
     fetch(url(page)).then(function (res) {
       if (!res.ok) throw new Error("서버가 " + res.status + " 응답");
       return res.json();
     }).then(function (d) {
+      if (seq !== runSeq) return;
       var rows = d.data || [];
       total = d.totalCount || d.matchCount || total;
       RAW = RAW.concat(rows);
@@ -331,8 +358,11 @@ function fetchAll() {
       if (rows.length && RAW.length < total && page < 200) { page++; setTimeout(step, 120); }
       else { log("받기 끝 — " + RAW.length + "건"); build(RAW); $("#go").disabled = false; }
     }).catch(function (e) {
-      log("실패: " + e.message);
-      log("→ 아래 '서버에 닿지 않을 때' 를 보고 JSON 파일로 해 보세요.");
+      if (seq !== runSeq) return;
+      log("받지 못했습니다 — " + e.message);
+      log("→ 인터넷이 되는 PC인지 먼저 보시고, 그래도 안 되면 아래");
+      log("  '서버에 닿지 않을 때' 대로 하시면 결과는 같습니다.");
+      setBar(0, "받지 못했습니다");
       $("#go").disabled = false;
     });
   };
@@ -345,6 +375,8 @@ $("#pick").onclick = function () { $("#file").click(); };
 $("#file").onchange = function () {
   var f = this.files[0];
   if (!f) return;
+  runSeq++;                       // 돌고 있는 받아오기가 있으면 그 결과는 버린다
+  $("#go").disabled = false;
   var rd = new FileReader();
   rd.onload = function () {
     try {
@@ -384,6 +416,9 @@ $("#dl").onclick = function () {
 };
 
 setBar(0, "기다리는 중");
+/* 열자마자 시작합니다 — 인증키가 파일에 들어 있으므로 사용자가 할 일이 없습니다.
+   실패해도 화면에 이유가 남고 '다시 받기' 로 언제든 다시 돌릴 수 있습니다. */
+if ($("#key").value.trim()) setTimeout(fetchAll, 300);
 })();
 </script>
 </body>
