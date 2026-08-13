@@ -82,8 +82,10 @@ def check_output(out: pathlib.Path) -> None:
 
 
 # ── ② 깨진 참조 검사 ─────────────────────────────────────────
-# 있으면 쓰고 없으면 화면이 그냥 넘어가는 파일 (build/geocode.html 로 만듦)
-OPTIONAL = {"resources.geo.js"}
+# 있으면 쓰고 없으면 화면이 그냥 넘어가는 파일
+#   resources.geo.js  — build/geocode.html 로 만듭니다 (방제자원 정확 좌표)
+#   tempshelters.js   — build/fetch_tempshelter.html 로 만듭니다 (이재민 임시주거시설)
+OPTIONAL = {"resources.geo.js", "tempshelters.js"}
 
 
 def check_links(site: pathlib.Path) -> None:

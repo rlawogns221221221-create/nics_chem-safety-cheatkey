@@ -15,8 +15,12 @@
 공유폴더·업무포털로만 전달해야 합니다.
 
 ── 있으면 넣고 없으면 넘어가는 파일 ───────────────────────────
-data/resources.geo.js — build/geocode.html 로 만드는 정확 좌표 파일입니다.
-없으면 그 <script> 줄을 빼고 만듭니다(주소로 잡은 어림 좌표를 씁니다).
+data/resources.geo.js  — build/geocode.html 로 만드는 정확 좌표 파일입니다.
+                         없으면 주소로 잡은 어림 좌표를 씁니다.
+data/tempshelters.js   — build/fetch_tempshelter.html 로 받는 이재민
+                         임시주거시설 자료입니다. 없으면 ② 지도에 그 층이
+                         아예 나오지 않습니다(화면은 예전 그대로).
+둘 다 없으면 그 <script> 줄을 빼고 만듭니다.
 """
 import argparse
 import pathlib
@@ -35,7 +39,7 @@ INTERNAL_PAGE = (ROOT / "res" / "index.html", "화학사고_방제자원_동원_
                  ("../data/resources.js", "../data/resources.internal.js"))
 
 # 있으면 넣고 없으면 넘어가는 자료 파일
-OPTIONAL = ["resources.geo.js"]
+OPTIONAL = ["resources.geo.js", "tempshelters.js"]
 
 BANNER = """<!-- ────────────────────────────────────────────────────────────
      화학사고 지자체 대응 지원도구 — 오프라인 단일 파일

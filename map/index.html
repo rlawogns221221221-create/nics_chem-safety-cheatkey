@@ -129,6 +129,10 @@
       <span id="toSmsTxt">이 내용으로 주민대피 문자 만들기</span>
     </button>
 
+    <!-- 어느 자료를 지도에 올릴까 — 자료 파일이 있을 때만 나옵니다.
+         (data/tempshelters.js · build/fetch_tempshelter.html 로 받습니다) -->
+    <div class="ms-lyrs noprint" id="mLayers" role="group" aria-label="지도에 표시할 대피처" hidden></div>
+
     <div class="ms-hd">대피장소 <span id="listCnt"></span></div>
     <div class="ms-tools noprint">
       <input type="text" id="mQ" placeholder="이름·주소로 찾기" aria-label="대피장소 검색" autocomplete="off">
@@ -159,6 +163,9 @@
 <script src="../data/basemap.js"></script>
 <script src="../data/materials.js"></script>
 <script src="../data/shelters.js"></script>
+<!-- 이재민 임시주거시설(행정안전부). 아직 자료를 안 받아 왔으면 이 파일이 없고,
+     없으면 그 층은 화면에 나오지 않습니다 — build/fetch_tempshelter.html 참고. -->
+<script src="../data/tempshelters.js"></script>
 <script src="../data/boundaries.js"></script>
 <script src="../assets/matpicker.js"></script>
 <script src="../assets/mapcore.js"></script>

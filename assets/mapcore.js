@@ -442,24 +442,41 @@ function matchSgg(bName, sgg) {
 }
 
 /* ── 대피장소 데이터 읽기 ──────────────────────────────────────
-   SHELTERS[시도][시군구] = [[장소명, 상세, 주소, 수용, 구분, 위도, 경도, 부서, 전화], ...]
-   좌표가 없는 곳은 지도에 찍을 수 없으므로 건넌다. */
-function shelters(sido, sgg) {
+   두 가지 자료가 같은 줄 구조를 씁니다.
+     SHELTERS      화학사고 대피장소 (화학물질안전원)
+     TEMPSHELTERS  이재민 임시주거시설 (행정안전부 공공데이터포털)
+   [시도][시군구] = [[장소명, 상세, 주소, 수용, 구분, 위도, 경도, 부서, 전화], ...]
+   좌표가 없는 곳은 지도에 찍을 수 없으므로 건넌다.
+
+   src 는 어느 자료에서 온 줄인지입니다("chem" | "temp"). 두 자료를 한 목록에
+   섞어 놓고도 화면에서 서로 구분해 보여 주려고 답니다. key 에도 붙여 두 자료에
+   같은 이름·같은 좌표의 시설이 있어도 같은 줄로 취급되지 않게 합니다. */
+function rowsOf(S, sido, sgg, src) {
   var out = [];
-  var S = window.SHELTERS || {};
   var sds = sido ? [sido] : Object.keys(S);
   sds.forEach(function (sd) {
     var sgs = sgg ? [sgg] : Object.keys(S[sd] || {});
     sgs.forEach(function (sg) {
       ((S[sd] || {})[sg] || []).forEach(function (r) {
         if (r[5] == null || r[6] == null) return;
-        out.push({ key: sd + "|" + sg + "|" + r[0] + "|" + r[5] + "," + r[6],
-                   sido: sd, sgg: sg, name: r[0], detail: r[1], addr: r[2],
+        out.push({ key: src + "|" + sd + "|" + sg + "|" + r[0] + "|" + r[5] + "," + r[6],
+                   src: src, sido: sd, sgg: sg, name: r[0], detail: r[1], addr: r[2],
                    cap: r[3], kind: r[4], lat: r[5], lon: r[6], dept: r[7], tel: r[8] });
       });
     });
   });
   return out;
+}
+function shelters(sido, sgg) {
+  return rowsOf(window.SHELTERS || {}, sido, sgg, "chem");
+}
+/* 이재민 임시주거시설 — data/tempshelters.js 가 있을 때만 나옵니다.
+   그 파일은 build/fetch_tempshelter.html 로 만듭니다(인터넷 되는 PC에서 1회). */
+function tempShelters(sido, sgg) {
+  return rowsOf(window.TEMPSHELTERS || {}, sido, sgg, "temp");
+}
+function hasTemp() {
+  return !!(window.TEMPSHELTERS && Object.keys(window.TEMPSHELTERS).length);
 }
 
 /* 시·군·구 이름만 알 때 시·도 찾기 (동명 시·군·구가 있으면 첫 번째) */
@@ -698,7 +715,8 @@ window.MAPCORE = {
   /* 카메라 · 조작 */
   camera: makeCamera, panzoom: panzoom, foldBar: foldBar,
   /* 데이터 */
-  shelters: shelters, findSido: findSido, extLinks: extLinks,
+  shelters: shelters, tempShelters: tempShelters, hasTemp: hasTemp,
+  findSido: findSido, extLinks: extLinks,
   /* 배경지도 타일 */
   tiles: {
     cfg: cfg,

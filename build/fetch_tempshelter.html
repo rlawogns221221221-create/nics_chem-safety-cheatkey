@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>이재민 임시주거시설 자료 받기</title>
+<style>
+  body{margin:0;padding:26px;font-family:"Pretendard","Malgun Gothic",sans-serif;
+    background:#eef1f5;color:#12181f;font-size:15px;line-height:1.65;word-break:keep-all}
+  .w{max-width:820px;margin:0 auto}
+  h1{font-size:21px;margin:0 0 6px}
+  h2{font-size:15px;margin:0 0 10px}
+  .sub{color:#4a5563;font-size:13.5px;margin:0 0 18px}
+  .card{background:#fff;border:1px solid #d5dce3;border-radius:10px;padding:18px;margin-bottom:14px}
+  .note{background:#dbe7f4;border:1px solid #bed3e8;color:#0d3f70;border-radius:10px;
+    padding:13px 16px;font-size:13px;margin-bottom:14px}
+  ol{margin:0;padding-left:22px} ol li{margin-bottom:7px}
+  label{display:block;font-size:13px;font-weight:700;color:#4a5563;margin:12px 0 4px}
+  input[type=text]{width:100%;box-sizing:border-box;padding:9px 11px;font:inherit;font-size:13.5px;
+    border:1px solid #d5dce3;border-radius:8px;background:#fff}
+  button{font:inherit;padding:11px 20px;border:1px solid #0b57a4;background:#0b57a4;
+    color:#fff;border-radius:8px;font-weight:700;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  button.g{background:#fff;color:#0b57a4}
+  .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+  .bar{height:12px;background:#e8edf1;border-radius:20px;overflow:hidden;margin:14px 0 8px}
+  .bar i{display:block;height:100%;background:#0b57a4;width:0;transition:width .2s}
+  .st{font-size:13px;color:#4a5563;font-variant-numeric:tabular-nums}
+  .log{margin-top:12px;max-height:190px;overflow:auto;font-size:12px;color:#78838f;
+    font-family:ui-monospace,monospace;white-space:pre-wrap}
+  code{background:#f7f9fb;border:1px solid #e8edf1;border-radius:4px;padding:1px 5px;font-size:13px}
+  .warn{color:#8a4f06;font-weight:700}
+  table{border-collapse:collapse;width:100%;font-size:12px;margin-top:10px}
+  th,td{border:1px solid #e8edf1;padding:4px 7px;text-align:left;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis;max-width:180px}
+  th{background:#f7f9fb;color:#4a5563}
+  .cols{font-size:12.5px;color:#4a5563;margin-top:10px;line-height:1.9}
+  .cols b{display:inline-block;min-width:86px;color:#12181f}
+  .miss{color:#8a4f06}
+</style>
+</head>
+<body>
+<div class="w">
+
+<h1>이재민 임시주거시설 자료 받기</h1>
+<p class="sub">한 번만 돌리면 됩니다. 결과 파일을 <code>data/</code> 에 넣으면
+② 대피장소 지도에 <b>이재민 임시주거시설</b>이 화학사고 대피장소와 별개의 층으로 함께 나옵니다.</p>
+
+<div class="note">
+  <b>왜 이렇게 받나</b><br>
+  자료를 만든 자리(개발 환경)에서는 공공데이터포털 서버에 닿지 않습니다. 그래서
+  <b>인터넷이 되는 PC</b>에서 이 페이지를 열어 받아 오고, 만들어진
+  <code>data/tempshelters.js</code> 파일만 저장소에 넣는 방식으로 합니다.
+  자료가 갱신되면(보통 1년 단위) 이 페이지를 다시 돌리면 됩니다.
+</div>
+
+<div class="card">
+  <h2>1. 자료 주소와 인증키</h2>
+  <label for="url">자료 주소 — 공공데이터포털 &gt; 행정안전부_이재민임시주거시설정보 &gt; 상세기능 URL</label>
+  <input type="text" id="url" spellcheck="false"
+         value="https://api.odcloud.kr/api/15124965/v1/uddi:78c724b6-8ee3-4998-946b-802f1f091336">
+  <label for="key">일반 인증키 (Decoding) — 포털 &gt; 마이페이지 &gt; 인증키 발급현황</label>
+  <input type="text" id="key" spellcheck="false" placeholder="포털에서 받은 인증키를 붙여넣으세요"
+         autocomplete="off">
+  <p class="sub" style="margin:8px 0 0">
+    인증키는 이 브라우저에만 저장되고(<code>localStorage</code>) 저장소 파일에는 들어가지 않습니다.
+    <span class="warn">인증키를 저장소·메일로 돌리지 마세요.</span>
+  </p>
+  <div class="row">
+    <button id="go">받아오기 시작</button>
+    <button id="pick" class="g">내려받아 둔 JSON 파일로 하기</button>
+    <input type="file" id="file" accept=".json,application/json" hidden>
+  </div>
+  <div class="bar"><i id="pb"></i></div>
+  <div class="st" id="st">기다리는 중</div>
+  <div class="log" id="log"></div>
+</div>
+
+<div class="card" id="prevCard" hidden>
+  <h2>2. 제대로 읽었는지 확인</h2>
+  <p class="sub" style="margin:0">원자료의 칸 이름을 아래처럼 짝지었습니다.
+    <b>빠진 항목</b>이나 엉뚱하게 짝지어진 것이 있으면 그대로 알려 주세요 — 규칙을 고치면 됩니다.</p>
+  <div class="cols" id="cols"></div>
+  <div id="prev"></div>
+</div>
+
+<div class="card" id="dlCard" hidden>
+  <h2>3. 파일 받기</h2>
+  <p class="sub" style="margin:0 0 4px">
+    받은 <code>tempshelters.js</code> 를 저장소의 <code>data/</code> 폴더에 넣으세요.
+    넣고 나서 <code>python3 build/build_single.py</code> 를 다시 돌리면 망분리 PC용
+    단일 파일에도 함께 들어갑니다.</p>
+  <div class="row"><button id="dl">tempshelters.js 내려받기</button></div>
+</div>
+
+<div class="card">
+  <h2>서버에 닿지 않을 때</h2>
+  <ol>
+    <li>브라우저 주소창에 아래를 붙여넣어 JSON 이 나오는지 먼저 봅니다.<br>
+      <code>자료주소?page=1&amp;perPage=10&amp;serviceKey=인증키</code></li>
+    <li>JSON 은 나오는데 이 페이지에서만 실패하면 브라우저 보안(CORS) 때문입니다.
+      주소창에서 <code>perPage=99999</code> 로 열어 <b>Ctrl+S</b> 로 저장한 뒤,
+      위의 <b>내려받아 둔 JSON 파일로 하기</b> 로 그 파일을 고르세요. 결과는 같습니다.</li>
+    <li><code>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</code> 가 나오면 포털에서 그 활용신청이
+      승인됐는지, <b>Decoding 키</b>를 넣었는지 확인하세요.</li>
+  </ol>
+</div>
+
+</div>
+
+<!-- 시·도/시·군·구 이름을 화학사고 대피장소 자료와 똑같이 맞추려고 부릅니다 -->
+<script src="../data/shelters.js"></script>
+<script>
+(function () {
+"use strict";
+var $ = function (s) { return document.querySelector(s); };
+function log(t) { var el = $("#log"); el.textContent += t + "\n"; el.scrollTop = el.scrollHeight; }
+function setBar(p, t) { $("#pb").style.width = Math.round(p) + "%"; $("#st").textContent = t; }
+
+var KEYLS = "nics.odcloud.key";
+try { $("#key").value = localStorage.getItem(KEYLS) || ""; } catch (e) {}
+
+/* ── 칸 이름 짝짓기 ──────────────────────────────────────────
+   원자료의 칸 이름이 해마다 조금씩 달라집니다("시설명"/"명칭",
+   "도로명주소"/"소재지도로명주소" …). 이름을 정확히 맞추는 대신 규칙으로
+   찾습니다. 무엇을 무엇으로 읽었는지는 화면에 그대로 보여 줍니다. */
+var RULES = [
+  ["시설명",   /시설명|명칭|장소명|건물명/],
+  ["시도",     /^(시도|시도명|광역시도|시\.도)$/],
+  ["시군구",   /^(시군구|시군구명|시\.군\.구)$/],
+  ["도로명",   /도로명/],
+  ["지번",     /지번|소재지지번|^주소$|소재지주소/],
+  ["위도",     /위도|^lat/i],
+  ["경도",     /경도|^(lon|lng)/i],
+  ["수용인원", /수용|수용가능|최대수용/],
+  ["시설구분", /시설구분|시설유형|시설종류|^구분$|^유형$/],
+  ["면적",     /면적/],
+  ["관리기관", /관리기관|관리주체|기관명|담당기관|운영기관/],
+  ["전화",     /전화|연락처|번호/]
+];
+var MAP = {}, COLS = [];
+
+function mapCols(row) {
+  MAP = {}; COLS = Object.keys(row);
+  RULES.forEach(function (r) {
+    for (var i = 0; i < COLS.length; i++) {
+      /* 이미 다른 항목이 가져간 칸은 건너뛴다 (전화가 '전화번호'를 먼저 가져가는 식) */
+      var used = false;
+      for (var k in MAP) if (MAP[k] === COLS[i]) used = true;
+      if (!used && r[1].test(COLS[i])) { MAP[r[0]] = COLS[i]; return; }
+    }
+  });
+}
+function v(row, name) {
+  var c = MAP[name];
+  var x = c ? row[c] : "";
+  return x == null ? "" : String(x).trim();
+}
+
+/* ── 지역 이름 맞추기 ────────────────────────────────────────
+   화학사고 대피장소(data/shelters.js)와 같은 이름을 써야 같은 시·군·구로
+   묶입니다. 짧은 이름(경기)·옛 이름(강원도)을 그 자료의 이름으로 바꾸고,
+   3단계 자치구(성남시 분당구)는 그 자료가 쓰는 단계(성남시)로 맞춥니다. */
+var SIDO_FIX = {
+  "서울": "서울특별시", "서울시": "서울특별시",
+  "부산": "부산광역시", "대구": "대구광역시", "인천": "인천광역시",
+  "광주": "광주광역시", "대전": "대전광역시", "울산": "울산광역시",
+  "세종": "세종특별자치시", "세종시": "세종특별자치시", "세종특별시": "세종특별자치시",
+  "경기": "경기도",
+  "강원": "강원특별자치도", "강원도": "강원특별자치도",
+  "충북": "충청북도", "충남": "충청남도",
+  "전북": "전북특별자치도", "전라북도": "전북특별자치도",
+  "전남": "전라남도", "경북": "경상북도", "경남": "경상남도",
+  "제주": "제주특별자치도", "제주도": "제주특별자치도", "제주특별자치시": "제주특별자치도"
+};
+var S = window.SHELTERS || {};
+function fixSido(x) {
+  var s = String(x || "").trim();
+  if (S[s]) return s;
+  if (SIDO_FIX[s]) return SIDO_FIX[s];
+  /* "경기도 고양시" 처럼 앞 토막만 시·도인 경우 */
+  var head = s.split(/\s+/)[0];
+  return S[head] ? head : (SIDO_FIX[head] || head);
+}
+function fixSgg(sido, cand, addr) {
+  var toks = String(addr || "").split(/\s+/);
+  var pool = S[sido] || {};
+  var tries = [];
+  if (cand) tries.push(cand.trim());
+  /* 주소에서 뽑기 — "경기도 성남시 분당구 …" → "성남시", "성남시 분당구" 둘 다 시도 */
+  for (var i = 0; i < Math.min(toks.length, 4); i++) {
+    tries.push(toks[i]);
+    if (toks[i + 1]) tries.push(toks[i] + " " + toks[i + 1]);
+  }
+  for (var j = 0; j < tries.length; j++) if (pool[tries[j]]) return tries[j];
+  /* 세종처럼 시·군·구가 없는 곳 — 대피장소 자료가 쓰는 열쇠에 맞춘다.
+     (그 자료는 세종의 시·군·구 칸이 비어 있어 "null" 로 들어가 있다) */
+  if (sido === "세종특별자치시") return pool["null"] ? "null" : sido;
+  /* 대피장소 자료에 없는 시·군·구여도 버리지 않는다 — 그 지역에 화학사고
+     대피장소가 한 곳도 없을 뿐이다. 이름은 주소에서 뽑은 것을 쓴다.
+     시·도 이름 자체(울산광역시 …)는 시·군·구가 아니므로 뺀다. */
+  for (var m = 0; m < tries.length; m++)
+    if (tries[m] !== sido && !SIDO_FIX[tries[m]] && !S[tries[m]]
+        && /(시|군|구)$/.test(tries[m]) && tries[m].length >= 2) return tries[m];
+  return cand || "";
+}
+
+/* ── 한 줄 만들기 ─────────────────────────────────────────── */
+var skipped = { 좌표없음: 0, 이름없음: 0 };
+function toRow(r) {
+  var name = v(r, "시설명");
+  if (!name) { skipped.이름없음++; return null; }
+  var addr = v(r, "도로명") || v(r, "지번");
+  var la = parseFloat(v(r, "위도")), lo = parseFloat(v(r, "경도"));
+  if (!(isFinite(la) && isFinite(lo) && la > 32 && la < 40 && lo > 123 && lo < 133)) {
+    skipped.좌표없음++; return null;              /* 찍을 수 없는 줄은 넣지 않는다 */
+  }
+  var sido = fixSido(v(r, "시도") || addr);
+  var sgg = fixSgg(sido, v(r, "시군구"), addr);
+  var cap = parseInt(String(v(r, "수용인원")).replace(/[^0-9]/g, ""), 10);
+  var area = v(r, "면적");
+  return { sido: sido, sgg: sgg, row: [
+    name,
+    area ? area + "㎡" : "",                       /* 상세 — 목록에서 이름 옆에 붙는 칸 */
+    addr,
+    isFinite(cap) && cap > 0 ? cap : "",
+    v(r, "시설구분"),
+    Math.round(la * 1e5) / 1e5,
+    Math.round(lo * 1e5) / 1e5,
+    v(r, "관리기관"),
+    v(r, "전화")
+  ] };
+}
+
+/* ── 받아 온 것을 자료 파일 모양으로 ────────────────────────── */
+var OUT = null, RAW = [];
+function build(rows) {
+  skipped = { 좌표없음: 0, 이름없음: 0 };
+  if (!rows.length) { log("받은 줄이 없습니다."); return; }
+  mapCols(rows[0]);
+  var out = {}, n = 0;
+  rows.forEach(function (r) {
+    var t = toRow(r);
+    if (!t || !t.sido) return;
+    if (!out[t.sido]) out[t.sido] = {};
+    if (!out[t.sido][t.sgg]) out[t.sido][t.sgg] = [];
+    out[t.sido][t.sgg].push(t.row);
+    n++;
+  });
+  /* 같은 시·군·구 안에서는 이름순 — 파일이 매번 같은 순서로 나오게 */
+  Object.keys(out).forEach(function (sd) {
+    Object.keys(out[sd]).forEach(function (sg) {
+      out[sd][sg].sort(function (a, b) { return String(a[0]).localeCompare(String(b[0]), "ko"); });
+    });
+  });
+  OUT = { data: out, n: n, total: rows.length };
+  log("정리 끝 — 쓸 수 있는 줄 " + n + " / 받은 줄 " + rows.length
+      + (skipped.좌표없음 ? " · 좌표 없어 뺀 줄 " + skipped.좌표없음 : "")
+      + (skipped.이름없음 ? " · 이름 없어 뺀 줄 " + skipped.이름없음 : ""));
+  showPreview(rows);
+  $("#dlCard").hidden = false;
+}
+
+function showPreview(rows) {
+  $("#prevCard").hidden = false;
+  var used = {};
+  for (var k in MAP) used[MAP[k]] = k;
+  $("#cols").innerHTML = RULES.map(function (r) {
+    return "<div><b>" + r[0] + "</b> ← "
+      + (MAP[r[0]] ? "<code>" + MAP[r[0]] + "</code>"
+                   : '<span class="miss">원자료에 없음</span>') + "</div>";
+  }).join("")
+  + '<div style="margin-top:8px"><b>안 쓴 칸</b> '
+  + (COLS.filter(function (c) { return !used[c]; }).join(", ") || "없음") + "</div>";
+
+  var sd = Object.keys(OUT.data).sort();
+  var head = ["시·도", "시·군·구", "시설명", "주소", "수용", "구분", "위도", "경도", "관리기관", "전화"];
+  var body = [];
+  sd.slice(0, 3).forEach(function (s) {
+    Object.keys(OUT.data[s]).slice(0, 2).forEach(function (g) {
+      OUT.data[s][g].slice(0, 2).forEach(function (r) {
+        body.push([s, g, r[0], r[2], r[3], r[4], r[5], r[6], r[7], r[8]]);
+      });
+    });
+  });
+  $("#prev").innerHTML = "<table><tr>"
+    + head.map(function (h) { return "<th>" + h + "</th>"; }).join("") + "</tr>"
+    + body.map(function (row) {
+        return "<tr>" + row.map(function (c) {
+          return "<td>" + String(c == null ? "" : c).replace(/</g, "&lt;") + "</td>";
+        }).join("") + "</tr>";
+      }).join("") + "</table>"
+    + (OUT.data["세종특별자치시"] && OUT.data["세종특별자치시"]["null"]
+        ? '<p class="sub" style="margin:8px 0 0">세종은 시·군·구가 없어 화학사고 대피장소'
+          + ' 자료와 같은 열쇠(<code>null</code>)로 넣습니다 — 화면에는 <b>시 전체</b>로 나옵니다.</p>'
+        : "")
+    + '<p class="sub" style="margin:8px 0 0">시·도별 개수 — '
+    + sd.map(function (s) {
+        var c = 0;
+        Object.keys(OUT.data[s]).forEach(function (g) { c += OUT.data[s][g].length; });
+        return s + " " + c.toLocaleString();
+      }).join(" · ") + "</p>";
+}
+
+/* ── 받아오기 ─────────────────────────────────────────────── */
+var PER = 1000;
+function fetchAll() {
+  var key = $("#key").value.trim(), base = $("#url").value.trim();
+  if (!key) { alert("인증키를 넣어 주세요."); return; }
+  try { localStorage.setItem(KEYLS, key); } catch (e) {}
+  $("#go").disabled = true;
+  RAW = [];
+  var page = 1, total = 0;
+
+  var url = function (p) {
+    return base + (base.indexOf("?") >= 0 ? "&" : "?")
+      + "page=" + p + "&perPage=" + PER + "&returnType=JSON"
+      + "&serviceKey=" + encodeURIComponent(key);
+  };
+
+  var step = function () {
+    fetch(url(page)).then(function (res) {
+      if (!res.ok) throw new Error("서버가 " + res.status + " 응답");
+      return res.json();
+    }).then(function (d) {
+      var rows = d.data || [];
+      total = d.totalCount || d.matchCount || total;
+      RAW = RAW.concat(rows);
+      setBar(total ? RAW.length / total * 100 : 0,
+             RAW.length.toLocaleString() + " / " + (total || "?").toLocaleString() + "건");
+      if (rows.length && RAW.length < total && page < 200) { page++; setTimeout(step, 120); }
+      else { log("받기 끝 — " + RAW.length + "건"); build(RAW); $("#go").disabled = false; }
+    }).catch(function (e) {
+      log("실패: " + e.message);
+      log("→ 아래 '서버에 닿지 않을 때' 를 보고 JSON 파일로 해 보세요.");
+      $("#go").disabled = false;
+    });
+  };
+  log("받는 중 — " + base);
+  step();
+}
+
+$("#go").onclick = fetchAll;
+$("#pick").onclick = function () { $("#file").click(); };
+$("#file").onchange = function () {
+  var f = this.files[0];
+  if (!f) return;
+  var rd = new FileReader();
+  rd.onload = function () {
+    try {
+      var d = JSON.parse(rd.result);
+      var rows = d.data || (Array.isArray(d) ? d : []);
+      log("파일에서 읽음 — " + rows.length + "건");
+      setBar(100, rows.length.toLocaleString() + "건");
+      build(rows);
+    } catch (e) { log("JSON 을 읽지 못했습니다: " + e.message); }
+  };
+  rd.readAsText(f, "utf-8");
+};
+
+$("#dl").onclick = function () {
+  if (!OUT) return;
+  var today = new Date().toISOString().slice(0, 10);
+  var head = "/* 이재민 임시주거시설 — 원자료: 행정안전부 이재민임시주거시설정보\n"
+    + "     (공공데이터포털 오픈API · " + $("#url").value.trim() + ")\n"
+    + "   구조: TEMPSHELTERS[시도][시군구] =\n"
+    + "     [[시설명, 면적, 주소, 최대수용인원, 시설구분, 위도, 경도, 관리기관, 전화], ...]\n"
+    + "   화학사고 대피장소(data/shelters.js)와 같은 줄 구조라 같은 화면에서 함께 씁니다.\n"
+    + "   ※ 좌표가 없는 줄은 지도에 찍을 수 없어 뺐습니다.\n"
+    + "   ※ 자동 생성 파일입니다. build/fetch_tempshelter.html 로 다시 만드세요.\n"
+    + "   받은 날: " + today + "  ·  실은 줄 " + OUT.n + " / 받은 줄 " + OUT.total + " */\n";
+  var meta = "var TEMPSHELTER_META = " + JSON.stringify({
+    "받은날": today, "총건수": OUT.n, "원자료건수": OUT.total,
+    "출처": "행정안전부 이재민임시주거시설정보 (공공데이터포털)",
+    "주소": $("#url").value.trim(),
+    "필드": ["시설명", "면적", "주소", "최대수용인원", "시설구분", "위도", "경도", "관리기관", "전화"]
+  }) + ";\n";
+  var body = "var TEMPSHELTERS = " + JSON.stringify(OUT.data) + ";\n";
+  var b = new Blob([head + meta + body], { type: "text/javascript;charset=utf-8" });
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(b);
+  a.download = "tempshelters.js";
+  a.click();
+};
+
+setBar(0, "기다리는 중");
+})();
+</script>
+</body>
+</html>

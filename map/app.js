@@ -53,6 +53,11 @@ var st = {
      남기고 접은 채로 시작하고, 필요할 때 눌러 폅니다. 가장 가까운 한 곳은
      지도 위쪽 요약 띠(.msum)에 늘 적혀 있으므로 접혀 있어도 놓치지 않습니다. */
   nearFold: matchMedia("(max-width: 860px)").matches,
+  /* 지도에 어느 자료를 올려 둘까 (둘 다 켤 수 있습니다)
+       chem 화학사고 대피장소 — 화학사고에 대비해 미리 지정해 둔 곳
+       temp 이재민 임시주거시설 — 재난 때 이재민을 수용하는 곳 (행정안전부)
+     자료 파일(data/tempshelters.js)이 없으면 temp 쪽은 아예 나오지 않습니다. */
+  layers: { chem: true, temp: true },
   walk: true,                      // 도보 경로를 길찾기로 받아올까 (인터넷 필요)
   route: null,                     // 받아 온 경로 {key, path, dist}
   routeBusy: false, routeErr: null,
@@ -71,16 +76,81 @@ MC.tiles.onChange(function () { if (st.view) { draw(); showSrc(); } });
 /* ── 표시 대상 고르기 ──────────────────────────────────────────
    범위를 반경으로 잡으면 행정구역을 보지 않고 전국에서 찾습니다.
    사고가 시·군 경계 가까이에서 나면 옆 시·군 대피장소가 관내보다 가깝기
-   때문입니다. 목록에는 시·군·구를 함께 적어 어디 소속인지 보이게 합니다. */
-function sourceList() {
+   때문입니다. 목록에는 시·군·구를 함께 적어 어디 소속인지 보이게 합니다.
+
+   자료는 두 가지(화학사고 대피장소·이재민 임시주거시설)이고, 켜 둔 것만
+   모아 한 목록으로 만듭니다. 아래로는 자료 종류를 구분하지 않고 다룹니다 —
+   거리·정렬·경로·문자 넘기기가 두 자료에서 똑같이 동작해야 하기 때문입니다. */
+
+/* 켜 둔 자료 전국 전체 — 범위를 넓히면 몇 곳이 더 있는지 셀 때처럼
+   범위와 상관없이 훑어야 할 때 씁니다. */
+function allRows() {
+  var out = [];
+  if (st.layers.chem) out = out.concat(MC.shelters("", ""));
+  if (st.layers.temp && MC.hasTemp()) out = out.concat(MC.tempShelters("", ""));
+  return out;
+}
+
+/* 자료 한 종류를 지금 범위(관내 또는 사고지점 반경)로 잘라 온다.
+   켜고 끄기와 무관하게 "이 범위에 몇 곳 있는지"를 세는 데도 쓴다. */
+function scopeRows(src) {
+  var get = src === "temp" ? MC.tempShelters : MC.shelters;
   if (st.scope && st.acc) {
     var r = +st.scope;
-    return MC.shelters("", "").filter(function (s) {
+    return get("", "").filter(function (s) {
       return distM(st.acc.lat, st.acc.lon, s.lat, s.lon) <= r;
     });
   }
   if (!st.sido && !st.sgg) return [];
-  return MC.shelters(st.sido, st.sgg);
+  return get(st.sido, st.sgg);
+}
+
+function sourceList() {
+  var out = [];
+  if (st.layers.chem) out = out.concat(scopeRows("chem"));
+  if (st.layers.temp && MC.hasTemp()) out = out.concat(scopeRows("temp"));
+  return out;
+}
+
+/* ── 두 가지 대피처 고르기 ──────────────────────────────────────
+   화학사고 대피장소는 화학사고에 대비해 시·군·구가 미리 지정해 둔 곳이고,
+   이재민 임시주거시설은 재난 때 이재민을 수용하려고 지정해 둔 곳입니다.
+   지정한 목적도 관리하는 곳도 달라 목록이 겹치지 않습니다. 어느 한쪽만
+   보면 근처에 있는 다른 쪽을 놓치므로, 함께 켜 두고 색으로 구분합니다.
+
+   data/tempshelters.js 가 없으면(자료를 아직 안 받아 왔으면) 이 줄은 아예
+   나오지 않고 화면은 예전 그대로입니다. */
+var SRC_LABEL = { chem: "화학사고 대피장소", temp: "이재민 임시주거시설" };
+var SRC_SHORT = { chem: "화학사고", temp: "이재민" };
+
+function renderSrcBar() {
+  var el = $("#mLayers");
+  if (!el) return;
+  if (!MC.hasTemp()) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = ["chem", "temp"].map(function (k) {
+    var n = scopeRows(k).length;
+    return '<button type="button" class="ms-lyr ' + k + (st.layers[k] ? " on" : "")
+      + '" data-k="' + k + '" aria-pressed="' + (st.layers[k] ? "true" : "false") + '">'
+      + '<i class="dot ' + (k === "temp" ? "tmp" : "sh") + '"></i>'
+      + SRC_LABEL[k] + "<b>" + n.toLocaleString() + "</b></button>";
+  }).join("");
+  $$(".ms-lyr", el).forEach(function (b) {
+    b.onclick = function () { toggleSrc(b.dataset.k); };
+  });
+}
+
+function toggleSrc(k) {
+  var other = k === "chem" ? "temp" : "chem";
+  /* 마지막 하나까지 꺼서 빈 지도가 되는 일은 막습니다 — 급할 때 잘못 눌러
+     아무것도 안 보이면 도구가 고장난 것으로 보입니다. */
+  if (st.layers[k] && !st.layers[other]) {
+    toast("두 가지 중 적어도 하나는 켜 두어야 합니다");
+    return;
+  }
+  st.layers[k] = !st.layers[k];
+  renderSrcBar();
+  refresh(false);
 }
 
 function recompute() {
@@ -307,10 +377,11 @@ function draw() {
       + '" font-size="12.5">' + esc(txt) + "</text>");
   }
 
-  /* 대피장소 */
+  /* 대피장소 — 두 자료를 섞어 찍으므로 색으로 구분한다(tmp = 이재민 임시주거시설) */
   st.show.forEach(function (s, i) {
     var on = i === st.sel, hv = i === st.hover;
-    g.push('<circle class="mk' + (s.inRing ? " in" : "") + (s.lee ? " lee" : "")
+    g.push('<circle class="mk' + (s.src === "temp" ? " tmp" : "")
+      + (s.inRing ? " in" : "") + (s.lee ? " lee" : "")
       + (on ? " on" : "") + (hv ? " hv" : "") + '" cx="' + pX(s.lon).toFixed(1)
       + '" cy="' + pY(s.lat).toFixed(1) + '" r="' + (on ? R * 1.6 : R).toFixed(1)
       + '" data-i="' + i + '"/>');
@@ -485,7 +556,7 @@ function renderSummary() {
   if (!st.scope) {
     var have = {};
     st.all.forEach(function (s) { have[s.key] = true; });
-    var more = MC.shelters("", "").filter(function (s) {
+    var more = allRows().filter(function (s) {
       return !have[s.key] && distM(st.acc.lat, st.acc.lon, s.lat, s.lon) <= 5000;
     }).length;
     if (more)
@@ -597,6 +668,12 @@ function renderList() {
   var maxD = 0;
   if (acc) st.show.forEach(function (s) { maxD = Math.max(maxD, s.d); });
 
+  /* 두 자료가 섞여 있을 때만 줄마다 어느 쪽인지 답니다. 한 종류만 보고 있으면
+     위 딱지에 이미 적혀 있어, 모든 줄에 같은 말을 붙이면 읽을 것만 늘어납니다. */
+  var kinds = {};
+  st.show.forEach(function (s) { kinds[s.src] = true; });
+  var mixed = kinds.chem && kinds.temp;
+
   $("#shList").innerHTML = st.show.map(function (s, i) {
     var on = i === st.sel;
     var bar = acc && maxD
@@ -605,6 +682,7 @@ function renderList() {
     return '<div class="ms-it' + (on ? " on" : "") + (s.inRing ? " ring" : "")
       + '" data-i="' + i + '" role="button" tabindex="0" aria-pressed="' + (on ? "true" : "false") + '">'
       + '<div class="l1"><b>' + esc(s.name) + "</b>"
+      + (mixed ? '<span class="ms-kd ' + s.src + '">' + SRC_SHORT[s.src] + "</span>" : "")
       + (s.detail ? '<span class="dt">' + esc(s.detail) + "</span>" : "")
       + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
       + "</div>" + bar
@@ -706,7 +784,11 @@ function showAddr() {
 }
 
 function renderLegend() {
-  var it = ['<span><i class="dot sh"></i>대피장소</span>'];
+  var it = [];
+  var has = { chem: false, temp: false };
+  st.show.forEach(function (s) { has[s.src] = true; });
+  if (has.chem || !has.temp) it.push('<span><i class="dot sh"></i>화학사고 대피장소</span>');
+  if (has.temp) it.push('<span><i class="dot tmp"></i>이재민 임시주거시설</span>');
   if (st.acc) it.push('<span><i class="dot ac"></i>사고지점</span>');
   if (st.me) it.push('<span><i class="dot me"></i>내 위치</span>');
   if (st.radius > 0) it.push('<span><i class="dot in"></i>영향 참고 반경 안</span>');
@@ -735,7 +817,8 @@ function fallbackCopy(t, done) {
 
 function refresh(refit) {
   recompute();
-  syncSort(); renderSummary(); renderNear(); renderList(); renderLegend(); renderToSms();
+  syncSort(); renderSrcBar();
+  renderSummary(); renderNear(); renderList(); renderLegend(); renderToSms();
   if (refit) fit(); else draw();
   showAddr();
 }
@@ -876,6 +959,7 @@ function setAcc(lat, lon, jump) {
   syncSort();                      // 범위 칸이 여기서 열린다 (사고지점이 있어야 열림)
   if (wide) $("#mScope").value = "5000";
   lookupAccAddr();                 // 여기가 어느 시·군·구 어느 읍·면·동인가
+  renderSrcBar();                  // 범위가 바뀌었으니 자료별 개수도 다시 센다
   renderSummary(); renderNear(); renderList(); renderLegend(); renderToSms(); showAddr();
   moveToAcc(!!jump);
 }
@@ -908,7 +992,12 @@ function lookupAccAddr() {
 
   /* 1) 인터넷 없이 — 어림값 */
   var here = MC.sggAt(st.acc.lat, st.acc.lon);
-  var near = MC.shelters("", "").map(function (s) {
+  /* 읍·면·동은 가까운 시설의 주소에서 뽑습니다. 켜고 끈 것과 무관하게 두 자료를
+     모두 봅니다 — 여기서 필요한 것은 '주소가 적힌 가장 가까운 지점'이지
+     '지금 지도에 켜 둔 것'이 아니기 때문입니다. */
+  var pool = MC.shelters("", "");
+  if (MC.hasTemp()) pool = pool.concat(MC.tempShelters("", ""));
+  var near = pool.map(function (s) {
     return { s: s, d: distM(st.acc.lat, st.acc.lon, s.lat, s.lon) };
   }).sort(function (a, b) { return a.d - b.d; })[0];
   var emd = near && near.d <= ACC_EMD_MAX ? emdOf(near.s.addr) : "";
@@ -1445,15 +1534,30 @@ function bindMap() {
 }
 
 /* ── 초기화 ───────────────────────────────────────────────── */
+/* 두 자료의 지역 이름을 합쳐 고를 목록을 만든다 — 한쪽에만 있는 시·군·구도
+   고를 수 있어야 한다(예: 화학사고 대피장소가 없는 군에도 임시주거시설은 있다). */
+function regionKeys(sido) {
+  var out = {};
+  [window.SHELTERS || {}, window.TEMPSHELTERS || {}].forEach(function (S) {
+    if (sido == null) Object.keys(S).forEach(function (k) { out[k] = 1; });
+    else Object.keys(S[sido] || {}).forEach(function (k) { out[k] = 1; });
+  });
+  return Object.keys(out).sort();
+}
+
 function initSelects() {
   var sido = $("#mSido"), sgg = $("#mSgg");
   sido.innerHTML = '<option value="">선택</option>'
-    + Object.keys(SHELTERS).sort().map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
+    + regionKeys(null).map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
   var fillSgg = function () {
-    var m = SHELTERS[sido.value] || {};
-    var ks = Object.keys(m).sort();
+    var ks = sido.value ? regionKeys(sido.value) : [];
     sgg.innerHTML = '<option value="">' + (sido.value ? "시·도 전체" : "시·도 먼저") + "</option>"
-      + ks.map(function (s) { return "<option>" + esc(s) + "</option>"; }).join("");
+      + ks.map(function (s) {
+          /* 세종은 원자료의 시·군·구 칸이 비어 있어 열쇠가 "null" 입니다.
+             값은 그대로 두고(자료를 찾는 열쇠) 보이는 이름만 바꿉니다. */
+          return '<option value="' + esc(s) + '">'
+            + esc(s === "null" ? "시 전체" : s) + "</option>";
+        }).join("");
   };
   fillSgg();
   sido.onchange = function () {
@@ -1463,10 +1567,23 @@ function initSelects() {
 }
 
 function initSrcModal() {
+  /* 두 대피처는 지정한 목적도 관리하는 곳도 다릅니다. 어느 쪽을 보고 있는지
+     헷갈리면 안 되므로 출처 창에서 그 차이를 분명히 적습니다. */
+  var tm = window.TEMPSHELTER_META;
+  var tempP = MC.hasTemp()
+    ? "<p><b>이재민 임시주거시설</b> — "
+      + esc((tm && tm.출처) || "행정안전부 이재민임시주거시설정보")
+      + (tm && tm.받은날 ? " · 받은 날 " + esc(tm.받은날) : "")
+      + (tm && tm.총건수 ? " (" + Number(tm.총건수).toLocaleString() + "곳 · 좌표 있는 것만)" : "")
+      + ". 화학사고 대비로 지정한 곳이 아니라, 재난 때 이재민을 수용하려고 "
+      + "시·군·구가 지정해 둔 곳입니다. <b>화학사고 대피장소와 별개의 자료</b>이며, "
+      + "화학물질 방호 성능을 따져 고른 곳이 아닙니다.</p>"
+    : "";
   $("#ver").innerHTML =
-    "<p><b>대피장소</b> — " + esc(VERSION.대피장소_출처) + " · 기준일 "
+    "<p><b>화학사고 대피장소</b> — " + esc(VERSION.대피장소_출처) + " · 기준일 "
       + esc(VERSION.대피장소_기준일) + " ("
       + SHELTER_META.총건수.toLocaleString() + "곳 · 좌표 포함)</p>"
+    + tempP
     + "<p><b>배경지도</b> — " + esc(VERSION.배경지도) + ". 인터넷이 되는 환경에서만 표시되며, "
       + "안 되면 행정경계선만 그립니다.</p>"
     + "<p><b>행정경계</b> — " + esc(VERSION.경계_출처) + ". "
@@ -1554,6 +1671,7 @@ function init() {
     st.sido = ""; st.sgg = ""; st.scope = ""; st.acc = null; st.radius = null;
     st.mat = ""; st.q = ""; st.sort = "name"; st.rings = true;
     st.me = null;
+    st.layers = { chem: true, temp: true };
     st.nearFold = matchMedia("(max-width: 860px)").matches;
     st.route = null; st.routeErr = null; st.routeBusy = false;
     st.accAddr = null; accSeq++;
