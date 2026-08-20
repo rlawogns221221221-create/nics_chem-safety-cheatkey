@@ -1,0 +1,288 @@
+<title>화학사고 대응도구 미리보기</title>
+<!-- ────────────────────────────────────────────────────────────
+     확인용 진입 화면 — 만드는 중인 도구 3종을 브라우저에서 바로 눌러 볼
+     수 있게 모아 둔 페이지입니다. Artifact 로 올려 링크 하나로 씁니다.
+
+     이 파일은 배포에 들어가지 않습니다(make_release.py 의 SITE_ITEMS 에
+     preview/ 가 없습니다). 실제 진입 화면은 저장소 뿌리의 index.html 입니다.
+
+     색·글꼴은 도구와 같은 계통으로 맞췄습니다 — 여기서 저기로 넘어갈 때
+     다른 물건처럼 보이면 안 되기 때문입니다.
+     ──────────────────────────────────────────────────────────── -->
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500&display=swap">
+<style>
+  /* ── 색 — 도구(assets/shell.css)의 변수를 그대로 가져왔습니다 ────── */
+  :root{
+    color-scheme: light dark;
+    --bg:#eef1f5; --surface:#ffffff; --sunk:#f7f9fb;
+    --line:#d5dce3; --line2:#e8edf1;
+    --ink:#12181f; --ink2:#4a5563; --ink3:#78838f;
+    --brand:#0b57a4; --brand-t:#0b57a4; --brand-l:#e6eff8;
+    --ok:#0b6b41; --ok-l:#e3f4ec;
+    --wait:#8a4f06; --wait-l:#fdf2e0;
+    --hold:#6b4c9a; --hold-l:#f1ecf8;
+    --water:#0e7c9e;
+    --num-ink:#ffffff;
+    --shadow:0 1px 2px rgba(18,24,31,.06), 0 8px 24px -16px rgba(18,24,31,.28);
+  }
+  /* 기기 설정이 어두움일 때 — 화면에서 밝음을 고른 경우는 빼고 */
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0f141a; --surface:#181e26; --sunk:#141a21;
+      --line:#2c343e; --line2:#232a33;
+      --ink:#e6ebf1; --ink2:#a3aeba; --ink3:#7c8794;
+      --brand:#6aa6e0; --brand-t:#8dbdea; --brand-l:#16283a;
+      --ok:#5cbb8d; --ok-l:#12261d;
+      --wait:#d9a253; --wait-l:#2a2013;
+      --hold:#a68ccd; --hold-l:#211a2e;
+      --water:#5cb4cd;
+      --num-ink:#0f141a;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+    }
+  }
+  /* 화면에서 어두움을 골랐을 때 */
+  :root[data-theme="dark"]{
+    --bg:#0f141a; --surface:#181e26; --sunk:#141a21;
+    --line:#2c343e; --line2:#232a33;
+    --ink:#e6ebf1; --ink2:#a3aeba; --ink3:#7c8794;
+    --brand:#6aa6e0; --brand-t:#8dbdea; --brand-l:#16283a;
+    --ok:#5cbb8d; --ok-l:#12261d;
+    --wait:#d9a253; --wait-l:#2a2013;
+    --hold:#a68ccd; --hold-l:#211a2e;
+    --water:#5cb4cd;
+    --num-ink:#0f141a;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:clamp(20px,5vw,56px) clamp(16px,5vw,32px);
+    background:var(--bg); color:var(--ink);
+    font-family:"Noto Sans KR","IBM Plex Sans KR",system-ui,sans-serif;
+    font-size:15px; line-height:1.7; word-break:keep-all;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{max-width:880px; margin:0 auto;
+    display:flex; flex-direction:column; gap:clamp(28px,4vw,44px)}
+
+  /* ── 머리 ────────────────────────────────────────────────── */
+  header{display:flex; flex-direction:column; gap:10px}
+  .eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11.5px;
+    letter-spacing:.14em; text-transform:uppercase; color:var(--ink3)}
+  h1{margin:0; font-family:"IBM Plex Sans KR",sans-serif; font-weight:700;
+    font-size:clamp(25px,4.4vw,33px); line-height:1.28; letter-spacing:-.01em;
+    text-wrap:balance}
+  .lede{margin:0; max-width:62ch; color:var(--ink2); font-size:15.5px}
+  .stamp{display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:4px;
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:12px;
+    color:var(--ink3); font-variant-numeric:tabular-nums}
+  .stamp b{color:var(--ink2); font-weight:500}
+
+  /* ── 도구 세 장 ──────────────────────────────────────────── */
+  h2{margin:0 0 14px; font-family:"IBM Plex Sans KR",sans-serif; font-weight:600;
+    font-size:13px; letter-spacing:.05em; color:var(--ink2)}
+  .tools{display:grid; gap:12px; grid-template-columns:1fr}
+  @media (min-width:720px){ .tools{grid-template-columns:repeat(3,1fr)} }
+
+  .tool{
+    display:flex; flex-direction:column; gap:9px;
+    padding:16px 16px 18px; border:1px solid var(--line); border-radius:6px;
+    background:var(--surface); box-shadow:var(--shadow);
+    text-decoration:none; color:inherit;
+    transition:border-color .15s ease, transform .15s ease, box-shadow .15s ease;
+  }
+  .tool:hover,.tool:focus-visible{
+    border-color:var(--num); transform:translateY(-2px);
+    box-shadow:0 2px 4px rgba(18,24,31,.08), 0 14px 32px -18px rgba(18,24,31,.4);
+  }
+  .tool:focus-visible{outline:2px solid var(--brand); outline-offset:3px}
+  .tool.t1{--num:var(--brand)} .tool.t2{--num:var(--ok)} .tool.t3{--num:var(--water)}
+  .num{display:grid; place-items:center; width:26px; height:26px; border-radius:3px;
+    background:var(--num); color:var(--num-ink); font-family:"IBM Plex Sans KR",sans-serif;
+    font-size:14px; font-weight:600; line-height:1}
+  .tool h3{margin:0; font-family:"IBM Plex Sans KR",sans-serif; font-weight:600;
+    font-size:17px; line-height:1.35; letter-spacing:-.005em}
+  .tool p{margin:0; color:var(--ink2); font-size:13.5px; line-height:1.65; flex:1}
+  .tool .meta{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11.5px;
+    color:var(--ink3); font-variant-numeric:tabular-nums;
+    overflow-wrap:normal; word-break:keep-all;
+    padding-top:9px; border-top:1px solid var(--line2)}
+  .tool .go{font-size:13px; font-weight:500; color:var(--num)}
+  .tool .go::after{content:" →"}
+
+  /* ── 자료 상태 ───────────────────────────────────────────── */
+  .rows{display:flex; flex-direction:column;
+    border:1px solid var(--line); border-radius:6px; background:var(--surface);
+    overflow:hidden}
+  .row{display:grid; grid-template-columns:1fr auto auto; align-items:baseline;
+    gap:6px 14px; padding:11px 15px; border-top:1px solid var(--line2)}
+  .row:first-child{border-top:0}
+  .row .what{font-size:14px}
+  .row .what i{display:block; font-style:normal; font-size:12px; color:var(--ink3)}
+  .row .n{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:13px;
+    color:var(--ink2); font-variant-numeric:tabular-nums; white-space:nowrap}
+  .chip{display:inline-flex; align-items:center; gap:5px; white-space:nowrap;
+    font-size:11.5px; font-weight:500; padding:2px 8px; border-radius:3px;
+    border:1px solid transparent}
+  .chip::before{content:""; width:7px; height:7px; border-radius:50%;
+    background:currentColor; flex:none}
+  .chip.done{color:var(--ok); background:var(--ok-l); border-color:var(--ok-l)}
+  .chip.wait{color:var(--wait); background:var(--wait-l); border-color:var(--wait-l)}
+  .chip.hold{color:var(--hold); background:var(--hold-l); border-color:var(--hold-l)}
+  @media (max-width:520px){
+    .row{grid-template-columns:1fr auto}
+    .row .n{grid-column:1; color:var(--ink3); font-size:12px}
+  }
+
+  /* ── 남은 일 ─────────────────────────────────────────────── */
+  ul.todo{margin:0; padding:0; list-style:none;
+    display:flex; flex-direction:column; gap:10px}
+  ul.todo li{padding-left:16px; position:relative; color:var(--ink2); font-size:14px}
+  ul.todo li::before{content:""; position:absolute; left:0; top:.62em;
+    width:5px; height:5px; border-radius:1px; background:var(--ink3)}
+  ul.todo b{color:var(--ink); font-weight:500}
+
+  /* ── 알아 둘 것 ──────────────────────────────────────────── */
+  .note{border:1px solid var(--line); border-left:3px solid var(--wait);
+    border-radius:0 6px 6px 0; background:var(--sunk);
+    padding:15px 18px; display:flex; flex-direction:column; gap:9px}
+  .note h2{margin:0}
+  .note p{margin:0; font-size:13.5px; color:var(--ink2); line-height:1.7}
+  .note code{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:12.5px;
+    background:var(--surface); border:1px solid var(--line2);
+    border-radius:3px; padding:1px 5px}
+
+  footer{border-top:1px solid var(--line); padding-top:18px;
+    display:flex; flex-wrap:wrap; gap:6px 20px;
+    font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11.5px;
+    color:var(--ink3)}
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+
+<div class="page">
+
+<header>
+  <span class="eyebrow">화학물질안전원 · 만드는 중</span>
+  <h1>화학사고 지자체 대응 지원도구</h1>
+  <p class="lede">사고가 났을 때 지자체 담당자가 쓰는 업무도구 세 가지입니다.
+    아래에서 눌러 실제 화면을 바로 확인할 수 있습니다.
+    자료를 넣거나 화면을 고치면 이 링크의 내용도 함께 바뀝니다.</p>
+  <div class="stamp">
+    <span><b>도구버전</b> 0.5.0-draft</span>
+    <span><b>이 사본 만든 날</b> 2026-08-13</span>
+    <span><b>검증</b> 16묶음 통과</span>
+  </div>
+</header>
+
+<section>
+  <h2>도구 세 가지</h2>
+  <div class="tools">
+
+    <a class="tool t1" href="https://claude.ai/code/artifact/a42de0d3-9c73-4d67-b048-b4bf9c9c2c53"
+       target="_blank" rel="noopener noreferrer">
+      <span class="num" aria-hidden="true">1</span>
+      <h3>주민대피 문자 작성</h3>
+      <p>사고 정보를 넣으면 재난문자 표준문안이 만들어집니다. 90자 넘으면 줄일 곳을
+        짚어 주고, 실제 발송 사례를 나란히 볼 수 있습니다.</p>
+      <span class="meta">표준문안 12 · 사례 42 · 물질 460종</span>
+      <span class="go">열어 보기</span>
+    </a>
+
+    <a class="tool t2" href="https://claude.ai/code/artifact/c10d00e5-8ad9-454e-9caf-b4f010f00ef8"
+       target="_blank" rel="noopener noreferrer">
+      <span class="num" aria-hidden="true">2</span>
+      <h3>대피장소 지도</h3>
+      <p>사고지점을 찍으면 주변 대피장소를 가까운 순으로 찾습니다. 거리·도보시간·
+        영향 참고 반경·풍하방향을 함께 봅니다.</p>
+      <span class="meta">대피장소 1,849곳 · 2026-05 기준</span>
+      <span class="go">열어 보기</span>
+    </a>
+
+    <a class="tool t3" href="https://claude.ai/code/artifact/26c97527-e8ce-4629-8c12-0790afdceb87"
+       target="_blank" rel="noopener noreferrer">
+      <span class="num" aria-hidden="true">3</span>
+      <h3>방제자원 동원</h3>
+      <p>폐기물 처리·방제장비·중장비·비상캡슐 보유처를 가까운 순으로 찾아 바로
+        연락합니다. 처음에는 한 가지만 묻습니다.</p>
+      <span class="meta">자원 470건 · 출처 6종 · 2026-08 기준</span>
+      <span class="go">열어 보기</span>
+    </a>
+
+  </div>
+</section>
+
+<section>
+  <h2>지금 들어 있는 자료</h2>
+  <div class="rows">
+    <div class="row">
+      <span class="what">재난문자 표준문안<i>지자체 적용 화학사고 재난문자 표준(안)</i></span>
+      <span class="n">12건</span>
+      <span class="chip done">들어감</span>
+    </div>
+    <div class="row">
+      <span class="what">실제 발송 사례<i>참고용 · 표준(안)과 다른 표현도 그대로 둠</i></span>
+      <span class="n">42건</span>
+      <span class="chip done">들어감</span>
+    </div>
+    <div class="row">
+      <span class="what">화학사고 대피장소<i>화학물질안전원 목록 · 좌표 포함</i></span>
+      <span class="n">1,849곳</span>
+      <span class="chip done">들어감</span>
+    </div>
+    <div class="row">
+      <span class="what">현장대응 물질정보<i>주민 안내에 쓰는 항목만 발췌</i></span>
+      <span class="n">460종</span>
+      <span class="chip done">들어감</span>
+    </div>
+    <div class="row">
+      <span class="what">방제자원<i>담당자 개인 연락처는 넣지 않음 · 대표번호만</i></span>
+      <span class="n">470건</span>
+      <span class="chip done">들어감</span>
+    </div>
+    <div class="row">
+      <span class="what">이재민 임시주거시설<i>받은 오픈API가 시·도별 집계표여서 지도에 찍을 수 없음</i></span>
+      <span class="n">0곳</span>
+      <span class="chip wait">자료 기다림</span>
+    </div>
+    <div class="row">
+      <span class="what">방제자원 정확 좌표<i>지금은 주소·행정경계로 어림잡은 값 (화면에 “대략”이라 적힘)</i></span>
+      <span class="n">어림값</span>
+      <span class="chip hold">보정 대기</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>다음에 할 일</h2>
+  <ul class="todo">
+    <li><b>이재민 임시주거시설 목록 구하기</b> — 시설명·주소·위도·경도가 있는
+      목록 자료가 필요합니다. 파일로 내려받아 주시면 바로 넣습니다.</li>
+    <li><b>③ 방제자원 나머지 DB 9종</b> — 구글 드라이브에 올려 두신 파일들입니다.</li>
+    <li><b>빈 전화번호 8곳</b> — 해경 3 · 유역환경청 4 · 해성화공 1. 검색으로
+      확인이 안 돼 비워 두었습니다.</li>
+    <li><b>①·②에도 시작 화면을 둘지</b> — ③처럼 처음에 한 가지만 묻는 방식으로
+      바꿀지 아직 정하지 않았습니다.</li>
+  </ul>
+</section>
+
+<div class="note">
+  <h2>이 확인용 사본에서 안 되는 것</h2>
+  <p>이 링크의 세 화면은 <b>파일 하나로 도는 사본</b>입니다(망분리 PC용과 같은 것).
+    그래서 인터넷을 쓰는 기능이 빠져 있습니다 — <b>배경지도(도로·건물)</b>,
+    <b>주소·장소 검색</b>, <b>실제 도로 도보경로</b>가 나오지 않고 지도에는
+    행정경계선만 그려집니다. 거리·방위·문안 만들기는 그대로 동작합니다.</p>
+  <p>도구끼리 오가는 단추(② 지도 → ① 문자)도 사본에서는 빠집니다.
+    이 페이지에서 각각 열어 보세요.</p>
+  <p>도구는 판단하지 않습니다. 어느 대피장소가 적절한지, 어디까지 대피시킬지는
+    담당자가 정합니다. 거리는 <b>직선거리</b>이고 반경 원은 물질정보에 적힌
+    참고 거리로, 확산 모델링 결과가 아닙니다.</p>
+</div>
+
+<footer>
+  <span>저장소 nics_chem-safety-cheatkey</span>
+  <span>가지 claude/chemical-accident-evacuation-sms-hsgoit</span>
+  <span>커밋 3168080</span>
+</footer>
+
+</div>
