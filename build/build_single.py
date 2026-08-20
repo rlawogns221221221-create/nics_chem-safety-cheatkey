@@ -23,6 +23,7 @@ data/tempshelters.js   — build/fetch_tempshelter.html 로 받는 이재민
 둘 다 없으면 그 <script> 줄을 빼고 만듭니다.
 """
 import argparse
+import base64
 import pathlib
 import re
 import sys
@@ -58,6 +59,25 @@ INTERNAL_BANNER = """<!-- ──────────────────
 """
 
 
+
+# ── 서체 심기 ────────────────────────────────────────────────
+# shell.css 의 @font-face 는 assets/fonts/ 를 상대경로로 부릅니다. 한 파일로
+# 합치면 그 경로가 깨지므로, 글꼴 파일을 data: 로 바꿔 심습니다. 안 심으면
+# 조용히 맑은 고딕으로 대체되어 KRDS 표준 서체가 아닌 화면이 나갑니다.
+# 두 굵기 합쳐 약 530KB → base64 약 700KB 만큼 파일이 커집니다.
+FONT_URL = re.compile(r'url\("(fonts/[^"]+\.woff2)"\)')
+
+
+def inline_fonts(html: str) -> str:
+    def one(m):
+        path = ROOT / "assets" / m.group(1)
+        if not path.exists():
+            sys.exit(f"글꼴 파일이 없습니다: {path}")
+        b64 = base64.b64encode(path.read_bytes()).decode("ascii")
+        return f'url("data:font/woff2;base64,{b64}")'
+    return FONT_URL.sub(one, html)
+
+
 def read(base: pathlib.Path, rel: str) -> str:
     path = (base / rel).resolve()
     if not path.exists():
@@ -80,6 +100,7 @@ def build(page: pathlib.Path, out: pathlib.Path, swap=None) -> None:
         lambda m: "<style>\n" + read(base, m.group(1)) + "\n</style>",
         html,
     )
+    html = inline_fonts(html)
     # 있으면 넣고 없으면 그 줄을 빼는 파일 — 정확 좌표(build/geocode.html 로 만듦)
     for opt in OPTIONAL:
         tag = f'<script src="../data/{opt}"></script>'
