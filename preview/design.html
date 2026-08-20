@@ -1,0 +1,562 @@
+<title>대응도구 디자인 방향 3안</title>
+<!-- ────────────────────────────────────────────────────────────
+     디자인 방향 제안 — 사용자가 눌러 보고 하나를 고르는 페이지입니다.
+     안쪽 시안(.mk-a/.mk-b/.mk-c)은 '표본'이므로 밝음·어두움 설정을 따라
+     바뀌면 안 됩니다. 그래서 시안 안에서는 토큰을 쓰지 않고 색을 직접
+     적었습니다. 페이지 껍데기만 두 가지 화면 설정을 따릅니다.
+     ──────────────────────────────────────────────────────────── -->
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Noto+Sans+KR:wght@400;500;700&display=swap">
+<style>
+  /* ══ 페이지 껍데기 ══════════════════════════════════════════ */
+  :root{
+    color-scheme: light dark;
+    --bg:#f2f4f7; --card:#ffffff; --sunk:#f8fafc;
+    --line:#dfe4ea; --line2:#eaeef3;
+    --ink:#14181d; --ink2:#4c5560; --ink3:#79838f;
+    --accent:#256ef4; --accent-l:#eaf1fe;
+    --good:#228738; --good-l:#e7f5ea;
+    --bad:#de3412; --bad-l:#fdece8;
+    --num-ink:#ffffff;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0d1116; --card:#151a21; --sunk:#11161c;
+      --line:#272e37; --line2:#1f252c;
+      --ink:#e7ecf2; --ink2:#a4aeba; --ink3:#7b8593;
+      --accent:#6fa4f8; --accent-l:#152439;
+      --good:#5cbb8d; --good-l:#122419;
+      --bad:#f08267; --bad-l:#2a1712;
+      --num-ink:#0d1116;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0d1116; --card:#151a21; --sunk:#11161c;
+    --line:#272e37; --line2:#1f252c;
+    --ink:#e7ecf2; --ink2:#a4aeba; --ink3:#7b8593;
+    --accent:#6fa4f8; --accent-l:#152439;
+    --good:#5cbb8d; --good-l:#122419;
+    --bad:#f08267; --bad-l:#2a1712;
+    --num-ink:#0d1116;
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0; padding:clamp(20px,4vw,52px) clamp(14px,4vw,28px);
+    background:var(--bg); color:var(--ink);
+    font-family:"IBM Plex Sans KR",system-ui,sans-serif;
+    font-size:15px; line-height:1.75; word-break:keep-all;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px; margin:0 auto; display:flex; flex-direction:column;
+    gap:clamp(30px,4vw,52px)}
+
+  .kicker{font-family:"IBM Plex Mono",monospace; font-size:12px;
+    letter-spacing:.04em; color:var(--ink3)}
+  h1{margin:8px 0 0; font-weight:700; font-size:clamp(26px,4.6vw,36px);
+    line-height:1.25; letter-spacing:-.015em; text-wrap:balance}
+  .sub{margin:12px 0 0; max-width:60ch; color:var(--ink2); font-size:16px}
+
+  h2{margin:0 0 4px; font-weight:600; font-size:20px; letter-spacing:-.01em}
+  .sec > p.hint{margin:0 0 20px; color:var(--ink2); font-size:14px; max-width:62ch}
+  .sec{display:flex; flex-direction:column}
+  .secnum{font-family:"IBM Plex Mono",monospace; font-size:11.5px;
+    color:var(--accent); letter-spacing:.1em; margin-bottom:9px}
+
+  /* ── 문제 목록 ── */
+  .probs{display:grid; gap:1px; background:var(--line);
+    border:1px solid var(--line); border-radius:8px; overflow:hidden}
+  @media (min-width:700px){ .probs{grid-template-columns:1fr 1fr} }
+  .prob{background:var(--card); padding:15px 17px}
+  .prob > b{display:block; font-weight:600; font-size:15px; margin-bottom:4px}
+  .prob span{color:var(--ink2); font-size:13.5px; line-height:1.7}
+
+  /* ── KRDS 근거 ── */
+  .krds{border:1px solid var(--line); border-radius:8px; background:var(--card);
+    padding:18px 20px; display:flex; flex-direction:column; gap:14px}
+  .swatches{display:flex; flex-wrap:wrap; gap:8px}
+  .sw{display:flex; flex-direction:column; gap:5px; min-width:96px}
+  .sw i{display:block; height:38px; border-radius:5px; border:1px solid rgba(0,0,0,.08)}
+  .sw b{font-size:11.5px; font-weight:600}
+  .sw code{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink3)}
+  .spec{display:grid; gap:8px 20px; font-size:13.5px; color:var(--ink2)}
+  @media (min-width:640px){ .spec{grid-template-columns:1fr 1fr} }
+  .spec div b{color:var(--ink); font-weight:600}
+  .src{font-size:12px; color:var(--ink3)}
+  .src a{color:var(--accent)}
+
+  /* ── 방향 카드 ── */
+  .opt{border:1px solid var(--line); border-radius:10px; background:var(--card);
+    overflow:hidden; display:flex; flex-direction:column}
+  .opt + .opt{margin-top:22px}
+  .opt-hd{padding:17px 20px; display:flex; flex-direction:column; gap:7px;
+    border-bottom:1px solid var(--line)}
+  .opt-tag{display:inline-flex; align-items:center; gap:8px;
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink3)}
+  .opt-tag em{font-style:normal; background:var(--accent); color:var(--num-ink);
+    padding:1px 7px; border-radius:3px; font-weight:600; letter-spacing:.04em}
+  .opt-hd h3{margin:0; font-size:19px; font-weight:600; letter-spacing:-.01em}
+  .opt-hd p{margin:0; color:var(--ink2); font-size:14px; max-width:64ch}
+  .strip{display:flex; flex-wrap:wrap; gap:14px 22px; padding:12px 20px;
+    background:var(--sunk); border-bottom:1px solid var(--line);
+    font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--ink3)}
+  .strip span{display:inline-flex; align-items:center; gap:6px}
+  .strip i{width:12px; height:12px; border-radius:2px; display:inline-block;
+    border:1px solid rgba(0,0,0,.12)}
+  .stage{padding:20px; background:var(--sunk); overflow-x:auto}
+  .pros{display:grid; gap:1px; background:var(--line2)}
+  @media (min-width:640px){ .pros{grid-template-columns:1fr 1fr} }
+  .pros div{background:var(--card); padding:14px 20px; font-size:13.5px; color:var(--ink2)}
+  .pros div b{display:block; font-size:12px; letter-spacing:.04em; margin-bottom:5px}
+  .pros .y b{color:var(--good)} .pros .n b{color:var(--bad)}
+
+  /* ══ 시안 공통 — 안쪽은 표본이므로 색을 직접 적습니다 ══════════ */
+  .mk{min-width:600px; font-family:"Noto Sans KR",sans-serif; line-height:1.6;
+    border-radius:6px; overflow:hidden; box-shadow:0 10px 30px -18px rgba(0,0,0,.5)}
+  .mk *{box-sizing:border-box}
+  .mkcap{margin:10px 0 0; font-size:12px; color:var(--ink3);
+    font-family:"IBM Plex Sans KR",sans-serif}
+
+  /* ── A안 : KRDS 표준형 ─────────────────────────────────────── */
+  .mk-a{background:#fff; color:#1e2124}
+  .mk-a .top{background:#fff; border-bottom:2px solid #256ef4;
+    padding:14px 22px; display:flex; align-items:center; justify-content:space-between}
+  .mk-a .org{font-size:12px; color:#5b636b; letter-spacing:.02em}
+  .mk-a .tname{font-size:19px; font-weight:700; letter-spacing:-.01em; margin-top:2px}
+  .mk-a .gbtn{border:1px solid #cdd3d9; background:#fff; color:#33383d;
+    border-radius:6px; padding:9px 15px; font-size:14px; font-family:inherit}
+  .mk-a .steps{display:flex; gap:0; padding:0 22px; background:#f7f8f9;
+    border-bottom:1px solid #e4e7ea}
+  .mk-a .steps b{flex:1; padding:13px 0; font-size:14px; color:#767d85;
+    font-weight:400; text-align:center; border-bottom:3px solid transparent}
+  .mk-a .steps b.on{color:#0b50d0; font-weight:700; border-bottom-color:#256ef4}
+  .mk-a .body{padding:24px 22px; display:flex; flex-direction:column; gap:20px}
+  .mk-a .fgroup{display:grid; gap:14px; grid-template-columns:1fr 1fr}
+  .mk-a label{display:block; font-size:15px; font-weight:700; margin-bottom:7px}
+  .mk-a label i{font-style:normal; color:#de3412; margin-left:3px}
+  .mk-a .inp{height:56px; border:1px solid #b1b8c0; border-radius:6px;
+    padding:0 14px; font-size:17px; display:flex; align-items:center; background:#fff}
+  .mk-a .inp.filled{border-color:#256ef4; box-shadow:0 0 0 3px #dce8fd}
+  .mk-a .helper{font-size:14px; color:#5b636b; margin-top:6px}
+  .mk-a .out{border:1px solid #dfe3e8; border-radius:8px; overflow:hidden}
+  .mk-a .out-hd{display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px; background:#f2f6fe; border-bottom:1px solid #dbe6fb}
+  .mk-a .out-hd b{font-size:15px; color:#0b50d0}
+  .mk-a .badge{font-size:13px; font-weight:700; color:#228738;
+    background:#e7f5ea; border-radius:100px; padding:3px 11px}
+  .mk-a .msg{padding:18px 16px; font-size:17px; line-height:1.72}
+  .mk-a .out-ft{display:flex; align-items:center; justify-content:space-between;
+    gap:12px; padding:12px 16px; border-top:1px solid #eef1f4}
+  .mk-a .count{font-family:"IBM Plex Mono",monospace; font-size:15px; color:#228738;
+    font-weight:500}
+  .mk-a .pbtn{background:#256ef4; color:#fff; border:0; border-radius:6px;
+    padding:14px 26px; font-size:16px; font-weight:700; font-family:inherit}
+
+  /* ── B안 : 대응 콘솔 (어두움) ──────────────────────────────── */
+  .mk-b{background:#0d1117; color:#e6edf3}
+  .mk-b .top{display:flex; align-items:center; justify-content:space-between;
+    padding:13px 20px; border-bottom:1px solid #232a33; background:#11161d}
+  .mk-b .tname{font-size:16px; font-weight:700; letter-spacing:.01em}
+  .mk-b .live{display:inline-flex; align-items:center; gap:7px; font-size:12px;
+    color:#9aa6b2; font-family:"IBM Plex Mono",monospace}
+  .mk-b .live i{width:8px; height:8px; border-radius:50%; background:#4fd08a}
+  .mk-b .grid{display:grid; grid-template-columns:170px 1fr}
+  .mk-b .side{border-right:1px solid #232a33; padding:14px 0; background:#0f141a}
+  .mk-b .side a{display:block; padding:11px 18px; font-size:14px; color:#9aa6b2;
+    text-decoration:none; border-left:3px solid transparent}
+  .mk-b .side a.on{color:#e6edf3; background:#161d26; border-left-color:#5b9cff;
+    font-weight:700}
+  .mk-b .main{padding:18px 20px; display:flex; flex-direction:column; gap:16px}
+  .mk-b .kpis{display:grid; grid-template-columns:repeat(3,1fr); gap:10px}
+  .mk-b .kpi{border:1px solid #232a33; border-radius:6px; padding:12px 14px;
+    background:#11161d}
+  .mk-b .kpi span{display:block; font-size:11.5px; color:#8b96a3; letter-spacing:.03em}
+  .mk-b .kpi b{display:block; font-family:"IBM Plex Mono",monospace; font-weight:500;
+    font-size:30px; line-height:1.15; margin-top:5px; font-variant-numeric:tabular-nums}
+  .mk-b .kpi.ok b{color:#4fd08a} .mk-b .kpi.warn b{color:#ffc24b}
+  .mk-b .kpi.dim b{color:#e6edf3}
+  .mk-b .panel{border:1px solid #232a33; border-radius:6px; background:#11161d;
+    overflow:hidden}
+  .mk-b .panel-hd{display:flex; align-items:center; justify-content:space-between;
+    padding:10px 14px; border-bottom:1px solid #232a33; font-size:12.5px; color:#9aa6b2;
+    font-family:"IBM Plex Mono",monospace; letter-spacing:.04em}
+  .mk-b .panel-hd em{font-style:normal; color:#5b9cff}
+  .mk-b .msg{padding:15px 14px; font-size:16px; line-height:1.7; color:#e6edf3;
+    border-left:3px solid #5b9cff}
+  .mk-b .row{display:flex; align-items:center; gap:12px; padding:11px 14px;
+    border-top:1px solid #1c232b; font-size:13.5px}
+  .mk-b .row b{flex:1; font-weight:400}
+  .mk-b .row span{font-family:"IBM Plex Mono",monospace; color:#9aa6b2;
+    font-variant-numeric:tabular-nums}
+  .mk-b .row i{font-style:normal; width:9px; height:9px; border-radius:50%;
+    background:#4fd08a; flex:none}
+  .mk-b .actions{display:flex; gap:9px}
+  .mk-b .pbtn{background:#5b9cff; color:#0d1117; border:0; border-radius:5px;
+    padding:12px 22px; font-size:15px; font-weight:700; font-family:inherit}
+  .mk-b .gbtn{background:transparent; color:#c7d0da; border:1px solid #2e3742;
+    border-radius:5px; padding:12px 18px; font-size:15px; font-family:inherit}
+
+  /* ── C안 : 한 걸음씩 ──────────────────────────────────────── */
+  .mk-c{background:#fbfcfd; color:#171a1d}
+  .mk-c .top{padding:16px 24px 0; display:flex; flex-direction:column; gap:12px}
+  .mk-c .crumb{display:flex; align-items:center; justify-content:space-between;
+    font-size:13px; color:#6b737c}
+  .mk-c .crumb b{font-family:"IBM Plex Mono",monospace; font-weight:500; color:#0b50d0}
+  .mk-c .bar{height:6px; border-radius:100px; background:#e6eaee; overflow:hidden}
+  .mk-c .bar i{display:block; height:100%; width:50%; background:#256ef4;
+    border-radius:100px}
+  .mk-c .body{padding:26px 24px 24px; display:flex; flex-direction:column; gap:8px}
+  .mk-c .q{font-size:27px; font-weight:700; letter-spacing:-.02em; line-height:1.3}
+  .mk-c .why{font-size:15px; color:#5b636b; margin-bottom:14px}
+  .mk-c .choices{display:flex; flex-direction:column; gap:10px}
+  .mk-c .ch{display:flex; align-items:center; gap:13px; padding:0 18px; height:64px;
+    border:1.5px solid #d3d9df; border-radius:8px; background:#fff; font-size:18px}
+  .mk-c .ch.on{border-color:#256ef4; background:#f4f8ff; font-weight:700; color:#0b50d0}
+  .mk-c .ch u{text-decoration:none; width:22px; height:22px; border-radius:50%;
+    border:1.5px solid #b8bfc6; flex:none; display:grid; place-items:center}
+  .mk-c .ch.on u{border-color:#256ef4; background:#256ef4; color:#fff; font-size:13px}
+  .mk-c .foot{display:flex; gap:10px; padding:18px 24px 22px;
+    border-top:1px solid #eaeef1; background:#fff}
+  .mk-c .pbtn{flex:1; background:#256ef4; color:#fff; border:0; border-radius:8px;
+    height:60px; font-size:18px; font-weight:700; font-family:inherit}
+  .mk-c .gbtn{background:#fff; color:#4c5560; border:1.5px solid #d3d9df;
+    border-radius:8px; height:60px; padding:0 22px; font-size:17px; font-family:inherit}
+  .mk-c .done{margin:0 24px 22px; border:1px solid #cfe0d6; border-radius:8px;
+    background:#f3faf5; overflow:hidden}
+  .mk-c .done-hd{display:flex; align-items:center; justify-content:space-between;
+    padding:12px 16px; background:#e7f5ea; font-size:14px; font-weight:700; color:#1a6b2f}
+  .mk-c .done .msg{padding:16px; font-size:18px; line-height:1.7}
+  .mk-c .done-ft{display:flex; align-items:center; gap:12px; padding:0 16px 16px}
+  .mk-c .done-ft .pbtn{height:56px; font-size:17px}
+  .mk-c .cnt{font-family:"IBM Plex Mono",monospace; font-size:15px; color:#228738}
+
+  /* ── 추천 · 필요한 것 ── */
+  .rec{border:1px solid var(--accent); border-radius:10px; background:var(--accent-l);
+    padding:20px 22px; display:flex; flex-direction:column; gap:10px}
+  .rec h2{color:var(--ink)}
+  .rec p{margin:0; font-size:14.5px; color:var(--ink2); max-width:66ch}
+  .rec p b{color:var(--ink)}
+  .asks{display:flex; flex-direction:column; gap:1px; background:var(--line);
+    border:1px solid var(--line); border-radius:8px; overflow:hidden}
+  .ask{background:var(--card); padding:15px 18px}
+  .ask b{display:block; font-size:15px; font-weight:600; margin-bottom:3px}
+  .ask span{font-size:13.5px; color:var(--ink2)}
+  .ask em{font-style:normal; font-family:"IBM Plex Mono",monospace; font-size:12px;
+    color:var(--ink3); display:block; margin-top:4px}
+  footer{border-top:1px solid var(--line); padding-top:16px; font-size:12px;
+    color:var(--ink3); font-family:"IBM Plex Mono",monospace;
+    display:flex; flex-wrap:wrap; gap:6px 18px}
+  @media (prefers-reduced-motion: reduce){ *{transition:none!important} }
+</style>
+
+<div class="wrap">
+
+<header>
+  <span class="kicker">화학사고 대응 지원도구 · 디자인 개편 제안</span>
+  <h1>지금 화면을 버리고<br>세 방향 중 하나로 다시 짭니다</h1>
+  <p class="sub">지금 화면의 문제를 먼저 짚고, 정부가 정한 기준(KRDS)을 근거로
+    세 방향을 만들었습니다. 아래 시안은 그림이 아니라 <b>실제로 그린 화면</b>이라
+    글자 크기·색·버튼 크기가 만들면 그대로 나옵니다. 하나만 골라 주세요.</p>
+</header>
+
+<!-- ══ 1. 지금 무엇이 문제인가 ══════════════════════════════ -->
+<section class="sec">
+  <span class="secnum">01</span>
+  <h2>지금 화면의 문제</h2>
+  <p class="hint">막연히 “마음에 안 든다”가 아니라, 급할 때 실제로 손을 늦추는
+    다섯 가지입니다. 새 디자인은 이 다섯 개를 없애는 것을 목표로 잡았습니다.</p>
+  <div class="probs">
+    <div class="prob"><b>한 화면에 너무 많다</b><span>왼쪽에 입력칸 여덟 개,
+      오른쪽에 결과 네 건이 동시에 떠 있습니다. 사고 접수 직후에 어디를 먼저
+      만져야 하는지 화면이 말해 주지 않습니다.</span></div>
+    <div class="prob"><b>덜 된 문안과 다 된 문안이 똑같이 보인다</b><span>본문에
+      <code>{시각}</code> <code>{읍면동}</code> 같은 빈칸이 남아 있어도 완성된 문안과
+      같은 모양입니다. 그대로 복사해 보낼 위험이 있습니다.</span></div>
+    <div class="prob"><b>빨간 경고가 문안보다 눈에 먼저 든다</b><span>“입력되지 않은
+      항목 …”이 두 줄씩 붙어, 정작 읽어야 할 발송문안을 덮습니다. 경고가 잦으면
+      사람은 경고를 안 읽게 됩니다.</span></div>
+    <div class="prob"><b>글자가 작고 위계가 없다</b><span>라벨·본문·주석이 모두
+      12~15px 근처라 굵기만으로 구분됩니다. <b>90/90자</b>처럼 반드시 봐야 하는
+      숫자가 가장 작게 구석에 있습니다.</span></div>
+    <div class="prob"><b>파랑 한 색으로 전부 처리한다</b><span>머리띠·탭·버튼·링크가
+      같은 남색이라 “눌러야 하는 것”이 구분되지 않습니다. 위험·주의·정상을
+      나누는 색 규칙도 없습니다.</span></div>
+    <div class="prob"><b>정부 서비스 기준을 안 따랐다</b><span>제가 임의로 정한
+      색과 글자 크기입니다. 누리집에 올리려면 아래 KRDS 기준에 맞춰야 하고,
+      맞추면 접근성 검사도 함께 해결됩니다.</span></div>
+  </div>
+</section>
+
+<!-- ══ 2. 기준 ══════════════════════════════════════════════ -->
+<section class="sec">
+  <span class="secnum">02</span>
+  <h2>기준은 KRDS — 정부가 정한 디자인 규격</h2>
+  <p class="hint">행정안전부가 만든 <b>대한민국 정부 디자인시스템(KRDS)</b>은
+    행정·공공기관 디지털서비스가 <b>지켜야 하는</b> UI/UX 가이드라인입니다.
+    아래는 공개된 규격에서 확인한 값입니다. 세 방향 모두 이 값을 뼈대로 씁니다.</p>
+  <div class="krds">
+    <div class="swatches">
+      <div class="sw"><i style="background:#256ef4"></i><b>Primary</b><code>#256EF4</code></div>
+      <div class="sw"><i style="background:#0b50d0"></i><b>Primary Deep</b><code>#0B50D0</code></div>
+      <div class="sw"><i style="background:#de3412"></i><b>위험</b><code>#DE3412</code></div>
+      <div class="sw"><i style="background:#ffb114"></i><b>주의</b><code>#FFB114</code></div>
+      <div class="sw"><i style="background:#228738"></i><b>완료</b><code>#228738</code></div>
+      <div class="sw"><i style="background:#0b78cb"></i><b>안내</b><code>#0B78CB</code></div>
+    </div>
+    <div class="spec">
+      <div><b>글꼴</b> Pretendard GOV (정부 표준 서체)</div>
+      <div><b>본문 크기</b> 17px 기준 · 줄높이 1.5 이상</div>
+      <div><b>글자 굵기</b> Regular · Bold 두 가지만</div>
+      <div><b>모서리</b> 2 / 4 / 6 / 8 / 10 / 12 / 999px</div>
+      <div><b>본문 폭</b> 1200px · 여백 24px</div>
+      <div><b>색 단계</b> 색마다 0(밝음)~100(어두움) · WCAG AA 충족</div>
+    </div>
+    <p class="src">출처 —
+      <a href="https://www.krds.go.kr/" target="_blank" rel="noopener noreferrer">krds.go.kr</a> ·
+      <a href="https://www.krds.go.kr/html/site/style/style_02.html" target="_blank" rel="noopener noreferrer">색상 가이드</a> ·
+      <a href="https://www.krds.go.kr/html/site/style/style_07.html" target="_blank" rel="noopener noreferrer">디자인 토큰</a>.
+      개발 환경에서 <code>krds.go.kr</code> 접속이 막혀 검색으로 확인한 값입니다 —
+      원내에서 공식 문서와 한 번 대조해 주시면 확실해집니다.</p>
+  </div>
+</section>
+
+<!-- ══ 3. 세 방향 ══════════════════════════════════════════ -->
+<section class="sec">
+  <span class="secnum">03</span>
+  <h2>세 방향</h2>
+  <p class="hint">모두 같은 화면(① 주민대피 문자 작성, 대피명령 문안)을 그린 것입니다.
+    같은 내용이 어떻게 달라지는지 보시면 됩니다.</p>
+
+  <!-- ── A안 ── -->
+  <div class="opt">
+    <div class="opt-hd">
+      <span class="opt-tag"><em>A 안</em> 정부 표준형 · KRDS 그대로</span>
+      <h3>넓고 크고 밝게 — 정부24를 쓰던 손이 그대로 쓰는 화면</h3>
+      <p>KRDS 색과 17px 본문을 그대로 씁니다. 입력을 <b>단계로 나누어</b> 한 번에 한
+        묶음만 보여 주고, 결과는 아래에 큰 카드 하나로 놓습니다. 빈칸이 남아 있으면
+        문안을 아예 만들지 않고 무엇이 비었는지만 말합니다.</p>
+    </div>
+    <div class="strip">
+      <span><i style="background:#256ef4"></i>#256EF4</span>
+      <span><i style="background:#0b50d0"></i>#0B50D0</span>
+      <span><i style="background:#228738"></i>#228738</span>
+      <span><i style="background:#ffffff"></i>#FFFFFF 바탕</span>
+      <span>본문 17px</span><span>버튼 높이 56px</span><span>모서리 6px</span>
+    </div>
+    <div class="stage">
+      <div class="mk mk-a">
+        <div class="top">
+          <div>
+            <div class="org">충청남도 서천군 · 환경과</div>
+            <div class="tname">주민대피 문자 작성</div>
+          </div>
+          <button class="gbtn" type="button">실제 발송 사례</button>
+        </div>
+        <div class="steps">
+          <b>1 발송 정보</b><b class="on">2 사고 위치</b><b>3 물질·대피장소</b><b>4 문안 확인</b>
+        </div>
+        <div class="body">
+          <div class="fgroup">
+            <div>
+              <label>사고 시·군·구<i>*</i></label>
+              <div class="inp filled">서천군</div>
+            </div>
+            <div>
+              <label>사고 읍·면·동<i>*</i></label>
+              <div class="inp filled">장항읍</div>
+            </div>
+          </div>
+          <div>
+            <label>사업장·장소명<i>*</i></label>
+            <div class="inp filled">○○화학</div>
+            <p class="helper">지도에서 사고지점을 찍으면 이 세 칸이 저절로 채워집니다.</p>
+          </div>
+          <div class="out">
+            <div class="out-hd"><b>긴급재난문자 · 대피명령</b>
+              <span class="badge">보낼 수 있음</span></div>
+            <p class="msg">[서천군] 금일 14:20경 장항읍 ○○화학에서 누출사고 발생으로
+              장항읍 일원 주민대피발령/피부노출을 최소화하고 코입을 막고
+              장항중학교로 즉시 대피바람</p>
+            <div class="out-ft">
+              <span class="count">84 / 90자</span>
+              <button class="pbtn" type="button">문안 복사</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="mkcap">시안의 글꼴은 Pretendard GOV 를 넣을 수 없어 비슷한 서체로
+        대신 그렸습니다. 실제로는 정부 표준 서체가 적용됩니다.</p>
+    </div>
+    <div class="pros">
+      <div class="y"><b>좋은 점</b>정부 기준을 지키니 누리집 게시 협의가 쉽고, 접근성
+        검사도 함께 통과합니다. 담당자에게 낯익은 화면이라 배울 것이 없습니다.
+        인쇄도 이 모양 그대로 나옵니다.</div>
+      <div class="n"><b>아쉬운 점</b>“새롭다”는 느낌보다 “정부답다”는 느낌입니다.
+        한 화면에 담기는 정보가 줄어 단계를 여러 번 넘겨야 합니다.</div>
+    </div>
+  </div>
+
+  <!-- ── B안 ── -->
+  <div class="opt">
+    <div class="opt-hd">
+      <span class="opt-tag"><em>B 안</em> 대응 콘솔 · 어두운 화면</span>
+      <h3>상황실에 띄워 두는 화면 — 숫자를 크게, 상태를 색으로</h3>
+      <p>사고는 밤에도 납니다. 어두운 바탕에 <b>지금 봐야 할 숫자만 크게</b> 띄우고,
+        나머지는 어둡게 눌러 둡니다. 도구 세 개를 왼쪽 탭으로 오가서, 문자·지도·자원을
+        한 자리에서 다룹니다.</p>
+    </div>
+    <div class="strip">
+      <span><i style="background:#0d1117"></i>#0D1117 바탕</span>
+      <span><i style="background:#5b9cff"></i>#5B9CFF</span>
+      <span><i style="background:#4fd08a"></i>#4FD08A</span>
+      <span><i style="background:#ffc24b"></i>#FFC24B</span>
+      <span>숫자 30px 고정폭</span><span>모서리 5px</span>
+    </div>
+    <div class="stage">
+      <div class="mk mk-b">
+        <div class="top">
+          <div class="tname">화학사고 대응 콘솔</div>
+          <span class="live"><i></i>서천군 장항읍 · 14:20 접수</span>
+        </div>
+        <div class="grid">
+          <div class="side">
+            <a href="#" class="on">주민대피 문자</a>
+            <a href="#">대피장소 지도</a>
+            <a href="#">방제자원 동원</a>
+          </div>
+          <div class="main">
+            <div class="kpis">
+              <div class="kpi ok"><span>문안 글자수</span><b>84</b></div>
+              <div class="kpi dim"><span>가장 가까운 대피장소</span><b>320m</b></div>
+              <div class="kpi warn"><span>영향반경 안 시설</span><b>6</b></div>
+            </div>
+            <div class="panel">
+              <div class="panel-hd"><span>긴급재난문자 · <em>대피명령</em></span><span>90자 제한</span></div>
+              <p class="msg">[서천군] 금일 14:20경 장항읍 ○○화학에서 누출사고 발생으로
+                장항읍 일원 주민대피발령/피부노출을 최소화하고 코입을 막고
+                장항중학교로 즉시 대피바람</p>
+              <div class="row"><i></i><b>장항중학교 체육관</b><span>320m · 도보 6분</span></div>
+              <div class="row"><i></i><b>장항읍 행정복지센터</b><span>740m · 도보 12분</span></div>
+            </div>
+            <div class="actions">
+              <button class="pbtn" type="button">문안 복사</button>
+              <button class="gbtn" type="button">지도에서 확인</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p class="mkcap">인쇄할 때는 흰 바탕으로 자동 전환됩니다(어두운 화면을 그대로
+        인쇄하면 토너를 다 씁니다).</p>
+    </div>
+    <div class="pros">
+      <div class="y"><b>좋은 점</b>야간·상황실 큰 화면에서 가장 잘 읽힙니다. 숫자가
+        커서 멀리서도 보이고, 도구 세 개를 오가는 이동이 없어집니다.</div>
+      <div class="n"><b>아쉬운 점</b>KRDS 표준형과 거리가 있어 누리집 게시 때 협의가
+        필요할 수 있습니다. 밝은 사무실에서 종일 보기에는 A안이 편하고,
+        어두운 화면에 익숙하지 않은 분께는 낯설 수 있습니다.</div>
+    </div>
+  </div>
+
+  <!-- ── C안 ── -->
+  <div class="opt">
+    <div class="opt-hd">
+      <span class="opt-tag"><em>C 안</em> 한 걸음씩 · 현장·휴대전화 우선</span>
+      <h3>한 화면에 한 가지만 묻는다 — 급할 때 틀리지 않게</h3>
+      <p>화면마다 질문 하나. 위에 <b>몇 번째 걸음인지</b>가 늘 보이고, 답은 손가락으로
+        누르는 큰 버튼입니다. 마지막에 완성된 문안 하나만 크게 띄우고 복사 버튼을
+        화면 폭만큼 넓게 둡니다.</p>
+    </div>
+    <div class="strip">
+      <span><i style="background:#256ef4"></i>#256EF4</span>
+      <span><i style="background:#fbfcfd"></i>#FBFCFD 바탕</span>
+      <span><i style="background:#228738"></i>#228738</span>
+      <span>질문 27px</span><span>선택 버튼 64px</span><span>본문 18px</span>
+    </div>
+    <div class="stage">
+      <div class="mk mk-c">
+        <div class="top">
+          <div class="crumb"><span>주민대피 문자 작성</span><b>3 / 6 단계</b></div>
+          <div class="bar"><i></i></div>
+        </div>
+        <div class="body">
+          <p class="q">어떤 사고입니까?</p>
+          <p class="why">사고 종류에 따라 문안이 달라집니다.</p>
+          <div class="choices">
+            <div class="ch on"><u>✓</u>누출 — 화학물질이 새어 나옴</div>
+            <div class="ch"><u></u>화재</div>
+            <div class="ch"><u></u>폭발</div>
+          </div>
+        </div>
+        <div class="foot">
+          <button class="gbtn" type="button">이전</button>
+          <button class="pbtn" type="button">다음 — 사고 위치</button>
+        </div>
+        <div class="done">
+          <div class="done-hd"><span>다 됐습니다 · 긴급재난문자</span><span class="cnt">84 / 90자</span></div>
+          <p class="msg">[서천군] 금일 14:20경 장항읍 ○○화학에서 누출사고 발생으로
+            장항읍 일원 주민대피발령/피부노출을 최소화하고 코입을 막고
+            장항중학교로 즉시 대피바람</p>
+          <div class="done-ft"><button class="pbtn" type="button">문안 복사</button></div>
+        </div>
+      </div>
+      <p class="mkcap">위쪽은 진행 중 화면, 아래쪽은 다 끝난 뒤 화면입니다.
+        실제로는 한 번에 하나만 보입니다.</p>
+    </div>
+    <div class="pros">
+      <div class="y"><b>좋은 점</b>급할 때 틀릴 여지가 가장 적습니다. 휴대전화에서
+        그대로 쓰이고, 처음 쓰는 사람이 설명 없이 끝까지 갑니다.
+        빈칸을 지나칠 수 없으니 “덜 된 문안”이 생기지 않습니다.</div>
+      <div class="n"><b>아쉬운 점</b>익숙해진 담당자에게는 걸음이 많아 느립니다.
+        여러 문안을 나란히 견주어 보기 어렵고, 지도처럼 넓은 화면이 필요한
+        도구에는 잘 맞지 않습니다.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ══ 4. 추천 ══════════════════════════════════════════════ -->
+<section class="sec">
+  <span class="secnum">04</span>
+  <div class="rec">
+    <h2>제 추천 — A안 뼈대에 C안 흐름, B안은 나중에 켜는 야간 모드</h2>
+    <p><b>A안으로 색과 글자를 다시 깔고</b>(정부 기준 충족·접근성 해결),
+      <b>①번 문자 도구만 C안처럼 단계로</b> 바꾸는 것을 권합니다. 문자 작성은
+      순서가 정해진 일이라 단계형이 맞고, 지도·자원은 넓게 펼쳐 보는 일이라
+      A안 배치가 맞습니다.</p>
+    <p><b>B안은 색만 바꾸는 스킨으로 만들 수 있습니다.</b> 같은 화면 구조에
+      어두운 색표를 얹는 것이라, 나중에 “야간 모드” 단추 하나로 켜고 끌 수
+      있습니다. 지금 정하지 않아도 됩니다.</p>
+    <p>다만 <b>골라 주시는 대로 만듭니다.</b> B안 하나로 가도 되고, C안을 세 도구
+      전부에 넣어도 됩니다.</p>
+  </div>
+</section>
+
+<!-- ══ 5. 필요한 것 ══════════════════════════════════════════ -->
+<section class="sec">
+  <span class="secnum">05</span>
+  <h2>구해 주시면 좋은 것</h2>
+  <p class="hint">없어도 만들 수 있습니다. 있으면 실제 배포본과 똑같아집니다.</p>
+  <div class="asks">
+    <div class="ask"><b>Pretendard GOV 글꼴 파일</b>
+      <span>KRDS 표준 서체입니다. 개발 환경에서 내려받기가 막혀 있어, 파일을
+        주시면 도구에 넣어 어느 PC에서나 같은 모양으로 나오게 하겠습니다.</span>
+      <em>woff2 파일 — Regular · Bold 두 개면 충분합니다</em></div>
+    <div class="ask"><b>화학물질안전원 로고·CI 규정</b>
+      <span>지금 진입 화면 로고는 임시입니다. 정식 로고 파일과 색 규정이 있으면
+        머리띠와 인쇄물에 제대로 넣겠습니다.</span>
+      <em>svg 또는 png · CI 가이드 pdf</em></div>
+    <div class="ask"><b>KRDS 공식 문서 한 번 대조</b>
+      <span>위 색·크기 값은 검색으로 확인한 것입니다. 원내에서 krds.go.kr 에
+        접속해 색상·타이포그래피 페이지를 캡처해 주시면 확실해집니다.</span>
+      <em>또는 KRDS 리소스 다운로드의 디자인 토큰 파일</em></div>
+    <div class="ask"><b>실제로 쓰는 화면이 무엇인지</b>
+      <span>사무실 PC 큰 화면인지, 현장에서 휴대전화인지, 상황실 대형 모니터인지에
+        따라 기본값을 다르게 잡습니다. 셋 다면 그렇게 알려 주세요.</span>
+      <em>브라우저 종류(인터넷 익스플로러가 남아 있는지)도 알려 주시면 좋습니다</em></div>
+  </div>
+</section>
+
+<footer>
+  <span>화학사고 지자체 대응 지원도구</span>
+  <span>디자인 방향 제안 · 2026-08-20</span>
+  <span>고르시면 그 방향으로 전체를 다시 만듭니다</span>
+</footer>
+
+</div>

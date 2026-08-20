@@ -120,6 +120,7 @@ python3 build/make_release.py    # release/ 배포 폴더 + zip
 | ① 문자 작성 | `dist/화학사고_주민대피문자_작성도구.html` | https://claude.ai/code/artifact/a42de0d3-9c73-4d67-b048-b4bf9c9c2c53 |
 | ② 대피장소 지도 | `dist/화학사고_대피장소_지도.html` | https://claude.ai/code/artifact/c10d00e5-8ad9-454e-9caf-b4f010f00ef8 |
 | ③ 방제자원 동원 | `dist/화학사고_방제자원_동원.html` | https://claude.ai/code/artifact/26c97527-e8ce-4629-8c12-0790afdceb87 |
+| 디자인 방향 3안 (고르는 중) | `preview/design.html` | https://claude.ai/code/artifact/270fca8b-6a22-47b3-8dd1-58c66f0216bf |
 
 **화면이나 자료를 고쳤으면** `build_single.py` 로 `dist/` 를 다시 만든 뒤 그 파일들을
 같은 URL 로 다시 올리세요. **다른 대화에서 올릴 때는 `url` 을 반드시 넘겨야** 같은
