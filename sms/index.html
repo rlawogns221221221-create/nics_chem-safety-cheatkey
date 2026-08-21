@@ -21,6 +21,7 @@
       <button id="btnReset">초기화</button>
     </div>
   </div>
+
 </div>
 
 <!-- 대피장소 지도에서 값을 들고 왔을 때 무엇이 채워졌는지 알리는 띠.
@@ -41,20 +42,27 @@
     <div class="steps" id="stages"></div>
   </div>
 
+  <!-- 진행 표시 — 지금 몇 걸음째인지, 앞뒤로 어디까지 왔는지.
+       KRDS 의 단계 표시(step indicator) 방식입니다. 누르면 그 걸음으로 갑니다. -->
+  <ol class="stepbar noprint" id="stepBar" hidden aria-label="작성 단계"></ol>
+
   <div class="cols" id="cols" hidden>
 
-    <!-- 왼쪽: 입력 -->
-    <div class="panel">
+    <!-- 입력 걸음들이 들어가는 칸 — 마지막 걸음(문안 확인)에서는 감춥니다 -->
+    <div class="panel" id="inPanel">
       <h2>사고정보 <span class="who" id="sessTag" hidden
           style="font-weight:400;color:var(--ink3)">이전 입력 이어받음</span></h2>
       <div class="body">
 
-        <div class="sect">사고유형</div>
-        <div class="chips" id="types"></div>
+        <div class="step" data-step="type">
+          <div class="sect">사고유형</div>
+          <div class="chips" id="types"></div>
+        </div>
 
         <div id="fCommon" class="fcommon"></div>
-        <div id="matInfo"></div>
+        <div id="matInfo" class="step" data-step="mat"></div>
 
+        <div class="step" data-step="evac">
         <div id="evacWrap" hidden>
           <div class="sect">대피장소·집결지</div>
           <div class="grid" id="fEvac"></div>
@@ -95,12 +103,13 @@
           </label>
           <div class="grid" id="fEvacExtra" hidden style="margin-top:9px"></div>
         </div>
+        </div>
 
       </div>
     </div>
 
     <!-- 오른쪽: 생성 문안 -->
-    <div class="panel sticky">
+    <div class="panel sticky step" data-step="out">
       <h2>생성 문안 <span id="outCnt" style="font-weight:400;color:var(--ink3)"></span></h2>
       <div class="body">
         <!-- 한 발송 구분 안에서 상황에 따라 문안이 갈릴 때 고르는 줄
@@ -113,6 +122,10 @@
     </div>
 
   </div>
+
+  <!-- 걸음 사이 이동 — 다음 단추에 다음 걸음의 이름을 적습니다.
+       "다음"만 있으면 무엇이 나올지 모르고 누르게 됩니다. -->
+  <div class="stepnav noprint" id="stepNav" hidden></div>
 
 </div>
 

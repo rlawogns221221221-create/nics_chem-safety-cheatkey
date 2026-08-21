@@ -13,12 +13,13 @@ set -u
 cd "$(dirname "$0")"
 HERE=$(pwd)
 
-ALL="t2 t8 t9 n1 n3 pinch widen mob bug1 car sms2 hand addr res2 tmp2 fetchpage"
+ALL="t2 t8 t9 tok n1 n3 pinch widen mob bug1 car sms2 hand addr res2 tmp2 fetchpage"
 
 declare -A WHAT=(
   [t2]="① 문자 도구 — 문안 생성·접기·글자수·모바일"
   [t8]="망분리용 단일 파일(dist) — 세 도구가 파일 하나로 도는가"
   [t9]="접근성·인쇄 — 대비·초점·터치영역·JS 꺼짐"
+  [tok]="색·크기 이름 — 밝음·고대비 두 모드에서 값이 다 있는가"
   [n1]="내 위치 — 권한 거부·신호 없음·시간 초과"
   [n3]="길찾기 — 실패해도 직선은 그린다"
   [pinch]="손가락 확대 — 세 지도 모두 실제 두 손가락 터치로"

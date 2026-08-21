@@ -48,7 +48,9 @@ function blankState() {
   /* cat — 하위 분류를 둔 구분에서 고른 것 {구분id: 분류id}.
      지금은 도로 우회 알림만 씁니다(사고지역이 실내대피 중인가 대피명령 중인가). */
   return { stage: null, cat: {}, type: "누출", data: {},
-           unknownMat: false, use71: false, openGrp: {} };
+           unknownMat: false, use71: false, openGrp: {},
+           /* step — 지금 몇 걸음째인가(걸음 id). 새로 고쳐도 그 자리에서 잇는다 */
+           step: null };
 }
 var state = blankState();
 
@@ -547,8 +549,11 @@ function fieldHtml(f) {
 function fieldGroupHtml(g) {
   var fields = FIELDS.공통.filter(function (f) { return f.그룹 === g.id; });
   if (!fields.length) return "";
-  return '<div class="fgrp' + (g.강조 ? " fgrp-accent" : "") + '">'
-    + '<div class="fgrp-hd"><span class="fgrp-n">' + g.번호 + "</span><b>" + esc(g.제목) + "</b>"
+  return '<div class="fgrp step' + (g.강조 ? " fgrp-accent" : "")
+    + '" data-step="' + g.id + '">'
+    /* 번호는 위의 진행 표시가 붙입니다 — 여기에 또 매기면 같은 묶음이 화면에서
+       두 개의 번호(묶음 4 · 걸음 5)를 갖게 되어 어느 쪽이 맞는지 헷갈립니다. */
+    + '<div class="fgrp-hd"><b>' + esc(g.제목) + "</b>"
     + (g.설명 ? '<span class="fgrp-d">' + esc(g.설명) + "</span>" : "") + "</div>"
     + '<div class="grid">' + fields.map(fieldHtml).join("") + "</div></div>";
 }
@@ -665,6 +670,170 @@ function renderFields() {
   }
 }
 
+
+/* ══ 한 걸음씩 (단계형) ══════════════════════════════════════════
+   예전에는 입력칸 여덟 개가 한 화면에 쌓여 있고 그 옆에 결과 네 건이 동시에
+   떠 있었습니다. 사고 접수 직후에 어디를 먼저 만져야 하는지 화면이 말해 주지
+   않았고, 빈칸이 남은 미완성 문안이 완성된 문안과 똑같이 보였습니다.
+
+   그래서 **한 화면에 한 묶음만** 묻습니다. 지금 몇 걸음째인지 위에 늘 보이고,
+   마지막 걸음에서 문안을 봅니다. 순서대로 가는 것이 기본이지만 진행 표시를
+   눌러 아무 걸음으로나 건너뛸 수 있습니다 — 급할 때는 아는 값부터 채우는
+   사람도 있고, 지도에서 값을 들고 오면 이미 채워진 걸음도 있습니다.
+   ══════════════════════════════════════════════════════════════ */
+
+/* 걸음 목록은 고른 발송 구분에 따라 달라진다(대피장소를 안 쓰는 구분도 있다) */
+function stepList() {
+  var stage = curStage();
+  if (!stage) return [];
+  var steps = [{ id: "type", 제목: "사고유형" }];
+  FIELD_GROUPS.forEach(function (g) {
+    steps.push({ id: g.id, 제목: g.제목 });
+  });
+  if (stage.id === "evac") steps.push({ id: "evac", 제목: "대피장소" });
+  steps.push({ id: "out", 제목: "문안 확인" });
+  return steps;
+}
+
+function stepIndex(id) {
+  var l = stepList(), i;
+  for (i = 0; i < l.length; i++) if (l[i].id === id) return i;
+  return 0;
+}
+
+/* 이 걸음에서 묻는 항목들 — 다 채웠는지 표시하고, 빠진 것을 찾아갈 때 쓴다 */
+function stepKeys(id) {
+  if (id === "type" || id === "out") return [];
+  if (id === "evac") {
+    return FIELDS.evac.filter(function (f) { return f.req && !f.부가; })
+      .map(function (f) { return f.k; });
+  }
+  return FIELDS.공통.filter(function (f) { return f.그룹 === id && f.req; })
+    .map(function (f) { return f.k; });
+}
+
+/* 이 걸음의 필수 항목이 다 찼는가 — 진행 표시의 체크로 보여 준다.
+   지금 쓰는 문안이 실제로 쓰는 항목만 본다(안 쓰는 칸까지 채우라고 하면 안 됨) */
+function stepFilled(id) {
+  if (id === "type") return !!state.type;
+  if (id === "out") return true;
+  var need = stepKeys(id).filter(function (k) { return usedFieldKeys()[k]; });
+  if (!need.length) return true;
+  return need.every(function (k) {
+    if (k === "물질") return state.unknownMat || !!String(state.data["물질"] || "").trim();
+    return !!String(state.data[k] || "").trim();
+  });
+}
+
+/* 지금 고른 구분의 문안들이 실제로 쓰는 항목 (키 → true) */
+var USEDF_CACHE = null, USEDF_KEY = "";
+function usedFieldKeys() {
+  var stage = curStage();
+  var key = (stage ? stage.id : "") + "|" + (curCat(stage) ? curCat(stage).id : "")
+          + "|" + state.use71;
+  if (USEDF_CACHE && USEDF_KEY === key) return USEDF_CACHE;
+  var out = {};
+  stageGroups(stage).forEach(function (g) {
+    g.ids.forEach(function (id) {
+      var tpl = TEMPLATES[id];   /* TEMPLATES 는 id 를 열쇠로 하는 객체다 */
+      if (tpl) usedKeysOf(tpl).forEach(function (k) { out[k] = true; });
+    });
+  });
+  USEDF_CACHE = out; USEDF_KEY = key;
+  return out;
+}
+
+/* 아직 못 채운 항목 — 어느 걸음으로 가야 하는지까지 함께 돌려준다 */
+function missingByStep() {
+  var used = usedFieldKeys(), out = [];
+  stepList().forEach(function (s) {
+    if (s.id === "type" || s.id === "out") return;
+    var miss = stepKeys(s.id).filter(function (k) {
+      if (!used[k]) return false;
+      if (k === "물질") return !state.unknownMat && !String(state.data["물질"] || "").trim();
+      return !String(state.data[k] || "").trim();
+    });
+    if (miss.length) out.push({ step: s.id, 제목: s.제목, keys: miss });
+  });
+  return out;
+}
+
+function gotoStep(id) {
+  state.step = id;
+  save();
+  showStep();
+  /* 걸음을 옮기면 화면 위쪽으로 올린다 — 아래로 스크롤된 채 새 걸음이 나오면
+     빈 화면을 본 것처럼 느껴진다 */
+  var bar = $("#stepBar");
+  if (bar && bar.getBoundingClientRect().top < 0) bar.scrollIntoView({ block: "start" });
+}
+
+function renderStepBar() {
+  var bar = $("#stepBar"), list = stepList();
+  if (!list.length) { bar.hidden = true; return; }
+  bar.hidden = false;
+  var cur = stepIndex(state.step);
+  bar.innerHTML = list.map(function (s, i) {
+    var done = i < cur && stepFilled(s.id);
+    var state2 = i === cur ? "on" : (done ? "done" : (stepFilled(s.id) ? "ok" : ""));
+    return '<li class="stp-i ' + state2 + '">'
+      + '<button type="button" data-go="' + s.id + '"'
+      + (i === cur ? ' aria-current="step"' : "") + '>'
+      + '<i>' + (done ? "✓" : (i + 1)) + "</i>"
+      + "<b>" + esc(s.제목) + "</b></button></li>";
+  }).join("");
+  $$("#stepBar button").forEach(function (b) {
+    b.onclick = function () { gotoStep(b.dataset.go); };
+  });
+}
+
+function renderStepNav() {
+  var nav = $("#stepNav"), list = stepList();
+  if (!list.length) { nav.hidden = true; return; }
+  nav.hidden = false;
+  var i = stepIndex(state.step);
+  var prev = i > 0 ? list[i - 1] : null;
+  var next = i + 1 < list.length ? list[i + 1] : null;
+  nav.innerHTML =
+    (prev ? '<button type="button" class="sn-prev" data-go="' + prev.id + '">'
+       + "이전 — " + esc(prev.제목) + "</button>" : '<span class="sn-sp"></span>')
+    + (next ? '<button type="button" class="p sn-next" data-go="' + next.id + '">'
+       + (next.id === "out" ? "문안 만들기" : "다음 — " + esc(next.제목)) + "</button>"
+       : '<button type="button" class="sn-first" data-go="' + list[0].id + '">'
+       + "처음 걸음으로</button>");
+  $$("#stepNav button").forEach(function (b) {
+    b.onclick = function () { gotoStep(b.dataset.go); };
+  });
+}
+
+function showStep() {
+  var list = stepList();
+  if (!list.length) return;
+  if (!state.step || stepIndex(state.step) < 0
+      || !list.filter(function (s) { return s.id === state.step; }).length) {
+    state.step = list[0].id;
+  }
+  /* 물질 고르기 목록이 떠 있는 채로 걸음을 옮기면, 붙어 있던 입력칸이 사라져
+     목록만 화면 왼쪽 위에 떠 있게 됩니다(실제로 그랬음). 걸음을 바꿀 때 닫습니다. */
+  if (window.MatPicker) window.MatPicker.close();
+  $$(".step").forEach(function (el) {
+    el.hidden = el.dataset.step !== state.step;
+  });
+  /* 사고정보 묶음을 담는 상자도 그 안에 보이는 묶음이 없으면 감춥니다 —
+     빈 상자가 여백만 차지해 상자 안이 갈라져 보였습니다. */
+  var fc = $("#fCommon");
+  if (fc) {
+    fc.hidden = !FIELD_GROUPS.filter(function (g) { return g.id === state.step; }).length;
+  }
+  /* 마지막 걸음에서는 입력 칸 자체를 감춥니다 — 안 그러면 빈 '사고정보' 상자가
+     문안 위에 남습니다(실제로 그랬음). 반대로 입력 걸음에서는 문안 칸을
+     감추는데, 그것은 위의 .step 규칙이 이미 합니다. */
+  var inp = $("#inPanel");
+  if (inp) inp.hidden = state.step === "out";
+  renderStepBar();
+  renderStepNav();
+}
+
 /* ── 생성 문안 ────────────────────────────────────────────── */
 
 var lastResults = [];
@@ -684,6 +853,40 @@ function renderOut() {
     $("#out").innerHTML = '<p class="out-ask">' + esc(stage.분류제목 || "상황")
       + "을 위에서 고르세요 — " + names.join(" 또는 ") + "."
       + "<span>사고지역 안의 상태에 따라 우회 문구와 상황종료 문안이 다릅니다.</span></p>";
+    $("#btnTxt").disabled = true;
+    return;
+  }
+
+  /* ── 아직 못 채운 칸이 있으면 문안을 만들지 않는다 ──────────────
+     예전에는 {시각}·{읍면동} 처럼 빈칸이 남은 문안을 그대로 보여 주고, 그
+     아래에 빨간 글씨로 "입력되지 않은 항목: …" 을 길게 붙였습니다. 완성된
+     문안과 모양이 똑같아서 그대로 복사해 보낼 위험이 있었고, 빨간 글씨가
+     정작 읽어야 할 문안을 덮었습니다.
+
+     지금은 **문안 자체를 만들지 않고**, 무엇이 비었는지와 어느 걸음으로 가면
+     되는지만 보여 줍니다. 채우면 그 자리에 문안이 나타납니다. */
+  var miss = missingByStep();
+  if (miss.length) {
+    lastResults = [];
+    $("#alerts").innerHTML = "";
+    $("#outCnt").textContent = "";
+    var n = 0;
+    miss.forEach(function (m) { n += m.keys.length; });
+    $("#out").innerHTML = '<div class="needfill">'
+      + '<b class="nf-hd">아직 채우지 않은 칸이 ' + n + '개 있습니다</b>'
+      + '<p class="nf-d">다 채우면 여기에 발송문안이 만들어집니다. '
+      + '반쯤 채운 문안은 잘못 보낼 위험이 있어 만들지 않습니다.</p>'
+      + '<ul class="nf-list">'
+      + miss.map(function (m) {
+          return '<li><button type="button" data-go="' + esc(m.step) + '">'
+            + '<b>' + esc(m.제목) + '</b>'
+            + '<span>' + m.keys.map(labelOf).map(esc).join(" · ") + '</span>'
+            + '<em>채우러 가기</em></button></li>';
+        }).join("")
+      + "</ul></div>";
+    $$("#out .needfill button").forEach(function (b) {
+      b.onclick = function () { gotoStep(b.dataset.go); };
+    });
     $("#btnTxt").disabled = true;
     return;
   }
@@ -978,6 +1181,9 @@ function saveTxt() {
 function renderAll() {
   renderStages(); renderTypes(); renderFields(); renderCatBar();
   renderMatInfo(); renderOut(); renderSeedBar();
+  /* 맨 나중에 — 위에서 입력칸·문안을 새로 그리며 hidden 을 풀어 놓기 때문에,
+     어느 걸음을 보여 줄지는 마지막에 정해야 한다. */
+  showStep();
 }
 
 function init() {

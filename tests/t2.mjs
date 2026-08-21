@@ -16,11 +16,47 @@ P.on('console', m => { if (m.type() === 'error') errs.push('CONSOLE: ' + m.text(
 const ok = [], bad = [];
 const chk = (c, m) => (c ? ok : bad).push(m);
 const U = ROOT + 'sms/index.html';
+/* ── 단계형으로 바뀐 뒤의 준비 ────────────────────────────────
+   ① 문자 도구가 '한 걸음씩'으로 바뀌어, 문안은 **마지막 걸음**에서만 나오고
+   **필수 칸을 다 채워야** 만들어집니다(반쯤 채운 문안은 잘못 보낼 위험이 있어
+   아예 만들지 않습니다). 그래서 문안을 보는 검사는 먼저 이 둘을 해 줍니다. */
+const FILL = { 기관: '서천군', 시각: '14:20', 시군: '서천군', 읍면동: '장항읍',
+  사업장: '○○화학', 대상지역: '장항읍 일원', 물질: '염산',
+  대피소: '장항중학교', 집결지: '장항읍 행정복지센터' };
+const fillAll = async (P) => {
+  await P.evaluate(o => {
+    Object.keys(o).forEach(k => {
+      const el = document.getElementById('if_' + k);
+      if (el) { el.value = o[k]; el.dispatchEvent(new Event('input', { bubbles: true })); }
+    });
+  }, FILL);
+  await P.waitForTimeout(250);
+};
+const goOut = async (P) => {
+  const b = await P.$('#stepBar button[data-go=out]');
+  if (b) { await b.click(); await P.waitForTimeout(300); }
+};
+const ready = async (P) => { await fillAll(P); await goOut(P); };
+const goStep = async (P, id) => {
+  const b = await P.$(`#stepBar button[data-go=${id}]`);
+  if (b) { await b.click(); await P.waitForTimeout(300); }
+};
+const setF = async (P, k, v) => {
+  /* 걸음이 감춰져 있어도 값을 넣을 수 있게 — 사람이 쓰는 순서를 따라가는
+     검사는 위의 ready() 로 따로 합니다. */
+  await P.evaluate(([k, v]) => {
+    const el = document.getElementById('if_' + k);
+    el.value = v; el.dispatchEvent(new Event('input', { bubbles: true }));
+  }, [k, v]);
+  await P.waitForTimeout(200);
+};
+
+
 
 await P.goto(U); await P.waitForTimeout(400);
 
 // ══ A. 상황종료 문안 접기 ══
-await P.click('#stages button[data-s=indoor]');
+await P.click('#stages button[data-s=indoor]'); await ready(P);
 await P.waitForTimeout(250);
 let cards = await P.$$eval('#out .out', o => o.length);
 let vis = await P.$$eval('#out .out', os => os.filter(o => o.offsetParent !== null).length);
@@ -40,7 +76,7 @@ chk((await P.textContent('#out .ohd.fold')).includes('접기'), '펼침 상태 =
 chk((await P.getAttribute('#out .ohd.fold','aria-expanded')) === 'true', 'aria-expanded=true');
 
 // 입력해도 열린 상태 유지 (renderOut 매번 도는데 닫히면 안 됨)
-await P.fill('#if_기관', '서천군');
+await setF(P, '기관', '서천군');
 await P.waitForTimeout(250);
 vis = await P.$$eval('#out .out', os => os.filter(o => o.offsetParent !== null).length);
 chk(vis === 4, `입력 중에도 펼침 유지 (실제 ${vis})`);
@@ -52,15 +88,15 @@ vis = await P.$$eval('#out .out', os => os.filter(o => o.offsetParent !== null).
 chk(vis === 2, `다시 접힘 (실제 ${vis})`);
 
 // 구분별로 독립적인 접힘 상태
-await P.click('#stages button[data-s=evac]'); await P.waitForTimeout(250);
+await P.click('#stages button[data-s=evac]'); await P.waitForTimeout(250); await ready(P);
 vis = await P.$$eval('#out .out', os => os.filter(o=>o.offsetParent!==null)
   .map(o=>o.querySelector('.no').textContent));
 chk(JSON.stringify(vis) === JSON.stringify(['8번','7번']), `주민소산 처음 보이는 문안: ${vis}`);
 await P.click('#out .ohd.fold'); await P.waitForTimeout(200);
-await P.click('#stages button[data-s=indoor]'); await P.waitForTimeout(250);
+await P.click('#stages button[data-s=indoor]'); await P.waitForTimeout(250); await ready(P);
 vis = await P.$$eval('#out .out', os => os.filter(o => o.offsetParent !== null).length);
 chk(vis === 2, `구분별 접힘 상태 독립 (실내대피는 여전히 접힘, ${vis}건)`);
-await P.click('#stages button[data-s=detour]'); await P.waitForTimeout(250);
+await P.click('#stages button[data-s=detour]'); await P.waitForTimeout(250); await ready(P);
 vis = await P.$$eval('#out .out', os => os.filter(o=>o.offsetParent!==null)
   .map(o=>o.querySelector('.no').textContent));
 // 도로 우회는 '사고지역 상황'을 고르기 전에는 문안을 만들지 않는다
@@ -80,8 +116,8 @@ vis = await P.$$eval('#out .out', os => os.filter(o=>o.offsetParent!==null)
 chk(JSON.stringify(vis) === JSON.stringify(['10번','9번']), `대피명령 발령 중일 때: ${vis}`);
 
 // ══ B. 문안별 오류 분리 ══
-await P.click('#stages button[data-s=evac]'); await P.waitForTimeout(200);
-const fill = async (o) => { for (const [k,v] of Object.entries(o)) await P.fill(`#if_${k}`, v);
+await P.click('#stages button[data-s=evac]'); await P.waitForTimeout(200); await ready(P);
+const fill = async (o) => { for (const [k,v] of Object.entries(o)) await setF(P, k, v);
   await P.waitForTimeout(350); };
 await fill({ 기관:'서천군', 시각:'17:10', 시군:'서천군', 읍면동:'장항읍',
   대상지역:'장항읍 창선리·화천리', 사업장:'한국석유공사 서천기지', 물질:'황산',
@@ -89,7 +125,7 @@ await fill({ 기관:'서천군', 시각:'17:10', 시군:'서천군', 읍면동:'
 chk((await P.$$('#alerts .alert.s')).length === 0, '확인 완료 배너 없음 (삭제 확인)');
 chk((await P.$$('#out .oerr')).length === 0, '정상 입력 → 카드 내 오류 없음');
 // 대피소를 아주 길게 넣어 8번만 글자수 초과시키기
-await P.fill('#if_대피소', '장항초등학교 및 장항중학교 및 장항고등학교 및 서천군종합사회복지관 및 장항읍행정복지센터 대강당');
+await setF(P, '대피소', '장항초등학교 및 장항중학교 및 장항고등학교 및 서천군종합사회복지관 및 장항읍행정복지센터 대강당');
 await P.waitForTimeout(400);
 const perCard = await P.$$eval('#out .out', os => os.map(o => ({
   no: o.querySelector('.no').textContent,
@@ -106,19 +142,21 @@ await P.click('#out .ohd.fold'); await P.waitForTimeout(150);  // 닫기
 const hasWerr = await P.$$eval('#out .ohd.fold .werr', e => e.length);
 ok.push(`  접힌 그룹 오류 배지: ${hasWerr}개 (종료문안에 오류가 없으면 0이 정상)`);
 // 필수 미입력 — 그 항목을 쓰는 문안만 차단 (전역 배너·전역 차단 없음)
-await P.fill('#if_대피소', '장항초등학교');
-await P.fill('#if_대상지역', ''); await P.waitForTimeout(400);
+await setF(P, '대피소', '장항초등학교');
+await setF(P, '대상지역', ''); await P.waitForTimeout(400);
 chk((await P.$$('#alerts .alert.e')).length === 0, '필수 미입력에도 전역 배너 없음');
 const missMap = await P.$$eval('#out .out', os => os.map(o => ({
   no: o.querySelector('.no').textContent, disabled: o.querySelector('button[data-c]').disabled })));
 chk(missMap.filter(d => ['8번','7번'].includes(d.no)).every(d => d.disabled)
   && missMap.filter(d => ['12번','11번'].includes(d.no)).every(d => !d.disabled),
   `대상지역 쓰는 문안만 차단: ${JSON.stringify(missMap)}`);
-await P.fill('#if_대상지역', '장항읍 창선리'); await P.waitForTimeout(400);
+await setF(P, '대상지역', '장항읍 창선리'); await P.waitForTimeout(400);
 chk(await P.$$eval('#out button[data-c]', bs => bs.every(b => !b.disabled)), '해소 시 전부 허용');
 
 // ══ C. 지도에서 찾기 ══
+await goStep(P, 'evac');
 chk(await P.isVisible('#btnMap'), '지도에서 찾기 버튼 표시');
+await goStep(P, 'evac');
 await P.click('#btnMap');
 await P.waitForTimeout(700);
 chk(await P.isVisible('.shmap-back'), '지도 창 열림');
@@ -197,6 +235,7 @@ chk(after !== before && after.split(', ').length === 2, `대피소 칸에 2곳 �
 chk((await P.textContent('#out .msg')).includes(after.split(', ')[0]), '문안에 반영됨');
 
 // 다른 칸에 넣기 (집결지)
+await goStep(P, 'evac');
 await P.click('#btnMap'); await P.waitForTimeout(500);
 await P.click('.shmap-it >> nth=1'); await P.waitForTimeout(200);
 await P.selectOption('.shmap-target', '집결지');
@@ -205,6 +244,7 @@ chk((await P.inputValue('#if_집결지')).length > 0, `집결지 칸: ${await P.
 
 // Esc 로 닫기 + 취소는 값 안 바꿈
 const keep = await P.inputValue('#if_대피소');
+await goStep(P, 'evac');
 await P.click('#btnMap'); await P.waitForTimeout(500);
 await P.click('.shmap-it >> nth=2'); await P.waitForTimeout(150);
 await P.keyboard.press('Escape'); await P.waitForTimeout(300);
@@ -213,18 +253,23 @@ chk((await P.inputValue('#if_대피소')) === keep, '취소하면 값 안 바뀜
 
 // 7-1 켜면 넣을 칸 늘어남
 let nOpt = await P.$$eval('.shmap-target option', o => o.length).catch(()=>0);
+await goStep(P, 'evac');
 await P.click('#btnMap'); await P.waitForTimeout(400);
 nOpt = await P.$$eval('.shmap-target option', o => o.map(x=>x.value));
 chk(nOpt.length === 2 && nOpt.join()==='대피소,집결지', `7-1 끔: 넣을 칸 ${nOpt}`);
 await P.keyboard.press('Escape'); await P.waitForTimeout(200);
+await goStep(P, 'evac');
 await P.check('#use71'); await P.waitForTimeout(300);
+await goStep(P, 'evac');
 await P.click('#btnMap'); await P.waitForTimeout(400);
 nOpt = await P.$$eval('.shmap-target option', o => o.map(x=>x.value));
 chk(nOpt.length === 4, `7-1 켬: 넣을 칸 ${nOpt}`);
 await P.keyboard.press('Escape'); await P.waitForTimeout(150);
+await goStep(P, 'evac');
 await P.uncheck('#use71'); await P.waitForTimeout(250);
 
 // 시·도/시·군·구 바꾸기
+await goStep(P, 'evac');
 await P.click('#btnMap'); await P.waitForTimeout(400);
 await P.selectOption('.shmap-sido', '경기도'); await P.waitForTimeout(400);
 chk((await P.inputValue('.shmap-sgg')) === '', '시·도 바꾸면 시·군·구 초기화');
@@ -235,14 +280,17 @@ chk((await P.$$eval('.shmap-it.on', c=>c.length)) === 0, '지역 바꾸면 선�
 await P.keyboard.press('Escape'); await P.waitForTimeout(200);
 
 // 목록에서 찾기(기존 경로)도 살아 있는지
+await goStep(P, 'evac');
 await P.click('#btnFinder'); await P.waitForTimeout(250);
 chk(await P.isVisible('#finder'), '목록에서 찾기 패널 열림');
+await goStep(P, 'evac');
 nOpt = await P.$$eval('#shTarget option', o => o.map(x=>x.value));
 chk(nOpt.join() === '대피소,집결지', `목록 경로 넣을 칸도 동기화: ${nOpt}`);
 
 // ══ D. 모바일 ══
 await P.setViewportSize({width:390,height:844});
 await P.waitForTimeout(200);
+await goStep(P, 'evac');
 await P.click('#btnMap'); await P.waitForTimeout(600);
 chk(await P.isVisible('.shmap-svg'), '모바일에서 지도 표시');
 const msw = await P.evaluate(() => [document.documentElement.scrollWidth, window.innerWidth]);

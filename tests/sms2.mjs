@@ -12,6 +12,38 @@ const RPATH = decodeURIComponent(RDIR.replace(/^file:\/\//, ''));
 const B = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const errs = [], ok = [], bad = []; const chk = (c, m) => (c ? ok : bad).push(m);
 const R = RDIR;
+/* ── 단계형으로 바뀐 뒤의 준비 ────────────────────────────────
+   ① 문자 도구가 '한 걸음씩'으로 바뀌어, 문안은 **마지막 걸음**에서만 나오고
+   **필수 칸을 다 채워야** 만들어집니다(반쯤 채운 문안은 잘못 보낼 위험이 있어
+   아예 만들지 않습니다). 그래서 문안을 보는 검사는 먼저 이 둘을 해 줍니다. */
+const FILL = { 기관: '서천군', 시각: '14:20', 시군: '서천군', 읍면동: '장항읍',
+  사업장: '○○화학', 대상지역: '장항읍 일원', 물질: '염산',
+  대피소: '장항중학교', 집결지: '장항읍 행정복지센터' };
+const fillAll = async (P) => {
+  await P.evaluate(o => {
+    Object.keys(o).forEach(k => {
+      const el = document.getElementById('if_' + k);
+      if (el) { el.value = o[k]; el.dispatchEvent(new Event('input', { bubbles: true })); }
+    });
+  }, FILL);
+  await P.waitForTimeout(250);
+};
+const goOut = async (P) => {
+  const b = await P.$('#stepBar button[data-go=out]');
+  if (b) { await b.click(); await P.waitForTimeout(300); }
+};
+const ready = async (P) => { await fillAll(P); await goOut(P); };
+const setF = async (P, k, v) => {
+  /* 걸음이 감춰져 있어도 값을 넣을 수 있게 — 사람이 쓰는 순서를 따라가는
+     검사는 위의 ready() 로 따로 합니다. */
+  await P.evaluate(([k, v]) => {
+    const el = document.getElementById('if_' + k);
+    el.value = v; el.dispatchEvent(new Event('input', { bubbles: true }));
+  }, [k, v]);
+  await P.waitForTimeout(200);
+};
+
+
 
 // ══ 진입화면 순서 ══
 {
@@ -64,6 +96,7 @@ const R = RDIR;
       .find(x => /도로 우회/.test(x.textContent)).click();
   });
   await P.waitForTimeout(900);
+  await ready(P);
 
   // 고르기 전 — 문안을 만들지 않고 할 일을 적는다
   chk(!(await P.isHidden('#catBar')), '사고지역 상황 고르는 줄이 나온다');

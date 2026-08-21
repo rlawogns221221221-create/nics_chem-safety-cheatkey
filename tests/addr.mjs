@@ -87,6 +87,27 @@ const pickEvac = async (P) => {
   const v = await vals(P);
   chk(v['읍면동'] === '신음동', `읍면동 = ${v['읍면동']}`);
   chk(v['사업장'] === '시청1길 1', `사업장 = 도로명 주소 (${v['사업장']})`);
+
+  /* ① 이 '한 걸음씩'으로 바뀐 뒤로는 필수 칸을 다 채워야 문안이 만들어지고,
+     문안은 마지막 걸음에서만 보입니다. 지도에서 들고 온 값은 그대로 두고
+     **비어 있는 칸만** 채운 뒤 마지막 걸음으로 갑니다 — 들고 온 값이 문안에
+     그대로 들어가는지가 이 검사의 목적이기 때문입니다. */
+  /* 발송기관을 '김천시'로 두면 안 됩니다 — 시·군이 발송기관과 같으면 글자수를
+     아끼려고 문구에서 시·군을 빼는 규칙(app.js val())이 있어, 정작 이 검사가
+     보려는 "시·군 읍·면·동 사업장" 이 반쪽만 남습니다. 도 단위 발송으로 둡니다. */
+  await P.evaluate(() => {
+    const rest = { 기관: '경상북도', 시각: '14:20', 대상지역: '신음동 일원',
+                   물질: '염산', 집결지: '김천시청 광장' };
+    Object.keys(rest).forEach(k => {
+      const el = document.getElementById('if_' + k);
+      if (el && !el.value) {
+        el.value = rest[k]; el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+  });
+  await P.waitForTimeout(300);
+  const outBtn = await P.$('#stepBar button[data-go=out]');
+  if (outBtn) { await outBtn.click(); await P.waitForTimeout(400); }
   const card = await P.textContent('#out .out');
   chk(/김천시 신음동 시청1길 1에서/.test(card.replace(/\s+/g, ' ')),
     '문안에 "○○시 ○○동 ○○에서" 가 그대로 들어간다');

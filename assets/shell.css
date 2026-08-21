@@ -44,6 +44,10 @@ html{font-size:62.5%}
   --ink3:var(--krds-color-light-gray-50);              /* #6d7882 */
   --line:var(--krds-light-color-border-gray-light);    /* #cdd1d5 */
   --line2:var(--krds-color-light-gray-10);             /* var(--line2) */
+  /* 입력칸 테두리 — 상자 테두리(--line)보다 한 단 진하게. KRDS 가 입력칸에
+     쓰는 값입니다. 이 이름이 빠져 있으면 `border:1px solid var(--line-d)` 가
+     통째로 무효가 되어 입력칸 테두리가 아예 사라집니다(실제로 그랬음). */
+  --line-d:var(--krds-light-color-border-gray);        /* #8a949e */
   --brand:var(--krds-color-light-primary-50);          /* #256ef4 */
   --brand-d:var(--krds-color-light-primary-60);        /* #0b50d0 */
   --brand-l:var(--krds-color-light-primary-5);         /* var(--brand-l) */
@@ -53,6 +57,25 @@ html{font-size:62.5%}
   --warn-l:var(--krds-color-light-warning-5);
   --err:var(--krds-color-light-danger-60);
   --err-l:var(--krds-color-light-danger-5);
+  --info:var(--krds-color-light-information-60);
+  --info-l:var(--krds-color-light-information-5);
+  /* 알림 상자 테두리 — 옅은 바탕(-l)과 짙은 글자(기본) 사이 단계입니다.
+     -b2 는 그보다 한 단 진해, 강조하는 상자에 씁니다. */
+  --brand-b:var(--krds-color-light-primary-20);
+  --brand-b2:var(--krds-color-light-primary-30);
+  --ok-b:var(--krds-color-light-success-20);
+  --warn-b:var(--krds-color-light-warning-20);
+  --warn-b2:var(--krds-color-light-warning-30);
+  --err-b:var(--krds-color-light-danger-20);
+  --err-b2:var(--krds-color-light-danger-30);
+  --info-b:var(--krds-color-light-information-20);
+  /* 지도 위 반투명 패널(축척·범례·조작단추) — 배경지도 위에서 글자가 읽히도록
+     거의 불투명하게 둡니다. 고대비 모드에서는 검정으로 뒤집힙니다. */
+  --glass:rgba(255,255,255,.96);
+  --glass-2:rgba(255,255,255,.9);
+  --glass-line:rgba(18,24,31,.14);
+  --bdline:#9fb2c4;   /* 행정경계선 — 배경을 가리지 않는 옅은 회청색 */
+  --route:#e0218a;    /* 경로선 — 사고지점(빨강)·내 위치(파랑)와 안 겹치는 색 */
   /* 진한 머리띠·역상 바탕 */
   --deep:var(--krds-color-light-primary-60);            /* #0b50d0 */
   --on-deep:var(--krds-color-light-gray-0);
@@ -64,8 +87,9 @@ html{font-size:62.5%}
   /* 채운 색(파랑·초록·빨강) 위에 얹는 글자색. 고대비 모드에서는 그 색들이
      밝아지므로 글자가 어두워져야 합니다 — 안 바꾸면 흰 글자가 안 보입니다. */
   --on-brand:var(--krds-color-light-gray-0);
-  /* '내 위치' 파랑 — 사고지점(빨강)과 절대 헷갈리면 안 되는 우리 확장색 */
-  --me:var(--me); --me-d:var(--me-d);
+  /* '내 위치' 파랑 — 사고지점(빨강)과 절대 헷갈리면 안 되는 우리 확장색.
+     -d 는 그 위에 얹는 글자(옅은 바탕에서 읽히도록 한 단 진하게). */
+  --me:#1668d8; --me-d:#0f4fa8;
 
   /* ── 글자 (KRDS 타이포그래피) ────────────────────────────── */
   --fs-xs:1.3rem;   /* body-xsmall 13px — 주석·꼬리표 */
@@ -321,8 +345,77 @@ body.has-stage .stp-d{max-height:0;opacity:0;margin-top:-3px;pointer-events:none
 body.has-stage .steps button.stp:hover{transform:none}
 
 /* ── 2단 레이아웃 ─────────────────────────────────── */
-.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:16px;align-items:start;
+/* ── ① 문자 도구 — 한 걸음씩 (단계형) ────────────────────────
+   예전에는 왼쪽에 입력칸 여덟 개, 오른쪽에 결과 네 건이 동시에 떠 있었습니다.
+   지금은 한 화면에 한 묶음만 묻고 마지막에 문안을 봅니다. 그래서 두 칼럼이
+   아니라 가운데 한 줄이고, 폭을 읽기 좋은 길이로 잡습니다(KRDS 단계형 서식). */
+/* width:100% 가 있어야 합니다 — 감싸는 .toolstage 가 세로 flex 라서, 가로
+   auto 여백만 두면 브라우저가 늘리기를 포기하고 내용 크기로 줄여 버립니다
+   (실제로 그래서 입력 상자가 300px 로 쪼그라들었습니다). */
+.cols{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start;
+  width:100%;max-width:82rem;margin:0 auto;
   animation:slideUp .46s var(--ease) both}
+.panel.sticky{position:static}   /* 한 줄이 되었으므로 따라붙을 이유가 없다 */
+
+/* 진행 표시 — 지금 몇 걸음째인가. 누르면 그 걸음으로 갑니다.
+   KRDS 의 단계 표시(_step_indicator.scss)를 우리 걸음 수에 맞춰 옮겼습니다. */
+.stepbar{list-style:none;display:flex;gap:0;margin:0 auto 14px;padding:0;
+  width:100%;max-width:82rem;overflow-x:auto;scrollbar-width:none}
+.stepbar::-webkit-scrollbar{display:none}
+.stepbar .stp-i{flex:1 0 auto;min-width:0;position:relative}
+.stepbar button{width:100%;display:flex;align-items:center;gap:.8rem;
+  min-height:var(--h-s);padding:0 1.2rem 0 .8rem;border:0;border-radius:0;
+  background:transparent;color:var(--ink3);font-size:var(--fs-s);white-space:nowrap;
+  border-bottom:.3rem solid var(--line2)}
+.stepbar button:hover{background:var(--panel);color:var(--ink2)}
+.stepbar button i{flex:none;display:grid;place-items:center;
+  width:2.4rem;height:2.4rem;border-radius:50%;font-style:normal;
+  font-size:var(--fs-xs);font-weight:700;
+  background:var(--line2);color:var(--ink2)}
+.stepbar button b{font-weight:400;overflow:hidden;text-overflow:ellipsis}
+/* 지금 걸음 */
+.stepbar .on button{color:var(--brand-d);border-bottom-color:var(--brand)}
+.stepbar .on button i{background:var(--brand);color:var(--on-brand)}
+.stepbar .on button b{font-weight:700}
+/* 지나온 걸음 — 다 채웠으면 체크 */
+.stepbar .done button{color:var(--ok)}
+.stepbar .done button i{background:var(--ok);color:var(--on-brand)}
+.stepbar .ok button i{background:var(--ok-l);color:var(--ok)}
+@media (max-width:720px){
+  /* 좁은 화면에서는 지금 걸음의 이름만 두고 나머지는 번호만 — 일곱 개 이름이
+     가로로 늘어서면 옆으로 밀려 무엇이 지금인지 안 보입니다. */
+  .stepbar .stp-i:not(.on) button b{display:none}
+  .stepbar button{padding:0 .6rem;justify-content:center}
+  .stepbar .stp-i{flex:0 0 auto}
+  .stepbar .on{flex:1 1 auto}
+}
+
+/* 걸음 사이 이동 */
+.stepnav{display:flex;gap:10px;align-items:center;
+  width:100%;max-width:82rem;margin:16px auto 0}
+.stepnav .sn-sp{flex:1}
+.stepnav .sn-prev{min-height:var(--h-m)}
+.stepnav .sn-next{margin-left:auto;min-width:22rem}
+.stepnav .sn-first{margin-left:auto}
+@media (max-width:560px){
+  .stepnav{flex-wrap:wrap}
+  .stepnav .sn-next{width:100%;margin-left:0;min-width:0}
+}
+
+/* 아직 못 채운 칸 — 문안 자리에 대신 나옵니다 */
+.needfill{padding:4px 0}
+.nf-hd{display:block;font-size:var(--fs-l);font-weight:700;color:var(--warn)}
+.nf-d{margin:6px 0 14px;font-size:var(--fs-s);color:var(--ink2);line-height:1.65}
+.nf-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.nf-list button{width:100%;display:flex;align-items:center;gap:10px;text-align:left;
+  min-height:var(--h-m);padding:10px 14px;border:1px solid var(--warn-b);
+  background:var(--warn-l);border-radius:var(--r)}
+.nf-list button:hover{border-color:var(--warn);background:var(--card)}
+.nf-list button b{flex:none;font-size:var(--fs-m);color:var(--ink)}
+.nf-list button span{flex:1;min-width:0;font-size:var(--fs-s);color:var(--ink2)}
+.nf-list button em{flex:none;font-style:normal;font-size:var(--fs-s);font-weight:700;
+  color:var(--brand-d)}
+.nf-list button em::after{content:" →"}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);
   box-shadow:0 1px 3px rgba(18,40,70,.05)}
 .panel > h2{margin:0;padding:11px 16px;font-size:1.5rem;font-weight:700;color:var(--ink2);
@@ -359,18 +452,29 @@ select[multiple] option{padding:5px 7px;border-radius:4px;line-height:1.35;font-
 .sect{font-size:1.5rem;font-weight:700;color:var(--ink3);letter-spacing:.03em;
       margin:16px 0 9px;padding-top:13px;border-top:1px solid var(--line2)}
 .body > .sect:first-child{margin-top:0;padding-top:0;border-top:0}
+/* 한 걸음씩 화면에서는 그 걸음의 첫 소제목이 상자의 맨 위입니다 — 위에 구분선을
+   그으면 상자 머리와 소제목 사이가 두 줄로 갈라져 빈 띠처럼 보입니다. */
+.step > .sect:first-child,
+.step > div > .sect:first-child{margin-top:0;padding-top:0;border-top:0}
 
 /* ── 사고정보 묶음 ─────────────────────────────────────────
    처음 보는 근무자도 위에서부터 순서대로 채우면 되도록 번호를 매겨
    묶었습니다. 다 채워야 다음이 열리는 방식은 아닙니다 — 급할 때는
    아는 값부터 순서 없이 채울 수 있어야 합니다. */
-.fcommon{margin:16px 0 9px;padding-top:13px;border-top:1px solid var(--line2)}
-.fgrp{margin-bottom:16px}
-.fgrp:last-child{margin-bottom:0}
+/* 한 걸음에 한 묶음만 보이므로 위쪽 구분선을 두지 않습니다 — 묶음이 하나뿐인데
+   선을 그으면 상자 안이 빈 칸으로 갈라져 보입니다. */
+.fcommon{margin:0}
+/* 한 걸음에 한 묶음만 보이므로 묶음 사이 여백이 필요 없습니다 — 남겨 두면
+   보이는 묶음이 마지막이 아닐 때 상자 아래에 빈 띠가 생깁니다. */
+.fgrp{margin-bottom:0}
 .fgrp-hd{display:flex;align-items:baseline;gap:7px;margin-bottom:8px;flex-wrap:wrap}
 .fgrp-n{flex:none;width:18px;height:18px;border-radius:50%;background:var(--brand);
   color:var(--on-brand);font-size:1.3rem;font-weight:700;line-height:18px;text-align:center}
 .fgrp-hd b{font-size:1.5rem;font-weight:700;color:var(--ink2);letter-spacing:.01em}
+/* 입력칸이 하나뿐인 걸음에서 칸이 상자 폭 전체로 늘어나면, 짧은 값 하나를
+   넣는 자리가 팔십 글자 들어갈 것처럼 보입니다. 읽기 좋은 폭으로 묶습니다. */
+.fgrp .f{max-width:40rem}
+.fgrp .f.wide{max-width:none}
 .fgrp-d{font-size:1.3rem;color:var(--ink3)}
 
 /* 대상지역 — 사고 위치와 헷갈리기 쉬운 항목이라 색을 넣어 눈에 띄게 함 */
