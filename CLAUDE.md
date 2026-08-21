@@ -135,11 +135,17 @@ python3 build/make_release.py    # release/ 배포 폴더 + zip
 
 | 무엇 | 올리는 파일 | URL |
 |---|---|---|
-| 진입 화면 (사용자가 여는 링크) | `preview/index.html` | https://claude.ai/code/artifact/f2a94114-3606-4a66-a75c-655f049fecd8 |
+| 진행 상황 쪽지 (사용자가 여는 링크) | `preview/index.html` | https://claude.ai/code/artifact/f2a94114-3606-4a66-a75c-655f049fecd8 |
+| **실제 진입 화면** | `preview/진입화면_한파일.html` | https://claude.ai/code/artifact/df4be102-cc11-4bbe-b160-7270e50d9826 |
 | ① 문자 작성 | `dist/화학사고_주민대피문자_작성도구.html` | https://claude.ai/code/artifact/a42de0d3-9c73-4d67-b048-b4bf9c9c2c53 |
 | ② 대피장소 지도 | `dist/화학사고_대피장소_지도.html` | https://claude.ai/code/artifact/c10d00e5-8ad9-454e-9caf-b4f010f00ef8 |
 | ③ 방제자원 동원 | `dist/화학사고_방제자원_동원.html` | https://claude.ai/code/artifact/26c97527-e8ce-4629-8c12-0790afdceb87 |
 | 디자인 방향 3안 (고르는 중) | `preview/design.html` | https://claude.ai/code/artifact/270fca8b-6a22-47b3-8dd1-58c66f0216bf |
+
+진입 화면은 `index.html` + `portal.css` + 사진 9장으로 되어 있어 Artifact(한 파일만
+올라감)로 그대로 못 올립니다. `build_single.py` 가 한 덩어리로 합친
+`preview/진입화면_한파일.html` 을 만들어 주며, 도구로 가는 링크는 위 표의 Artifact
+주소로 바뀝니다(`PORTAL_LINKS`). **링크를 새로 올리면 그 표도 함께 고치세요.**
 
 **화면이나 자료를 고쳤으면** `build_single.py` 로 `dist/` 를 다시 만든 뒤 그 파일들을
 같은 URL 로 다시 올리세요. **다른 대화에서 올릴 때는 `url` 을 반드시 넘겨야** 같은

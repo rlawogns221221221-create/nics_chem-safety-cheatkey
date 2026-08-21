@@ -78,6 +78,29 @@ def inline_fonts(html: str) -> str:
     return FONT_URL.sub(one, html)
 
 
+# ── 사진 심기 ────────────────────────────────────────────────
+# 진입 화면에는 현장 사진 8장과 기관 로고가 들어갑니다. 한 파일로 합칠 때
+# 그 경로가 깨지므로 data: 로 바꿔 심습니다. 8장 약 1.1MB → base64 약 1.5MB.
+IMG_SRC = re.compile(r'src="((?:\./)?assets/img/[^"]+)"')
+MIME = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+        ".webp": "image/webp", ".svg": "image/svg+xml"}
+
+
+def inline_images(html: str, base: pathlib.Path) -> str:
+    def one(m):
+        rel = m.group(1)
+        path = (base / rel).resolve()
+        if not path.exists():
+            sys.exit(f"사진 파일이 없습니다: {path}\n"
+                     f"  python3 build/make_photos.py 를 먼저 돌리세요.")
+        mime = MIME.get(path.suffix.lower())
+        if not mime:
+            sys.exit(f"어떤 형식인지 모르는 사진입니다: {path}")
+        b64 = base64.b64encode(path.read_bytes()).decode("ascii")
+        return f'src="data:{mime};base64,{b64}"'
+    return IMG_SRC.sub(one, html)
+
+
 def read(base: pathlib.Path, rel: str) -> str:
     path = (base / rel).resolve()
     if not path.exists():
@@ -139,6 +162,60 @@ def build(page: pathlib.Path, out: pathlib.Path, swap=None) -> None:
              "   ← 개인정보 포함 · 외부 공유 금지" if swap else ""))
 
 
+# ── 진입 화면 한 파일로 (사용자 확인용) ──────────────────────────
+# 왜 필요한가 — 진입 화면은 index.html + portal.css + 사진 9장으로 되어 있어
+# Artifact(한 파일만 올라감)로는 보여 줄 수 없었습니다. 그래서 사용자가
+# **새로 꾸민 진입 화면을 눌러 볼 방법이 없었습니다.** 이것으로 만듭니다.
+#
+# 이 파일은 배포물이 아닙니다(release/ · dist/ 에 들어가지 않습니다).
+# 망분리 PC 에는 도구 3개를 따로 넣으므로 진입 화면이 할 일이 없습니다.
+#
+# 도구로 가는 링크는 파일 안에서는 열 수 없으므로 Artifact 주소로 바꿉니다.
+# 주소는 CLAUDE.md 5절의 표와 같아야 합니다 — 링크를 새로 올리면 여기도 고치세요.
+PORTAL_LINKS = {
+    "map/index.html": "https://claude.ai/code/artifact/c10d00e5-8ad9-454e-9caf-b4f010f00ef8",
+    "sms/index.html": "https://claude.ai/code/artifact/a42de0d3-9c73-4d67-b048-b4bf9c9c2c53",
+    "res/index.html": "https://claude.ai/code/artifact/26c97527-e8ce-4629-8c12-0790afdceb87",
+}
+PORTAL_BANNER = """<!-- ────────────────────────────────────────────────────────────
+     진입 화면 — 사용자 확인용 한 파일 (build/build_single.py 가 만듦)
+     · 실제 진입 화면은 저장소 뿌리의 index.html 입니다. 이 파일은 배포에
+       들어가지 않습니다 — 눌러 볼 수 있게 한 덩어리로 합친 사본입니다.
+     · 도구로 가는 링크는 Artifact 주소로 바꿔 두었습니다.
+     ──────────────────────────────────────────────────────────── -->
+"""
+
+
+def build_portal(out: pathlib.Path) -> None:
+    page = ROOT / "index.html"
+    html = page.read_text(encoding="utf-8")
+    html = re.sub(
+        r'[ \t]*<link rel="stylesheet" href="([^"]+)">',
+        lambda m: "<style>\n" + read(page.parent, m.group(1)) + "\n</style>",
+        html,
+    )
+    html = re.sub(
+        r'[ \t]*<script src="([^"]+)"></script>',
+        lambda m: "<script>\n" + read(page.parent, m.group(1)) + "\n</script>",
+        html,
+    )
+    html = inline_fonts(html)
+    html = inline_images(html, page.parent)
+    for rel, url in PORTAL_LINKS.items():
+        if f'href="{rel}"' not in html:
+            sys.exit(f"진입 화면에서 도구 링크를 찾지 못했습니다: {rel}")
+        html = html.replace(f'href="{rel}"',
+                            f'href="{url}" target="_blank" rel="noopener noreferrer"')
+    left = re.findall(r'(?:src|href)="(?!https?:|#|data:|mailto:|tel:)([^"]+)"', html)
+    if left:
+        sys.exit(f"인라인되지 않은 외부 참조가 남아 있습니다: {left}")
+    html = html.replace("<!DOCTYPE html>", "<!DOCTYPE html>\n" + PORTAL_BANNER, 1)
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(html, encoding="utf-8")
+    print("%-42s %6.0f KB   ← 사용자 확인용 (배포 아님)"
+          % (out.relative_to(ROOT), len(html.encode("utf-8")) / 1024))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--internal", action="store_true",
@@ -147,6 +224,7 @@ def main() -> None:
 
     for page, name, swap in PAGES:
         build(page, ROOT / "dist" / name, swap)
+    build_portal(ROOT / "preview" / "진입화면_한파일.html")
 
     if args.internal:
         page, name, swap = INTERNAL_PAGE
