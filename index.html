@@ -41,11 +41,13 @@
 </header>
 
 <!-- ══ 머리 — 서비스 이름 ═══════════════════════════════════
-     제공받은 산업단지 사진은 화면 전체가 아니라 이 띠에서만 씁니다.
-     원본은 source/mos-design-1uvJa08dNfQ-unsplash.jpg 이며 압축만 했습니다. -->
+     배경은 화학물질안전원에서 촬영한 현장 지휘차 사진입니다
+     (source/photos/IMG_7448.jpeg → build/make_photos.py 로 잘라 만듦).
+     사진 비율이 띠 비율과 같아(2.17) 어느 화면폭에서도 거의 잘리지 않습니다.
+     글자는 사진 위에서도 읽혀야 하므로 어두운 막(--scrim)을 한 겹 덮습니다. -->
 <div class="hero">
   <div class="hero-photo" aria-hidden="true">
-    <img src="assets/img/hero.jpg" alt="">
+    <img src="assets/img/site/hero-command.jpg" alt="" width="2000" height="900">
   </div>
   <div class="wrap">
     <h1>화학사고 대응지원 서비스</h1>
@@ -64,52 +66,76 @@
            (b0802d4). 지도에서 어디로 대피시킬지 정한 다음 그 내용으로 문자를
            씁니다. 번호(01·02·03)는 일하는 순서이고, 카드 색은 어느 도구인가를
            나타내므로 둘이 어긋나는 것이 맞습니다.
-           링크를 바꾸려면 아래 href 만 고치면 됩니다. -->
+           링크를 바꾸려면 아래 href 만 고치면 됩니다.
+
+           카드 머리 사진은 장식입니다(alt="" · aria-hidden). 무엇을 하는
+           도구인지는 제목·설명이 말하므로, 사진을 못 봐도 잃는 것이 없습니다. -->
       <li class="pn t2">
         <a href="map/index.html">
-          <span class="pn-no" aria-hidden="true">01</span>
-          <h2>대피장소 지도</h2>
-          <p class="pn-d">사고지점을 찍으면 주변 대피장소를 가까운 순으로 찾습니다.
-            거리·도보시간·영향 참고 반경·풍하방향을 함께 봅니다.</p>
-          <span class="pn-meta">대피장소 1,849곳 · 기준일 2026-05-19</span>
-          <span class="pn-go">이용하기
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-            </svg>
+          <span class="pn-ph" aria-hidden="true">
+            <img src="assets/img/site/card-map.jpg" alt="" width="1000" height="520" loading="lazy">
           </span>
+          <div class="pn-body">
+            <div class="pn-hd">
+              <span class="pn-no" aria-hidden="true">01</span>
+              <h2>대피장소 지도</h2>
+            </div>
+            <p class="pn-d">사고지점을 찍으면 주변 대피장소를 가까운 순으로 찾습니다.
+              거리·도보시간·영향 참고 반경·풍하방향을 함께 봅니다.</p>
+            <span class="pn-meta">대피장소 1,849곳 · 기준일 2026-05-19</span>
+            <span class="pn-go">이용하기
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
         </a>
       </li>
 
       <li class="pn t1">
         <a href="sms/index.html">
-          <span class="pn-no" aria-hidden="true">02</span>
-          <h2>주민대피 문자 작성</h2>
-          <p class="pn-d">사고정보를 넣으면 재난문자 표준문안이 만들어집니다.
-            90자를 넘으면 줄일 곳을 짚어 주고, 실제 발송 사례를 나란히 봅니다.</p>
-          <span class="pn-meta">표준문안 12건 · 발송 사례 42건 · 물질 460종</span>
-          <span class="pn-go">이용하기
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-            </svg>
+          <span class="pn-ph" aria-hidden="true">
+            <img src="assets/img/site/card-sms.jpg" alt="" width="1000" height="520" loading="lazy">
           </span>
+          <div class="pn-body">
+            <div class="pn-hd">
+              <span class="pn-no" aria-hidden="true">02</span>
+              <h2>주민대피 문자 작성</h2>
+            </div>
+            <p class="pn-d">한 걸음에 한 가지만 묻고, 다 채우면 재난문자 표준문안이
+              만들어집니다. 90자를 넘으면 줄일 곳을 짚어 줍니다.</p>
+            <span class="pn-meta">표준문안 12건 · 발송 사례 42건 · 물질 460종</span>
+            <span class="pn-go">이용하기
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
         </a>
       </li>
 
       <li class="pn t3">
         <a href="res/index.html">
-          <span class="pn-no" aria-hidden="true">03</span>
-          <h2>방제자원 동원</h2>
-          <p class="pn-d">지자체 보유 장비·비상캡슐·폐기물 처리·해경 비축기지를
-            사고지점에서 가까운 순으로 찾습니다. 여러 곳을 담아 한 번에 연락합니다.</p>
-          <span class="pn-meta">자원 470건 · 출처 6종 · 기준일 2026-08-11</span>
-          <span class="pn-go">이용하기
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-            </svg>
+          <span class="pn-ph" aria-hidden="true">
+            <img src="assets/img/site/card-res.jpg" alt="" width="1000" height="520" loading="lazy">
           </span>
+          <div class="pn-body">
+            <div class="pn-hd">
+              <span class="pn-no" aria-hidden="true">03</span>
+              <h2>방제자원 동원</h2>
+            </div>
+            <p class="pn-d">지자체 보유 장비·비상캡슐·폐기물 처리·해경 비축기지를
+              사고지점에서 가까운 순으로 찾습니다. 여러 곳을 담아 한 번에 연락합니다.</p>
+            <span class="pn-meta">자원 470건 · 출처 6종 · 기준일 2026-08-11</span>
+            <span class="pn-go">이용하기
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
         </a>
       </li>
 
@@ -125,6 +151,43 @@
         그것을 늘려 잡은 <b>어림값</b>입니다. 지도의 반경 원은 물질정보에 적힌 참고
         거리이며 확산 모델링 결과가 아닙니다.</p>
     </div>
+
+    <!-- ══ 현장 사진 ═══════════════════════════════════════════
+         네 장을 **같은 4:3 한 가지 비율로 미리 잘라** 내보냈습니다
+         (build/make_photos.py). 원본은 파노라마부터 세로 사진까지 비율이
+         다른데, 화면에서 제각각 비율로 늘어놓으면 줄이 안 맞아 눈이
+         불편합니다. 자리마다 비율을 하나로 못 박는 것이 답입니다.
+
+         설명은 **사진에 보이는 것만** 적습니다. 어떤 사고였는지·무슨
+         훈련이었는지는 우리가 알 수 없으므로 적지 않습니다. 아래 출처 줄에
+         "특정 사고를 가리키지 않습니다" 라고 밝혀 둡니다. -->
+    <section class="gal" aria-labelledby="galHd">
+      <h2 class="gal-hd" id="galHd">현장 사진</h2>
+      <ul class="gal-grid">
+        <li class="gal-it">
+          <img src="assets/img/site/site-foam.jpg" alt="소방차 두 대가 물을 뿜는 앞을 보호복을 입은 두 사람이 지나가고 있다."
+               width="1000" height="750" loading="lazy">
+          <span class="gal-cap">소방 방수와 보호복</span>
+        </li>
+        <li class="gal-it">
+          <img src="assets/img/site/site-tank.jpg" alt="보호복을 입은 두 사람이 옥외 저장탱크와 배관 사이에서 작업하고 있다."
+               width="1000" height="750" loading="lazy">
+          <span class="gal-cap">저장탱크 주변의 보호복</span>
+        </li>
+        <li class="gal-it">
+          <img src="assets/img/site/site-robot.jpg" alt="사업장 앞 도로에 세운 차량 옆으로 바퀴 달린 사족보행 로봇이 놓여 있다."
+               width="1000" height="750" loading="lazy">
+          <span class="gal-cap">현장에 내린 관측 장비</span>
+        </li>
+        <li class="gal-it">
+          <img src="assets/img/site/site-dawn.jpg" alt="해가 막 떠오른 바다와 갯벌."
+               width="1000" height="750" loading="lazy">
+          <span class="gal-cap">새벽 해안</span>
+        </li>
+      </ul>
+      <p class="gal-src">화학물질안전원에서 촬영한 사진입니다.
+        <b>특정 사고를 가리키지 않습니다</b> — 이 화면을 설명하기 위한 것입니다.</p>
+    </section>
   </div>
 </main>
 

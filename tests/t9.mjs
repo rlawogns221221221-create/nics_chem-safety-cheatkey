@@ -196,10 +196,88 @@ const pr = await P.evaluate(() => ({
 }));
 chk(pr.photo === 'none', '인쇄 시 배경 사진 빼기');
 chk(pr.act === 'none', '인쇄 시 단추 줄 빼기');
+const prPh = await P.evaluate(() => ({
+  card: getComputedStyle(document.querySelector('.pn-ph')).display,
+  gal: getComputedStyle(document.querySelector('.gal')).display
+}));
+chk(prPh.card === 'none' && prPh.gal === 'none', '인쇄 시 카드 사진·현장 사진 모음도 빼기');
 chk(lum(pr.card) > 200, `인쇄 시 카드 바탕이 흰색 (밝기 ${Math.round(lum(pr.card))})`);
 chk(lum(pr.ink) < 60, `인쇄 시 글자가 검정 (밝기 ${Math.round(lum(pr.ink))})`);
 chk(pr.d > 0.95, '인쇄 시 설명 전부 표시');
 await P.emulateMedia({ media: 'screen' });
+await P.click('.modebtn'); await P.waitForTimeout(300);   // 밝은 화면으로 되돌린다
+
+/* ══ 14. 현장 사진 ═════════════════════════════════════════════
+   원본 사진은 비율이 제각각입니다(파노라마 2.17 ~ 세로 0.75). 화면에서 각자
+   비율대로 늘어놓으면 칸 높이가 들쭉날쭉해 눈이 불편합니다. 그래서 자리마다
+   비율을 하나로 못 박았는데(build/make_photos.py + aspect-ratio), 그 약속이
+   지켜지는지 봅니다.
+
+   실제로 그랬던 일 — <img height="750"> 처럼 높이가 정해져 있으면 브라우저가
+   aspect-ratio 를 무시합니다. height:auto 를 빼먹어 칸이 750px 로 길어졌습니다. */
+await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(300);
+/* loading="lazy" 사진은 화면에 들어와야 받아옵니다. 끝까지 굴려 두고 나서
+   재야, "못 불러왔다"가 실제 문제인지 아직 안 받은 것인지 헷갈리지 않습니다. */
+await P.evaluate(() => window.scrollTo(0, document.body.scrollHeight));
+await P.waitForTimeout(900);
+await P.evaluate(() => Promise.all([...document.images]
+  .filter(i => !i.complete)
+  .map(i => new Promise(r => { i.onload = i.onerror = r; }))));
+await P.waitForTimeout(200);
+const ph = await P.evaluate(() => {
+  const all = [...document.querySelectorAll('img')];
+  const gal = [...document.querySelectorAll('.gal-it img')];
+  const card = [...document.querySelectorAll('.pn-ph img')];
+  const hero = document.querySelector('.hero-photo img');
+  const box = e => { const r = e.getBoundingClientRect(); return { w: r.width, h: r.height }; };
+  return {
+    total: all.length,
+    broken: all.filter(i => !i.complete || i.naturalWidth === 0).map(i => i.getAttribute('src')),
+    lazy: card.concat(gal).filter(i => i.getAttribute('loading') !== 'lazy').length,
+    galN: gal.length, galBox: gal.map(box),
+    galAlt: gal.filter(i => (i.getAttribute('alt') || '').trim().length > 5).length,
+    cardN: card.length, cardBox: card.map(box),
+    /* 카드·머리 사진은 장식이라 alt 가 비어 있어야 합니다 — 화면낭독기가
+       "사진"이라고 읽고 지나가면 제목을 두 번 듣는 셈입니다. */
+    decoAlt: card.concat([hero]).every(i => i.getAttribute('alt') === ''),
+    fit: gal.concat(card).every(i => getComputedStyle(i).objectFit === 'cover')
+  };
+});
+chk(ph.total === 8 + 1, `사진 8장 + 로고 1장 (실제 ${ph.total}장)`);
+chk(ph.broken.length === 0,
+  ph.broken.length ? `못 불러온 사진: ${ph.broken.join(', ')}` : '사진 전부 실제로 불러와졌다');
+chk(ph.galN === 4 && ph.cardN === 3, `현장 사진 4장 · 카드 사진 3장 (${ph.galN}/${ph.cardN})`);
+const same = (arr) => Math.max(...arr.map(b => b.h)) - Math.min(...arr.map(b => b.h)) < 2;
+chk(same(ph.galBox), `현장 사진 칸 높이가 모두 같다 (${ph.galBox.map(b => Math.round(b.h)).join('/')}px)`);
+chk(same(ph.cardBox), `카드 사진 높이가 모두 같다 (${ph.cardBox.map(b => Math.round(b.h)).join('/')}px)`);
+const r43 = ph.galBox.every(b => Math.abs(b.w / b.h - 4 / 3) < 0.02);
+chk(r43, `현장 사진이 4:3 으로 잡힌다 (${ph.galBox.map(b => (b.w / b.h).toFixed(2)).join('/')})`);
+chk(ph.fit, '사진이 칸을 채우도록 잘린다 (object-fit:cover)');
+chk(ph.galAlt === 4, `현장 사진 4장 모두 무엇이 찍혔는지 alt 로 설명 (${ph.galAlt}장)`);
+chk(ph.decoAlt, '카드·머리 사진은 장식이라 alt 를 비워 둔다');
+chk(ph.lazy === 0, '첫 화면 밖 사진은 나중에 받는다 (loading=lazy)');
+/* 사진 위 제목이 읽히는가 — 사진은 우리가 고른 것이 아닐 수도 있으므로
+   덮개(--scrim)가 실제로 얼마나 덮는지가 아니라 **글자가 밝은지**를 봅니다.
+   흰 글자 + 덮개가 규격입니다. */
+const heroTxt = await P.evaluate(() => {
+  const h = document.querySelector('.hero h1');
+  return { color: getComputedStyle(h).color,
+           scrim: getComputedStyle(document.querySelector('.hero-photo'), '::after').background };
+});
+chk(lum(heroTxt.color) > 200, `머리띠 제목이 흰 글자 (밝기 ${Math.round(lum(heroTxt.color))})`);
+chk(/gradient|rgba/.test(heroTxt.scrim), '사진 위에 덮개가 깔려 있다');
+/* 좁은 화면 — 상단 바에서 서비스명이 단추와 겹치던 것을 뺐다 */
+await P.setViewportSize({ width: 390, height: 800 }); await P.waitForTimeout(300);
+const narrow = await P.evaluate(() => {
+  const svc = document.querySelector('.svc');
+  const act = document.querySelector('.top .act').getBoundingClientRect();
+  const brand = document.querySelector('.brand-group').getBoundingClientRect();
+  return { svcHidden: getComputedStyle(svc).display === 'none',
+           overlap: brand.right > act.left + 1 };
+});
+chk(narrow.svcHidden, '좁은 화면에서는 상단 바 서비스명을 빼서 겹침을 없앤다');
+chk(!narrow.overlap, '좁은 화면에서 로고 묶음과 단추가 겹치지 않는다');
+await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(250);
 
 await P.screenshot({ path: 't9-portal.png' });
 

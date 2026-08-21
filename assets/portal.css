@@ -50,6 +50,7 @@ html{font-size:62.5%}   /* KRDS 토큰이 rem 이라 뿌리를 10px 로 (1.7rem 
   --warn-b:var(--krds-color-light-warning-20);
   --on-brand:var(--krds-color-light-gray-0);
   --scrim:rgba(19,20,22,.62);
+  --scrim-2:rgba(19,20,22,.86);   /* 글자가 앉는 쪽 — 더 짙게 */
   --focus:0 0 0 .4rem var(--krds-light-color-border-primary);
   --shadow:0 .1rem .2rem var(--krds-light-color-alpha-shadow1),
            0 .8rem 2.4rem -1.6rem var(--krds-light-color-alpha-shadow3);
@@ -75,6 +76,7 @@ html[data-krds-mode="high-contrast"]{
   --warn-b:var(--krds-color-high-contrast-warning-70);
   --on-brand:var(--krds-color-high-contrast-gray-100);
   --scrim:rgba(0,0,0,.76);
+  --scrim-2:rgba(0,0,0,.92);
   --focus:0 0 0 .4rem var(--krds-high-contrast-color-border-primary);
   --shadow:0 .1rem .2rem rgba(0,0,0,.5), 0 .8rem 2.4rem -1.6rem rgba(0,0,0,.9);
 }
@@ -126,27 +128,50 @@ html[data-krds-mode="high-contrast"] .logo-full{
 .top .act a:hover,.top .act button:hover{border-color:var(--ink3); color:var(--ink)}
 .top .act svg{width:1.6rem; height:1.6rem; flex:none}
 .modebtn[aria-pressed=true]{border-color:var(--brand); color:var(--brand)}
-@media (max-width:560px){ .modebtn .mode-t{display:none} }
+@media (max-width:560px){
+  .modebtn .mode-t{display:none}
+  /* 좁은 화면에서는 서비스명을 상단 바에서 뺍니다. white-space:nowrap 이라
+     줄바꿈을 못 해 단추 밑으로 흘러 들어가 글자가 겹쳤습니다. 바로 아래
+     머리띠의 큰 제목이 같은 이름을 말하므로 잃는 것이 없습니다. */
+  .top .rule,.top .svc{display:none}
+}
 
 /* ── 머리 — 서비스 이름 ─────────────────────────────────────
    예전에는 어두운 사진이 화면 전체였습니다. 지금은 위쪽 띠로만 씁니다 —
    사진 위 글자는 아무리 손봐도 흰 바탕의 검정 글자보다 읽기 어렵고,
-   급할 때 여는 화면에서는 읽히는 것이 먼저입니다. */
+   급할 때 여는 화면에서는 읽히는 것이 먼저입니다.
+
+   사진은 화학물질안전원의 현장 지휘차입니다(2.17 파노라마라서 이 띠에
+   거의 그대로 들어갑니다). 글자가 앉는 **왼쪽만 더 짙게** 덮습니다 —
+   전체를 똑같이 덮으면 글자를 읽을 만큼 어둡게 하려다 사진이 죽습니다.
+   오른쪽도 --scrim 만큼은 덮여 있어 밝은 차체가 눈을 찌르지 않습니다. */
 .hero{position:relative; background:var(--panel); border-bottom:.1rem solid var(--line);
-  overflow:hidden}
+  overflow:hidden; display:flex; align-items:flex-end; min-height:30rem}
 .hero-photo{position:absolute; inset:0; z-index:0}
-.hero-photo img{width:100%; height:100%; object-fit:cover; display:block}
-.hero-photo::after{content:""; position:absolute; inset:0; background:var(--scrim)}
-.hero .wrap{position:relative; z-index:1; padding-top:4.8rem; padding-bottom:4.8rem;
+.hero-photo img{width:100%; height:100%; object-fit:cover; display:block;
+  /* 물·나무가 위쪽, 차량이 아래쪽에 있어 위를 조금 더 남깁니다 */
+  object-position:50% 42%}
+.hero-photo::after{content:""; position:absolute; inset:0;
+  background:linear-gradient(100deg,
+    var(--scrim-2) 0%, var(--scrim-2) 26%, var(--scrim) 68%, var(--scrim) 100%)}
+.hero .wrap{position:relative; z-index:1; padding-top:4.8rem; padding-bottom:4rem;
   display:flex; flex-direction:column; gap:1.2rem}
 .hero h1{margin:0; font-size:3.2rem; font-weight:700; line-height:1.3;
   letter-spacing:-.02em; color:#fff; text-wrap:balance}
-.hero p{margin:0; max-width:56ch; font-size:1.9rem; line-height:1.6;
-  color:rgba(255,255,255,.88)}
+.hero p{margin:0; max-width:52ch; font-size:1.9rem; line-height:1.6;
+  color:rgba(255,255,255,.9)}
 @media (max-width:720px){
-  .hero .wrap{padding-top:3.2rem; padding-bottom:3.2rem}
+  /* 좁은 화면에서는 사진이 세로로 잘려 무엇인지 알기 어렵고, 그만큼 카드가
+     아래로 밀립니다. 띠를 낮추고 위아래를 촘촘히 합니다. */
+  .hero{min-height:20rem}
+  .hero .wrap{padding-top:3.2rem; padding-bottom:2.8rem}
   .hero h1{font-size:2.4rem}
   .hero p{font-size:1.7rem}
+  /* 좁은 화면에서는 글자가 가로 폭을 다 쓰므로 왼쪽만 짙게 하는 것이 뜻이
+     없습니다. 대신 글자가 앉는 **아래쪽**을 짙게 하고 위는 덜 덮어,
+     사진이 무엇인지 알아볼 수 있게 둡니다. */
+  .hero-photo::after{background:linear-gradient(180deg,
+    var(--scrim) 0%, var(--scrim) 34%, var(--scrim-2) 78%, var(--scrim-2) 100%)}
 }
 
 /* ── 도구 세 장 ─────────────────────────────────────────────
@@ -161,8 +186,8 @@ main{flex:1; padding:4rem 0 5.6rem}
 
 .pn{display:flex}
 .pn a{
-  display:flex; flex-direction:column; gap:1rem; width:100%;
-  padding:2.4rem 2rem 2rem; text-decoration:none; color:inherit;
+  display:flex; flex-direction:column; width:100%;
+  text-decoration:none; color:inherit; overflow:hidden;
   background:var(--card); border:.1rem solid var(--line); border-radius:1rem;
   box-shadow:var(--shadow);
   transition:border-color .16s var(--ease), transform .16s var(--ease),
@@ -173,6 +198,25 @@ main{flex:1; padding:4rem 0 5.6rem}
              0 1.6rem 3.2rem -1.8rem var(--krds-light-color-alpha-shadow3)}
 .pn.t1 a{--pn-c:var(--brand)} .pn.t2 a{--pn-c:var(--ok)} .pn.t3 a{--pn-c:#0e7c9e}
 html[data-krds-mode="high-contrast"] .pn.t3 a{--pn-c:#5cb4cd}
+
+/* 카드 머리 사진 — 화학물질안전원 현장 사진(build/make_photos.py 로 세 장을
+   같은 비율로 잘라 둠). 높이를 비율로 못 박아, 사진이 아직 안 왔을 때도 카드가
+   갑자기 늘어나거나 줄어들지 않습니다(레이아웃이 튀지 않게).
+   장식이므로 목록·설명보다 눈에 덜 띄어야 합니다 — 아래 얇은 색선 한 줄로
+   그 카드의 색을 잇고, 사진 자체에는 아무 글자도 얹지 않습니다. */
+.pn-ph{display:block; position:relative; aspect-ratio:1000/520;
+  background:var(--panel); border-bottom:.3rem solid var(--pn-c); flex:none}
+.pn-ph img{display:block; width:100%; height:100%; object-fit:cover}
+/* aspect-ratio 를 모르는 브라우저 대비 — 비율만큼의 위 여백으로 자리를 잡는다 */
+@supports not (aspect-ratio:1/1){
+  .pn-ph{height:0; padding-top:52%}
+  .pn-ph img{position:absolute; inset:0}
+}
+.pn-body{display:flex; flex-direction:column; gap:1rem; flex:1;
+  padding:1.8rem 2rem 2rem}
+/* 번호와 제목을 한 줄에 — 사진이 위에 붙어 카드가 길어졌으므로, 쌓이는
+   덩어리 수를 하나 줄입니다. */
+.pn-hd{display:flex; align-items:center; gap:1rem}
 .pn-no{display:grid; place-items:center; width:3.2rem; height:3.2rem;
   border-radius:.4rem; background:var(--pn-c); color:var(--on-brand);
   font-size:1.7rem; font-weight:700; line-height:1; flex:none}
@@ -197,6 +241,44 @@ html[data-krds-mode="high-contrast"] .pn.t3 a{--pn-c:#5cb4cd}
 .notice p{margin:0; font-size:1.5rem; line-height:1.7; color:var(--ink2)}
 .notice p + p{margin-top:.2rem}
 
+/* ── 현장 사진 모음 ─────────────────────────────────────────────
+   사진 비율이 원본마다 다릅니다(파노라마 2.17 ~ 세로 0.75). 화면에서 각자
+   비율대로 늘어놓으면 칸 높이가 들쭉날쭉해 눈이 불편합니다. 그래서
+     1) 내보낼 때 자리마다 **한 가지 비율로 미리 잘라** 두고
+        (build/make_photos.py — 여기 넷은 모두 4:3),
+     2) 화면에서도 aspect-ratio 로 칸 비율을 못 박고 object-fit:cover 로 채웁니다.
+   둘 중 하나만 해도 되지만, 둘 다 해 두면 나중에 다른 비율 사진을 끼워도
+   줄이 무너지지 않습니다. */
+.gal{margin-top:4rem}
+.gal-hd{margin:0 0 1.6rem; font-size:1.5rem; font-weight:700; color:var(--ink2);
+  letter-spacing:.02em}
+.gal-grid{list-style:none; margin:0; padding:0; display:grid; gap:1.6rem;
+  grid-template-columns:repeat(2,1fr)}
+@media (min-width:800px){ .gal-grid{grid-template-columns:repeat(4,1fr)} }
+.gal-it{display:flex; flex-direction:column; gap:.8rem; min-width:0}
+/* height:auto 가 꼭 있어야 합니다 — <img height="750"> 처럼 높이가 정해져 있으면
+   브라우저가 aspect-ratio 를 무시합니다(한쪽이 auto 일 때만 씁니다). 없이 뒀다가
+   사진이 원본 높이 750px 그대로 나와 칸이 세로로 길어졌습니다. */
+.gal-it img{display:block; width:100%; height:auto; aspect-ratio:4/3;
+  object-fit:cover;
+  background:var(--panel); border:.1rem solid var(--line); border-radius:.8rem}
+@supports not (aspect-ratio:1/1){
+  /* 비율을 모르는 브라우저 — 높이를 고정해 줄은 맞춥니다 */
+  .gal-it img{height:16rem}
+}
+/* 설명은 사진 **아래**에 둡니다. 사진 위에 얹으면 어느 사진에서는 읽히고
+   어느 사진에서는 안 읽힙니다 — 배경이 우리 마음대로가 아니기 때문입니다. */
+.gal-cap{font-size:1.5rem; color:var(--ink2); line-height:1.5}
+.gal-src{margin:1.6rem 0 0; font-size:1.3rem; line-height:1.7; color:var(--ink3)}
+.gal-src b{color:var(--ink2); font-weight:700}
+
+/* 고대비(어두운) 화면 — 밝은 사진이 어두운 바탕 위에서 눈을 찌릅니다.
+   색을 바꾸지 않고 밝기만 낮춥니다(사진을 물들이면 실제와 달라 보입니다). */
+html[data-krds-mode="high-contrast"] .gal-it img,
+html[data-krds-mode="high-contrast"] .pn-ph img{filter:brightness(.82)}
+html[data-krds-mode="high-contrast"] .gal-it img:hover,
+html[data-krds-mode="high-contrast"] .pn a:hover .pn-ph img{filter:none}
+
 footer{background:var(--card); border-top:.1rem solid var(--line);
   padding:2rem 0; font-size:1.5rem; color:var(--ink3)}
 footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
@@ -212,9 +294,12 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
 @media print{
   /* 고대비로 보고 있어도 인쇄는 흰 종이에 검정으로 */
   html,html[data-krds-mode]{--card:#fff;--bg:#fff;--panel:#fff;--ink:#000;--ink2:#222;--ink3:#444;
-       --line:#000;--line2:#666;--scrim:rgba(0,0,0,.05)}
+       --line:#000;--line2:#666;--scrim:rgba(0,0,0,.05);--scrim-2:rgba(0,0,0,.05)}
   .top .act,.skip{display:none}
-  .hero-photo{display:none}
+  /* 사진은 인쇄하지 않습니다 — 장식이고 잉크만 먹습니다. 대신 사진이 사라진
+     자리가 빈 칸으로 남지 않게 칸 자체를 없앱니다. */
+  .hero-photo,.pn-ph,.gal{display:none}
   .hero h1,.hero p{color:#000}
   .pn a{box-shadow:none;border:1px solid #000}
+  .pn-body{padding:1.6rem}
 }
