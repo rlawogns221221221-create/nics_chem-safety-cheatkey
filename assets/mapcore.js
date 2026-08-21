@@ -479,6 +479,71 @@ function hasTemp() {
   return !!(window.TEMPSHELTERS && Object.keys(window.TEMPSHELTERS).length);
 }
 
+/* ── 이름 → 대략 위치 ─────────────────────────────────────────
+   "김천시 신음동" 처럼 이름만 아는 곳을 지도 위 한 점으로 옮깁니다. 인터넷
+   지오코딩이 아니라 **도구 안에 있는 자료로 어림잡는 것**입니다. 그래서
+   돌려주는 값에는 항상 `어림:true` 와 `근거`(어떻게 잡았는지)가 붙습니다 —
+   부르는 쪽이 화면에 그 사실을 적을 수 있어야 하기 때문입니다.
+
+   행정경계는 시·군·구까지만 있어 읍·면·동 경계를 모릅니다. 그래서 읍·면·동은
+   그 안에 있는 대피장소들의 좌표 평균으로 잡습니다. 몇백 미터 단위로 틀릴 수
+   있으니 사고지점으로 그대로 쓰지 말고 "그 근처로 지도를 옮기는" 용도로만
+   쓰십시오. */
+function boundaryCenter(sido, sgg) {
+  if (typeof window.BOUNDARIES === "undefined") return null;
+  var m = 2, M = -1, n = 2, N = -1, any = false;
+  window.BOUNDARIES.forEach(function (f) {
+    /* sido 를 안 주면 이름만 맞으면 됩니다 — 사용자가 손으로 시·군·구만
+       적었을 때(어느 시·도인지 모를 때)도 자리를 찾을 수 있게. */
+    if ((sido && f.s !== sido) || !matchSgg(f.n, sgg)) return;
+    f.r.forEach(function (ring) {
+      var X = 0, Y = 0;
+      for (var i = 0; i < ring.length; i += 2) {
+        if (i === 0) { X = ring[0]; Y = ring[1]; } else { X += ring[i]; Y += ring[i + 1]; }
+        var x = wx(X / window.BOUNDARY_SCALE), y = wy(Y / window.BOUNDARY_SCALE);
+        m = Math.min(m, x); M = Math.max(M, x); n = Math.min(n, y); N = Math.max(N, y); any = true;
+      }
+    });
+  });
+  return any ? { lat: wyInv((n + N) / 2), lon: wxInv((m + M) / 2) } : null;
+}
+
+/* 주소 문자열에 이 읍·면·동 이름이 들어 있는가 — 공백을 지우고 견줍니다
+   ("개령면 감문로 277(신룡리)" 안의 "개령면"·"신룡리") */
+function addrHas(addr, emd) {
+  var a = String(addr || "").replace(/\s+/g, "");
+  var e = String(emd || "").replace(/\s+/g, "");
+  return !!e && a.indexOf(e) >= 0;
+}
+
+function avgOf(rows, 근거) {
+  var sx = 0, sy = 0;
+  rows.forEach(function (r) { sx += r.lon; sy += r.lat; });
+  return { lat: sy / rows.length, lon: sx / rows.length, 어림: true, 근거: 근거 };
+}
+
+function placeAt(sgg, emd) {
+  var sg = String(sgg || "").trim(), em = String(emd || "").trim();
+  if (!sg) return null;
+  var sido = findSido(sg) || "";
+  var rows = shelters(sido, sg);
+
+  if (em && rows.length) {
+    var hit = rows.filter(function (r) { return addrHas(r.addr, em); });
+    if (hit.length) {
+      return avgOf(hit, em + " 안의 대피장소 " + hit.length + "곳의 가운데");
+    }
+  }
+  var c = boundaryCenter(sido, sg);
+  if (c) {
+    c.어림 = true;
+    c.근거 = sg + " 행정경계의 가운데" + (em ? " (" + em + " 은 자료로 좁히지 못했습니다)" : "");
+    return c;
+  }
+  if (rows.length) return avgOf(rows, sg + " 관내 대피장소 " + rows.length + "곳의 가운데");
+  return null;
+}
+
 /* 시·군·구 이름만 알 때 시·도 찾기 (동명 시·군·구가 있으면 첫 번째) */
 function findSido(sgg) {
   var S = window.SHELTERS || {}, hit = null;
@@ -717,6 +782,8 @@ window.MAPCORE = {
   /* 데이터 */
   shelters: shelters, tempShelters: tempShelters, hasTemp: hasTemp,
   findSido: findSido, extLinks: extLinks,
+  /* 이름 → 대략 위치 (돌려주는 값에 어림·근거가 붙습니다) */
+  boundaryCenter: boundaryCenter, placeAt: placeAt,
   /* 배경지도 타일 */
   tiles: {
     cfg: cfg,

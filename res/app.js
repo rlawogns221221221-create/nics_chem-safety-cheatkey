@@ -743,25 +743,13 @@ function backToStart() {
 }
 
 function initStart() {
-  /* 1. 주소·사업장 이름 — 위 조건 줄의 검색과 같은 창을 씁니다.
-        여기에 치면 그쪽으로 옮겨 붙여 같은 결과 목록을 띄웁니다. */
-  var q = $("#startQ"), main = $("#mAddrQ");
-  if (q && main) {
-    q.oninput = function () {
-      main.value = q.value;
-      /* 결과 목록은 조건 줄 아래에 뜨므로, 시작 화면에서도 보이게
-         조건 줄을 잠깐 드러냅니다(사고지점을 고르면 정상으로 돌아갑니다) */
-      document.body.classList.add("start-search");
-      main.dispatchEvent(new Event("input"));
-    };
-    q.onkeydown = function (e) {
-      if (e.key === "ArrowDown" || e.key === "Enter") {
-        main.focus();
-        main.dispatchEvent(new KeyboardEvent("keydown", { key: e.key, bubbles: true }));
-        e.preventDefault();
-      }
-    };
-  }
+  /* 1. 주소·사업장 이름 — 시작 화면의 검색칸은 bindAddrSearch 가 조건 줄
+        칸과 똑같이 붙여 둡니다. 결과 목록이 **이 칸 바로 아래**에 뜨므로
+        몇 글자만 쳐도 눌러서 고를 수 있습니다.
+        예전에는 조건 줄 칸으로 글자를 옮겨 붙이고 조건 줄을 잠깐 드러내
+        목록을 띄웠는데, 목록이 시작 화면과 떨어진 자리에 떠 무엇을 눌러야
+        하는지 알기 어려웠습니다. */
+
   /* 2. 지도에서 찍기 — 지도를 보여 주고 바로 '찍기' 모드로 */
   var pick = $("#startPick");
   if (pick) pick.onclick = function () {
@@ -1197,7 +1185,9 @@ function setMode(m) {
   st.mode = m;
   var b = $("#btnAcc");
   b.setAttribute("aria-pressed", String(m === "acc"));
-  b.textContent = m === "acc" ? "지도를 누르세요" : (st.acc ? "사고지점 다시 찍기" : "사고지점 찍기");
+  /* 단추 위 이름표가 이미 "사고지점"이라고 말하므로 단추에서는 뺍니다 —
+     좁은 조건 줄에서 같은 말이 두 번 들어가면 다른 조건을 밀어냅니다. */
+  b.textContent = m === "acc" ? "지도를 누르세요" : (st.acc ? "다시 찍기" : "지도에서 찍기");
   SVG.classList.toggle("crosshair", m === "acc");
 }
 
@@ -1224,7 +1214,6 @@ function setAcc(lat, lon, jump) {
   recompute();
   syncSort();                      // 범위 칸이 여기서 열린다 (사고지점이 있어야 열림)
   if (wide) $("#mScope").value = "20000";
-  document.body.classList.remove("start-search");
   lookupAccAddr();                 // 여기가 어느 시·군·구 어느 읍·면·동인가
   renderStart();
   renderSummary(); renderNear(); renderList(); renderLegend(); showAddr();
@@ -1311,51 +1300,46 @@ function moveToAcc(jump) {
    않습니다 — 근사한 위치(읍·면·동 평균 좌표 등)를 사고지점으로 오인하지
    않도록, 옮겨간 자리에서 정확한 곳을 직접 눌러 찍게 합니다. */
 var PLACE_IDX = null;
-function boundaryCenter(sido, sgg) {
-  if (typeof window.BOUNDARIES === "undefined") return null;
-  var m = 2, M = -1, n = 2, N = -1, any = false;
-  window.BOUNDARIES.forEach(function (f) {
-    if (f.s !== sido || !MC.matchSgg(f.n, sgg)) return;
-    f.r.forEach(function (ring) {
-      var X = 0, Y = 0;
-      for (var i = 0; i < ring.length; i += 2) {
-        if (i === 0) { X = ring[0]; Y = ring[1]; } else { X += ring[i]; Y += ring[i + 1]; }
-        var x = wx(X / window.BOUNDARY_SCALE), y = wy(Y / window.BOUNDARY_SCALE);
-        m = Math.min(m, x); M = Math.max(M, x); n = Math.min(n, y); N = Math.max(N, y); any = true;
-      }
-    });
-  });
-  return any ? { lat: wyInv((n + N) / 2), lon: wxInv((m + M) / 2) } : null;
-}
+/* 시·군·구 경계의 가운데 — 공용(assets/mapcore.js). ①③ 도 같은 값을 씁니다. */
+var boundaryCenter = MC.boundaryCenter;
+/* ② 대피장소 지도에서 그대로 옮겨 온 코드가 **줄 배열**(대피장소 원자료)을
+   훑도록 되어 있었는데, ③ 의 resTree() 는 "어느 시·도에 어느 시·군·구가
+   있는가"만 담은 표(값이 1)입니다. 그래서 rows.forEach 에서 매 글자마다
+   오류가 나 **도구 안 검색이 통째로 죽어 있었습니다** — 인터넷 결과만
+   나오고 사업장 이름으로는 아무것도 안 나왔습니다.
+   지금은 allRes() 가 만들어 둔 자원 줄(객체)을 직접 훑습니다. */
 function placeIndex() {
   if (PLACE_IDX) return PLACE_IDX;
-  var out = [], dong = {};
-  var S = resTree();
-  Object.keys(S).forEach(function (sido) {
-    Object.keys(S[sido]).forEach(function (sgg) {
-      var rows = S[sido][sgg], any = false;
-      rows.forEach(function (r) {
-        if (r[5] == null || r[6] == null) return;
-        any = true;
-        out.push({ label: r[0] + " · " + sgg + " " + (r[2] || ""), lat: r[5], lon: r[6],
-                   sido: sido, sgg: sgg, kind: "place" });
-        /* "개령면 감문로 277(신룡리)" → "개령면", "신룡리" */
-        var addr = String(r[2] || "");
-        var m1 = /^([가-힣0-9]+(?:읍|면|동))\s/.exec(addr);
-        var m2 = /\(([가-힣0-9]+(?:동|리|가))\)/.exec(addr);
-        [m1 && m1[1], m2 && m2[1]].forEach(function (nm) {
-          if (!nm) return;
-          var key = sido + "|" + sgg + "|" + nm;
-          var d = dong[key] || (dong[key] = { sido: sido, sgg: sgg, nm: nm, sx: 0, sy: 0, n: 0 });
-          d.sx += r[6]; d.sy += r[5]; d.n++;
-        });
-      });
-      if (any) {
-        var c = boundaryCenter(sido, sgg);
-        out.push({ label: sido + " " + sgg, lat: c ? c.lat : rows[0][5], lon: c ? c.lon : rows[0][6],
-                   sido: sido, sgg: sgg, kind: "sgg" });
-      }
+  var out = [], dong = {}, sggs = {};
+  allRes().forEach(function (s) {
+    if (s.lat == null || s.lon == null) return;
+    /* 보이는 이름(label)과 견주는 글자(find)를 따로 둡니다. 조건 줄 안내가
+       "보유 장비 이름으로도 찾습니다(굴착기·흡착포 등)"라고 말하므로, 보유
+       내용(c)·운영기관·자원 종류까지 견줍니다. 그것들을 label 에 다 넣으면
+       한 줄이 너무 길어 무엇을 고르는지 알 수 없습니다. */
+    out.push({ label: s.name + " · " + s.sgg + " " + (s.addr || ""),
+               find: [s.name, s.sgg, s.addr, s.agency, s.kind, s.c].join(" "),
+               en: s.kind,
+               lat: s.lat, lon: s.lon, sido: s.sido, sgg: s.sgg, kind: "place" });
+
+    sggs[s.sido + "|" + s.sgg] = { sido: s.sido, sgg: s.sgg, lat: s.lat, lon: s.lon };
+
+    /* "개령면 감문로 277(신룡리)" → "개령면", "신룡리" */
+    var addr = String(s.addr || "");
+    var m1 = /(?:^|\s)([가-힣0-9]+(?:읍|면|동))(?:\s|$)/.exec(addr);
+    var m2 = /\(([가-힣0-9]+(?:동|리|가))\)/.exec(addr);
+    [m1 && m1[1], m2 && m2[1]].forEach(function (nm) {
+      if (!nm) return;
+      var key = s.sido + "|" + s.sgg + "|" + nm;
+      var d = dong[key] || (dong[key] = { sido: s.sido, sgg: s.sgg, nm: nm, sx: 0, sy: 0, n: 0 });
+      d.sx += s.lon; d.sy += s.lat; d.n++;
     });
+  });
+  Object.keys(sggs).forEach(function (key) {
+    var g = sggs[key];
+    var c = boundaryCenter(g.sido, g.sgg);
+    out.push({ label: g.sido + " " + g.sgg, lat: c ? c.lat : g.lat, lon: c ? c.lon : g.lon,
+               sido: g.sido, sgg: g.sgg, kind: "sgg" });
   });
   Object.keys(dong).forEach(function (key) {
     var d = dong[key];
@@ -1366,15 +1350,20 @@ function placeIndex() {
   return out;
 }
 var KIND_ORDER = { sgg: 0, dong: 1, place: 2 };
+/* 견줄 글자 — 없으면 보이는 이름을 그대로 씁니다(시·군·구·읍·면·동 줄) */
+function findText(p) { return String(p.find || p.label).replace(/\s+/g, ""); }
 function searchPlaces(q) {
   var nq = String(q || "").trim().replace(/\s+/g, "");
   if (nq.length < 1) return [];
   var rows = placeIndex().filter(function (p) {
-    return p.label.replace(/\s+/g, "").indexOf(nq) >= 0;
+    return findText(p).indexOf(nq) >= 0;
   });
   rows.sort(function (a, b) {
+    /* 이름이 그 글자로 시작하는 것을 먼저 — "여수"를 쳤을 때 보유 내용에
+       '여수'가 섞인 먼 곳보다 여수시 것이 위에 와야 합니다. */
     var an = a.label.replace(/\s+/g, ""), bn = b.label.replace(/\s+/g, "");
-    var ra = an.indexOf(nq) === 0 ? 0 : 1, rb = bn.indexOf(nq) === 0 ? 0 : 1;
+    var ra = an.indexOf(nq) === 0 ? 0 : (an.indexOf(nq) >= 0 ? 1 : 2);
+    var rb = bn.indexOf(nq) === 0 ? 0 : (bn.indexOf(nq) >= 0 ? 1 : 2);
     return ra - rb || KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || an.length - bn.length;
   });
   return rows.slice(0, 30);
@@ -1415,8 +1404,15 @@ function askOnline(q) {
   }, 350);
 }
 
-function renderAddrPop(q) {
+/* 결과 목록을 어느 입력칸 아래에 붙일까 — 검색칸이 두 곳(시작 화면의 큰 칸과
+   조건 줄의 칸)이라, 지금 치고 있는 칸 밑에 붙여야 합니다. 예전에는 늘 조건 줄
+   칸에 붙였는데, 시작 화면에서는 그 칸이 감춰져 있어 목록이 엉뚱한 자리에
+   떴습니다. */
+var addrAnchor = null;
+
+function renderAddrPop(q, anchor) {
   addrQ = q;
+  if (anchor) addrAnchor = anchor;
   askOnline(q);
   drawAddrPop();
 }
@@ -1434,7 +1430,9 @@ function drawAddrPop() {
     return '<div class="mpk-row" role="option" data-i="' + i + '">'
       + '<span class="nm">' + esc(p.label)
       + (p.sub ? ' <i class="sub">' + esc(p.sub) + "</i>" : "") + "</span>"
-      + '<span class="en">' + esc(KIND_LABEL[p.kind] || "") + "</span></div>";
+      /* 오른쪽 꼬리표 — 자원이면 그 종류(해경 방제비축기지 등)를 적습니다.
+         무엇을 고르는지가 이름만으로는 안 보일 때가 많습니다. */
+      + '<span class="en">' + esc(p.en || KIND_LABEL[p.kind] || "") + "</span></div>";
   };
 
   if (!addrRows.length && !busy) {
@@ -1459,7 +1457,7 @@ function drawAddrPop() {
     });
   }
   pop.hidden = false;
-  placePopover(pop, $("#mAddrQ"), true);
+  placePopover(pop, addrAnchor || $("#mAddrQ"), true);
 }
 function markAddr(i) {
   var els = $$(".mpk-row", $("#addrPop"));
@@ -1475,7 +1473,10 @@ function closeAddrPop() { $("#addrPop").hidden = true; addrSel = -1; }
    읍면동 평균)를 그대로 사고지점으로 오인하지 않도록 마지막 클릭은 사용자가 한다 */
 function pickAddr(p) {
   closeAddrPop();
+  /* 검색칸이 두 곳이라 둘 다 같은 값으로 맞춥니다 — 시작 화면에서 고른 뒤
+     조건 줄을 보면 빈 칸이 있어 검색이 안 된 것처럼 보입니다. */
   $("#mAddrQ").value = p.label;
+  var sq = $("#startQ"); if (sq) sq.value = p.label;
 
   /* 인터넷에서 찾은 사업장·주소는 좌표가 그 건물의 것이라 정확합니다.
      한 번 더 지도를 누르게 할 이유가 없으므로 바로 사고지점으로 찍습니다.
@@ -1508,10 +1509,15 @@ function placePopover(pop, anchor, growWidth) {
   pop.style.top = Math.round(r.bottom + 6) + "px";
   if (growWidth) pop.style.width = w + "px";
 }
-function bindAddrSearch() {
-  var input = $("#mAddrQ"), pop = $("#addrPop");
-  input.oninput = function () { renderAddrPop(input.value); };
-  input.onfocus = function () { if (input.value.trim()) renderAddrPop(input.value); };
+/* 검색칸 하나를 미리보기 목록에 잇는다. 시작 화면 칸과 조건 줄 칸 둘 다
+   이 함수로 붙이므로, 어느 쪽에 쳐도 같은 목록이 그 칸 아래에 뜬다. */
+function bindOneSearch(input) {
+  if (!input) return;
+  var pop = $("#addrPop");
+  input.oninput = function () { renderAddrPop(input.value, input); };
+  input.onfocus = function () {
+    if (input.value.trim()) renderAddrPop(input.value, input);
+  };
   input.onkeydown = function (e) {
     if (pop.hidden) return;
     if (e.key === "ArrowDown") { e.preventDefault(); markAddr(Math.min(addrSel + 1, addrRows.length - 1)); }
@@ -1519,10 +1525,25 @@ function bindAddrSearch() {
     else if (e.key === "Enter") { if (addrSel >= 0) { e.preventDefault(); pickAddr(addrRows[addrSel]); } }
     else if (e.key === "Escape") { closeAddrPop(); }
   };
+}
+
+function bindAddrSearch() {
+  var pop = $("#addrPop");
+  var boxes = [$("#mAddrQ"), $("#startQ")].filter(Boolean);
+  boxes.forEach(bindOneSearch);
   document.addEventListener("mousedown", function (e) {
-    if (!pop.hidden && e.target !== input && !pop.contains(e.target)) closeAddrPop();
+    if (pop.hidden) return;
+    var onInput = boxes.some(function (b) { return e.target === b; });
+    if (!onInput && !pop.contains(e.target)) closeAddrPop();
   });
-  window.addEventListener("resize", function () { if (!pop.hidden) placePopover(pop, input, true); });
+  window.addEventListener("resize", function () {
+    if (!pop.hidden) placePopover(pop, addrAnchor || boxes[0], true);
+  });
+  /* 화면을 굴리면 붙어 있던 칸이 움직이므로 목록도 따라가야 합니다 —
+     안 그러면 목록만 허공에 남습니다. */
+  window.addEventListener("scroll", function () {
+    if (!pop.hidden) placePopover(pop, addrAnchor || boxes[0], true);
+  }, true);
 }
 
 function clearAcc() {
@@ -1846,7 +1867,7 @@ function init() {
     st.needs = {}; st.mob = {};
     KINDS.forEach(function (k) { st.kinds[k.id] = true; });
     st.begun = false;
-    document.body.classList.remove("has-acc", "start-search");
+    document.body.classList.remove("has-acc");
     var box = $("#rbMore");
     if (box) { box.hidden = true; $("#rbToggle").setAttribute("aria-expanded", "false"); }
     var sq = $("#startQ"); if (sq) sq.value = "";

@@ -932,7 +932,9 @@ function setMode(m) {
   st.mode = m;
   var b = $("#btnAcc");
   b.setAttribute("aria-pressed", String(m === "acc"));
-  b.textContent = m === "acc" ? "지도를 누르세요" : (st.acc ? "사고지점 다시 찍기" : "사고지점 찍기");
+  /* 단추 위 이름표가 이미 "사고지점"이라고 말하므로 단추에서는 뺍니다 —
+     좁은 조건 줄에서 같은 말이 두 번 들어가면 다른 조건을 밀어냅니다. */
+  b.textContent = m === "acc" ? "지도를 누르세요" : (st.acc ? "다시 찍기" : "지도에서 찍기");
   SVG.classList.toggle("crosshair", m === "acc");
 }
 
@@ -1049,22 +1051,8 @@ function moveToAcc(jump) {
    않습니다 — 근사한 위치(읍·면·동 평균 좌표 등)를 사고지점으로 오인하지
    않도록, 옮겨간 자리에서 정확한 곳을 직접 눌러 찍게 합니다. */
 var PLACE_IDX = null;
-function boundaryCenter(sido, sgg) {
-  if (typeof window.BOUNDARIES === "undefined") return null;
-  var m = 2, M = -1, n = 2, N = -1, any = false;
-  window.BOUNDARIES.forEach(function (f) {
-    if (f.s !== sido || !MC.matchSgg(f.n, sgg)) return;
-    f.r.forEach(function (ring) {
-      var X = 0, Y = 0;
-      for (var i = 0; i < ring.length; i += 2) {
-        if (i === 0) { X = ring[0]; Y = ring[1]; } else { X += ring[i]; Y += ring[i + 1]; }
-        var x = wx(X / window.BOUNDARY_SCALE), y = wy(Y / window.BOUNDARY_SCALE);
-        m = Math.min(m, x); M = Math.max(M, x); n = Math.min(n, y); N = Math.max(N, y); any = true;
-      }
-    });
-  });
-  return any ? { lat: wyInv((n + N) / 2), lon: wxInv((m + M) / 2) } : null;
-}
+/* 시·군·구 경계의 가운데 — 공용(assets/mapcore.js). ①③ 도 같은 값을 씁니다. */
+var boundaryCenter = MC.boundaryCenter;
 function placeIndex() {
   if (PLACE_IDX) return PLACE_IDX;
   var out = [], dong = {};

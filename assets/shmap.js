@@ -3,6 +3,9 @@
 
      SHMAP.open({
        시군구,          사고 시·군·구 (있으면 그 관내를 먼저 보여준다)
+       사고지점,        {lat, lon, 어림, 근거} — 열자마자 이 자리를 사고지점으로
+                        찍고 가까운 순으로 정렬한다. 어림값이면 창 위에 무엇으로
+                        어림잡았는지 적고 다시 찍으라고 알린다.
        칸목록,          고른 곳을 넣을 수 있는 입력칸 [{k, label}, ...]
        기본칸,          처음 고를 칸
        값들,            칸별 현재 입력값 {대피소:"가나초, 다라중", ...}
@@ -48,6 +51,7 @@ var st = {
   view: null, hover: -1,
   touched: false,               // 사용자가 선택을 손댔는가 (넣을 칸을 바꿀 때 판단용)
   acc: null,                    // 사고지점 {lat, lon}
+  accGuess: null,               // 어림잡은 자리라면 그 근거 (문자열) · 직접 찍으면 null
   radius: null,                 // 영향 참고 반경 (m)
   mode: "pick",                 // "pick" 대피장소 고르기 / "acc" 사고지점 찍기
   sort: "name", q: ""
@@ -110,30 +114,50 @@ function recompute() {
   st.hover = -1;
 }
 
-function fitTarget() {
+var FIT_NEAR = 6;               // 사고지점이 있을 때 화면에 담을 가까운 곳 수
+
+/* near=true 면 사고지점 주변만, false 면 목록에 있는 곳을 전부 담는다.
+   창을 처음 열 때는 주변만(어느 대피장소가 가까운지 봐야 한다), '전체 보기'
+   단추는 말 그대로 전부 — 두 가지를 한 함수로 묶었다가 전체 보기가 주변만
+   보여 주는 일이 있었다. */
+function fitTarget(near) {
   var m = 2, M = -1, n = 2, N = -1, any = false;
   var add = function (x, y) {
     m = Math.min(m, x); M = Math.max(M, x);
     n = Math.min(n, y); N = Math.max(N, y);
     any = true;
   };
-  st.show.forEach(function (s) { add(wx(s.lon), wy(s.lat)); });
-  var b = sggBox();
-  if (b) { add(b.m, b.n); add(b.M, b.N); }
-  if (st.acc) {
+
+  if (near && st.acc) {
+    /* 사고지점이 있으면 **그 주변만** 담는다. 시·군·구 전체를 담으면 사고지점이
+       화면 가운데 점 하나로 작아져 어느 대피장소가 가까운지 눈으로 알 수 없다.
+       반경을 정해 두면 그 원이 들어갈 만큼, 아니면 가까운 몇 곳이 보일 만큼. */
     var r = st.radius > 0 ? mToWorld(st.radius, st.acc.lat) : 0;
     add(wx(st.acc.lon) - r, wy(st.acc.lat) - r);
     add(wx(st.acc.lon) + r, wy(st.acc.lat) + r);
+    st.show.filter(function (s) { return s.d != null; })
+      .sort(function (a, b) { return a.d - b.d; })
+      .slice(0, FIT_NEAR)
+      .forEach(function (s) { add(wx(s.lon), wy(s.lat)); });
+  } else {
+    st.show.forEach(function (s) { add(wx(s.lon), wy(s.lat)); });
+    var b = sggBox();
+    if (b) { add(b.m, b.n); add(b.M, b.N); }
   }
+
   if (!any) return { cx: wx(127.8), cy: wy(36.3), w: 0.035 };
+  /* 최소 폭 — 사고지점이 있으면 그 동네가 보일 만큼(약 1.2km)까지 당깁니다.
+     시·군·구 전체를 담을 때 쓰는 최소 폭(약 11km)을 그대로 쓰면 가까운
+     대피장소들이 한 점에 뭉쳐 어디가 어딘지 알 수 없습니다. */
+  var min = (near && st.acc) ? mToWorld(1200, st.acc.lat) : 0.00035;
   var w = (M - m) * 1.25, h = (N - n) * 1.25;
-  return { cx: (m + M) / 2, cy: (n + N) / 2, w: Math.max(w, h * 1.35, 0.00035) };
+  return { cx: (m + M) / 2, cy: (n + N) / 2, w: Math.max(w, h * 1.35, min) };
 }
 
 /* 처음 여는 창은 바로 그 시야로, 이미 뭔가 보고 있던 중이면 부드럽게 옮겨
    어디로 얼마나 움직이는지 눈으로 좇을 수 있게 한다. */
-function fit() {
-  var t = fitTarget();
+function fit(near) {
+  var t = fitTarget(near);
   if (!st.view) { st.view = t; draw(); return; }
   CAM.animateTo(t, 420);
 }
@@ -420,13 +444,26 @@ function setRadius(m, keepInput) {
   });
 }
 
-function setAcc(ll) {
+function setAcc(ll, 근거) {
   st.acc = ll;
+  st.accGuess = ll ? (근거 || null) : null;
   if (st.sort === "name") st.sort = "dist";     // 사고지점을 찍으면 가까운 순이 유용하다
   $(".shmap-sort", box).value = st.sort;
   syncSort();
-  recompute(); renderList(); renderFoot(); renderRad(); draw(); showAddr();
+  recompute(); renderList(); renderFoot(); renderRad(); renderGuess(); draw(); showAddr();
   setMode("pick");
+}
+
+/* 어림잡은 사고지점임을 알리는 줄 — 무엇으로 잡았는지와 어떻게 고치는지까지
+   적습니다. "대략"이라는 말만 있으면 얼마나 틀릴 수 있는지 알 수 없습니다. */
+function renderGuess() {
+  var el = $(".shmap-guess", box);
+  if (!el) return;
+  el.hidden = !st.accGuess;
+  if (!st.accGuess) return;
+  el.innerHTML = "<b>사고지점은 입력한 주소로 어림잡은 자리입니다</b> — "
+    + esc(st.accGuess) + "로 잡았습니다. 읍·면·동 경계 자료가 없어 몇백 미터 틀릴 수 "
+    + "있습니다. 자리가 다르면 <b>사고지점 다시 찍기</b>로 지도를 눌러 고치세요.";
 }
 
 function syncSort() {
@@ -446,7 +483,9 @@ function reload(refit) {
   prefill();
   recompute();
   syncSort(); renderList(); renderFoot();
-  if (refit) fit(); else draw();
+  /* 사고지점을 알고 열었으면 그 동네부터 보여 준다 — '전체 보기' 단추는
+     따로 있고, 그것은 관내 전부를 담는다(fitTarget 의 near 참고) */
+  if (refit) fit(true); else draw();
   showAddr();
 }
 
@@ -531,6 +570,9 @@ function buildBox() {
       + '<span class="shmap-hint">지도의 점이나 오른쪽 목록을 눌러 고르세요 · 여러 곳도 됩니다</span>'
     + "</div>"
     + '<div class="shmap-warn" hidden></div>'
+    /* 사고지점을 입력한 주소로 어림잡았을 때 그 사실을 적는 줄 — 어림값을
+       실제로 잰 값과 눈으로 구분하지 못하면 안 됩니다. */
+    + '<div class="shmap-guess" hidden></div>'
     + '<div class="shmap-rad" hidden></div>'
     + '<div class="shmap-body">'
       + '<div class="shmap-mapwrap">'
@@ -663,12 +705,22 @@ function open(o) {
   fillSido();
   st.sgg = $(".shmap-sgg", box).value;
 
-  st.acc = null; st.radius = null; st.sort = "name";
-  $(".shmap-sort", box).value = "name";
+  /* 사고지점 — 부르는 쪽이 알고 있으면 열자마자 찍는다. ① 문자 도구는 앞
+     걸음에서 받은 시·군·구·읍·면·동으로 자리를 어림잡아 넘깁니다. 그러면
+     창이 열리는 순간 그 동네가 보이고 목록도 가까운 순으로 나옵니다 —
+     시·군·구를 다시 고르고 지도를 끌어 찾아갈 일이 없습니다. */
+  var a = opt.사고지점;
+  st.acc = (a && a.lat != null && a.lon != null) ? { lat: +a.lat, lon: +a.lon } : null;
+  st.accGuess = st.acc && a.어림 ? (a.근거 || "입력한 주소") : null;
+  st.radius = null;
+  st.sort = st.acc ? "dist" : "name";
+  $(".shmap-sort", box).value = st.sort;
+  syncSort();
   setMode("pick");
   st.view = null;     // 새로 열 때는 지난번 보던 자리에서 옮겨 오지 않고 바로 잡는다
   reload(true);
   renderRad();
+  renderGuess();
 
   /* 배경지도는 바로 그린다. 안 되는 원본이면 대체순서에 따라 자동 전환된다 */
   showSrc();

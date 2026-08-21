@@ -30,6 +30,27 @@
       주소·장소 검색
       <input type="text" id="mAddrQ" placeholder="예) 강릉시 옥계면, 개령서부초등학교" autocomplete="off">
     </label>
+
+    <!-- 사고지점 정하기 — 예전에는 지도 아래쪽 띠에 있었습니다. 이 도구에서
+         가장 먼저 하는 일이고 나머지 조건은 그다음이므로, 주소 검색 바로 옆
+         조건 줄에 둡니다(사용자 요청). 위도·경도는 좌표를 받아 적을 때 쓰는
+         칸이라 단추 뒤에 둡니다. -->
+    <div class="mb-f mb-acc" role="group" aria-label="사고지점 정하기">
+      사고지점
+      <span class="mb-accrow">
+        <button id="btnAcc" type="button" class="sm">사고지점 찍기</button>
+        <button id="btnMe" type="button" class="sm btnme" title="이 기기의 위치를 지도에 표시합니다">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.4"/><circle cx="12" cy="12" r="8.4"/>
+            <path d="M12 1.4v3M12 19.6v3M1.4 12h3M19.6 12h3"/>
+          </svg>내 위치</button>
+        <label class="mb-ll">위도<input type="text" id="acLat" inputmode="decimal"></label>
+        <label class="mb-ll">경도<input type="text" id="acLon" inputmode="decimal"></label>
+        <button id="btnAccClear" type="button" class="sm" title="사고지점 지우기">×</button>
+      </span>
+    </div>
+
     <!-- 좁은 화면에서는 아래 조건들이 세로로 쌓여 지도를 밀어냅니다.
          주소 검색만 남기고 접어 두었다가 이 단추로 펴 봅니다(넓은 화면에서는
          접을 이유가 없으므로 이 단추가 보이지 않습니다). -->
@@ -88,17 +109,9 @@
     <div class="mapaddr" id="mAddr" hidden></div>
     <div class="mtoast noprint" id="mToast" hidden></div>
 
+    <!-- 지도에 무엇을 겹쳐 그릴지 — 사고지점 정하기는 위 조건 줄로 옮겼고,
+         이 두 개는 '지금 보고 있는 그림'을 켜고 끄는 것이라 지도에 남깁니다. -->
     <div class="mapacc noprint">
-      <button id="btnAcc" type="button" class="sm">사고지점 찍기</button>
-      <button id="btnMe" type="button" class="sm btnme" title="이 기기의 위치를 지도에 표시합니다">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="3.4"/><circle cx="12" cy="12" r="8.4"/>
-          <path d="M12 1.4v3M12 19.6v3M1.4 12h3M19.6 12h3"/>
-        </svg>내 위치</button>
-      <label>위도<input type="text" id="acLat" inputmode="decimal"></label>
-      <label>경도<input type="text" id="acLon" inputmode="decimal"></label>
-      <button id="btnAccClear" type="button" class="sm" title="사고지점 지우기">×</button>
       <span class="mapchks">
         <label class="mapchk" title="고른 대피장소까지 실제로 걸어갈 수 있는 길을 찾아 그립니다. 인터넷이 필요하며, 사고지점 좌표가 길찾기 서버로 전송됩니다. 끄면 직선으로만 표시합니다.">
           <input type="checkbox" id="cWalk" checked>도보 경로</label>

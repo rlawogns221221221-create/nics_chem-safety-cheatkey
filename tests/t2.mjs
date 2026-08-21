@@ -153,6 +153,36 @@ chk(missMap.filter(d => ['8번','7번'].includes(d.no)).every(d => d.disabled)
 await setF(P, '대상지역', '장항읍 창선리'); await P.waitForTimeout(400);
 chk(await P.$$eval('#out button[data-c]', bs => bs.every(b => !b.disabled)), '해소 시 전부 허용');
 
+/* ── 집결지는 비워도 된다 ───────────────────────────────────────
+   집결지를 따로 두지 않는 지자체가 있다. 비면 7번 문안이 대피소만 넣은
+   문장으로 나가야 하고, 반쪽 문장("집결지[]으로")이나 자리표시자가 남으면
+   안 되며, 복사가 막히지도 않아야 한다(templates.js 의 [[!집결지:…]]). */
+await setF(P, '집결지', ''); await P.waitForTimeout(450);
+const noGather = await P.$$eval('#out .out', os => os.map(o => ({
+  no: o.querySelector('.no') ? o.querySelector('.no').textContent : '',
+  txt: o.querySelector('.msg') ? o.querySelector('.msg').textContent.replace(/\s+/g, ' ') : '',
+  dis: !!(o.querySelector('button[data-c]') || {}).disabled })));
+const c7 = noGather.filter(c => c.no === '7번')[0];
+chk(!!c7 && !c7.dis, '집결지가 비어도 7번 문안을 복사할 수 있다');
+/* 조사는 받침에 따라 갈린다 — "장항초등학교"는 받침이 없어 '로'가 맞다 */
+chk(!!c7 && /대피소\[장항초등학교\](으로|로) 대피요망/.test(c7.txt),
+  `집결지 없이 대피소만 넣은 문장이 된다 (${c7 ? c7.txt.slice(-34) : '없음'})`);
+chk(!!c7 && !/집결지/.test(c7.txt) && !/\{/.test(c7.txt),
+  '집결지를 말하는 구절과 자리표시자가 남지 않는다');
+chk((await P.$$('#stepBar .stp-i.on')).length >= 0
+  && await P.evaluate(() => !document.querySelector('#out .needfill')),
+  '집결지가 비었다고 "채우지 않은 칸" 화면으로 넘어가지 않는다');
+// 다시 넣으면 집결지까지 들어간 문장으로 돌아온다
+await setF(P, '집결지', '장항읍행정복지센터'); await P.waitForTimeout(450);
+const back7 = await P.$$eval('#out .out', os => {
+  const o = os.filter(x => x.querySelector('.no')
+    && x.querySelector('.no').textContent === '7번')[0];
+  const t = o && o.querySelector('.msg');
+  return t ? t.textContent.replace(/\s+/g, ' ') : '';
+});
+chk(/집결지\[장항읍행정복지센터\]/.test(back7),
+  `집결지를 넣으면 그 구절이 다시 들어간다 (${back7.slice(-40) || '문안 없음'})`);
+
 // ══ C. 지도에서 찾기 ══
 await goStep(P, 'evac');
 chk(await P.isVisible('#btnMap'), '지도에서 찾기 버튼 표시');
@@ -175,7 +205,26 @@ const srcTxt = await P.textContent('.shmap-src');
 chk(/경계선만/.test(srcTxt), `배경 못 받을 때 안내: ${srcTxt}`);
 chk((await P.$$eval('.shmap-svg image', i => i.length)) === 0, '배경 못 받으면 <image> 0장');
 chk(await P.isVisible('.shmap-warn'), '배경 못 받은 이유가 화면에 표시됨');
-// 마커가 경계선 범위 안에 있는가 (투영 정합성)
+/* 창을 열면 앞 걸음에 적은 사고 위치에서 시작한다 — 시·군·구 전체가 아니라
+   그 동네가 보여야 하고, 목록도 가까운 순이어야 한다. */
+const dbg = await P.evaluate(() => SHMAP.debug());
+chk(!!dbg.acc, `열자마자 사고지점이 찍혀 있다 (${dbg.acc ? dbg.acc.lat.toFixed(4) : '없음'})`);
+chk((await P.inputValue('.shmap-sort')) === 'dist', '목록이 사고지점 가까운 순으로 시작');
+chk(await P.isVisible('.shmap-guess'), '어림잡은 자리라고 화면에 적는다');
+chk(/어림잡은/.test(await P.textContent('.shmap-guess')), '무엇으로 어림잡았는지도 적는다');
+const near = await P.evaluate(() => {
+  const svg = document.querySelector('.shmap-svg');
+  const vb = svg.getAttribute('viewBox').split(' ').map(Number);
+  const mks = [...svg.querySelectorAll('circle.mk')].map(c => [+c.getAttribute('cx'), +c.getAttribute('cy')]);
+  const inside = mks.filter(([x, y]) => x >= vb[0] && x <= vb[0] + vb[2] && y >= vb[1] && y <= vb[1] + vb[3]);
+  return { n: mks.length, inside: inside.length };
+});
+chk(near.inside > 0 && near.inside < near.n,
+  `열었을 때는 관내 전부가 아니라 주변만 담는다 (${near.inside}/${near.n})`);
+
+// 전체 보기 — 마커가 전부 경계선 범위 안에 있는가 (투영 정합성)
+await P.click('.shmap-zf');
+await P.waitForTimeout(600);
 const geo = await P.evaluate(() => {
   const svg = document.querySelector('.shmap-svg');
   const vb = svg.getAttribute('viewBox').split(' ').map(Number);

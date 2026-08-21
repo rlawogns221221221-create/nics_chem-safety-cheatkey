@@ -1530,9 +1530,11 @@ body.mapapp{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .mb-f{display:flex;flex-direction:column;gap:5px;font-size:1.5rem;font-weight:700;color:var(--ink2)}
 .mb-f select,.mb-f input[type=text]{width:auto;min-width:150px;font-weight:400;
   padding:8px 11px;font-size:1.7rem;border-radius:7px}
-.mb-f input[type=text]{min-width:170px}
+/* 폭을 못 박습니다 — 안 박으면 브라우저가 글자 20자 들어갈 만큼(약 350px)
+   잡아, 조건 줄이 금방 두 줄로 넘어갑니다. */
+.mb-f input[type=text]{width:20rem;min-width:0}
 .mb-addr{position:relative}
-.mb-addr input[type=text]{min-width:260px}
+.mb-addr input[type=text]{width:26rem}
 /* 조건 접기 단추 — 넓은 화면에서는 접을 이유가 없으므로 보이지 않는다 */
 .mb-toggle{display:none}
 /* ③ 은 물질·풍향·배경지도까지 접어 둡니다 — 화면에 처음부터 고를 것이 많으면
@@ -1556,9 +1558,48 @@ body.mapapp{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .windbtn.on{border-color:var(--brand);background:var(--brand-l);color:var(--brand-d)}
 .windbtn.on .windbtn-ic{color:var(--brand-d)}
 
+/* ── 사고지점 정하기 (조건 줄 안) ─────────────────────────────
+   예전에는 지도 아래쪽 반투명 띠에 있었습니다. 이 도구에서 가장 먼저 하는
+   일인데 지도에 가려 있어 못 찾는 일이 있었습니다. 그래서 주소 검색 옆으로
+   올렸습니다. 한 덩어리로 읽히도록 옅은 바탕과 테두리를 두릅니다. */
+.mb-acc{flex:none}
+.mb-accrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:4px 7px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r)}
+.mb-accrow .mb-ll{display:flex;align-items:center;gap:4px;
+  font-size:1.3rem;font-weight:600;color:var(--ink2);white-space:nowrap}
+/* 좌표 칸은 짧습니다 — 소수점 여섯 자리까지 들어가면 됩니다. 전역 입력칸
+   규칙(폭 100% · 높이 48px)과 좁은 화면 규칙(.mb-f 의 width:auto)이 둘 다
+   이 줄을 늘려 버리므로, 선택자를 한 단 깊게 써서 확실히 이깁니다. */
+.mb-acc .mb-accrow input[type=text]{flex:none;width:100px;min-width:0;
+  min-height:var(--h-s);padding:0 8px;font-size:1.5rem;font-weight:400}
+.mb-accrow .sm{min-height:var(--h-s)}
+#btnAcc[aria-pressed=true]{background:var(--err);border-color:var(--err);
+  color:var(--on-brand);font-weight:700}
+@media (pointer:coarse){
+  .mb-accrow .sm,.mb-accrow .btnme{min-height:40px}
+  .mb-accrow input[type=text]{min-height:40px}
+}
+@media (max-width:860px){
+  /* 좁은 화면에서는 조건 줄 한 줄을 다 씁니다 — 단추와 좌표칸이 세로로
+     쪼개지면 어느 것이 한 묶음인지 알 수 없습니다. */
+  .mb-acc{flex:1 1 100%}
+  .mb-accrow{width:100%}
+  /* 좌표칸은 좁게 — 소수점 넷째 자리까지 보이면 됩니다. 감추지는 않습니다:
+     현장에서 무전으로 받은 좌표를 그대로 넣는 일이 실제로 있습니다. */
+  .mb-acc .mb-accrow input[type=text]{width:8.4rem}
+  .mb-accrow .mb-ll{font-size:1.3rem}
+}
+@media (pointer:coarse){
+  /* 손가락으로 누르는 화면 — 좌표칸도 40px 이상이어야 합니다 */
+  .mb-acc .mb-accrow input[type=text]{min-height:40px}
+}
+
 /* 배경지도 고르기 */
 .mb-lyr{display:flex;gap:0;margin-left:auto}
-.mb-lyr button{min-height:var(--h-s);padding:0 14px;font-size:1.7rem;border-radius:0;border-left-width:0;background:var(--card)}
+/* 배경지도 이름은 셋을 나란히 놓아야 하고 자주 누르는 것이 아니므로 보조
+   글자크기를 씁니다 — 그래야 조건 줄이 한 줄에 들어갑니다. */
+.mb-lyr button{min-height:var(--h-s);padding:0 11px;font-size:var(--fs-s);border-radius:0;border-left-width:0;background:var(--card)}
 .mb-lyr button:first-child{border-radius:6px 0 0 6px;border-left-width:1px}
 .mb-lyr button:last-child{border-radius:0 6px 6px 0}
 .mb-lyr button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:var(--on-brand);font-weight:700}
@@ -1756,11 +1797,13 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
 .maplegend .dot.me{background:var(--me);border-color:var(--on-brand);box-shadow:0 0 0 1px var(--me)}
 /* 종류 이름의 꼬리 — 넓은 화면에서는 그대로 보인다 (좁은 화면에서만 감춤) */
 .maplegend .lg-t{font-style:normal}
-.mapscale{position:absolute;left:10px;bottom:56px;display:flex;align-items:center;gap:6px;
+/* 축척·주소는 왼쪽 아래. 겹쳐 그리기 줄(.mapacc)이 오른쪽 아래로 옮겨져
+   더 이상 피해 올라갈 필요가 없습니다. */
+.mapscale{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:6px;
   background:var(--glass);border-radius:4px;padding:2px 7px;font-size:1.3rem}
 .mapscale i{display:block;height:4px;border:1px solid var(--ink2);border-top:0}
 .mapscale b{font-variant-numeric:tabular-nums;color:var(--ink2)}
-.mapaddr{position:absolute;left:10px;max-width:min(380px,calc(100% - 62px));bottom:84px;
+.mapaddr{position:absolute;left:10px;max-width:min(380px,calc(100% - 62px));bottom:38px;
   background:var(--glass);border:1px solid var(--line);border-radius:7px;
   padding:7px 11px;font-size:1.5rem;line-height:1.5;
   box-shadow:0 2px 8px rgba(0,0,0,.14);pointer-events:none;
@@ -1850,14 +1893,15 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
 .btnme[aria-busy=true]{opacity:.6;pointer-events:none}
 .btnme svg{width:13px;height:13px;flex:none}
 
-/* 사고지점 조작 줄 — 지도 아래에 붙여 둔다 */
-.mapacc{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;
-  gap:8px;flex-wrap:wrap;padding:7px 10px;background:var(--glass);
-  border-top:1px solid var(--line)}
+/* 지도에 겹쳐 그릴 것 켜고 끄기 — 지도 오른쪽 아래에 작게 붙여 둔다.
+   사고지점 정하기(찍기·내 위치·좌표)는 위 조건 줄(.mb-acc)로 옮겼습니다. */
+.mapacc{position:absolute;right:0;bottom:0;display:flex;align-items:center;
+  gap:8px;flex-wrap:wrap;padding:6px 10px;background:var(--glass);
+  border-top:1px solid var(--line);border-left:1px solid var(--line);
+  border-radius:var(--r) 0 0 0}
 .mapacc label{display:flex;align-items:center;gap:5px;font-size:1.3rem;
   font-weight:700;color:var(--ink2)}
-.mapacc input[type=text]{width:104px;padding:4px 8px;font-size:1.5rem}
-.mapacc .mapchks{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mapacc .mapchks{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .mapacc .mapchk{font-weight:600}
 .mapacc .mapchk input{width:15px;height:15px;accent-color:var(--brand)}
 
@@ -1871,8 +1915,6 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
    켜지고, 마우스를 쓰는 노트북·데스크톱에서는 켜지지 않습니다. */
 @media (pointer: coarse) {
   .mapacc{gap:6px;padding:6px 8px}
-  .mapacc .sm,.mapacc .btnme{min-height:40px;padding:0 12px}
-  .mapacc input[type=text]{min-height:38px;padding:6px 9px}
   .mapacc .mapchk{min-height:40px;padding:0 4px}
   .mapacc .mapchk input{width:20px;height:20px}
   .mapctl button{width:40px;height:40px;font-size:1.9rem}
@@ -1987,20 +2029,18 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
   .ms-list{overflow:visible}
   .ms-find-row{flex-wrap:wrap}
   .mb-lyr{margin-left:0}
-  .mb-f select,.mb-f input[type=text]{min-width:120px}
-  .mb-addr input[type=text]{min-width:150px}
+  .mb-f select,.mb-f input[type=text]{width:auto;min-width:120px}
+  .mb-addr input[type=text]{width:100%;min-width:150px}
   .windbtn{min-width:0}
-  /* 좁은 화면에서는 사고지점 줄이 지도를 많이 가리지 않게 촘촘히 */
+  /* 좁은 화면에서는 겹쳐 그리기 줄이 지도를 많이 가리지 않게 촘촘히 */
   .mapacc{gap:5px;padding:5px 8px;font-size:1.3rem}
   .mapacc label{gap:3px}
-  .mapacc input[type=text]{width:84px;padding:3px 6px;font-size:1.5rem}
-  .mapacc .sm{padding:3px 9px}
-  .mapscale{bottom:64px}
+  .mapscale{bottom:10px}
   /* 좁은 화면에서는 지도가 이미 작습니다 — 3곳 카드가 지도를 절반 넘게
      가리지 않도록 폭을 줄이고, 안내 문구는 뺍니다(목록에도 같은 값이 있음). */
   .mnear{width:min(224px,calc(100% - 62px));padding:6px 8px 7px;font-size:1.3rem}
   .mnear .mnear-note{display:none}
-  .mapaddr{bottom:92px}
+  .mapaddr{bottom:36px}
 
   /* ── 요약 줄 — 세로로 쌓이지 않게 ─────────────────────────
      조각이 늘어날수록 줄바꿈으로 아래로 자랐습니다. ③은 종류 칩에 도착시간이
@@ -2117,10 +2157,9 @@ body.resapp:not(.has-acc) .mbar-warn,
 body.resapp:not(.has-acc) .mrad,
 body.resapp:not(.has-acc) .msum,
 body.resapp:not(.has-acc) .mmain{display:none!important}
-/* 시작 화면에서 주소를 치는 동안에는 조건 줄만 잠깐 드러납니다 —
-   검색 결과 목록이 그 아래에 붙어 뜨기 때문입니다. */
-body.resapp:not(.has-acc).start-search .mbar{display:block!important;
-  opacity:0;height:0;overflow:hidden;padding:0;border:0}
+/* (예전에 있던 .start-search 규칙은 없앴습니다 — 시작 화면에서 주소를 칠 때
+   결과 목록이 조건 줄 아래에 떠서, 조건 줄을 투명하게 드러내야 했습니다.
+   지금은 목록이 시작 화면의 검색칸 바로 아래에 붙으므로 필요 없습니다.) */
 
 .rs-in{width:100%;max-width:660px;text-align:center}
 .rstart h2{margin:0 0 8px;font-size:3.2rem;font-weight:800;letter-spacing:-.02em}
@@ -2346,6 +2385,13 @@ body.resapp:not(.has-acc).start-search .mbar{display:block!important;
   color:var(--warn);font-size:1.5rem;line-height:1.55;flex:none;animation:slideDown .26s var(--ease) both}
 .shmap-warn a{color:var(--brand-d);font-weight:700}
 
+/* 어림잡은 사고지점 알림 — 배경지도 경고(.shmap-warn)와 색을 같이 쓰지 않습니다.
+   둘이 동시에 뜰 수 있어, 같은 색이면 한 덩어리로 읽힙니다. */
+.shmap-guess{padding:8px 14px;background:var(--err-l);
+  border-bottom:1px solid var(--err-b);color:var(--err);
+  font-size:1.5rem;line-height:1.55;flex:none;animation:slideDown .26s var(--ease) both}
+.shmap-guess b{font-weight:700}
+
 /* 영향 참고 반경 줄 — 사고지점을 찍으면 나타난다 */
 .shmap-rad{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
   padding:8px 14px;background:var(--brand-l);border-bottom:1px solid var(--brand-b);flex:none;
@@ -2371,6 +2417,10 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:1.5rem;flex:no
 .shmap-svg.crosshair{cursor:crosshair}
 .shmap-svg .ring{fill:rgba(179,31,31,.07);stroke:var(--err);
   stroke-width:1.6px;stroke-dasharray:6 4}
+/* 사고지점 표시는 그림일 뿐입니다 — 그 아래 대피장소 마커를 가려 못 누르게
+   되면 안 됩니다(사고지점이 대피장소와 겹쳐 있으면 실제로 그랬습니다). */
+.shmap-svg .acc,.shmap-svg .accdot,.shmap-svg text.acclbl,
+.shmap-svg .ring{pointer-events:none}
 .shmap-svg .acc{stroke:var(--err);stroke-width:2.4px}
 .shmap-svg .accdot{fill:none;stroke:var(--err);stroke-width:1.6px}
 .shmap-svg text.acclbl{fill:var(--err);text-anchor:middle;font-weight:700;
@@ -2649,6 +2699,24 @@ window.addEventListener("storage", function (e) {
       주소·장소·장비 검색
       <input type="text" id="mAddrQ" placeholder="예) 김천시, 굴착기, 흡착포" autocomplete="off">
     </label>
+
+    <!-- 사고지점 정하기 — ② 대피장소 지도와 같은 자리에 둡니다. 예전에는
+         지도 아래쪽 반투명 띠에 있어 지도에 가려 못 찾는 일이 있었습니다. -->
+    <div class="mb-f mb-acc" role="group" aria-label="사고지점 정하기">
+      사고지점
+      <span class="mb-accrow">
+        <button id="btnAcc" type="button" class="sm">사고지점 찍기</button>
+        <button id="btnMe" type="button" class="sm btnme" title="이 기기의 위치를 지도에 표시합니다">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.4"/><circle cx="12" cy="12" r="8.4"/>
+            <path d="M12 1.4v3M12 19.6v3M1.4 12h3M19.6 12h3"/>
+          </svg>내 위치</button>
+        <label class="mb-ll">위도<input type="text" id="acLat" inputmode="decimal"></label>
+        <label class="mb-ll">경도<input type="text" id="acLon" inputmode="decimal"></label>
+        <button id="btnAccClear" type="button" class="sm" title="사고지점 지우기">×</button>
+      </span>
+    </div>
     <!-- 좁은 화면에서는 아래 조건들이 세로로 쌓여 지도를 밀어냅니다.
          주소 검색만 남기고 접어 두었다가 이 단추로 펴 봅니다(넓은 화면에서는
          접을 이유가 없으므로 이 단추가 보이지 않습니다). -->
@@ -2730,17 +2798,10 @@ window.addEventListener("storage", function (e) {
     <div class="mapaddr" id="mAddr" hidden></div>
     <div class="mtoast noprint" id="mToast" hidden></div>
 
+    <!-- 지도에 무엇을 겹쳐 그릴지 — 사고지점 정하기는 위 조건 줄로 옮겼습니다
+         (② 대피장소 지도와 같은 자리). 이 두 개는 '지금 보고 있는 그림'을
+         켜고 끄는 것이라 지도에 남깁니다. -->
     <div class="mapacc noprint">
-      <button id="btnAcc" type="button" class="sm">사고지점 찍기</button>
-      <button id="btnMe" type="button" class="sm btnme" title="이 기기의 위치를 지도에 표시합니다">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="3.4"/><circle cx="12" cy="12" r="8.4"/>
-          <path d="M12 1.4v3M12 19.6v3M1.4 12h3M19.6 12h3"/>
-        </svg>내 위치</button>
-      <label>위도<input type="text" id="acLat" inputmode="decimal"></label>
-      <label>경도<input type="text" id="acLon" inputmode="decimal"></label>
-      <button id="btnAccClear" type="button" class="sm" title="사고지점 지우기">×</button>
       <span class="mapchks">
         <label class="mapchk"><input type="checkbox" id="cRings" checked>거리 눈금</label>
       </span>
@@ -4160,6 +4221,71 @@ function hasTemp() {
   return !!(window.TEMPSHELTERS && Object.keys(window.TEMPSHELTERS).length);
 }
 
+/* ── 이름 → 대략 위치 ─────────────────────────────────────────
+   "김천시 신음동" 처럼 이름만 아는 곳을 지도 위 한 점으로 옮깁니다. 인터넷
+   지오코딩이 아니라 **도구 안에 있는 자료로 어림잡는 것**입니다. 그래서
+   돌려주는 값에는 항상 `어림:true` 와 `근거`(어떻게 잡았는지)가 붙습니다 —
+   부르는 쪽이 화면에 그 사실을 적을 수 있어야 하기 때문입니다.
+
+   행정경계는 시·군·구까지만 있어 읍·면·동 경계를 모릅니다. 그래서 읍·면·동은
+   그 안에 있는 대피장소들의 좌표 평균으로 잡습니다. 몇백 미터 단위로 틀릴 수
+   있으니 사고지점으로 그대로 쓰지 말고 "그 근처로 지도를 옮기는" 용도로만
+   쓰십시오. */
+function boundaryCenter(sido, sgg) {
+  if (typeof window.BOUNDARIES === "undefined") return null;
+  var m = 2, M = -1, n = 2, N = -1, any = false;
+  window.BOUNDARIES.forEach(function (f) {
+    /* sido 를 안 주면 이름만 맞으면 됩니다 — 사용자가 손으로 시·군·구만
+       적었을 때(어느 시·도인지 모를 때)도 자리를 찾을 수 있게. */
+    if ((sido && f.s !== sido) || !matchSgg(f.n, sgg)) return;
+    f.r.forEach(function (ring) {
+      var X = 0, Y = 0;
+      for (var i = 0; i < ring.length; i += 2) {
+        if (i === 0) { X = ring[0]; Y = ring[1]; } else { X += ring[i]; Y += ring[i + 1]; }
+        var x = wx(X / window.BOUNDARY_SCALE), y = wy(Y / window.BOUNDARY_SCALE);
+        m = Math.min(m, x); M = Math.max(M, x); n = Math.min(n, y); N = Math.max(N, y); any = true;
+      }
+    });
+  });
+  return any ? { lat: wyInv((n + N) / 2), lon: wxInv((m + M) / 2) } : null;
+}
+
+/* 주소 문자열에 이 읍·면·동 이름이 들어 있는가 — 공백을 지우고 견줍니다
+   ("개령면 감문로 277(신룡리)" 안의 "개령면"·"신룡리") */
+function addrHas(addr, emd) {
+  var a = String(addr || "").replace(/\s+/g, "");
+  var e = String(emd || "").replace(/\s+/g, "");
+  return !!e && a.indexOf(e) >= 0;
+}
+
+function avgOf(rows, 근거) {
+  var sx = 0, sy = 0;
+  rows.forEach(function (r) { sx += r.lon; sy += r.lat; });
+  return { lat: sy / rows.length, lon: sx / rows.length, 어림: true, 근거: 근거 };
+}
+
+function placeAt(sgg, emd) {
+  var sg = String(sgg || "").trim(), em = String(emd || "").trim();
+  if (!sg) return null;
+  var sido = findSido(sg) || "";
+  var rows = shelters(sido, sg);
+
+  if (em && rows.length) {
+    var hit = rows.filter(function (r) { return addrHas(r.addr, em); });
+    if (hit.length) {
+      return avgOf(hit, em + " 안의 대피장소 " + hit.length + "곳의 가운데");
+    }
+  }
+  var c = boundaryCenter(sido, sg);
+  if (c) {
+    c.어림 = true;
+    c.근거 = sg + " 행정경계의 가운데" + (em ? " (" + em + " 은 자료로 좁히지 못했습니다)" : "");
+    return c;
+  }
+  if (rows.length) return avgOf(rows, sg + " 관내 대피장소 " + rows.length + "곳의 가운데");
+  return null;
+}
+
 /* 시·군·구 이름만 알 때 시·도 찾기 (동명 시·군·구가 있으면 첫 번째) */
 function findSido(sgg) {
   var S = window.SHELTERS || {}, hit = null;
@@ -4398,6 +4524,8 @@ window.MAPCORE = {
   /* 데이터 */
   shelters: shelters, tempShelters: tempShelters, hasTemp: hasTemp,
   findSido: findSido, extLinks: extLinks,
+  /* 이름 → 대략 위치 (돌려주는 값에 어림·근거가 붙습니다) */
+  boundaryCenter: boundaryCenter, placeAt: placeAt,
   /* 배경지도 타일 */
   tiles: {
     cfg: cfg,
@@ -5167,25 +5295,13 @@ function backToStart() {
 }
 
 function initStart() {
-  /* 1. 주소·사업장 이름 — 위 조건 줄의 검색과 같은 창을 씁니다.
-        여기에 치면 그쪽으로 옮겨 붙여 같은 결과 목록을 띄웁니다. */
-  var q = $("#startQ"), main = $("#mAddrQ");
-  if (q && main) {
-    q.oninput = function () {
-      main.value = q.value;
-      /* 결과 목록은 조건 줄 아래에 뜨므로, 시작 화면에서도 보이게
-         조건 줄을 잠깐 드러냅니다(사고지점을 고르면 정상으로 돌아갑니다) */
-      document.body.classList.add("start-search");
-      main.dispatchEvent(new Event("input"));
-    };
-    q.onkeydown = function (e) {
-      if (e.key === "ArrowDown" || e.key === "Enter") {
-        main.focus();
-        main.dispatchEvent(new KeyboardEvent("keydown", { key: e.key, bubbles: true }));
-        e.preventDefault();
-      }
-    };
-  }
+  /* 1. 주소·사업장 이름 — 시작 화면의 검색칸은 bindAddrSearch 가 조건 줄
+        칸과 똑같이 붙여 둡니다. 결과 목록이 **이 칸 바로 아래**에 뜨므로
+        몇 글자만 쳐도 눌러서 고를 수 있습니다.
+        예전에는 조건 줄 칸으로 글자를 옮겨 붙이고 조건 줄을 잠깐 드러내
+        목록을 띄웠는데, 목록이 시작 화면과 떨어진 자리에 떠 무엇을 눌러야
+        하는지 알기 어려웠습니다. */
+
   /* 2. 지도에서 찍기 — 지도를 보여 주고 바로 '찍기' 모드로 */
   var pick = $("#startPick");
   if (pick) pick.onclick = function () {
@@ -5621,7 +5737,9 @@ function setMode(m) {
   st.mode = m;
   var b = $("#btnAcc");
   b.setAttribute("aria-pressed", String(m === "acc"));
-  b.textContent = m === "acc" ? "지도를 누르세요" : (st.acc ? "사고지점 다시 찍기" : "사고지점 찍기");
+  /* 단추 위 이름표가 이미 "사고지점"이라고 말하므로 단추에서는 뺍니다 —
+     좁은 조건 줄에서 같은 말이 두 번 들어가면 다른 조건을 밀어냅니다. */
+  b.textContent = m === "acc" ? "지도를 누르세요" : (st.acc ? "다시 찍기" : "지도에서 찍기");
   SVG.classList.toggle("crosshair", m === "acc");
 }
 
@@ -5648,7 +5766,6 @@ function setAcc(lat, lon, jump) {
   recompute();
   syncSort();                      // 범위 칸이 여기서 열린다 (사고지점이 있어야 열림)
   if (wide) $("#mScope").value = "20000";
-  document.body.classList.remove("start-search");
   lookupAccAddr();                 // 여기가 어느 시·군·구 어느 읍·면·동인가
   renderStart();
   renderSummary(); renderNear(); renderList(); renderLegend(); showAddr();
@@ -5735,51 +5852,46 @@ function moveToAcc(jump) {
    않습니다 — 근사한 위치(읍·면·동 평균 좌표 등)를 사고지점으로 오인하지
    않도록, 옮겨간 자리에서 정확한 곳을 직접 눌러 찍게 합니다. */
 var PLACE_IDX = null;
-function boundaryCenter(sido, sgg) {
-  if (typeof window.BOUNDARIES === "undefined") return null;
-  var m = 2, M = -1, n = 2, N = -1, any = false;
-  window.BOUNDARIES.forEach(function (f) {
-    if (f.s !== sido || !MC.matchSgg(f.n, sgg)) return;
-    f.r.forEach(function (ring) {
-      var X = 0, Y = 0;
-      for (var i = 0; i < ring.length; i += 2) {
-        if (i === 0) { X = ring[0]; Y = ring[1]; } else { X += ring[i]; Y += ring[i + 1]; }
-        var x = wx(X / window.BOUNDARY_SCALE), y = wy(Y / window.BOUNDARY_SCALE);
-        m = Math.min(m, x); M = Math.max(M, x); n = Math.min(n, y); N = Math.max(N, y); any = true;
-      }
-    });
-  });
-  return any ? { lat: wyInv((n + N) / 2), lon: wxInv((m + M) / 2) } : null;
-}
+/* 시·군·구 경계의 가운데 — 공용(assets/mapcore.js). ①③ 도 같은 값을 씁니다. */
+var boundaryCenter = MC.boundaryCenter;
+/* ② 대피장소 지도에서 그대로 옮겨 온 코드가 **줄 배열**(대피장소 원자료)을
+   훑도록 되어 있었는데, ③ 의 resTree() 는 "어느 시·도에 어느 시·군·구가
+   있는가"만 담은 표(값이 1)입니다. 그래서 rows.forEach 에서 매 글자마다
+   오류가 나 **도구 안 검색이 통째로 죽어 있었습니다** — 인터넷 결과만
+   나오고 사업장 이름으로는 아무것도 안 나왔습니다.
+   지금은 allRes() 가 만들어 둔 자원 줄(객체)을 직접 훑습니다. */
 function placeIndex() {
   if (PLACE_IDX) return PLACE_IDX;
-  var out = [], dong = {};
-  var S = resTree();
-  Object.keys(S).forEach(function (sido) {
-    Object.keys(S[sido]).forEach(function (sgg) {
-      var rows = S[sido][sgg], any = false;
-      rows.forEach(function (r) {
-        if (r[5] == null || r[6] == null) return;
-        any = true;
-        out.push({ label: r[0] + " · " + sgg + " " + (r[2] || ""), lat: r[5], lon: r[6],
-                   sido: sido, sgg: sgg, kind: "place" });
-        /* "개령면 감문로 277(신룡리)" → "개령면", "신룡리" */
-        var addr = String(r[2] || "");
-        var m1 = /^([가-힣0-9]+(?:읍|면|동))\s/.exec(addr);
-        var m2 = /\(([가-힣0-9]+(?:동|리|가))\)/.exec(addr);
-        [m1 && m1[1], m2 && m2[1]].forEach(function (nm) {
-          if (!nm) return;
-          var key = sido + "|" + sgg + "|" + nm;
-          var d = dong[key] || (dong[key] = { sido: sido, sgg: sgg, nm: nm, sx: 0, sy: 0, n: 0 });
-          d.sx += r[6]; d.sy += r[5]; d.n++;
-        });
-      });
-      if (any) {
-        var c = boundaryCenter(sido, sgg);
-        out.push({ label: sido + " " + sgg, lat: c ? c.lat : rows[0][5], lon: c ? c.lon : rows[0][6],
-                   sido: sido, sgg: sgg, kind: "sgg" });
-      }
+  var out = [], dong = {}, sggs = {};
+  allRes().forEach(function (s) {
+    if (s.lat == null || s.lon == null) return;
+    /* 보이는 이름(label)과 견주는 글자(find)를 따로 둡니다. 조건 줄 안내가
+       "보유 장비 이름으로도 찾습니다(굴착기·흡착포 등)"라고 말하므로, 보유
+       내용(c)·운영기관·자원 종류까지 견줍니다. 그것들을 label 에 다 넣으면
+       한 줄이 너무 길어 무엇을 고르는지 알 수 없습니다. */
+    out.push({ label: s.name + " · " + s.sgg + " " + (s.addr || ""),
+               find: [s.name, s.sgg, s.addr, s.agency, s.kind, s.c].join(" "),
+               en: s.kind,
+               lat: s.lat, lon: s.lon, sido: s.sido, sgg: s.sgg, kind: "place" });
+
+    sggs[s.sido + "|" + s.sgg] = { sido: s.sido, sgg: s.sgg, lat: s.lat, lon: s.lon };
+
+    /* "개령면 감문로 277(신룡리)" → "개령면", "신룡리" */
+    var addr = String(s.addr || "");
+    var m1 = /(?:^|\s)([가-힣0-9]+(?:읍|면|동))(?:\s|$)/.exec(addr);
+    var m2 = /\(([가-힣0-9]+(?:동|리|가))\)/.exec(addr);
+    [m1 && m1[1], m2 && m2[1]].forEach(function (nm) {
+      if (!nm) return;
+      var key = s.sido + "|" + s.sgg + "|" + nm;
+      var d = dong[key] || (dong[key] = { sido: s.sido, sgg: s.sgg, nm: nm, sx: 0, sy: 0, n: 0 });
+      d.sx += s.lon; d.sy += s.lat; d.n++;
     });
+  });
+  Object.keys(sggs).forEach(function (key) {
+    var g = sggs[key];
+    var c = boundaryCenter(g.sido, g.sgg);
+    out.push({ label: g.sido + " " + g.sgg, lat: c ? c.lat : g.lat, lon: c ? c.lon : g.lon,
+               sido: g.sido, sgg: g.sgg, kind: "sgg" });
   });
   Object.keys(dong).forEach(function (key) {
     var d = dong[key];
@@ -5790,15 +5902,20 @@ function placeIndex() {
   return out;
 }
 var KIND_ORDER = { sgg: 0, dong: 1, place: 2 };
+/* 견줄 글자 — 없으면 보이는 이름을 그대로 씁니다(시·군·구·읍·면·동 줄) */
+function findText(p) { return String(p.find || p.label).replace(/\s+/g, ""); }
 function searchPlaces(q) {
   var nq = String(q || "").trim().replace(/\s+/g, "");
   if (nq.length < 1) return [];
   var rows = placeIndex().filter(function (p) {
-    return p.label.replace(/\s+/g, "").indexOf(nq) >= 0;
+    return findText(p).indexOf(nq) >= 0;
   });
   rows.sort(function (a, b) {
+    /* 이름이 그 글자로 시작하는 것을 먼저 — "여수"를 쳤을 때 보유 내용에
+       '여수'가 섞인 먼 곳보다 여수시 것이 위에 와야 합니다. */
     var an = a.label.replace(/\s+/g, ""), bn = b.label.replace(/\s+/g, "");
-    var ra = an.indexOf(nq) === 0 ? 0 : 1, rb = bn.indexOf(nq) === 0 ? 0 : 1;
+    var ra = an.indexOf(nq) === 0 ? 0 : (an.indexOf(nq) >= 0 ? 1 : 2);
+    var rb = bn.indexOf(nq) === 0 ? 0 : (bn.indexOf(nq) >= 0 ? 1 : 2);
     return ra - rb || KIND_ORDER[a.kind] - KIND_ORDER[b.kind] || an.length - bn.length;
   });
   return rows.slice(0, 30);
@@ -5839,8 +5956,15 @@ function askOnline(q) {
   }, 350);
 }
 
-function renderAddrPop(q) {
+/* 결과 목록을 어느 입력칸 아래에 붙일까 — 검색칸이 두 곳(시작 화면의 큰 칸과
+   조건 줄의 칸)이라, 지금 치고 있는 칸 밑에 붙여야 합니다. 예전에는 늘 조건 줄
+   칸에 붙였는데, 시작 화면에서는 그 칸이 감춰져 있어 목록이 엉뚱한 자리에
+   떴습니다. */
+var addrAnchor = null;
+
+function renderAddrPop(q, anchor) {
   addrQ = q;
+  if (anchor) addrAnchor = anchor;
   askOnline(q);
   drawAddrPop();
 }
@@ -5858,7 +5982,9 @@ function drawAddrPop() {
     return '<div class="mpk-row" role="option" data-i="' + i + '">'
       + '<span class="nm">' + esc(p.label)
       + (p.sub ? ' <i class="sub">' + esc(p.sub) + "</i>" : "") + "</span>"
-      + '<span class="en">' + esc(KIND_LABEL[p.kind] || "") + "</span></div>";
+      /* 오른쪽 꼬리표 — 자원이면 그 종류(해경 방제비축기지 등)를 적습니다.
+         무엇을 고르는지가 이름만으로는 안 보일 때가 많습니다. */
+      + '<span class="en">' + esc(p.en || KIND_LABEL[p.kind] || "") + "</span></div>";
   };
 
   if (!addrRows.length && !busy) {
@@ -5883,7 +6009,7 @@ function drawAddrPop() {
     });
   }
   pop.hidden = false;
-  placePopover(pop, $("#mAddrQ"), true);
+  placePopover(pop, addrAnchor || $("#mAddrQ"), true);
 }
 function markAddr(i) {
   var els = $$(".mpk-row", $("#addrPop"));
@@ -5899,7 +6025,10 @@ function closeAddrPop() { $("#addrPop").hidden = true; addrSel = -1; }
    읍면동 평균)를 그대로 사고지점으로 오인하지 않도록 마지막 클릭은 사용자가 한다 */
 function pickAddr(p) {
   closeAddrPop();
+  /* 검색칸이 두 곳이라 둘 다 같은 값으로 맞춥니다 — 시작 화면에서 고른 뒤
+     조건 줄을 보면 빈 칸이 있어 검색이 안 된 것처럼 보입니다. */
   $("#mAddrQ").value = p.label;
+  var sq = $("#startQ"); if (sq) sq.value = p.label;
 
   /* 인터넷에서 찾은 사업장·주소는 좌표가 그 건물의 것이라 정확합니다.
      한 번 더 지도를 누르게 할 이유가 없으므로 바로 사고지점으로 찍습니다.
@@ -5932,10 +6061,15 @@ function placePopover(pop, anchor, growWidth) {
   pop.style.top = Math.round(r.bottom + 6) + "px";
   if (growWidth) pop.style.width = w + "px";
 }
-function bindAddrSearch() {
-  var input = $("#mAddrQ"), pop = $("#addrPop");
-  input.oninput = function () { renderAddrPop(input.value); };
-  input.onfocus = function () { if (input.value.trim()) renderAddrPop(input.value); };
+/* 검색칸 하나를 미리보기 목록에 잇는다. 시작 화면 칸과 조건 줄 칸 둘 다
+   이 함수로 붙이므로, 어느 쪽에 쳐도 같은 목록이 그 칸 아래에 뜬다. */
+function bindOneSearch(input) {
+  if (!input) return;
+  var pop = $("#addrPop");
+  input.oninput = function () { renderAddrPop(input.value, input); };
+  input.onfocus = function () {
+    if (input.value.trim()) renderAddrPop(input.value, input);
+  };
   input.onkeydown = function (e) {
     if (pop.hidden) return;
     if (e.key === "ArrowDown") { e.preventDefault(); markAddr(Math.min(addrSel + 1, addrRows.length - 1)); }
@@ -5943,10 +6077,25 @@ function bindAddrSearch() {
     else if (e.key === "Enter") { if (addrSel >= 0) { e.preventDefault(); pickAddr(addrRows[addrSel]); } }
     else if (e.key === "Escape") { closeAddrPop(); }
   };
+}
+
+function bindAddrSearch() {
+  var pop = $("#addrPop");
+  var boxes = [$("#mAddrQ"), $("#startQ")].filter(Boolean);
+  boxes.forEach(bindOneSearch);
   document.addEventListener("mousedown", function (e) {
-    if (!pop.hidden && e.target !== input && !pop.contains(e.target)) closeAddrPop();
+    if (pop.hidden) return;
+    var onInput = boxes.some(function (b) { return e.target === b; });
+    if (!onInput && !pop.contains(e.target)) closeAddrPop();
   });
-  window.addEventListener("resize", function () { if (!pop.hidden) placePopover(pop, input, true); });
+  window.addEventListener("resize", function () {
+    if (!pop.hidden) placePopover(pop, addrAnchor || boxes[0], true);
+  });
+  /* 화면을 굴리면 붙어 있던 칸이 움직이므로 목록도 따라가야 합니다 —
+     안 그러면 목록만 허공에 남습니다. */
+  window.addEventListener("scroll", function () {
+    if (!pop.hidden) placePopover(pop, addrAnchor || boxes[0], true);
+  }, true);
 }
 
 function clearAcc() {
@@ -6270,7 +6419,7 @@ function init() {
     st.needs = {}; st.mob = {};
     KINDS.forEach(function (k) { st.kinds[k.id] = true; });
     st.begun = false;
-    document.body.classList.remove("has-acc", "start-search");
+    document.body.classList.remove("has-acc");
     var box = $("#rbMore");
     if (box) { box.hidden = true; $("#rbToggle").setAttribute("aria-expanded", "false"); }
     var sq = $("#startQ"); if (sq) sq.value = "";

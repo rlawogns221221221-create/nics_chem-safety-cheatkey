@@ -19,6 +19,35 @@ chk(!(await P.isHidden('#rStart')), '들어오면 시작 화면 하나만 보인
 chk(await P.isHidden('.mmain'), '사고지점 전에는 지도·목록을 두지 않는다');
 chk(await P.isHidden('.mbar'), '사고지점 전에는 조건 줄도 없다');
 chk((await P.$$('#rStart .rs-way')).length===3, '고를 것이 셋뿐');
+
+/* ── 시작 화면 검색 미리보기 ────────────────────────────────────
+   몇 글자만 쳐도 **그 칸 바로 아래**에 후보가 떠서 눌러 고를 수 있어야 한다.
+   예전에는 조건 줄 칸으로 글자를 옮겨 붙여 목록이 딴 자리에 떴고, 게다가
+   도구 안 색인이 대피장소 줄 구조를 훑도록 되어 있어(resTree 는 값이 1인 표)
+   글자마다 오류가 나 **도구 안 검색이 통째로 죽어 있었다.** */
+await P.fill('#startQ', '김천'); await P.waitForTimeout(700);
+const sp = await P.evaluate(() => {
+  const p = document.getElementById('addrPop'), q = document.getElementById('startQ');
+  const pr = p.getBoundingClientRect(), qr = q.getBoundingClientRect();
+  return { hidden: p.hidden, rows: p.querySelectorAll('.mpk-row').length,
+           dTop: Math.round(pr.top - qr.bottom), dLeft: Math.round(pr.left - qr.left) };
+});
+chk(!sp.hidden && sp.rows > 0, `시작 화면에서 후보가 뜬다 (${sp.rows}건)`);
+chk(Math.abs(sp.dTop) < 24 && Math.abs(sp.dLeft) < 8,
+  `후보 목록이 검색칸 바로 아래에 붙는다 (아래 ${sp.dTop}px · 왼쪽 ${sp.dLeft}px)`);
+/* 사업장 이름·보유 장비·운영기관으로도 찾아야 한다 — 조건 줄 안내가 그렇게
+   적혀 있다("굴착기·흡착포 등"). */
+for (const [q, want] of [['해경', /방제비축기지/], ['흡착', /지자체|폐기물|업체|과$|과 ·/],
+                         ['화공', /화공/]]) {
+  await P.fill('#startQ', q); await P.waitForTimeout(500);
+  const first = await P.evaluate(() => {
+    const r = document.querySelector('#addrPop .mpk-row');
+    return r ? r.textContent.replace(/\s+/g, ' ') : '';
+  });
+  chk(want.test(first), `‘${q}’ 로 찾힌다 (${first.slice(0, 46) || '없음'})`);
+}
+await P.fill('#startQ', ''); await P.keyboard.press('Escape'); await P.waitForTimeout(300);
+
 await P.click('#startPick'); await P.waitForTimeout(900);
 chk(!(await P.isHidden('.mmain')), '"지도에서 찍기"를 누르면 지도가 나온다');
 chk(await P.evaluate(()=>document.querySelector('.mbar').classList.contains('folded')),

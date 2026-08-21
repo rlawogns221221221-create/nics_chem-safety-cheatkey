@@ -50,7 +50,10 @@ function blankState() {
   return { stage: null, cat: {}, type: "누출", data: {},
            unknownMat: false, use71: false, openGrp: {},
            /* step — 지금 몇 걸음째인가(걸음 id). 새로 고쳐도 그 자리에서 잇는다 */
-           step: null };
+           step: null,
+           /* acc — ② 지도에서 찍어 넘어온 사고지점 좌표. '지도에서 찾기'를
+              그 자리에서 열려고 들고 있습니다(문안에는 쓰지 않습니다). */
+           acc: null };
 }
 var state = blankState();
 
@@ -114,7 +117,33 @@ function takeSeed() {
   });
   if (!filled.length) return;
   seedInfo = { keys: filled, acc: o.acc || null, 어림: !!o.어림 };
+  /* 좌표는 state 에 남긴다 — 6걸음(대피장소)에서 '지도에서 찾기'를 누를 때
+     이 자리에서 열어 주려는 것이다. 알림 띠를 닫거나 새로고침해도 남아야
+     하므로 seedInfo 가 아니라 state 에 둔다. */
+  if (o.acc && o.acc.lat != null && o.acc.lon != null) {
+    state.acc = { lat: +o.acc.lat, lon: +o.acc.lon, 어림: !!o.어림,
+                  근거: "대피장소 지도에서 찍은 사고지점" };
+  }
   save();
+}
+
+/* '지도에서 찾기' 를 열 때 어느 자리를 보여 줄까.
+   ② 지도에서 찍어 넘어온 좌표가 가장 정확하다. 없으면 앞 걸음에 적은
+   시·군·구·읍·면·동으로 어림잡는다(assets/mapcore.js 의 placeAt).
+   둘 다 없으면 null — 그러면 지금까지처럼 시·군·구 관내를 보여 준다. */
+function accPoint() {
+  var sgg = String(state.data["시군"] || "").trim();
+  var emd = String(state.data["읍면동"] || "").trim();
+
+  /* 지도에서 들고 온 좌표는 그 사이 사용자가 시·군·구를 다른 곳으로 고쳤을
+     수 있다. 그때는 옛 좌표를 쓰면 엉뚱한 데가 열리므로 버린다. */
+  var a = state.acc;
+  if (a && a.lat != null && a.lon != null) {
+    var at = window.MAPCORE && MAPCORE.sggAt ? MAPCORE.sggAt(a.lat, a.lon) : null;
+    if (!sgg || !at || MAPCORE.matchSgg(at.sgg, sgg)) return a;
+  }
+  if (!sgg || !window.MAPCORE || !MAPCORE.placeAt) return null;
+  return MAPCORE.placeAt(sgg, emd);
 }
 
 /* 무엇이 어디서 넘어왔는지 화면에 적는다 */
@@ -185,6 +214,23 @@ function pickJosa(word, pair) {
 var PH = /\{(~?)([^:}]+)(?::([^}]*))?\}/g;
 var VAR = /\{@([^}]+)\}/g;
 
+/* ── 있을 때만 넣는 구절 ──────────────────────────────────────
+     [[집결지:…]]    집결지에 값이 있을 때만 이 구절을 쓴다
+     [[!집결지:…]]   집결지가 비었을 때만 이 구절을 쓴다
+
+   왜 이런 것이 필요한가 — 집결지를 두지 않는 지자체가 있습니다. 그때
+   "대피소[○○]나 집결지[]으로" 같은 반쪽 문장이 나가면 안 되고, 빈 칸이라고
+   문안을 아예 안 만들어 버려도 안 됩니다. 그래서 **두 문장을 템플릿에 그대로
+   써 두고** 값이 있는 쪽을 씁니다 — 기계가 문장을 조립하는 것이 아니라,
+   사람이 미리 적어 둔 두 문장 중 하나가 그대로 나갑니다. */
+var CHUNK = /\[\[(!?)([^:\]]+):([\s\S]*?)\]\]/g;
+function applyChunks(t) {
+  return String(t).replace(CHUNK, function (m, neg, k, body) {
+    var has = !!String(val(k) == null ? "" : val(k)).trim();
+    return (neg ? !has : has) ? body : "";
+  });
+}
+
 /* {@상황} → 템플릿의 변형표에서 현재 사고유형에 맞는 문구로 교체 */
 function applyVariants(t, tpl) {
   return String(t).replace(VAR, function (m, key) {
@@ -214,8 +260,8 @@ function normalize(s) {
 /* 긴급재난문자: 글자수 상한에 맞춰 낮은 우선순위부터 축약 */
 function buildCbs(tpl, limit) {
   var segs = tpl.seg.map(function (s) {
-    return { t: fill(applyVariants(s[0], tpl)), d: s[1], n: s[2],
-             alt: s[3] ? fill(s[3]) : null, on: true, alted: false };
+    return { t: fill(applyChunks(applyVariants(s[0], tpl))), d: s[1], n: s[2],
+             alt: s[3] ? fill(applyChunks(s[3])) : null, on: true, alted: false };
   });
   var render = function () {
     return normalize(segs.filter(function (s) { return s.on; })
@@ -249,7 +295,8 @@ function build(id) {
   var tpl = TEMPLATES[id];
   var limit = VERSION.글자수[tpl.channel] || 0;
   var r = tpl.seg ? buildCbs(tpl, limit)
-                  : { text: normalize(fill(applyVariants(tpl.text, tpl))), removed: [], over: false };
+                  : { text: normalize(fill(applyChunks(applyVariants(tpl.text, tpl)))),
+                      removed: [], over: false };
   r.tpl = tpl; r.id = id; r.limit = limit; r.len = count(r.text);
   return r;
 }
@@ -343,9 +390,23 @@ function labelOf(k) {
   return f ? fieldLabel(f) : k;
 }
 
+/* 비어도 되는 항목인가 — FIELDS 에서 req 를 두지 않은 것.
+   그 항목을 말하는 구절은 [[키:…]] 로 문안에서 빠지므로 반쪽 문장이 되지 않는다. */
+var OPTIONAL_K = null;
+function isOptionalKey(k) {
+  if (!OPTIONAL_K) {
+    OPTIONAL_K = {};
+    FIELDS.공통.concat(FIELDS.evac).forEach(function (f) {
+      if (!f.req) OPTIONAL_K[f.k] = true;
+    });
+  }
+  return !!OPTIONAL_K[k];
+}
+
 /* 문안 하나가 아직 채우지 않은 항목 — 이 문안이 실제로 쓰는 항목만 검사한다 */
 function missingKeysFor(tpl) {
   return usedKeysOf(tpl).filter(function (k) {
+    if (isOptionalKey(k)) return false;
     if (k === "물질") return !state.unknownMat && !String(state.data["물질"] || "").trim();
     return !String(state.data[k] || "").trim();
   });
@@ -1065,7 +1126,7 @@ function initShelters() {
     if (!f.hidden) syncTargets();
   };
 
-  /* 지도에서 찾기 — 사고 시·군·구를 이미 적었으면 그 관내를 먼저 보여준다 */
+  /* 지도에서 찾기 — 앞 걸음에서 적은 사고 위치 자리에서 열린다 */
   $("#btnMap").onclick = function () {
     if (typeof SHMAP === "undefined") { alert("지도 화면을 불러오지 못했습니다."); return; }
     var cols = placeTargets();
@@ -1073,6 +1134,7 @@ function initShelters() {
     cols.forEach(function (c) { vals[c.k] = state.data[c.k] || ""; });
     SHMAP.open({
       시군구: String(state.data["시군"] || "").trim(),
+      사고지점: accPoint(),
       칸목록: cols,
       기본칸: cols.length ? cols[0].k : "대피소",
       값들: vals,                                  // 이미 넣어 둔 곳은 체크된 채로

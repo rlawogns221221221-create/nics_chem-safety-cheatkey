@@ -721,9 +721,11 @@ body.mapapp{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .mb-f{display:flex;flex-direction:column;gap:5px;font-size:1.5rem;font-weight:700;color:var(--ink2)}
 .mb-f select,.mb-f input[type=text]{width:auto;min-width:150px;font-weight:400;
   padding:8px 11px;font-size:1.7rem;border-radius:7px}
-.mb-f input[type=text]{min-width:170px}
+/* 폭을 못 박습니다 — 안 박으면 브라우저가 글자 20자 들어갈 만큼(약 350px)
+   잡아, 조건 줄이 금방 두 줄로 넘어갑니다. */
+.mb-f input[type=text]{width:20rem;min-width:0}
 .mb-addr{position:relative}
-.mb-addr input[type=text]{min-width:260px}
+.mb-addr input[type=text]{width:26rem}
 /* 조건 접기 단추 — 넓은 화면에서는 접을 이유가 없으므로 보이지 않는다 */
 .mb-toggle{display:none}
 /* ③ 은 물질·풍향·배경지도까지 접어 둡니다 — 화면에 처음부터 고를 것이 많으면
@@ -747,9 +749,48 @@ body.mapapp{display:flex;flex-direction:column;height:100vh;overflow:hidden}
 .windbtn.on{border-color:var(--brand);background:var(--brand-l);color:var(--brand-d)}
 .windbtn.on .windbtn-ic{color:var(--brand-d)}
 
+/* ── 사고지점 정하기 (조건 줄 안) ─────────────────────────────
+   예전에는 지도 아래쪽 반투명 띠에 있었습니다. 이 도구에서 가장 먼저 하는
+   일인데 지도에 가려 있어 못 찾는 일이 있었습니다. 그래서 주소 검색 옆으로
+   올렸습니다. 한 덩어리로 읽히도록 옅은 바탕과 테두리를 두릅니다. */
+.mb-acc{flex:none}
+.mb-accrow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  padding:4px 7px;background:var(--card);border:1px solid var(--line);
+  border-radius:var(--r)}
+.mb-accrow .mb-ll{display:flex;align-items:center;gap:4px;
+  font-size:1.3rem;font-weight:600;color:var(--ink2);white-space:nowrap}
+/* 좌표 칸은 짧습니다 — 소수점 여섯 자리까지 들어가면 됩니다. 전역 입력칸
+   규칙(폭 100% · 높이 48px)과 좁은 화면 규칙(.mb-f 의 width:auto)이 둘 다
+   이 줄을 늘려 버리므로, 선택자를 한 단 깊게 써서 확실히 이깁니다. */
+.mb-acc .mb-accrow input[type=text]{flex:none;width:100px;min-width:0;
+  min-height:var(--h-s);padding:0 8px;font-size:1.5rem;font-weight:400}
+.mb-accrow .sm{min-height:var(--h-s)}
+#btnAcc[aria-pressed=true]{background:var(--err);border-color:var(--err);
+  color:var(--on-brand);font-weight:700}
+@media (pointer:coarse){
+  .mb-accrow .sm,.mb-accrow .btnme{min-height:40px}
+  .mb-accrow input[type=text]{min-height:40px}
+}
+@media (max-width:860px){
+  /* 좁은 화면에서는 조건 줄 한 줄을 다 씁니다 — 단추와 좌표칸이 세로로
+     쪼개지면 어느 것이 한 묶음인지 알 수 없습니다. */
+  .mb-acc{flex:1 1 100%}
+  .mb-accrow{width:100%}
+  /* 좌표칸은 좁게 — 소수점 넷째 자리까지 보이면 됩니다. 감추지는 않습니다:
+     현장에서 무전으로 받은 좌표를 그대로 넣는 일이 실제로 있습니다. */
+  .mb-acc .mb-accrow input[type=text]{width:8.4rem}
+  .mb-accrow .mb-ll{font-size:1.3rem}
+}
+@media (pointer:coarse){
+  /* 손가락으로 누르는 화면 — 좌표칸도 40px 이상이어야 합니다 */
+  .mb-acc .mb-accrow input[type=text]{min-height:40px}
+}
+
 /* 배경지도 고르기 */
 .mb-lyr{display:flex;gap:0;margin-left:auto}
-.mb-lyr button{min-height:var(--h-s);padding:0 14px;font-size:1.7rem;border-radius:0;border-left-width:0;background:var(--card)}
+/* 배경지도 이름은 셋을 나란히 놓아야 하고 자주 누르는 것이 아니므로 보조
+   글자크기를 씁니다 — 그래야 조건 줄이 한 줄에 들어갑니다. */
+.mb-lyr button{min-height:var(--h-s);padding:0 11px;font-size:var(--fs-s);border-radius:0;border-left-width:0;background:var(--card)}
 .mb-lyr button:first-child{border-radius:6px 0 0 6px;border-left-width:1px}
 .mb-lyr button:last-child{border-radius:0 6px 6px 0}
 .mb-lyr button[aria-pressed=true]{background:var(--brand);border-color:var(--brand);color:var(--on-brand);font-weight:700}
@@ -947,11 +988,13 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
 .maplegend .dot.me{background:var(--me);border-color:var(--on-brand);box-shadow:0 0 0 1px var(--me)}
 /* 종류 이름의 꼬리 — 넓은 화면에서는 그대로 보인다 (좁은 화면에서만 감춤) */
 .maplegend .lg-t{font-style:normal}
-.mapscale{position:absolute;left:10px;bottom:56px;display:flex;align-items:center;gap:6px;
+/* 축척·주소는 왼쪽 아래. 겹쳐 그리기 줄(.mapacc)이 오른쪽 아래로 옮겨져
+   더 이상 피해 올라갈 필요가 없습니다. */
+.mapscale{position:absolute;left:10px;bottom:10px;display:flex;align-items:center;gap:6px;
   background:var(--glass);border-radius:4px;padding:2px 7px;font-size:1.3rem}
 .mapscale i{display:block;height:4px;border:1px solid var(--ink2);border-top:0}
 .mapscale b{font-variant-numeric:tabular-nums;color:var(--ink2)}
-.mapaddr{position:absolute;left:10px;max-width:min(380px,calc(100% - 62px));bottom:84px;
+.mapaddr{position:absolute;left:10px;max-width:min(380px,calc(100% - 62px));bottom:38px;
   background:var(--glass);border:1px solid var(--line);border-radius:7px;
   padding:7px 11px;font-size:1.5rem;line-height:1.5;
   box-shadow:0 2px 8px rgba(0,0,0,.14);pointer-events:none;
@@ -1041,14 +1084,15 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
 .btnme[aria-busy=true]{opacity:.6;pointer-events:none}
 .btnme svg{width:13px;height:13px;flex:none}
 
-/* 사고지점 조작 줄 — 지도 아래에 붙여 둔다 */
-.mapacc{position:absolute;left:0;right:0;bottom:0;display:flex;align-items:center;
-  gap:8px;flex-wrap:wrap;padding:7px 10px;background:var(--glass);
-  border-top:1px solid var(--line)}
+/* 지도에 겹쳐 그릴 것 켜고 끄기 — 지도 오른쪽 아래에 작게 붙여 둔다.
+   사고지점 정하기(찍기·내 위치·좌표)는 위 조건 줄(.mb-acc)로 옮겼습니다. */
+.mapacc{position:absolute;right:0;bottom:0;display:flex;align-items:center;
+  gap:8px;flex-wrap:wrap;padding:6px 10px;background:var(--glass);
+  border-top:1px solid var(--line);border-left:1px solid var(--line);
+  border-radius:var(--r) 0 0 0}
 .mapacc label{display:flex;align-items:center;gap:5px;font-size:1.3rem;
   font-weight:700;color:var(--ink2)}
-.mapacc input[type=text]{width:104px;padding:4px 8px;font-size:1.5rem}
-.mapacc .mapchks{margin-left:auto;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.mapacc .mapchks{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .mapacc .mapchk{font-weight:600}
 .mapacc .mapchk input{width:15px;height:15px;accent-color:var(--brand)}
 
@@ -1062,8 +1106,6 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
    켜지고, 마우스를 쓰는 노트북·데스크톱에서는 켜지지 않습니다. */
 @media (pointer: coarse) {
   .mapacc{gap:6px;padding:6px 8px}
-  .mapacc .sm,.mapacc .btnme{min-height:40px;padding:0 12px}
-  .mapacc input[type=text]{min-height:38px;padding:6px 9px}
   .mapacc .mapchk{min-height:40px;padding:0 4px}
   .mapacc .mapchk input{width:20px;height:20px}
   .mapctl button{width:40px;height:40px;font-size:1.9rem}
@@ -1178,20 +1220,18 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
   .ms-list{overflow:visible}
   .ms-find-row{flex-wrap:wrap}
   .mb-lyr{margin-left:0}
-  .mb-f select,.mb-f input[type=text]{min-width:120px}
-  .mb-addr input[type=text]{min-width:150px}
+  .mb-f select,.mb-f input[type=text]{width:auto;min-width:120px}
+  .mb-addr input[type=text]{width:100%;min-width:150px}
   .windbtn{min-width:0}
-  /* 좁은 화면에서는 사고지점 줄이 지도를 많이 가리지 않게 촘촘히 */
+  /* 좁은 화면에서는 겹쳐 그리기 줄이 지도를 많이 가리지 않게 촘촘히 */
   .mapacc{gap:5px;padding:5px 8px;font-size:1.3rem}
   .mapacc label{gap:3px}
-  .mapacc input[type=text]{width:84px;padding:3px 6px;font-size:1.5rem}
-  .mapacc .sm{padding:3px 9px}
-  .mapscale{bottom:64px}
+  .mapscale{bottom:10px}
   /* 좁은 화면에서는 지도가 이미 작습니다 — 3곳 카드가 지도를 절반 넘게
      가리지 않도록 폭을 줄이고, 안내 문구는 뺍니다(목록에도 같은 값이 있음). */
   .mnear{width:min(224px,calc(100% - 62px));padding:6px 8px 7px;font-size:1.3rem}
   .mnear .mnear-note{display:none}
-  .mapaddr{bottom:92px}
+  .mapaddr{bottom:36px}
 
   /* ── 요약 줄 — 세로로 쌓이지 않게 ─────────────────────────
      조각이 늘어날수록 줄바꿈으로 아래로 자랐습니다. ③은 종류 칩에 도착시간이
@@ -1308,10 +1348,9 @@ body.resapp:not(.has-acc) .mbar-warn,
 body.resapp:not(.has-acc) .mrad,
 body.resapp:not(.has-acc) .msum,
 body.resapp:not(.has-acc) .mmain{display:none!important}
-/* 시작 화면에서 주소를 치는 동안에는 조건 줄만 잠깐 드러납니다 —
-   검색 결과 목록이 그 아래에 붙어 뜨기 때문입니다. */
-body.resapp:not(.has-acc).start-search .mbar{display:block!important;
-  opacity:0;height:0;overflow:hidden;padding:0;border:0}
+/* (예전에 있던 .start-search 규칙은 없앴습니다 — 시작 화면에서 주소를 칠 때
+   결과 목록이 조건 줄 아래에 떠서, 조건 줄을 투명하게 드러내야 했습니다.
+   지금은 목록이 시작 화면의 검색칸 바로 아래에 붙으므로 필요 없습니다.) */
 
 .rs-in{width:100%;max-width:660px;text-align:center}
 .rstart h2{margin:0 0 8px;font-size:3.2rem;font-weight:800;letter-spacing:-.02em}
@@ -1537,6 +1576,13 @@ body.resapp:not(.has-acc).start-search .mbar{display:block!important;
   color:var(--warn);font-size:1.5rem;line-height:1.55;flex:none;animation:slideDown .26s var(--ease) both}
 .shmap-warn a{color:var(--brand-d);font-weight:700}
 
+/* 어림잡은 사고지점 알림 — 배경지도 경고(.shmap-warn)와 색을 같이 쓰지 않습니다.
+   둘이 동시에 뜰 수 있어, 같은 색이면 한 덩어리로 읽힙니다. */
+.shmap-guess{padding:8px 14px;background:var(--err-l);
+  border-bottom:1px solid var(--err-b);color:var(--err);
+  font-size:1.5rem;line-height:1.55;flex:none;animation:slideDown .26s var(--ease) both}
+.shmap-guess b{font-weight:700}
+
 /* 영향 참고 반경 줄 — 사고지점을 찍으면 나타난다 */
 .shmap-rad{display:flex;align-items:center;gap:6px;flex-wrap:wrap;
   padding:8px 14px;background:var(--brand-l);border-bottom:1px solid var(--brand-b);flex:none;
@@ -1562,6 +1608,10 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:1.5rem;flex:no
 .shmap-svg.crosshair{cursor:crosshair}
 .shmap-svg .ring{fill:rgba(179,31,31,.07);stroke:var(--err);
   stroke-width:1.6px;stroke-dasharray:6 4}
+/* 사고지점 표시는 그림일 뿐입니다 — 그 아래 대피장소 마커를 가려 못 누르게
+   되면 안 됩니다(사고지점이 대피장소와 겹쳐 있으면 실제로 그랬습니다). */
+.shmap-svg .acc,.shmap-svg .accdot,.shmap-svg text.acclbl,
+.shmap-svg .ring{pointer-events:none}
 .shmap-svg .acc{stroke:var(--err);stroke-width:2.4px}
 .shmap-svg .accdot{fill:none;stroke:var(--err);stroke-width:1.6px}
 .shmap-svg text.acclbl{fill:var(--err);text-anchor:middle;font-weight:700;
