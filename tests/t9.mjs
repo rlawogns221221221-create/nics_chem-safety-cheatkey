@@ -1,256 +1,207 @@
-/* 진입 화면 회귀 (v3 — 전면 분할 패널) — 구조·링크·호버·접근성·반응형 */
+/* 진입 화면 회귀 (v4 — KRDS 표준형)
+
+   예전 화면은 어두운 캔버스 + 마우스를 올리면 넓어지는 패널 3개였고, 이 묶음도
+   그 호버 동작과 삽화(SVG)를 검사했습니다. 사용자가 KRDS 표준형으로 다시
+   만들기로 정해(자바스크립트도 허용) 검사 내용을 새로 씁니다.
+
+   지금 확인하는 것
+     · 구조·기관 로고·도구 세 링크
+     · **처음부터 설명이 다 보이는가** — 새 설계의 핵심(호버로만 드러나면 안 됨)
+     · 고대비(어두운) 화면 켜고 끄기와 기억
+     · KRDS 규격 — 본문 17px 이상, 초점 표시, 터치 영역
+     · 반응형·모션 감소·JS 꺼짐·인쇄 */
 import { chromium, devices } from 'playwright';
-/* 저장소를 어디에 두어도 돌게 — 이 파일 자리에서 저장소 뿌리를 찾는다.
-     ROOT  file:///…/   (뒤에 / 있음)
-     RDIR  file:///…    (뒤에 / 없음)
-     RPATH /…           (scheme 없는 경로) */
-/* URL 생성자를 쓰지 않습니다 — 스크립트가 URL 이라는 이름을 쓰는 곳이 있어
-   가려집니다(bug1.mjs). 문자열만 잘라 씁니다. */
+/* 저장소를 어디에 두어도 돌게 — 이 파일 자리에서 저장소 뿌리를 찾는다. */
 const ROOT = import.meta.url.replace(/[^/]*$/, '').replace(/tests\/$/, '');
-const RDIR = ROOT.replace(/\/$/, '');
-const RPATH = decodeURIComponent(RDIR.replace(/^file:\/\//, ''));
 const B = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
 const errs = []; const ok = [], bad = []; const chk = (c, m) => (c ? ok : bad).push(m);
-const URL = ROOT + 'index.html';
+const PAGE = ROOT + 'index.html';
 const P = await B.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
 P.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
 let counting = true;
 const ext = [];
 P.on('request', r => { if (counting && !r.url().startsWith('file:')) ext.push(r.url()); });
 
-await P.goto(URL); await P.waitForTimeout(600);
+await P.goto(PAGE); await P.waitForTimeout(700);
 
-// ══ 1. 구조 — 시각적 제목 문구는 없지만 h1 은 스크린리더용으로 남아 있음 ══
+// ══ 1. 구조 ══
 chk((await P.$$('h1')).length === 1, `h1 하나뿐 (${(await P.$$('h1')).length}개)`);
-const h1box = await P.$eval('h1', el => el.getBoundingClientRect());
-chk(h1box.width <= 1 && h1box.height <= 1, `h1 이 시각적으로는 안 보임 (${Math.round(h1box.width)}×${Math.round(h1box.height)}px)`);
-const h1text = await P.$eval('h1', el => el.textContent.trim());
-chk(h1text.length > 0, `h1 텍스트는 실재함 (스크린리더용: "${h1text}")`);
-chk((await P.$$('.eyebrow, .stage-head')).length === 0, '이전의 안내 문구 요소가 남아있지 않음');
-chk((await P.$$('header.top')).length === 1 && (await P.$$('footer.stage-foot')).length === 1,
+const h1 = await P.$eval('h1', el => ({
+  t: el.textContent.trim(), r: el.getBoundingClientRect(),
+  fs: parseFloat(getComputedStyle(el).fontSize)
+}));
+chk(h1.r.width > 100 && h1.r.height > 20, `제목이 화면에 보인다 (${Math.round(h1.r.width)}×${Math.round(h1.r.height)}px)`);
+chk(h1.t.includes('화학사고'), `제목: "${h1.t}"`);
+chk(h1.fs >= 24, `제목이 KRDS heading 크기 (${h1.fs}px)`);
+chk((await P.$$('header.top')).length === 1 && (await P.$$('footer')).length === 1,
   '헤더·푸터 시맨틱 요소');
 chk((await P.$$('main#main')).length === 1, 'main 영역 하나');
-chk(await P.$eval('.panels', u => u.tagName === 'UL'), '도구 3종이 목록(ul)');
-chk((await P.$$('.panels > li')).length === 3, '패널 3장');
-chk((await P.$$('script')).length === 0, '자바스크립트 없음 (순수 CSS)');
+chk(await P.$eval('.tools', u => u.tagName === 'UL'), '도구 3종이 목록(ul)');
+chk((await P.$$('.tools > li')).length === 3, '도구 카드 3장');
 chk(ext.length === 0, `외부 요청 0건 (실제 ${ext.length}건)`);
 counting = false;
 
-// ══ 1-1. 여백 — 패널이 화면 가득 차지 않고 위아래양옆에 숨 쉴 틈이 있는가 ══
-const gap = await P.evaluate(() => {
-  const wrapBox = document.querySelector('.panels').getBoundingClientRect();
-  const stageBox = document.querySelector('.stage').getBoundingClientRect();
-  const p = [...document.querySelectorAll('.panels > li')].map(li => li.getBoundingClientRect());
-  const cs1 = getComputedStyle(document.querySelectorAll('.panels > li')[0]);
-  return {
-    topMargin: Math.round(wrapBox.top - stageBox.top),
-    bottomMargin: Math.round(stageBox.bottom - wrapBox.bottom),
-    sideMargin: Math.round(p[0].left - stageBox.left),
-    gapBetween: Math.round(p[1].left - p[0].right),
-    radius: cs1.borderRadius
-  };
-});
-chk(gap.topMargin > 20, `패널 위쪽 여백 있음 (${gap.topMargin}px)`);
-chk(gap.bottomMargin > 20, `패널 아래쪽 여백 있음 (${gap.bottomMargin}px)`);
-chk(gap.sideMargin > 20, `패널 좌우 여백 있음 (${gap.sideMargin}px)`);
-chk(gap.gapBetween > 8, `패널 사이 틈 있음 (${gap.gapBetween}px)`);
-chk(parseFloat(gap.radius) > 0, `패널 모서리가 둥글게 (${gap.radius})`);
-
-// ══ 2. 기관 로고 — 원본을 자르지 않고 그대로 쓰는가, 왼쪽 배치인가 ══
-const mark = await P.evaluate(() => {
-  const m = document.querySelector('.top .logo-full');
-  if (!m) return null;
-  const r = m.getBoundingClientRect();
-  return { tag: m.tagName.toLowerCase(), src: m.getAttribute('src'),
-           w: Math.round(r.width), h: Math.round(r.height),
-           natW: m.naturalWidth, natH: m.naturalHeight, complete: m.complete,
-           ratio: +(m.naturalWidth / m.naturalHeight).toFixed(3) };
-});
-chk(mark && mark.tag === 'img' && mark.src === 'assets/img/gov-logo.png',
-  `실제 로고 이미지 사용 (${mark && mark.tag} src=${mark && mark.src})`);
-chk(mark && mark.complete && mark.natW > 0 && mark.natH > 0,
-  `로고 파일이 실제로 로드됨 (원본 ${mark && mark.natW}×${mark && mark.natH}px)`);
-chk(mark && mark.natW === 900 && mark.natH === 322,
-  `자르지 않은 원본 크기 그대로 (900×322 기대, 실제 ${mark && mark.natW}×${mark && mark.natH})`);
-chk(mark && mark.w >= 20 && mark.h >= 20, `로고 표시 크기 정상 (${mark && mark.w}×${mark && mark.h}px)`);
-// CSS 로만 높이를 정하고 폭은 auto 이므로, 화면에 그려진 비율도 원본과 같아야
-// (강제로 눌리거나 늘어나지 않아야) "변형 없이" 를 만족한다
-chk(mark && Math.abs(mark.w / mark.h - mark.ratio) < 0.02,
-  `표시 비율이 원본 비율과 같음 (표시 ${(mark.w/mark.h).toFixed(3)} vs 원본 ${mark && mark.ratio})`);
-
-const left = await P.evaluate(() => {
-  const wrapEl = document.querySelector('.top .wrap');
-  const wrap = wrapEl.getBoundingClientRect();
-  const pad = parseFloat(getComputedStyle(wrapEl).paddingLeft);
-  const grp = document.querySelector('.brand-group').getBoundingClientRect();
-  const ext = document.querySelector('.top .ext').getBoundingClientRect();
-  return { innerLeft: wrap.left + pad, innerRight: wrap.right - pad, grpLeft: grp.left, extRight: ext.right };
-});
-// .wrap 의 좌우 padding(--pad) 을 뺀 "안쪽" 기준선에 로고는 왼쪽, 링크는 오른쪽으로 붙어야 한다
-chk(Math.abs(left.innerLeft - left.grpLeft) < 3,
-  `로고 묶음이 상단 바 왼쪽에 붙어 있음 (안쪽 기준선 ${Math.round(left.innerLeft)}px, 로고묶음 왼쪽 ${Math.round(left.grpLeft)}px)`);
-chk(Math.abs(left.innerRight - left.extRight) < 3,
-  `누리집 링크는 오른쪽 끝에 붙어 있음 (안쪽 기준선 ${Math.round(left.innerRight)}px, 링크 오른쪽 ${Math.round(left.extRight)}px)`);
-chk((await P.$$('.brand-tx, .mark')).length === 0, '기관명 중복 텍스트·이전 아이콘 없음 (로고 이미지 하나로 통일)');
-
-// ══ 2-1. 패널 줄이 화면 가운데에 오는가 (좌우 여백이 같아야 한다) ══
-const pcenter = await P.evaluate(() => {
-  const panels = document.querySelector('.panels').getBoundingClientRect();
-  return { left: panels.left, right: window.innerWidth - panels.right, vw: window.innerWidth };
-});
-chk(Math.abs(pcenter.left - pcenter.right) < 3,
-  `패널 3개 줄이 화면 가운데 (왼쪽 여백 ${Math.round(pcenter.left)}px, 오른쪽 여백 ${Math.round(pcenter.right)}px)`);
-
-// ══ 2-2. 화면 전체 배경 사진 — 패널 안이 아니라 .stage 전체에 깔림 ══
-const photoEl = await P.evaluate(() => {
-  const img = document.querySelector('.stage-photo img');
-  if (!img) return null;
-  const wrap = document.querySelector('.stage-photo').getBoundingClientRect();
-  const stage = document.querySelector('.stage').getBoundingClientRect();
-  return { src: img.getAttribute('src'), natW: img.naturalWidth, natH: img.naturalHeight,
-    complete: img.complete, wrapW: Math.round(wrap.width), wrapH: Math.round(wrap.height),
-    stageW: Math.round(stage.width), stageH: Math.round(stage.height) };
-});
-chk(!!photoEl, '.stage 안에 화면 전체용 배경 사진 레이어가 있음');
-chk(photoEl && photoEl.complete && photoEl.natW > 0, `배경 사진이 실제로 로드됨 (${photoEl && photoEl.natW}×${photoEl && photoEl.natH})`);
-chk(photoEl && Math.abs(photoEl.wrapW - photoEl.stageW) < 2 && Math.abs(photoEl.wrapH - photoEl.stageH) < 2,
-  '배경 사진 레이어가 어두운 캔버스(.stage) 전체를 채움 (패널 안이 아님)');
-
-// ══ 3. 도구 링크 ══
-const links = await P.$$eval('.pn-hit', as => as.map(a => a.getAttribute('href')));
-chk(links.length === 3 && links[0] === 'map/index.html' && links[1] === 'sms/index.html'
-    && links[2] === 'res/index.html',
-  `도구 3개 모두 실제 링크 (${links.join(', ')})`);
-chk((await P.$$('.pn.is-soon')).length === 0, '준비 중 패널 없음 (③ 완성)');
-
-await P.click('.panels > li:nth-child(1) .pn-hit'); await P.waitForTimeout(500);
-chk(P.url().includes('map/index.html'), '① 패널 → 대피장소 지도로 이동');
-await P.goBack(); await P.waitForTimeout(400);
-await P.click('.panels > li:nth-child(2) .pn-hit'); await P.waitForTimeout(500);
-chk(P.url().includes('sms/index.html'), '② 패널 → 문자 작성 도구로 이동');
-await P.goBack(); await P.waitForTimeout(600);
-
-// ══ 3-1. 패널 배경 — 세 패널 모두 손으로 그린 그림(SVG). 실사진은 패널 안이
-//         아니라 화면 전체 배경(.stage-photo)에만 쓴다 ══
-chk((await P.$$('.pn-art img')).length === 0, '패널 안에는 사진(img)이 없음 — 전부 SVG');
-chk((await P.$$('.pn-art svg')).length === 3, '패널 3개 모두 그린 그림(SVG) 사용');
-chk((await P.$$('.pn-overlay')).length === 0, '이전에 썼던 사진 위 오버레이 요소는 없음 (② SVG 안에 거리 눈금이 그대로 포함됨)');
-chk((await P.$$('.panels > li:nth-child(1) .pn-art svg circle[stroke-dasharray]')).length === 3,
-  '① 지도 패널 SVG 안에 거리 눈금 원이 그대로 있음');
-
-// ══ 4. 기본 상태는 최소 정보 (제목만) ══
-const vis = await P.$eval('.panels > li:nth-child(1)', li => {
-  const d = getComputedStyle(li.querySelector('.pn-d'));
-  const g = getComputedStyle(li.querySelector('.pn-go'));
-  return { d: +d.opacity, g: +g.opacity };
-});
-chk(vis.d === 0 && vis.g === 0, '평소엔 설명·이용하기가 숨겨져 있음 (제목만 보임)');
-
-// ══ 5. 마우스 호버 — 패널이 넓어지고 설명이 나타남 ══
-await P.mouse.move(5, 5); await P.waitForTimeout(300);   // 호버 상태를 확실히 초기화
-const wBefore = await P.$eval('.panels > li:nth-child(2)', el => el.getBoundingClientRect().width);
-await P.hover('.panels > li:nth-child(2)'); await P.waitForTimeout(650);
-const after = await P.evaluate(() => {
-  const li = document.querySelectorAll('.panels > li')[1];
-  return { w: li.getBoundingClientRect().width,
-    d: +getComputedStyle(li.querySelector('.pn-d')).opacity,
-    g: +getComputedStyle(li.querySelector('.pn-go')).opacity,
-    art: +getComputedStyle(li.querySelector('.pn-art')).opacity,
-    bar: getComputedStyle(li, '::before').width };
-});
-chk(after.w > wBefore + 60, `호버하면 패널이 넓어짐 (${Math.round(wBefore)} → ${Math.round(after.w)}px)`);
-chk(after.d === 1 && after.g === 1, '호버하면 설명·이용하기가 나타남');
-chk(after.art > 0.9, `호버하면 배경 그림이 또렷해짐 (opacity ${after.art})`);
-chk(parseFloat(after.bar) > 100, `호버하면 위쪽 강조선이 채워짐 (${after.bar})`);
-await P.mouse.move(0, 0); await P.waitForTimeout(650);
-chk(+(await P.$eval('.panels > li:nth-child(2) .pn-d', e => getComputedStyle(e).opacity)) === 0,
-  '마우스를 떼면 다시 접힘');
-
-// ══ 6. 키보드 — 포커스로도 같은 효과 ══
-await P.keyboard.press('Tab');
-chk(await P.evaluate(() => document.activeElement.className.includes('skip')), '첫 Tab 이 건너뛰기 링크');
-await P.evaluate(() => document.querySelector('.pn-hit[href="map/index.html"]').focus());
-await P.waitForTimeout(600);
-chk(+(await P.$eval('.panels > li:nth-child(1) .pn-d', e => getComputedStyle(e).opacity)) === 1,
-  '키보드 포커스로도 설명이 펼쳐짐 (마우스 없이 정보 접근 가능)');
-chk(await P.evaluate(() => getComputedStyle(document.activeElement).outlineStyle) !== 'none',
-  '초점 테두리 표시');
-chk(await P.evaluate(() => {
-  document.querySelector('.pn-hit[href="res/index.html"]').focus();
-  return document.activeElement.getAttribute('href') === 'res/index.html';
-}), '③ 패널도 키보드 초점 이동 가능');
-
-// ══ 7. 문구 ══
-const body = (await P.textContent('body')).replace(/\s+/g, ' ');
-chk(['혁신','차세대','완벽한','스마트','AI 기반','최고의','100%'].every(w => !body.includes(w)),
-  '과장 표현 없음');
-chk(!/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u.test(body), '이모지 없음');
-chk(/책임은 관계기관에 있습니다/.test(body), '책임 안내 한 줄 유지');
-chk(body.length < 400, `전체 글자 수 최소 (${body.length}자)`);
-
-// ══ 8. 반응형 — 한 화면에 다 들어오는가 ══
-for (const [w, h, label] of [[1920,1080,'1920×1080'],[1600,900,'1600×900'],
-     [1366,768,'1366×768'],[1280,720,'1280×720']]) {
-  await P.setViewportSize({ width: w, height: h });
-  await P.evaluate(() => window.scrollTo(0, 0));
-  await P.waitForTimeout(250);
-  const r = await P.evaluate(() => ({
-    ovX: document.documentElement.scrollWidth - document.documentElement.clientWidth,
-    ovY: document.documentElement.scrollHeight - document.documentElement.clientHeight,
-    dir: getComputedStyle(document.querySelector('.panels')).flexDirection
-  }));
-  chk(r.ovX <= 0, `${label}: 가로 스크롤 없음`);
-  chk(r.ovY <= 1, `${label}: 스크롤 없이 한 화면에 전부 (넘침 ${r.ovY}px)`);
-  chk(r.dir === 'row', `${label}: 패널 가로 3분할`);
-}
-await P.setViewportSize({ width: 1440, height: 900 });
-
-// ══ 9. 모바일 (실제 터치 기기) ══
-const ctx2 = await B.newContext({ ...devices['iPhone 13'] });
-const M = await ctx2.newPage();
-M.on('pageerror', e => errs.push('MOBILE: ' + e.message));
-await M.goto(URL); await M.waitForTimeout(900);
-chk(!(await M.evaluate(() => matchMedia('(hover:hover)').matches)), '터치 기기로 인식 (hover 없음)');
-chk((await M.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)) <= 0,
-  '모바일 가로 스크롤 없음');
-chk(await M.$eval('.panels', p => getComputedStyle(p).flexDirection) === 'column', '모바일 세로 배치');
-const mob = await M.evaluate(() => [...document.querySelectorAll('.panels > li')].map(li => {
-  const b = li.getBoundingClientRect(), body = li.querySelector('.pn-body').getBoundingClientRect();
-  return { d: +getComputedStyle(li.querySelector('.pn-d')).opacity,
-           clipTop: Math.round(b.top - body.top), clipBot: Math.round(body.bottom - b.bottom) };
+// ══ 2. KRDS 규격 ══
+const spec = await P.evaluate(() => ({
+  root: parseFloat(getComputedStyle(document.documentElement).fontSize),
+  body: parseFloat(getComputedStyle(document.body).fontSize),
+  desc: parseFloat(getComputedStyle(document.querySelector('.pn-d')).fontSize),
+  fam: getComputedStyle(document.body).fontFamily,
+  gov: document.fonts.check('17px "Pretendard GOV"'),
+  lh: parseFloat(getComputedStyle(document.body).lineHeight)
+      / parseFloat(getComputedStyle(document.body).fontSize)
 }));
-chk(mob.every(m => m.d === 1), '모바일에서는 호버 없이도 설명이 항상 보임');
-chk(mob.every(m => m.clipTop <= 1 && m.clipBot <= 1),
-  `패널 내용이 위아래로 잘리지 않음 (${mob.map(m => m.clipTop + '/' + m.clipBot).join(' ')})`);
-const tapH = await M.$eval('.pn-hit', a => a.getBoundingClientRect().height);
-chk(tapH >= 44, `터치 영역 44px 이상 (${Math.round(tapH)}px)`);
-await ctx2.close();
+chk(Math.abs(spec.root - 10) < 0.2, `뿌리 글자크기 62.5% = 10px (실제 ${spec.root}px)`);
+chk(spec.body >= 16, `본문 16px 이상 — KRDS 기준 (실제 ${spec.body}px)`);
+chk(spec.desc >= 16, `도구 설명도 16px 이상 (실제 ${spec.desc}px)`);
+chk(/Pretendard GOV/.test(spec.fam), 'KRDS 표준 서체를 첫 순위로 지정');
+chk(spec.gov, 'Pretendard GOV 파일이 실제로 불러와졌다');
+chk(spec.lh >= 1.5, `줄높이 150% 이상 (실제 ${spec.lh.toFixed(2)})`);
 
-// ══ 10. 모션 감소 ══
+// ══ 3. 기관 로고 — 원본 비율 그대로, 왼쪽 ══
+const logo = await P.evaluate(() => {
+  const img = document.querySelector('.logo-full');
+  const r = img.getBoundingClientRect();
+  return { w: r.width, h: r.height, x: r.left, nw: img.naturalWidth, nh: img.naturalHeight };
+});
+chk(logo.nw > 0, '로고 이미지가 실제로 불러와졌다');
+const ratio = (logo.w / logo.h) / (logo.nw / logo.nh);
+chk(Math.abs(ratio - 1) < 0.02, `로고 비율 그대로 (원본 대비 ${ratio.toFixed(3)}배)`);
+chk(logo.x < 260, `로고가 머리띠 왼쪽에 (x=${Math.round(logo.x)})`);
+
+// ══ 4. 도구 링크 — 카드 전체가 링크이고 '실제 업무 순서' ══
+//    지도 → 문자 → 방제자원. 상사 피드백으로 정한 순서라 바꾸면 안 됩니다(b0802d4).
+const links = await P.$$eval('.tools > li > a', as => as.map(a => a.getAttribute('href')));
+chk(links.length === 3 && links[0] === 'map/index.html' && links[1] === 'sms/index.html'
+    && links[2] === 'res/index.html', `링크 순서 지도→문자→방제: ${links.join(' / ')}`);
+const nos = await P.$$eval('.pn-no', ns => ns.map(n => n.textContent.trim()));
+chk(nos.join('') === '010203', `번호 01·02·03 (실제 ${nos.join('·')})`);
+const hit = await P.evaluate(() => {
+  const a = document.querySelector('.tools > li > a'), li = a.parentElement;
+  const ar = a.getBoundingClientRect(), lr = li.getBoundingClientRect();
+  return ar.width / lr.width;
+});
+chk(hit > 0.98, `카드 전체가 누를 수 있는 영역 (폭 비율 ${hit.toFixed(2)})`);
+
+// ══ 5. 처음부터 다 보인다 — 새 설계의 핵심 ══
+//    예전에는 마우스를 올려야 설명이 나타났습니다. 터치 화면·키보드 사용자에게
+//    불리했고, 급할 때 무엇을 고를지 판단할 정보가 감춰져 있었습니다.
+const shown = await P.evaluate(() => [...document.querySelectorAll('.tools > li')].map(li => {
+  const d = li.querySelector('.pn-d'), m = li.querySelector('.pn-meta');
+  const cs = getComputedStyle(d), ms = getComputedStyle(m);
+  return { d: +cs.opacity, dh: d.getBoundingClientRect().height,
+           m: +ms.opacity, mh: m.getBoundingClientRect().height };
+}));
+chk(shown.every(s => s.d > 0.95 && s.dh > 20), '세 카드 모두 설명이 처음부터 보인다');
+chk(shown.every(s => s.m > 0.95 && s.mh > 10), '자료 건수도 처음부터 보인다');
+
+// ══ 6. 고대비(어두운) 화면 ══
+const before = await P.evaluate(() => getComputedStyle(document.body).backgroundColor);
+chk(await P.evaluate(() => document.documentElement.getAttribute('data-krds-mode')) === 'light',
+  '처음에는 밝은 화면');
+chk(!!(await P.$('.modebtn')), '고대비 단추가 머리띠에 있다');
+await P.click('.modebtn'); await P.waitForTimeout(400);
+const hcMode = await P.evaluate(() => document.documentElement.getAttribute('data-krds-mode'));
+const after = await P.evaluate(() => getComputedStyle(document.body).backgroundColor);
+chk(hcMode === 'high-contrast', `누르면 KRDS 고대비 모드 (${hcMode})`);
+chk(after !== before, `바탕색이 실제로 바뀐다 (${before} → ${after})`);
+const lum = s => { const [r, g, b] = s.match(/\d+/g).map(Number); return (r * 299 + g * 587 + b * 114) / 1000; };
+chk(lum(after) < 60, `고대비 바탕이 어둡다 (밝기 ${Math.round(lum(after))})`);
+chk(lum(await P.evaluate(() => getComputedStyle(document.body).color)) > 180,
+  '고대비 글자는 밝다');
+// 새로 고쳐도 유지되는가 (localStorage)
+await P.reload(); await P.waitForTimeout(500);
+chk(await P.evaluate(() => document.documentElement.getAttribute('data-krds-mode')) === 'high-contrast',
+  '새로 고쳐도 고대비가 유지된다');
+await P.click('.modebtn'); await P.waitForTimeout(300);
+chk(await P.evaluate(() => document.documentElement.getAttribute('data-krds-mode')) === 'light',
+  '다시 누르면 밝은 화면으로 돌아온다');
+
+// ══ 7. 초점 — 키보드로 갈 수 있고 표시가 보인다 ══
+/* 새로 불러온다 — blur() 만으로는 탭 순서의 기준점이 되돌아가지 않아
+   앞에서 누른 단추 다음 요소로 넘어간다(실제로 그랬음). */
+await P.reload(); await P.waitForTimeout(500);
+await P.keyboard.press('Tab');   // 첫 탭은 건너뛰기 링크여야 한다
+await P.waitForTimeout(350);      // 나타나는 동작(transition)이 끝나기를 기다린다
+const skip = await P.evaluate(() => {
+  const a = document.activeElement;
+  return { cls: a.className, top: a.getBoundingClientRect().top };
+});
+chk(/skip/.test(skip.cls) && skip.top > -10, `첫 탭은 건너뛰기 링크이고 화면에 나타난다 (y=${Math.round(skip.top)})`);
+const focusRing = await P.evaluate(() => {
+  const a = document.querySelector('.tools > li > a');
+  a.focus();
+  const cs = getComputedStyle(a);
+  return cs.boxShadow;
+});
+chk(/rgb/.test(focusRing) && !/none/.test(focusRing), `카드에 초점 표시가 보인다 (${focusRing.slice(0, 40)}…)`);
+
+// ══ 8. 터치 영역 — KRDS·접근성 ══
+const taps = await P.evaluate(() => [...document.querySelectorAll('.top .act a, .top .act button')]
+  .map(el => el.getBoundingClientRect().height));
+chk(taps.every(h => h >= 40), `머리띠 단추가 40px 이상 (${taps.map(Math.round).join('/')})`);
+
+// ══ 9. 반응형 ══
+for (const [w, cols] of [[1440, 3], [1000, 3], [760, 1], [390, 1]]) {
+  await P.setViewportSize({ width: w, height: 900 }); await P.waitForTimeout(300);
+  const info = await P.evaluate(() => {
+    const li = [...document.querySelectorAll('.tools > li')];
+    const tops = new Set(li.map(x => Math.round(x.getBoundingClientRect().top)));
+    return { cols: li.length / tops.size, over: document.documentElement.scrollWidth > innerWidth + 1 };
+  });
+  chk(!info.over, `${w}px — 가로 스크롤 없음`);
+  chk(Math.round(info.cols) === cols, `${w}px — 카드 ${cols}열 (실제 ${Math.round(info.cols)})`);
+}
+await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(200);
+
+// ══ 10. 모바일 (실제 터치 기기) ══
+const M = await B.newPage({ ...devices['iPhone 13'] });
+M.on('pageerror', e => errs.push('MOBILE: ' + e.message));
+await M.goto(PAGE); await M.waitForTimeout(600);
+chk(!(await M.evaluate(() => document.documentElement.scrollWidth > innerWidth + 1)),
+  '휴대전화 — 가로 스크롤 없음');
+const mDesc = await M.evaluate(() =>
+  +getComputedStyle(document.querySelector('.pn-d')).opacity);
+chk(mDesc > 0.95, '휴대전화에서도 설명이 보인다 (호버가 없는 기기)');
+await M.tap('.tools > li > a'); await M.waitForTimeout(600);
+chk(M.url().includes('map/index.html'), '손가락으로 눌러 도구로 이동');
+await M.close();
+
+// ══ 11. 모션 감소 ══
 await P.emulateMedia({ reducedMotion: 'reduce' }); await P.waitForTimeout(200);
-chk(parseFloat(await P.$eval('.pn', c => getComputedStyle(c).transitionDuration)) < 0.05,
+chk(parseFloat(await P.$eval('.tools > li > a', a => getComputedStyle(a).transitionDuration)) < 0.05,
   'prefers-reduced-motion 반영');
 await P.emulateMedia({ reducedMotion: 'no-preference' });
 
-// ══ 11. JS 없이 ══
+// ══ 12. JS 없이 — 고대비 단추는 없어도 진입은 되어야 한다 ══
 const N = await B.newPage({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 } });
-await N.goto(URL); await N.waitForTimeout(300);
-chk((await N.$$eval('.pn-hit', as => as.length)) === 3, 'JS 꺼도 링크 살아 있음');
-await N.click('.pn-hit'); await N.waitForTimeout(400);
+await N.goto(PAGE); await N.waitForTimeout(300);
+chk((await N.$$eval('.tools > li > a', as => as.length)) === 3, 'JS 꺼도 링크 살아 있음');
+chk((await N.$$('.modebtn')).length === 0, 'JS 꺼지면 고대비 단추는 안 만들어진다');
+chk(+(await N.$eval('.pn-d', d => getComputedStyle(d).opacity)) > 0.95,
+  'JS 꺼도 설명이 보인다 (CSS 로만 그린다)');
+await N.click('.tools > li > a'); await N.waitForTimeout(400);
 chk(N.url().includes('map/index.html'), 'JS 꺼도 진입 가능');
 await N.close();
 
-// ══ 12. 인쇄 ══
-await P.emulateMedia({ media: 'print' }); await P.waitForTimeout(200);
+// ══ 13. 인쇄 — 고대비로 보고 있어도 흰 종이에 검정 ══
+await P.click('.modebtn'); await P.waitForTimeout(300);   // 고대비로 바꿔 두고
+await P.emulateMedia({ media: 'print' }); await P.waitForTimeout(250);
 const pr = await P.evaluate(() => ({
-  art: getComputedStyle(document.querySelector('.pn-art')).display,
-  photo: getComputedStyle(document.querySelector('.stage-photo')).display,
+  photo: getComputedStyle(document.querySelector('.hero-photo')).display,
+  act: getComputedStyle(document.querySelector('.top .act')).display,
+  card: getComputedStyle(document.querySelector('.tools > li > a')).backgroundColor,
+  ink: getComputedStyle(document.body).color,
   d: +getComputedStyle(document.querySelector('.pn-d')).opacity
 }));
-chk(pr.art === 'none' && pr.photo === 'none' && pr.d > 0.95, '인쇄 시 배경 그림·사진 빼고 내용 전부 표시');
+chk(pr.photo === 'none', '인쇄 시 배경 사진 빼기');
+chk(pr.act === 'none', '인쇄 시 단추 줄 빼기');
+chk(lum(pr.card) > 200, `인쇄 시 카드 바탕이 흰색 (밝기 ${Math.round(lum(pr.card))})`);
+chk(lum(pr.ink) < 60, `인쇄 시 글자가 검정 (밝기 ${Math.round(lum(pr.ink))})`);
+chk(pr.d > 0.95, '인쇄 시 설명 전부 표시');
 await P.emulateMedia({ media: 'screen' });
 
-await P.screenshot({ path: 't9-v3.png' });
+await P.screenshot({ path: 't9-portal.png' });
 
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');
 ok.forEach(m => console.log('  ok  ' + m));

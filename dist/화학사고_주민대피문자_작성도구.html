@@ -1365,7 +1365,7 @@ button.sm{min-height:var(--h-s);padding:0 12px;font-size:var(--fs-s)}
   /* 고대비(어두운) 화면으로 보고 있어도 인쇄는 흰 종이에 검정으로 나가야
      합니다. 토큰을 인쇄용으로 되돌립니다 — 안 하면 검정 바탕이 그대로
      찍혀 토너를 다 쓰고 글자도 안 보입니다. */
-  html{--card:#fff;--bg:#fff;--panel:#fff;--ink:#000;--ink2:#222;--ink3:#444;
+  html,html[data-krds-mode]{--card:#fff;--bg:#fff;--panel:#fff;--ink:#000;--ink2:#222;--ink3:#444;
        --line:#000;--line2:#666;--on-brand:#fff;--bdline:#666;--route:#000}
  .cbx-back{display:none!important} }
 

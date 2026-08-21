@@ -18,18 +18,21 @@ const R = RDIR;
   const P = await B.newPage({ viewport: { width: 1500, height: 900 } });
   P.on('pageerror', e => errs.push('PORTAL: ' + e.message));
   await P.goto(`${R}/index.html`); await P.waitForTimeout(600);
-  const panels = await P.$$eval('.panels .pn', els => els.map(e => ({
+  /* 진입 화면을 KRDS 표준형으로 다시 만들면서 선택자가 바뀌었습니다
+     (.panels .pn .pn-hit → .tools .pn > a). 검사하는 것은 그대로입니다 —
+     순서가 '실제 업무 순서'인가. 상사 피드백으로 정한 것이라 바꾸면 안 됩니다. */
+  const panels = await P.$$eval('.tools .pn', els => els.map(e => ({
     no: e.querySelector('.pn-no').textContent.trim(),
     title: e.querySelector('h2').textContent.trim(),
-    href: e.querySelector('.pn-hit').getAttribute('href')
+    href: e.querySelector('a').getAttribute('href')
   })));
   console.log('진입화면:', panels.map(p => `${p.no} ${p.title}`).join(' / '));
   chk(panels[0].href === 'map/index.html' && panels[0].no === '01', '01 = 대피장소 지도');
   chk(panels[1].href === 'sms/index.html' && panels[1].no === '02', '02 = 주민대피 문자 작성');
   chk(panels[2].href === 'res/index.html' && panels[2].no === '03', '03 = 방제자원 동원');
   // 링크가 실제로 열리는가
-  await P.click('.panels .pn:nth-child(1) .pn-hit'); await P.waitForTimeout(900);
-  chk(P.url().includes('/map/'), '첫 패널을 누르면 지도가 열린다');
+  await P.click('.tools .pn:nth-child(1) a'); await P.waitForTimeout(900);
+  chk(P.url().includes('/map/'), '첫 카드를 누르면 지도가 열린다');
   await P.close();
 }
 
