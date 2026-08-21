@@ -29,7 +29,7 @@ function usedNames(cssFile) {
 
 /* 요소 하나에만 매달아 쓰는 이름 — 뿌리(:root)에 없는 것이 정상입니다.
    진입 화면의 도구 카드 색이 카드마다 다른 것이 그 예입니다. */
-const SCOPED = ['--pn-c'];
+const SCOPED = ['--pn-c', '--pn-t'];
 
 /* 화면마다 어느 스타일시트를 쓰는가 */
 const PAGES = [
