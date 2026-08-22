@@ -19,6 +19,10 @@
      상단 바 — 기관 식별 + 서비스명 (KRDS 표준: 흰 바탕 · 왼쪽 정렬 ·
      아래 굵은 파란 선). 로고는 원본을 자르지 않고 그대로 씁니다.
      이미지에 기관명 글자가 이미 있어 옆에 같은 글자를 또 넣지 않습니다.
+
+     개선(안) 그림에서는 로고가 머리띠 사진 위에 얹혀 있었지만, 여기는 흰
+     바탕의 기관 머리 줄을 그대로 둡니다 — 고대비 단추와 누리집 링크가 이
+     줄에 있고, KRDS 도 기관 식별 줄을 히어로 위에 따로 둡니다.
      ══════════════════════════════════════════════════════════ -->
 <header class="top">
   <div class="wrap">
@@ -41,13 +45,17 @@
 </header>
 
 <!-- ══ 머리 — 서비스 이름 ═══════════════════════════════════
-     배경은 **사진이 아니라 그린 그림**입니다. 사진을 깔면 글자 뒤에 무엇이
-     오는지 매번 달라 읽히는 정도가 들쭉날쭉하고, 급할 때 여는 화면에서는
-     읽히는 것이 먼저입니다. 그래서 짙은 파란 바탕 + 옅은 선 그림으로 두고,
-     글자 대비를 고정했습니다.
+     개선(안)에는 산업단지 사진이 깔려 있습니다. 아직 쓸 수 있는 사진이
+     없어 **같은 구도의 선 그림**을 그려 넣었습니다 — 왼쪽은 글자가 앉는
+     빈 자리, 오른쪽은 산업단지(증류탑·구형탱크·저장탱크·굴뚝)와 그 위에
+     사고지점·영향 참고 반경. 사진이 오면 이 자리를 사진으로 갈아 끼웁니다.
 
-     그림은 이 도구가 하는 일을 뜻합니다 — 등고선(지도) 위에 사고지점과
-     영향 참고 반경. 장식이므로 화면낭독기에는 읽히지 않습니다. -->
+     사진이 아니라 그림이라 글자 뒤 밝기가 항상 같습니다 — 급할 때 여는
+     화면에서는 읽히는 것이 먼저입니다.
+
+     반경 원은 천천히 밝아졌다 어두워집니다(레이더 한 번 돌듯). 자료가
+     아니라 '이 화면은 살아 있다'는 신호이므로, 모션을 줄이는 설정에서는
+     멈춥니다. -->
 <div class="hero">
   <svg class="hero-art" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid slice"
        aria-hidden="true" focusable="false">
@@ -59,15 +67,25 @@
       <path d="M-20 150 C 190 116 360 146 560 104 S 890 58 1220 96"/>
       <path d="M-20 100 C 200 68 380 96 590 54 S 920 8 1220 46"/>
     </g>
-    <!-- 사고지점과 영향 참고 반경 — 오른쪽에 크게 한 벌만 -->
+    <!-- 산업단지 — 오른쪽에만. 가운데(x 940~1020)는 사고지점 자리로 비웁니다 -->
+    <g class="ha-site">
+      <path d="M620 306H1220"/>
+      <path d="M672 306v-30h46v30"/>
+      <path d="M744 306V154a16 16 0 0 1 32 0v152M744 190h32M744 226h32M744 262h32"/>
+      <path d="M800 306V196a12 12 0 0 1 24 0v110M800 228h24M800 262h24"/>
+      <circle cx="880" cy="252" r="32"/>
+      <path d="M866 282v24M894 282v24"/>
+      <path d="M1030 306v-56h100v56M1030 268h100M1030 288h100"/>
+      <path d="M1170 306V168M1162 168h16"/>
+    </g>
+    <!-- 사고지점과 영향 참고 반경 — 단지 위에 겹칩니다 -->
     <g class="ha-ring">
-      <circle cx="960" cy="196" r="150"/>
-      <circle cx="960" cy="196" r="104"/>
-      <circle cx="960" cy="196" r="58"/>
+      <circle cx="980" cy="306" r="118"/>
+      <circle cx="980" cy="306" r="178"/>
     </g>
     <g class="ha-acc">
-      <path d="M960 168v56M932 196h56"/>
-      <circle cx="960" cy="196" r="13"/>
+      <path d="M980 278v56M952 306h56"/>
+      <circle cx="980" cy="306" r="12"/>
     </g>
   </svg>
   <div class="wrap">
@@ -85,118 +103,174 @@
 
       <!-- ⚠ 순서를 바꾸지 마세요 — 상사 피드백으로 정한 '실제 업무 순서'입니다
            (b0802d4). 지도에서 어디로 대피시킬지 정한 다음 그 내용으로 문자를
-           씁니다. 번호(01·02·03)는 일하는 순서이고, 카드 색은 어느 도구인가를
-           나타내므로 둘이 어긋나는 것이 맞습니다.
-           링크를 바꾸려면 아래 href 만 고치면 됩니다.
+           씁니다. 링크를 바꾸려면 아래 href 만 고치면 됩니다.
 
-           카드 머리 그림은 **사진이 아니라 그린 그림(SVG)** 입니다. 그 도구가
-           무엇을 하는지 한눈에 알리려는 것이고, 선 몇 개뿐이라 화면이 복잡해지지
-           않습니다. 색은 그 카드의 색(--pn-c)을 따라가므로 고대비 화면에서도
-           같이 바뀝니다. 장식이라 화면낭독기에는 읽히지 않습니다
-           (무엇을 하는 도구인지는 제목·설명이 말합니다).
+           ── 카드 한 장의 구성 ────────────────────────────────────
+           ① .pn-art   그림 칸 (16:9). 지금은 그린 그림(SVG)이고, 사진이 오면
+                       이 안의 <svg> 를 <img> 로 갈아 끼웁니다. 칸 비율은
+                       CSS 가 잡으므로 사진 비율이 달라도 카드 줄이 맞습니다.
+           ② .pn-lbs   그림 위에 얹는 딱지. 무엇이 그려져 있는지 이름을 붙여
+                       주고, 하나씩 차례로 나타났다 사라집니다 — 화면이 살아
+                       있다는 신호입니다. 지어낸 수치는 넣지 않았고, 도구가
+                       실제로 다루는 이름만 씁니다.
+           ③ .pn-ov    마우스를 올리거나 초점이 오면 그림 위로 올라오는 설명.
+                       평소에는 번호·이름·자료 건수만 보이는 미니멀한 카드고,
+                       "이 도구가 무엇을 하는가"는 올릴 때 읽습니다.
+                       **감추는 것이 아니라 비켜 두는 것** 이므로 화면낭독기는
+                       늘 읽고(opacity 만 0), 손가락으로 쓰는 기기와 인쇄에서는
+                       처음부터 펼쳐 둡니다(호버가 없으니까).
+           ④ .pn-go    오른쪽 둥근 화살표. 카드 어디를 눌러도 되지만, 올리면
+                       이 단추가 파랗게 차서 '눌리는 것'임을 알립니다.
 
-           사진으로 바꿀 자리이기도 합니다 — 나중에 상황에 맞는 사진이 오면
-           이 <svg> 를 <img> 로 갈아 끼우면 됩니다. 칸 비율은 CSS 가 잡아 둡니다. -->
+           색은 세 카드 모두 같은 파랑(Primary)입니다. 도구마다 다른 원색을
+           쓰던 것을 개선(안)과 KRDS 원칙(§색은 역할로 쓴다)에 맞춰 통일했고,
+           빨강은 사고지점처럼 **실제 위험**에만, 초록은 지도의 대피장소
+           마커에만 남겼습니다. -->
       <li class="pn t2">
         <a href="map/index.html">
-          <!-- 01 지도 — 지도 위 사고지점·영향 반경·주변 대피장소 -->
-          <span class="pn-ph" aria-hidden="true">
-            <svg viewBox="0 0 300 132" preserveAspectRatio="xMidYMid meet" focusable="false">
-              <g class="pa-road">
-                <path d="M-4 46 C 60 34 96 62 150 54 S 250 30 304 44"/>
-                <path d="M-4 96 C 70 86 110 108 168 100 S 254 82 304 92"/>
-                <path d="M96 -4 C 104 40 88 76 100 136"/>
-                <path d="M210 -4 C 218 44 202 84 214 136"/>
-              </g>
-              <g class="pa-ring"><circle cx="150" cy="70" r="46"/><circle cx="150" cy="70" r="27"/></g>
-              <g class="pa-dot">
-                <circle cx="96" cy="44" r="7"/><circle cx="206" cy="52" r="7"/>
-                <circle cx="126" cy="104" r="7"/>
-              </g>
-              <g class="pa-acc"><path d="M150 56v28M136 70h28"/><circle cx="150" cy="70" r="6.5"/></g>
-            </svg>
-          </span>
-          <span class="pn-no" aria-hidden="true">01</span>
-          <h2>대피장소 지도</h2>
-          <p class="pn-d">사고지점을 찍으면 주변 대피장소를 가까운 순으로 찾습니다.
-            거리·도보시간·영향 참고 반경·풍하방향을 함께 봅니다.</p>
-          <span class="pn-meta">대피장소 1,849곳 · 기준일 2026-05-19</span>
-          <span class="pn-go">이용하기
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-            </svg>
-          </span>
+          <div class="pn-ph">
+            <!-- 01 지도 — 지도 위 사고지점·영향 반경·주변 대피장소 -->
+            <div class="pn-art" aria-hidden="true">
+              <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" focusable="false">
+                <g class="pa-road">
+                  <path d="M-4 62 C 66 46 106 84 168 74 S 268 42 324 60"/>
+                  <path d="M-4 132 C 74 120 118 148 182 138 S 272 116 324 128"/>
+                  <path d="M104 -4 C 112 52 96 100 108 184"/>
+                  <path d="M226 -4 C 234 60 218 112 230 184"/>
+                </g>
+                <g class="pa-ring">
+                  <circle cx="160" cy="88" r="62"/><circle cx="160" cy="88" r="36"/>
+                </g>
+                <g class="pa-dot">
+                  <circle cx="86" cy="52" r="8"/><circle cx="246" cy="66" r="8"/>
+                  <circle cx="120" cy="146" r="8"/>
+                </g>
+                <g class="pa-acc">
+                  <path d="M160 70v36M142 88h36"/><circle cx="160" cy="88" r="8"/>
+                </g>
+              </svg>
+              <div class="pn-lbs">
+                <b class="pn-lb l1">대피소</b>
+                <b class="pn-lb l2">대피소</b>
+                <b class="pn-lb l3">사고지점</b>
+              </div>
+            </div>
+            <div class="pn-ov">
+              <p class="pn-d">사고지점을 찍으면 주변 대피장소를 가까운 순으로 찾습니다.
+                거리·도보시간·영향 참고 반경·풍하방향을 함께 봅니다.</p>
+            </div>
+          </div>
+          <div class="pn-hd">
+            <span class="pn-no" aria-hidden="true">01</span>
+            <h3>대피장소 지도</h3>
+          </div>
+          <div class="pn-foot">
+            <span class="pn-meta">대피장소 <span class="nb">1,849곳</span> · <span class="nb">기준일 2026-05-19</span></span>
+            <span class="pn-go" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
         </a>
       </li>
 
       <li class="pn t1">
         <a href="sms/index.html">
-          <!-- 02 문자 — 한 걸음씩 채워(왼쪽 점 세 개) 재난문자 한 통이 나온다 -->
-          <span class="pn-ph" aria-hidden="true">
-            <svg viewBox="0 0 300 132" preserveAspectRatio="xMidYMid meet" focusable="false">
-              <g class="pa-step">
-                <path d="M46 34h44M46 62h44M46 90h44"/>
-                <circle cx="30" cy="34" r="7"/><circle cx="30" cy="62" r="7"/>
-                <circle cx="30" cy="90" r="7"/>
-                <path class="pa-tick" d="M26 34l3.5 3.5L34 30M26 62l3.5 3.5L34 58"/>
-              </g>
-              <path class="pa-arrow" d="M108 62h26M128 56l7 6-7 6"/>
-              <g class="pa-msg">
-                <rect x="152" y="20" width="128" height="92" rx="10"/>
-                <path class="pa-tail" d="M164 112v14l16-14"/>
-                <path class="pa-band" d="M152 30a10 10 0 0 1 10-10h108a10 10 0 0 1 10 10v14H152z"/>
-                <path class="pa-txt" d="M166 62h100M166 78h100M166 94h58"/>
-              </g>
-            </svg>
-          </span>
-          <span class="pn-no" aria-hidden="true">02</span>
-          <h2>주민대피 문자 작성</h2>
-          <p class="pn-d">사고정보를 넣으면 재난문자 표준문안이 만들어집니다.
-            90자를 넘으면 줄일 곳을 짚어 주고, 실제 발송 사례를 나란히 봅니다.</p>
-          <span class="pn-meta">표준문안 12건 · 발송 사례 42건 · 물질 460종</span>
-          <span class="pn-go">이용하기
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-            </svg>
-          </span>
+          <div class="pn-ph">
+            <!-- 02 문자 — 왼쪽 걸음을 하나씩 채우면 오른쪽 문자 한 통이 된다.
+                 문안 세 줄은 왼쪽에서 오른쪽으로 그려집니다(글자가 채워지듯). -->
+            <div class="pn-art" aria-hidden="true">
+              <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" focusable="false">
+                <g class="pa-step">
+                  <path d="M46 56h48M46 92h48M46 128h48"/>
+                  <circle cx="30" cy="56" r="8"/><circle cx="30" cy="92" r="8"/>
+                  <circle cx="30" cy="128" r="8"/>
+                  <path class="pa-tick" d="M25.5 56.5l3.5 3.5 5.5-6M25.5 92.5l3.5 3.5 5.5-6"/>
+                </g>
+                <path class="pa-arrow" d="M112 92h24M130 86l7 6-7 6"/>
+                <g class="pa-msg">
+                  <rect x="158" y="26" width="104" height="132" rx="12"/>
+                  <path class="pa-band" d="M158 38a12 12 0 0 1 12-12h80a12 12 0 0 1 12 12v18H158z"/>
+                  <path class="pa-txt t1l" d="M172 80h76"/>
+                  <path class="pa-txt t2l" d="M172 100h76"/>
+                  <path class="pa-txt t3l" d="M172 120h44"/>
+                  <path class="pa-home" d="M198 146h24"/>
+                </g>
+              </svg>
+              <div class="pn-lbs">
+                <b class="pn-lb l1">사고정보</b>
+                <b class="pn-lb l2">표준문안</b>
+              </div>
+            </div>
+            <div class="pn-ov">
+              <p class="pn-d">사고정보를 넣으면 재난문자 표준문안이 만들어집니다.
+                90자를 넘으면 줄일 곳을 짚어 주고, 실제 발송 사례를 나란히 봅니다.</p>
+            </div>
+          </div>
+          <div class="pn-hd">
+            <span class="pn-no" aria-hidden="true">02</span>
+            <h3>주민대피 문자 작성</h3>
+          </div>
+          <div class="pn-foot">
+            <span class="pn-meta"><span class="nb">표준문안 12건</span> · <span class="nb">발송 사례 42건</span> · <span class="nb">물질 460종</span></span>
+            <span class="pn-go" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
         </a>
       </li>
 
       <li class="pn t3">
         <a href="res/index.html">
-          <!-- 03 방제자원 — 사고지점(핀)으로 장비를 실은 차량이 온다 -->
-          <span class="pn-ph" aria-hidden="true">
-            <svg viewBox="0 0 300 132" preserveAspectRatio="xMidYMid meet" focusable="false">
-              <path class="pa-ground" d="M12 106h276"/>
-              <g class="pa-truck">
-                <path d="M40 96V54h74v42"/>
-                <path d="M114 96V66h34l20 30z"/>
-                <circle cx="62" cy="99" r="9"/><circle cx="140" cy="99" r="9"/>
-                <path class="pa-load" d="M54 62h20v20H54zM82 62h20v20H82z"/>
-              </g>
-              <g class="pa-drum">
-                <rect x="196" y="66" width="26" height="34" rx="4"/>
-                <path d="M196 76h26M196 90h26"/>
-              </g>
-              <g class="pa-pin">
-                <path d="M258 32c10 0 18 8 18 18 0 13-18 30-18 30s-18-17-18-30c0-10 8-18 18-18z"/>
-                <circle cx="258" cy="50" r="6.5"/>
-              </g>
-            </svg>
-          </span>
-          <span class="pn-no" aria-hidden="true">03</span>
-          <h2>방제자원 동원</h2>
-          <p class="pn-d">지자체 보유 장비·비상캡슐·폐기물 처리·해경 비축기지를
-            사고지점에서 가까운 순으로 찾습니다. 여러 곳을 담아 한 번에 연락합니다.</p>
-          <span class="pn-meta">자원 470건 · 출처 6종 · 기준일 2026-08-11</span>
-          <span class="pn-go">이용하기
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-            </svg>
-          </span>
+          <div class="pn-ph">
+            <!-- 03 방제자원 — 장비를 실은 차량과 처리 자원이 사고지점(핀)으로 -->
+            <div class="pn-art" aria-hidden="true">
+              <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" focusable="false">
+                <path class="pa-ground" d="M16 140h288"/>
+                <g class="pa-truck">
+                  <path d="M40 128V72h84v56"/>
+                  <path d="M124 128V86h38l22 42z"/>
+                  <circle cx="66" cy="132" r="10"/><circle cx="154" cy="132" r="10"/>
+                  <path class="pa-load" d="M56 82h24v24H56zM90 82h24v24H90z"/>
+                </g>
+                <g class="pa-drum">
+                  <rect x="210" y="92" width="30" height="40" rx="5"/>
+                  <path d="M210 104h30M210 118h30"/>
+                </g>
+                <g class="pa-pin">
+                  <path d="M272 30c11 0 20 9 20 20 0 14-20 34-20 34s-20-20-20-34c0-11 9-20 20-20z"/>
+                  <circle cx="272" cy="50" r="7"/>
+                </g>
+              </svg>
+              <div class="pn-lbs">
+                <b class="pn-lb l1">방제장비</b>
+                <b class="pn-lb l2">폐기물 처리</b>
+                <b class="pn-lb l3">사고지점</b>
+              </div>
+            </div>
+            <div class="pn-ov">
+              <p class="pn-d">지자체 보유 장비·비상캡슐·폐기물 처리·해경 비축기지를
+                사고지점에서 가까운 순으로 찾습니다. 여러 곳을 담아 한 번에 연락합니다.</p>
+            </div>
+          </div>
+          <div class="pn-hd">
+            <span class="pn-no" aria-hidden="true">03</span>
+            <h3>방제자원 동원</h3>
+          </div>
+          <div class="pn-foot">
+            <span class="pn-meta"><span class="nb">자원 470건</span> · <span class="nb">출처 6종</span> · <span class="nb">기준일 2026-08-11</span></span>
+            <span class="pn-go" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
         </a>
       </li>
 

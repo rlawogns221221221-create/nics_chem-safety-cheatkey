@@ -55,7 +55,8 @@ const setF = async (P, k, v) => {
      순서가 '실제 업무 순서'인가. 상사 피드백으로 정한 것이라 바꾸면 안 됩니다. */
   const panels = await P.$$eval('.tools .pn', els => els.map(e => ({
     no: e.querySelector('.pn-no').textContent.trim(),
-    title: e.querySelector('h2').textContent.trim(),
+    /* 카드 이름은 h2 였는데 제목 계단을 h1→h2→h3 으로 바로잡아 h3 이 됐습니다 */
+    title: e.querySelector('h3').textContent.trim(),
     href: e.querySelector('a').getAttribute('href')
   })));
   console.log('진입화면:', panels.map(p => `${p.no} ${p.title}`).join(' / '));
