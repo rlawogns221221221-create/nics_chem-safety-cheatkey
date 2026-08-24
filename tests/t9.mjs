@@ -110,7 +110,10 @@ const rest = await P.evaluate(() => [...document.querySelectorAll('.tools > li')
     ov: +getComputedStyle(ov).opacity,
     len: d.textContent.trim().length,
     disp: getComputedStyle(d).display, vis: getComputedStyle(d).visibility,
-    m: +getComputedStyle(m).opacity, mh: m.getBoundingClientRect().height,
+    /* 제 불투명도만 보면 1 입니다 — 판(.pn-ov)이 0 이라 화면에는 안 보입니다.
+       그래서 조상까지 따지는 checkVisibility 로 봅니다. */
+    m: m.checkVisibility ? m.checkVisibility({ opacityProperty: true }) : false,
+    metaIn: !!m.closest('.pn-ov'),
     hh: h.getBoundingClientRect().height,
     go: getComputedStyle(li.querySelector('.pn-go')).backgroundColor
   };
@@ -118,7 +121,11 @@ const rest = await P.evaluate(() => [...document.querySelectorAll('.tools > li')
 chk(rest.every(s => s.ov < 0.05), '평소에는 설명이 비켜 있다 (카드가 단순하다)');
 chk(rest.every(s => s.len > 30 && s.disp !== 'none' && s.vis !== 'hidden'),
   '설명 글은 늘 문서에 있다 — 화면낭독기가 읽는다 (display/visibility 로 지우지 않음)');
-chk(rest.every(s => s.m > 0.95 && s.mh > 10), '자료 건수는 처음부터 보인다');
+/* 자료 건수·기준일도 설명과 함께 사진 위로 올라옵니다 — 사용자가 "그 문구가
+   굳이 나타나 있지 않아도 될 것 같다"고 해서 옮겼습니다. 평소 카드에 보이는
+   글자는 `01 이름` 한 줄뿐입니다. */
+chk(rest.every(s => s.m === false), '자료 건수도 평소에는 비켜 있다');
+chk(rest.every(s => s.metaIn), '자료 건수는 설명 판 안에 들어 있다');
 chk(rest.every(s => s.hh > 20), '도구 이름은 처음부터 보인다');
 
 await P.hover('.tools > li:nth-child(1) > a'); await P.waitForTimeout(420);
@@ -443,7 +450,62 @@ for (const [w, h, 이름] of [[390, 664, '작은 화면'], [390, 750, '실제 �
   await M2.close();
 }
 
-await P.screenshot({ path: 't9-portal.png' });await P.screenshot({ path: 't9-portal.png' });
+/* ══ 17. 첫 화면의 구성 ═════════════════════════════════════════
+   세 가지 지적이 여기 모입니다.
+     ① "업무도구 3종 글씨가 배경화면과의 갭을 만들었다. 그 갭 없이 딱 붙어
+        있으면 좋겠다" → 제목을 화면에서 빼고 카드 띠를 머리띠에 붙였습니다.
+     ② "업무참고 도구입니다 박스가 너무 크게 눈에 잘 띈다. 명시는 하되 눈에
+        잘 안 띄도록" → 노란 띠를 걷고 작은 회색 글줄로. **지우지는 않습니다.**
+     ③ "제목 문구가 너무 정적이다" → 이름을 낱말로 나눠 하나씩 올라오게 하고,
+        아래 한 줄의 세 가지 일이 차례로 물들게 했습니다. */
+await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(600);
+const first = await P.evaluate(() => {
+  const g = s => document.querySelector(s).getBoundingClientRect();
+  const nt = document.querySelector('.notice'), ns = getComputedStyle(nt);
+  const words = [...document.querySelectorAll('.hero h1 span')];
+  const leads = [...document.querySelectorAll('.hero-lead b')];
+  return {
+    gap: Math.round(g('.tools').top - g('.hero').bottom),
+    hdVisible: [...document.querySelectorAll('main h2')]
+      .some(h => h.getBoundingClientRect().height > 4),
+    /* 알림 — 색 띠 없이, 작게. 다만 읽을 수 있어야 합니다(지우면 안 됨) */
+    noticeBg: ns.backgroundColor, noticeSize: parseFloat(ns.fontSize),
+    noticeLen: nt.textContent.trim().length,
+    noticeInk: ns.color, noticeH: nt.getBoundingClientRect().height,
+    /* 제목이 낱말로 나뉘어 차례로 올라오는가 */
+    words: words.length, wordAnim: words.map(w => getComputedStyle(w).animationName),
+    wordDelay: words.map(w => getComputedStyle(w).animationDelay),
+    /* 한 줄의 세 가지가 차례로 물드는가 */
+    leads: leads.map(b => b.textContent.trim()),
+    leadAnim: leads.map(b => getComputedStyle(b).animationName),
+    leadDelay: leads.map(b => getComputedStyle(b).animationDelay)
+  };
+});
+chk(first.gap <= 1, `카드 띠가 머리띠에 딱 붙어 있다 (틈 ${first.gap}px)`);
+chk(!first.hdVisible, "'업무도구 3종' 글자가 틈을 만들지 않는다 (문서에는 남아 있음)");
+chk(/rgba\(0, 0, 0, 0\)|transparent/.test(first.noticeBg),
+  `알림에 색 띠가 없다 (${first.noticeBg})`);
+chk(first.noticeSize <= 15, `알림 글자가 본문보다 작다 (${first.noticeSize}px)`);
+chk(first.noticeLen > 120 && first.noticeH > 20,
+  `알림 내용은 그대로 있다 (${first.noticeLen}자 · ${Math.round(first.noticeH)}px)`);
+chk(lum(first.noticeInk) < 140, `알림 글자가 읽을 만큼 진하다 (밝기 ${Math.round(lum(first.noticeInk))})`);
+chk(first.words === 3 && first.wordAnim.every(n => n !== 'none'),
+  `제목이 낱말 ${first.words}개로 나뉘어 차례로 올라온다 (${first.wordDelay.join('/')})`);
+chk(first.leads.length === 3 && first.leadAnim.every(n => n !== 'none'),
+  `한 줄의 세 가지가 차례로 물든다 (${first.leads.join(' / ')})`);
+chk(new Set(first.leadDelay).size === 3, `세 가지가 겹치지 않고 차례로 (${first.leadDelay.join('/')})`);
+/* 모션을 줄이면 이 둘도 멈춘 채 다 보여야 합니다 */
+await P.emulateMedia({ reducedMotion: 'reduce' }); await P.waitForTimeout(300);
+const rm2 = await P.evaluate(() => {
+  const w = document.querySelector('.hero h1 span'), b = document.querySelector('.hero-lead b');
+  return { w: getComputedStyle(w).animationName, wOp: +getComputedStyle(w).opacity,
+           b: getComputedStyle(b).animationName };
+});
+chk(rm2.w === 'none' && rm2.b === 'none' && rm2.wOp > 0.95,
+  '움직임을 줄이면 제목·한 줄도 멈춘 채 다 보인다');
+await P.emulateMedia({ reducedMotion: 'no-preference' }); await P.waitForTimeout(200);
+
+await P.screenshot({ path: 't9-portal.png' });
 
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');
 ok.forEach(m => console.log('  ok  ' + m));

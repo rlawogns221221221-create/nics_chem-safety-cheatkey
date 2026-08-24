@@ -216,19 +216,34 @@ html[data-krds-mode="high-contrast"] .logo-full{
   background:linear-gradient(96deg,
     var(--veil) 0%, var(--veil) 40%, var(--veil-0) 72%)}
 .hero .wrap{position:relative; z-index:1;
-  min-height:34rem; padding-top:4.8rem; padding-bottom:4.8rem;
-  display:flex; flex-direction:column; justify-content:center; gap:1.2rem}
+  min-height:38rem; padding-top:5.6rem; padding-bottom:5.6rem;
+  display:flex; flex-direction:column; justify-content:center; gap:1.6rem}
 /* 아주 넓은 화면에서 제목이 왼쪽 끝에 혼자 떨어져 보이지 않게 — 글자 묶음만
    폭을 제한합니다(막은 화면 끝까지 그대로 깔립니다). */
-.hero h1,.hero p{max-width:44rem}
-/* 제목이 한 번 올라옵니다 — 화면을 열었을 때 글자가 먼저 눈에 들어오도록 */
+.hero h1,.hero p{max-width:46rem}
 @keyframes heroIn{from{opacity:0; transform:translateY(1.2rem)} to{opacity:1; transform:none}}
-.hero h1{margin:0; font-size:3.6rem; font-weight:700; line-height:1.3;
-  letter-spacing:-.02em; color:var(--hero-ink); text-wrap:balance;
-  animation:heroIn .55s var(--ease) .15s both}
-.hero p{margin:0; max-width:46ch; font-size:1.9rem; line-height:1.6;
+.hero h1{margin:0; font-size:4rem; font-weight:700; line-height:1.25;
+  letter-spacing:-.025em; color:var(--hero-ink); text-wrap:balance}
+/* 이름을 낱말로 나눠 하나씩 올라옵니다 — 사용자가 "문구가 너무 정적"이라고
+   했습니다. 서비스 이름은 기관의 공식 이름이라 글자는 그대로 두고 **들어오는
+   방식**만 살렸습니다. 멈춘 상태가 곧 다 보이는 상태입니다. */
+.hero h1 span{display:inline-block; animation:heroIn .6s var(--ease) both}
+.hero h1 span:nth-child(2){animation-delay:.1s}
+.hero h1 span:nth-child(3){animation-delay:.2s}
+.hero p{margin:0; font-size:1.9rem; line-height:1.65;
   color:var(--hero-ink-2);
-  animation:heroIn .55s var(--ease) .27s both}
+  animation:heroIn .55s var(--ease) .32s both}
+/* 한 줄에 적은 **세 가지 일**이 차례로 파랗게 물듭니다(아래 카드와 같은 순서).
+   지어낸 문구가 아니라 도구 세 개가 실제로 하는 일입니다. */
+@keyframes leadOn{
+  0%,6%{color:var(--hero-ink-2)}
+  14%,30%{color:var(--brand-d)}
+  40%,100%{color:var(--hero-ink-2)}
+}
+.hero-lead b{font-weight:700; color:var(--hero-ink-2);
+  animation:leadOn 9s var(--ease) infinite}
+.hero-lead b:nth-of-type(2){animation-delay:1s}
+.hero-lead b:nth-of-type(3){animation-delay:2s}
 /* 상자가 화면보다 좁아지는 폭부터는 글자가 화면 가운데까지 오므로 막의
    짙은 구간을 넓힙니다 — 글자 오른쪽 끝이 사진 위로 넘어가면 안 됩니다. */
 @media (max-width:1100px){
@@ -241,9 +256,9 @@ html[data-krds-mode="high-contrast"] .logo-full{
     var(--veil) 0%, var(--veil) 52%, var(--veil-0) 100%)}
   .hero-img{object-position:50% 42%}
   /* 머리띠를 낮춥니다 — 아래 카드가 한 화면에 두 칸은 걸쳐야 합니다 */
-  .hero .wrap{min-height:16rem; padding-top:2.4rem; padding-bottom:4rem;
-    justify-content:flex-start}
-  .hero h1{font-size:2.4rem}
+  .hero .wrap{min-height:16rem; padding-top:2.4rem; padding-bottom:3.6rem;
+    gap:1.2rem; justify-content:flex-start}
+  .hero h1{font-size:2.6rem}
   .hero p{font-size:1.6rem; max-width:none}
 }
 
@@ -259,13 +274,15 @@ html[data-krds-mode="high-contrast"] .logo-full{
 
    카드마다 테두리·모서리·그림자를 주면 다시 '따로 노는 상자'가 되므로 주지
    않습니다. 대신 마우스를 올리면 글자 칸 바탕이 아주 옅은 파랑으로 바뀝니다. */
-main{flex:1; padding:4rem 0 5.6rem}
-.tools-hd{margin:0 0 1.6rem; font-size:1.5rem; font-weight:700; color:var(--ink2);
-  letter-spacing:.02em}
+/* 머리띠와 카드 사이에 틈을 두지 않습니다 — '업무도구 3종' 글자가 만들던
+   틈을 사용자가 "그 갭 없이 딱 붙어 있으면 좋겠다"고 해서 없앴습니다.
+   머리띠 사진 → 카드 띠가 **한 덩어리로 세로로 이어집니다.** */
+main{flex:1; padding:0 0 3.2rem}
 .tools{list-style:none; margin:0; padding:0; display:grid;
   grid-template-columns:1fr; gap:.1rem;
   background:var(--line); border:.1rem solid var(--line);
-  border-radius:1rem; overflow:hidden}
+  /* 위쪽은 머리띠에 붙으므로 각을 살리고, 아래만 둥글립니다 */
+  border-top:0; border-radius:0 0 1rem 1rem; overflow:hidden}
 @media (min-width:800px){ .tools{grid-template-columns:repeat(3,1fr)} }
 
 /* 카드 세 장이 차례로 올라옵니다 — 열 때 한 번만. 화면이 통째로 나타나는
@@ -276,7 +293,7 @@ main{flex:1; padding:4rem 0 5.6rem}
 .pn:nth-child(2){animation-delay:.09s}
 .pn:nth-child(3){animation-delay:.18s}
 .pn a{
-  display:flex; flex-direction:column; gap:1.4rem; width:100%;
+  display:flex; flex-direction:column; gap:1.6rem; width:100%;
   padding:0 0 2rem; text-decoration:none; color:inherit;
   background:var(--card);
   transition:background-color .18s var(--ease);
@@ -360,30 +377,33 @@ main{flex:1; padding:4rem 0 5.6rem}
   background:var(--ov); opacity:0; transform:translateY(100%);
   transition:opacity .18s var(--ease), transform .18s var(--ease)}
 .pn-ov .pn-d{margin:0; color:var(--on-deep); font-size:1.5rem; line-height:1.6}
+.pn-ov .pn-meta{margin:.6rem 0 0; font-size:1.3rem; line-height:1.5;
+  color:var(--on-deep-2)}
 .pn a:hover .pn-ov{opacity:1; transform:none}
 .pn a:focus-visible .pn-ov{opacity:1; transform:none}
 /* 손가락으로 쓰는 기기 — 올릴 마우스가 없으니 처음부터 펼쳐 둡니다 */
 @media (hover:none){
   .pn-ov{opacity:1; transform:none}
   .pn-lbs{display:none}
+  /* 판이 늘 펼쳐져 있으므로 자료 건수는 화면에서 뺍니다 — 사진이 판 뒤로
+     다 들어가 무슨 사진인지 알 수 없게 됩니다. 지우지 않고 **비켜만**
+     두어(sr-only 와 같은 방식) 화면낭독기는 그대로 읽습니다. */
+  .pn-ov .pn-meta{position:absolute; width:1px; height:1px; margin:-1px;
+    padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
 }
 
-/* ── 번호 · 이름 · 자료 건수 · 화살표 ───────────────────────
-   개선(안)처럼 `01 대피장소 지도` 를 한 줄에 둡니다. 번호는 이름보다
-   약해야 하므로(KRDS) 작은 배지로 둡니다. */
+/* ── 번호 · 이름 · 화살표 — 한 줄 ────────────────────────────
+   평소 보이는 것은 사진과 이 한 줄뿐입니다. 자료 건수·기준일은 설명과 함께
+   사진 위로 올라옵니다(.pn-ov) — 사용자가 "그 문구가 굳이 나타나 있지 않아도
+   될 것 같다"고 했습니다. 번호는 이름보다 약해야 하므로(KRDS) 작은 배지로. */
 .pn-hd{display:flex; align-items:center; gap:1rem; padding:0 var(--pad)}
+.pn-hd .pn-go{margin-left:auto}
 .pn-no{display:grid; place-items:center; min-width:3rem; height:2.8rem;
   padding:0 .6rem; border-radius:.4rem;
   background:var(--brand); color:var(--on-brand);
   font-size:1.5rem; font-weight:700; line-height:1; flex:none}
 .pn h3{margin:0; font-size:2.2rem; font-weight:700; letter-spacing:-.02em;
   line-height:1.3}
-/* 발밑 줄 — 자료 건수 + 둥근 화살표. 구분선은 --edge 안쪽에서 그어야
-   카드 사이 세로선과 만나 지저분해지지 않습니다. */
-.pn-foot{margin:auto var(--pad) 0; padding-top:1.2rem;
-  border-top:.1rem solid var(--line2);
-  display:flex; align-items:center; gap:1.2rem}
-.pn-meta{flex:1; font-size:1.4rem; line-height:1.5; color:var(--ink3)}
 /* 날짜·건수처럼 중간에서 끊기면 읽기 나쁜 토막은 통째로 넘깁니다
    ("2026-05-" / "19" 로 갈라졌습니다 — 붙임표에서 줄이 바뀝니다) */
 .nb{white-space:nowrap}
@@ -400,15 +420,18 @@ main{flex:1; padding:4rem 0 5.6rem}
   color:var(--on-brand); transform:translateX(.2rem)}
 
 /* ── 알림 — 이 도구가 하지 않는 것 ───────────────────────────
-   KRDS 의 '중요 알림' 방식입니다. 왼쪽 굵은 선 + 옅은 바탕.
-   카드보다 약해 보여야 합니다. */
-.notice{margin-top:3.2rem; display:flex; flex-direction:column; gap:.8rem;
-  padding:1.8rem 2rem; background:var(--warn-l);
-  border:.1rem solid var(--warn-b); border-left:.4rem solid var(--warn);
-  border-radius:0 .8rem .8rem 0}
-.notice b{font-size:1.7rem; color:var(--warn)}
-.notice p{margin:0; font-size:1.5rem; line-height:1.7; color:var(--ink2)}
-.notice p + p{margin-top:.2rem}
+   예전에는 노란 띠 + 왼쪽 굵은 선이었습니다. 사용자가 **"너무 크게 눈에 잘
+   띈다. 명시는 하되 눈에 잘 안 띄도록"** 이라고 해서 띠를 걷어내고 작은
+   회색 글줄로 두었습니다.
+
+   **지우지는 않습니다.** 판단의 책임이 어디 있는지는 도구를 열기 전에
+   읽혀야 합니다. 색만 눌렀고 크기·대비는 읽을 수 있는 선(--ink2 · 14px)을
+   지켰습니다 — 흐릿한 회색으로 더 낮추면 '있으나 마나'가 됩니다.
+   KRDS 도 실제 위험·오류가 아니면 Warning 색을 쓰지 말라고 합니다. */
+.notice{display:block; max-width:100ch; margin:2.4rem 0 0;
+  padding-top:1.6rem; border-top:.1rem solid var(--line2);
+  font-size:1.4rem; line-height:1.7; color:var(--ink2)}
+.notice b{font-weight:700; color:var(--ink)}
 
 footer{background:var(--card); border-top:.1rem solid var(--line);
   padding:2rem 0; font-size:1.5rem; color:var(--ink3)}
@@ -423,8 +446,8 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
    둥근 화살표를 3.6rem 으로 줄여도 됩니다 — 그 자체가 누르는 단추가 아니고
    (aria-hidden) **카드 전체가 링크**라 터치 영역은 200px 이 넘습니다. */
 @media (max-width:720px){
-  .pn-ph{aspect-ratio:5/2}
-  .pn a{gap:.6rem; padding-bottom:1rem}
+  .pn-ph{aspect-ratio:11/5}
+  .pn a{gap:1rem; padding-bottom:1.4rem}
   .pn-ov{padding:.8rem var(--pad)}
   .pn-ov .pn-d{font-size:1.4rem; line-height:1.45}
   /* 설명 판이 사진의 아래쪽 절반을 덮으므로, **위쪽 절반에 주인공이 오도록**
@@ -435,13 +458,10 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
   .pn.t3 .pn-art img{object-position:50% 38%}   /* 방제 — 차체와 인력 */
   .pn h3{font-size:1.8rem}
   .pn-no{min-width:2.6rem; height:2.4rem; font-size:1.4rem}
-  .pn-foot{padding-top:.6rem}
-  .pn-meta{font-size:1.3rem}
   .pn-go{width:3rem; height:3rem}
   .pn-go svg{width:1.7rem; height:1.7rem}
-  .tools-hd{margin-bottom:1rem}
-  main{padding-top:1.6rem; padding-bottom:4rem}
-  .notice{margin-top:2.4rem}
+  main{padding-bottom:3.2rem}
+  .notice{margin-top:2rem; font-size:1.35rem}
 }
 
 /* ── 움직임을 줄이는 설정 ───────────────────────────────────
@@ -451,7 +471,7 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:.01ms!important;
     animation-duration:.01ms!important; animation-iteration-count:1!important}
-  .pn-lb,.hero-img,.hero h1,.hero p,.pn{animation:none!important}
+  .pn-lb,.hero-img,.hero h1 span,.hero p,.hero-lead b,.pn{animation:none!important}
 }
 /* 손가락으로 누르는 것은 40px 이상 (KRDS·접근성) */
 @media (pointer:coarse){
@@ -473,4 +493,5 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
   .pn-ov{position:static; opacity:1; transform:none; padding:1.2rem 0 0}
   .pn a{padding-top:1.6rem; box-shadow:none; border:1px solid #000}
   .tools{gap:1.2rem; background:none; border:0; border-radius:0}
+  .notice{border-top:1px solid #000}
 }
