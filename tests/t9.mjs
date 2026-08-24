@@ -13,7 +13,7 @@
      · 평소에는 번호·이름·자료 건수만 (미니멀)
      · 마우스를 올리면 설명이 올라오고 화살표 단추가 파랗게 찬다
      · 키보드 초점에서도 같고, 손가락 기기·인쇄에서는 처음부터 펼쳐진다
-     · 그림 위 딱지가 살아 움직이고, 모션을 줄이면 멈춘 채 다 보인다
+     · 사진 네 장이 실제로 불러와지고, 그 위 딱지가 살아 움직인다
      · 고대비(어두운) 화면 켜고 끄기와 기억
      · KRDS 규격 — 본문 17px 이상, 초점 표시, 터치 영역
      · 반응형·모션 감소·JS 꺼짐·인쇄 */
@@ -252,14 +252,17 @@ chk(parseFloat(await P.$eval('.tools > li > a', a => getComputedStyle(a).transit
   'prefers-reduced-motion 반영');
 const rm = await P.evaluate(() => {
   const lb = document.querySelector('.pn-lb');
-  const ring = document.querySelector('.hero-art .ha-ring circle');
+  const img = document.querySelector('.hero-img');
   return { lbName: getComputedStyle(lb).animationName, lbOp: +getComputedStyle(lb).opacity,
-           ringName: getComputedStyle(ring).animationName,
-           h1: +getComputedStyle(document.querySelector('.hero h1')).opacity };
+           imgName: getComputedStyle(img).animationName,
+           card: getComputedStyle(document.querySelector('.pn')).animationName,
+           h1: +getComputedStyle(document.querySelector('.hero h1')).opacity,
+           cardOp: +getComputedStyle(document.querySelector('.pn')).opacity };
 });
-chk(rm.lbName === 'none' && rm.ringName === 'none',
-  `움직임을 줄이면 되풀이 동작이 멈춘다 (딱지 ${rm.lbName} · 반경 ${rm.ringName})`);
+chk(rm.lbName === 'none' && rm.imgName === 'none' && rm.card === 'none',
+  `움직임을 줄이면 동작이 멈춘다 (딱지 ${rm.lbName} · 사진 ${rm.imgName} · 카드 ${rm.card})`);
 chk(rm.lbOp > 0.95 && rm.h1 > 0.95, '멈춘 상태에서도 딱지와 제목이 다 보인다');
+chk(rm.cardOp > 0.95, '멈춘 상태에서도 카드가 다 보인다');
 await P.emulateMedia({ reducedMotion: 'no-preference' }); await P.waitForTimeout(200);
 
 // ══ 12. JS 없이 — 고대비 단추만 없고, 나머지는 그대로 ══
@@ -278,7 +281,7 @@ await N.close();
 await P.click('.modebtn'); await P.waitForTimeout(300);   // 고대비로 바꿔 두고
 await P.emulateMedia({ media: 'print' }); await P.waitForTimeout(250);
 const pr = await P.evaluate(() => ({
-  photo: getComputedStyle(document.querySelector('.hero-art')).display,
+  photo: getComputedStyle(document.querySelector('.hero-ph')).display,
   art: getComputedStyle(document.querySelector('.pn-art')).display,
   act: getComputedStyle(document.querySelector('.top .act')).display,
   card: getComputedStyle(document.querySelector('.tools > li > a')).backgroundColor,
@@ -287,8 +290,8 @@ const pr = await P.evaluate(() => ({
   d: +getComputedStyle(document.querySelector('.pn-d')).opacity,
   dh: document.querySelector('.pn-d').getBoundingClientRect().height
 }));
-chk(pr.photo === 'none', '인쇄 시 머리띠 그림 빼기');
-chk(pr.art === 'none', '인쇄 시 카드 그림 빼기');
+chk(pr.photo === 'none', '인쇄 시 머리띠 사진 빼기');
+chk(pr.art === 'none', '인쇄 시 카드 사진 빼기');
 chk(pr.act === 'none', '인쇄 시 단추 줄 빼기');
 chk(lum(pr.card) > 200, `인쇄 시 카드 바탕이 흰색 (밝기 ${Math.round(lum(pr.card))})`);
 chk(lum(pr.ink) < 60, `인쇄 시 글자가 검정 (밝기 ${Math.round(lum(pr.ink))})`);
@@ -296,11 +299,13 @@ chk(pr.ov > 0.95 && pr.d > 0.95 && pr.dh > 20, '인쇄 시 설명은 글자로 �
 await P.emulateMedia({ media: 'screen' });
 await P.click('.modebtn'); await P.waitForTimeout(300);   // 밝은 화면으로 되돌린다
 
-/* ══ 14. 그린 그림과 그 위의 딱지 ═══════════════════════════════
-   개선(안)에는 실사 사진이 깔려 있지만 아직 쓸 수 있는 사진이 없어 같은
-   구도의 **그린 그림(SVG)** 을 넣었습니다. 사진이 오면 이 칸의 <svg> 를
-   <img> 로 갈아 끼웁니다 — 그래서 칸 비율(16:9)과 세 칸 높이가 같은지를
-   지금 못 박아 둡니다.
+/* ══ 14. 사진과 그 위의 딱지 ═════════════════════════════════════
+   사용자가 준 실사 사진 4장(머리띠 1 + 카드 3)을 씁니다. 사진은 파일이라
+   **실제로 불러와졌는지**가 중요합니다 — 경로가 틀리면 화면에 빈 칸이 남고,
+   그것을 눈으로 못 보고 넘기기 쉽습니다(naturalWidth 로 확인).
+
+   카드 세 장의 사진 칸은 비율(16:9)과 높이가 **정확히 같아야** 카드 줄이
+   맞습니다. build/make_site_images.py 가 미리 잘라 두는 이유입니다.
 
    딱지는 "사진 위의 글자가 살아 움직였으면 좋겠다"는 요청으로 넣은 것이고,
    **지어낸 수치를 적지 않았는지**도 함께 봅니다 — 거리·시간을 적으면
@@ -309,19 +314,25 @@ await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(40
 const art = await P.evaluate(() => {
   const at = [...document.querySelectorAll('.pn-art')];
   const box = e => { const r = e.getBoundingClientRect(); return { w: r.width, h: r.height }; };
+  const hero = document.querySelector('.hero-img');
+  const cards = [...document.querySelectorAll('.pn-art img')];
   return {
-    hero: !!document.querySelector('svg.hero-art'),
-    heroSite: document.querySelectorAll('.hero-art .ha-site path, .hero-art .ha-site circle').length,
+    hero: !!hero, heroLoaded: !!hero && hero.naturalWidth > 100,
+    heroFit: hero ? getComputedStyle(hero).objectFit : '',
+    veil: !!document.querySelector('.hero-veil'),
     n: at.length,
+    imgN: cards.length,
+    imgLoaded: cards.every(i => i.naturalWidth > 100),
+    imgFit: cards.every(i => getComputedStyle(i).objectFit === 'cover'),
+    /* 사진은 장식입니다 — 무엇을 하는 도구인지는 제목·설명이 말합니다 */
+    imgAlt: cards.every(i => i.getAttribute('alt') === ''),
     svgN: document.querySelectorAll('.pn-art svg').length,
-    imgN: document.querySelectorAll('.pn-art img').length,
     boxes: [...document.querySelectorAll('.pn-ph')].map(box),
-    /* 장식이라 화면낭독기에는 읽히지 않아야 합니다 — 무엇을 하는 도구인지는
-       제목·설명이 말합니다. 설명(.pn-ov)은 이 밖에 있어야 읽힙니다. */
     hidden: at.every(e => e.getAttribute('aria-hidden') === 'true'),
+    /* 설명(.pn-ov)은 사진 칸 밖에 있어야 화면낭독기가 읽습니다 */
     ovOutside: [...document.querySelectorAll('.pn-ov')]
       .every(o => !o.closest('[aria-hidden="true"]')),
-    heroHidden: document.querySelector('.hero-art').getAttribute('aria-hidden') === 'true',
+    heroHidden: document.querySelector('.hero-ph').getAttribute('aria-hidden') === 'true',
     lbs: [...document.querySelectorAll('.tools > li')]
       .map(li => [...li.querySelectorAll('.pn-lb')].map(b => b.textContent.trim())),
     lbAnim: getComputedStyle(document.querySelector('.pn-lb')).animationName,
@@ -335,33 +346,41 @@ const art = await P.evaluate(() => {
     })
   };
 });
-chk(art.hero, '머리띠에 그린 그림이 있다');
-chk(art.heroSite >= 6, `머리띠에 산업단지가 그려져 있다 (선 ${art.heroSite}개)`);
-chk(art.n === 3 && art.svgN === 3, `카드 세 장에 그림이 하나씩 (칸 ${art.n} · 그림 ${art.svgN})`);
-chk(art.imgN === 0, '카드 그림은 사진 파일이 아니라 그린 그림이다');
+chk(art.hero && art.heroLoaded, '머리띠 사진이 실제로 불러와졌다');
+chk(art.heroFit === 'cover', `머리띠 사진이 칸을 채운다 (object-fit:${art.heroFit})`);
+chk(art.veil, '머리띠 사진 위에 글자용 막(.hero-veil)이 있다');
+chk(art.n === 3 && art.imgN === 3, `카드 세 장에 사진이 하나씩 (칸 ${art.n} · 사진 ${art.imgN})`);
+chk(art.imgLoaded, '카드 사진 세 장이 모두 실제로 불러와졌다');
+chk(art.imgFit, '카드 사진이 칸을 채운다 (object-fit:cover)');
+chk(art.svgN === 0, '카드 그림 칸은 선 그림이 아니라 사진이다');
 const spread = Math.max(...art.boxes.map(b => b.h)) - Math.min(...art.boxes.map(b => b.h));
-chk(spread < 2, `카드 그림 칸 높이가 모두 같다 (${art.boxes.map(b => Math.round(b.h)).join('/')}px)`);
+chk(spread < 2, `카드 사진 칸 높이가 모두 같다 (${art.boxes.map(b => Math.round(b.h)).join('/')}px)`);
 chk(art.boxes.every(b => Math.abs(b.w / b.h - 16 / 9) < 0.03),
-  `카드 그림 칸 비율이 정해진 값(16:9) (${art.boxes.map(b => (b.w / b.h).toFixed(2)).join('/')})`);
-chk(art.hidden && art.heroHidden, '그림은 장식이라 화면낭독기에 읽히지 않는다');
+  `카드 사진 칸 비율이 정해진 값(16:9) (${art.boxes.map(b => (b.w / b.h).toFixed(2)).join('/')})`);
+chk(art.hidden && art.heroHidden && art.imgAlt,
+  '사진은 장식이라 화면낭독기에 읽히지 않는다 (aria-hidden · alt="")');
 chk(art.ovOutside, '설명은 그 밖에 있어 화면낭독기가 읽는다');
 chk(art.lbs.every(l => l.length >= 2), `카드마다 딱지가 두 개 이상 (${art.lbs.map(l => l.length).join('/')})`);
 chk(art.lbAnim !== 'none', `딱지가 살아 움직인다 (${art.lbAnim})`);
-chk(art.lbIn, '딱지가 그림 칸 밖으로 삐져나오지 않는다');
+chk(art.lbIn, '딱지가 사진 칸 밖으로 삐져나오지 않는다');
 /* 딱지에 지어낸 수치가 없는가 — 숫자가 들어가면 자료처럼 읽힙니다 */
 const flat = art.lbs.reduce((a, b) => a.concat(b), []);
 chk(flat.every(t => !/\d/.test(t)), `딱지에 지어낸 수치가 없다 (${flat.join(' / ')})`);
-/* 사진 파일을 아예 쓰지 않는가 — 로고 하나만 있어야 합니다 */
+/* 쓰는 그림 파일 — 기관 로고 + 사진 4장 */
 const imgs = await P.evaluate(() => [...document.images].map(i => i.getAttribute('src')));
-chk(imgs.length === 1 && /gov-logo/.test(imgs[0]),
-  `그림 파일은 기관 로고 하나뿐 (${imgs.join(', ')})`);
-/* 머리띠 제목이 짙은 바탕 위에서 읽히는가 */
+chk(imgs.length === 5 && imgs.filter(u => /gov-logo/.test(u)).length === 1
+    && imgs.filter(u => /img\/site\//.test(u)).length === 4,
+  `그림 파일은 로고 1 + 사진 4 (${imgs.length}개)`);
+/* 사진 위 제목이 읽히는가 — 글자가 앉는 자리를 덮는 막(--veil)과 견줍니다.
+   사진은 자리마다 밝기가 달라서, 막의 색으로 대비를 고정해 둔 것입니다. */
+const rgba = s => { const m = s.match(/[\d.]+/g).map(Number);
+  return (m[0] * 299 + m[1] * 587 + m[2] * 114) / 1000; };
 const heroTxt = await P.evaluate(() => ({
-  bg: getComputedStyle(document.querySelector('.hero')).backgroundColor,
+  veil: getComputedStyle(document.documentElement).getPropertyValue('--veil').trim(),
   fg: getComputedStyle(document.querySelector('.hero h1')).color
 }));
-chk(lum(heroTxt.fg) - lum(heroTxt.bg) > 120,
-  `머리띠 제목과 바탕의 밝기 차가 충분하다 (${Math.round(lum(heroTxt.bg))} → ${Math.round(lum(heroTxt.fg))})`);
+chk(Math.abs(rgba(heroTxt.fg) - rgba(heroTxt.veil)) > 120,
+  `머리띠 제목과 막의 밝기 차가 충분하다 (막 ${Math.round(rgba(heroTxt.veil))} ↔ 글자 ${Math.round(rgba(heroTxt.fg))})`);
 
 await P.screenshot({ path: 't9-portal.png' });
 

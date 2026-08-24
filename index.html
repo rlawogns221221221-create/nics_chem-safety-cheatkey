@@ -45,49 +45,20 @@
 </header>
 
 <!-- ══ 머리 — 서비스 이름 ═══════════════════════════════════
-     개선(안)에는 산업단지 사진이 깔려 있습니다. 아직 쓸 수 있는 사진이
-     없어 **같은 구도의 선 그림**을 그려 넣었습니다 — 왼쪽은 글자가 앉는
-     빈 자리, 오른쪽은 산업단지(증류탑·구형탱크·저장탱크·굴뚝)와 그 위에
-     사고지점·영향 참고 반경. 사진이 오면 이 자리를 사진으로 갈아 끼웁니다.
+     개선(안)처럼 **산업단지 실사 사진**을 깔았습니다(사용자가 준 사진).
+     사진 위 글자는 뒤에 무엇이 오는지에 따라 읽히는 정도가 달라지므로,
+     왼쪽에 옅은 막(.hero-veil)을 깔아 글자가 앉는 자리의 밝기를 고정했습니다
+     — 급할 때 여는 화면에서는 읽히는 것이 먼저입니다. 고대비 화면에서는
+     같은 막이 검게 깔리고 글자가 밝아집니다.
 
-     사진이 아니라 그림이라 글자 뒤 밝기가 항상 같습니다 — 급할 때 여는
-     화면에서는 읽히는 것이 먼저입니다.
-
-     반경 원은 천천히 밝아졌다 어두워집니다(레이더 한 번 돌듯). 자료가
-     아니라 '이 화면은 살아 있다'는 신호이므로, 모션을 줄이는 설정에서는
-     멈춥니다. -->
+     사진은 열 때 한 번만 아주 조금 커졌다 제자리로 옵니다. 영상처럼
+     되풀이되지 않고, 모션을 줄이는 설정에서는 아예 멈춥니다. -->
 <div class="hero">
-  <svg class="hero-art" viewBox="0 0 1200 360" preserveAspectRatio="xMidYMid slice"
-       aria-hidden="true" focusable="false">
-    <!-- 등고선 — 지도의 결. 옅게 깔아 글자를 방해하지 않습니다 -->
-    <g class="ha-line">
-      <path d="M-20 300 C 160 262 300 296 470 258 S 800 214 1220 250"/>
-      <path d="M-20 250 C 170 212 320 246 500 206 S 830 160 1220 198"/>
-      <path d="M-20 200 C 180 164 340 196 530 154 S 860 108 1220 146"/>
-      <path d="M-20 150 C 190 116 360 146 560 104 S 890 58 1220 96"/>
-      <path d="M-20 100 C 200 68 380 96 590 54 S 920 8 1220 46"/>
-    </g>
-    <!-- 산업단지 — 오른쪽에만. 가운데(x 940~1020)는 사고지점 자리로 비웁니다 -->
-    <g class="ha-site">
-      <path d="M620 306H1220"/>
-      <path d="M672 306v-30h46v30"/>
-      <path d="M744 306V154a16 16 0 0 1 32 0v152M744 190h32M744 226h32M744 262h32"/>
-      <path d="M800 306V196a12 12 0 0 1 24 0v110M800 228h24M800 262h24"/>
-      <circle cx="880" cy="252" r="32"/>
-      <path d="M866 282v24M894 282v24"/>
-      <path d="M1030 306v-56h100v56M1030 268h100M1030 288h100"/>
-      <path d="M1170 306V168M1162 168h16"/>
-    </g>
-    <!-- 사고지점과 영향 참고 반경 — 단지 위에 겹칩니다 -->
-    <g class="ha-ring">
-      <circle cx="980" cy="306" r="118"/>
-      <circle cx="980" cy="306" r="178"/>
-    </g>
-    <g class="ha-acc">
-      <path d="M980 278v56M952 306h56"/>
-      <circle cx="980" cy="306" r="12"/>
-    </g>
-  </svg>
+  <div class="hero-ph" aria-hidden="true">
+    <img class="hero-img" src="assets/img/site/hero-plant.jpg" alt=""
+         width="1800" height="600" fetchpriority="high">
+    <span class="hero-veil"></span>
+  </div>
   <div class="wrap">
     <h1>화학사고 대응지원 서비스</h1>
     <p>사고 초기 대응과 주민안전 업무를 지원하는 업무도구입니다.
@@ -106,13 +77,20 @@
            씁니다. 링크를 바꾸려면 아래 href 만 고치면 됩니다.
 
            ── 카드 한 장의 구성 ────────────────────────────────────
-           ① .pn-art   그림 칸 (16:9). 지금은 그린 그림(SVG)이고, 사진이 오면
-                       이 안의 <svg> 를 <img> 로 갈아 끼웁니다. 칸 비율은
-                       CSS 가 잡으므로 사진 비율이 달라도 카드 줄이 맞습니다.
-           ② .pn-lbs   그림 위에 얹는 딱지. 무엇이 그려져 있는지 이름을 붙여
+           ① .pn-art   사진 칸 (16:9). 세 장의 비율이 정확히 같아야 카드 줄이
+                       맞으므로, 어디를 남길지 build/make_site_images.py 에서
+                       미리 잘라 둡니다(원본은 source/photos/). 브라우저의
+                       object-fit 에만 맡기면 사진마다 잘리는 자리가 달라져
+                       사고지점 핀이나 사람이 잘려 나갑니다.
+                       사진 자체는 장식이라 alt="" · aria-hidden 입니다 —
+                       무엇을 하는 도구인지는 제목·설명이 말합니다.
+           ② .pn-lbs   사진 위에 얹는 딱지. 무엇이 찍혀 있는지 이름을 붙여
                        주고, 하나씩 차례로 나타났다 사라집니다 — 화면이 살아
                        있다는 신호입니다. 지어낸 수치는 넣지 않았고, 도구가
                        실제로 다루는 이름만 씁니다.
+                       자리(left/top %)는 portal.css 의 `.pn.tN .lN` 에
+                       있습니다 — 사진을 바꾸면 그 값도 함께 맞춰야 딱지가
+                       엉뚱한 곳을 가리키지 않습니다.
            ③ .pn-ov    마우스를 올리거나 초점이 오면 그림 위로 올라오는 설명.
                        평소에는 번호·이름·자료 건수만 보이는 미니멀한 카드고,
                        "이 도구가 무엇을 하는가"는 올릴 때 읽습니다.
@@ -129,30 +107,13 @@
       <li class="pn t2">
         <a href="map/index.html">
           <div class="pn-ph">
-            <!-- 01 지도 — 지도 위 사고지점·영향 반경·주변 대피장소 -->
+            <!-- 01 지도 — 사고지점 · 영향 참고 반경 · 주변 대피장소 -->
             <div class="pn-art" aria-hidden="true">
-              <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" focusable="false">
-                <g class="pa-road">
-                  <path d="M-4 62 C 66 46 106 84 168 74 S 268 42 324 60"/>
-                  <path d="M-4 132 C 74 120 118 148 182 138 S 272 116 324 128"/>
-                  <path d="M104 -4 C 112 52 96 100 108 184"/>
-                  <path d="M226 -4 C 234 60 218 112 230 184"/>
-                </g>
-                <g class="pa-ring">
-                  <circle cx="160" cy="88" r="62"/><circle cx="160" cy="88" r="36"/>
-                </g>
-                <g class="pa-dot">
-                  <circle cx="86" cy="52" r="8"/><circle cx="246" cy="66" r="8"/>
-                  <circle cx="120" cy="146" r="8"/>
-                </g>
-                <g class="pa-acc">
-                  <path d="M160 70v36M142 88h36"/><circle cx="160" cy="88" r="8"/>
-                </g>
-              </svg>
+              <img src="assets/img/site/card-map.jpg" alt="" width="880" height="495" loading="lazy">
               <div class="pn-lbs">
-                <b class="pn-lb l1">대피소</b>
+                <b class="pn-lb l1">사고지점</b>
                 <b class="pn-lb l2">대피소</b>
-                <b class="pn-lb l3">사고지점</b>
+                <b class="pn-lb l3">대피소</b>
               </div>
             </div>
             <div class="pn-ov">
@@ -179,26 +140,9 @@
       <li class="pn t1">
         <a href="sms/index.html">
           <div class="pn-ph">
-            <!-- 02 문자 — 왼쪽 걸음을 하나씩 채우면 오른쪽 문자 한 통이 된다.
-                 문안 세 줄은 왼쪽에서 오른쪽으로 그려집니다(글자가 채워지듯). -->
+            <!-- 02 문자 — 사고정보를 넣어 만든 재난문자 표준문안을 확인하는 화면 -->
             <div class="pn-art" aria-hidden="true">
-              <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" focusable="false">
-                <g class="pa-step">
-                  <path d="M46 56h48M46 92h48M46 128h48"/>
-                  <circle cx="30" cy="56" r="8"/><circle cx="30" cy="92" r="8"/>
-                  <circle cx="30" cy="128" r="8"/>
-                  <path class="pa-tick" d="M25.5 56.5l3.5 3.5 5.5-6M25.5 92.5l3.5 3.5 5.5-6"/>
-                </g>
-                <path class="pa-arrow" d="M112 92h24M130 86l7 6-7 6"/>
-                <g class="pa-msg">
-                  <rect x="158" y="26" width="104" height="132" rx="12"/>
-                  <path class="pa-band" d="M158 38a12 12 0 0 1 12-12h80a12 12 0 0 1 12 12v18H158z"/>
-                  <path class="pa-txt t1l" d="M172 80h76"/>
-                  <path class="pa-txt t2l" d="M172 100h76"/>
-                  <path class="pa-txt t3l" d="M172 120h44"/>
-                  <path class="pa-home" d="M198 146h24"/>
-                </g>
-              </svg>
+              <img src="assets/img/site/card-sms.jpg" alt="" width="880" height="495" loading="lazy">
               <div class="pn-lbs">
                 <b class="pn-lb l1">사고정보</b>
                 <b class="pn-lb l2">표준문안</b>
@@ -228,29 +172,12 @@
       <li class="pn t3">
         <a href="res/index.html">
           <div class="pn-ph">
-            <!-- 03 방제자원 — 장비를 실은 차량과 처리 자원이 사고지점(핀)으로 -->
+            <!-- 03 방제자원 — 방제지원차량과 대응인력이 출동 준비를 하는 현장 -->
             <div class="pn-art" aria-hidden="true">
-              <svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" focusable="false">
-                <path class="pa-ground" d="M16 140h288"/>
-                <g class="pa-truck">
-                  <path d="M40 128V72h84v56"/>
-                  <path d="M124 128V86h38l22 42z"/>
-                  <circle cx="66" cy="132" r="10"/><circle cx="154" cy="132" r="10"/>
-                  <path class="pa-load" d="M56 82h24v24H56zM90 82h24v24H90z"/>
-                </g>
-                <g class="pa-drum">
-                  <rect x="210" y="92" width="30" height="40" rx="5"/>
-                  <path d="M210 104h30M210 118h30"/>
-                </g>
-                <g class="pa-pin">
-                  <path d="M272 30c11 0 20 9 20 20 0 14-20 34-20 34s-20-20-20-34c0-11 9-20 20-20z"/>
-                  <circle cx="272" cy="50" r="7"/>
-                </g>
-              </svg>
+              <img src="assets/img/site/card-res.jpg" alt="" width="880" height="495" loading="lazy">
               <div class="pn-lbs">
                 <b class="pn-lb l1">방제장비</b>
-                <b class="pn-lb l2">폐기물 처리</b>
-                <b class="pn-lb l3">사고지점</b>
+                <b class="pn-lb l2">대응 인력</b>
               </div>
             </div>
             <div class="pn-ov">
