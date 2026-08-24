@@ -382,6 +382,40 @@ const heroTxt = await P.evaluate(() => ({
 chk(Math.abs(rgba(heroTxt.fg) - rgba(heroTxt.veil)) > 120,
   `머리띠 제목과 막의 밝기 차가 충분하다 (막 ${Math.round(rgba(heroTxt.veil))} ↔ 글자 ${Math.round(rgba(heroTxt.fg))})`);
 
+/* ══ 15. 카드 띠가 화면 끝까지 붙어 있는가 ═══════════════════════
+   사용자가 **"박스 사이의 공백이 오히려 전문성을 줄인다"** 고 해서 가운데
+   상자를 없애고 세 장을 붙였습니다. 다시 상자 안으로 들어가거나 카드 사이가
+   벌어지면 그 지적이 되살아나므로 여기서 못 박아 둡니다. */
+for (const w of [1440, 1863]) {
+  await P.setViewportSize({ width: w, height: 900 }); await P.waitForTimeout(300);
+  const strip = await P.evaluate(() => {
+    const li = [...document.querySelectorAll('.tools > li')].map(e => e.getBoundingClientRect());
+    const a = document.querySelector('.tools > li > a');
+    const edge = getComputedStyle(document.documentElement).getPropertyValue('--edge').trim();
+    /* 칸 자체가 아니라 **줄의 첫 글자**(번호 배지)를 봅니다 — .pn-hd 는 칸
+       폭을 다 쓰고 안쪽 여백으로 내용을 밀어 두기 때문입니다. */
+    const txt = document.querySelector('.pn-hd .pn-no').getBoundingClientRect();
+    const logo = document.querySelector('.logo-full').getBoundingClientRect();
+    const h1 = document.querySelector('.hero h1').getBoundingClientRect();
+    return {
+      left: li[0].left, right: li[li.length - 1].right, vw: innerWidth,
+      gaps: li.slice(1).map((r, i) => Math.round(r.left - li[i].right)),
+      radius: parseFloat(getComputedStyle(a).borderTopLeftRadius),
+      edge, txt: txt.left, logo: logo.left, h1: h1.left
+    };
+  });
+  chk(strip.left < 1 && strip.right > strip.vw - 1,
+    `${w}px — 카드 띠가 화면 끝까지 (왼쪽 ${Math.round(strip.left)} · 오른쪽 끝까지 ${Math.round(strip.vw - strip.right)}px 남음)`);
+  chk(strip.gaps.every(g => g <= 2),
+    `${w}px — 카드 사이가 벌어지지 않는다 (틈 ${strip.gaps.join('/')}px)`);
+  chk(strip.radius <= 2, `${w}px — 카드에 둥근 모서리가 없다 (${strip.radius}px)`);
+  /* 로고 · 머리띠 제목 · 카드 글자가 **한 줄에 선다** — 하나만 어긋나면
+     상자 안에 있던 예전 배치가 남아 있다는 뜻입니다. */
+  chk(Math.abs(strip.txt - strip.logo) < 2 && Math.abs(strip.txt - strip.h1) < 2,
+    `${w}px — 로고·제목·카드 글자가 같은 줄에 선다 (${Math.round(strip.logo)}/${Math.round(strip.h1)}/${Math.round(strip.txt)}px)`);
+}
+await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(200);
+
 await P.screenshot({ path: 't9-portal.png' });
 
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');
