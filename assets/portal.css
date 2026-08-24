@@ -88,6 +88,11 @@ html{font-size:62.5%}   /* KRDS 토큰이 rem 이라 뿌리를 10px 로 (1.7rem 
   /* 설명이 올라올 때 그림을 덮는 판 — 흰 글자가 확실히 읽히도록 짙게.
      검정이 아니라 기관 파랑을 짙게 깐 색입니다(도구 화면의 짙은 띠와 같은 계통). */
   --ov:rgba(14,38,88,.93);
+  --ov-0:rgba(14,38,88,0);
+  /* 짙은 판 위에 그리는 테두리 — 흰색을 옅게. 두 모드 모두 판이 어두우므로
+     같은 값을 씁니다(그래도 양쪽에 적어 둡니다 — 한쪽만 두면 그 줄이
+     조용히 버려집니다). */
+  --art-w:rgba(255,255,255,.55);
   --focus:0 0 0 .4rem var(--krds-light-color-border-primary);
   --ease:cubic-bezier(.22,.61,.36,1);
   /* 상자 안쪽 여백 — **한 값으로 페이지 전체를 맞춥니다.** 로고 · 머리띠
@@ -131,6 +136,8 @@ html[data-krds-mode="high-contrast"]{
   --art-bg:var(--krds-color-high-contrast-gray-90);
   --lb-sh:0 .1rem .4rem rgba(0,0,0,.7);
   --ov:rgba(0,0,0,.94);
+  --ov-0:rgba(0,0,0,0);
+  --art-w:rgba(255,255,255,.5);
   --focus:0 0 0 .4rem var(--krds-high-contrast-color-border-primary);
   --focus-in:inset 0 0 0 .4rem var(--krds-high-contrast-color-border-primary);
 }
@@ -437,32 +444,66 @@ footer{background:var(--card); border-top:.1rem solid var(--line);
   padding:2rem 0; font-size:1.5rem; color:var(--ink3)}
 footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
 
-/* ── 좁은 화면 — 누르는 칸 높이 줄이기 ──────────────────────
-   세로로 쌓이면 한 칸이 화면을 거의 다 차지해, 도구가 세 개라는 것이 보이지
-   않습니다(사용자 요청: "한 화면에 적어도 2개 칸 정도는 보이게").
-   그래서 좁은 화면에서는 사진을 납작하게(5:2), 글자 칸도 한 단씩 줄입니다.
-   `tests/t9` 가 휴대전화에서 **둘째 칸까지 화면에 들어오는지** 재서 봅니다.
+/* ── 좁은 화면 — 카드 한 장이 사진 한 장 ────────────────────
+   사용자 요청입니다 — "모바일에서는 설명은 지우고 제목만. 사진 위에 글을
+   쓰는 거야. 칸이 지금보다 좀 더 좁아지는 거지."
 
-   둥근 화살표를 3.6rem 으로 줄여도 됩니다 — 그 자체가 누르는 단추가 아니고
-   (aria-hidden) **카드 전체가 링크**라 터치 영역은 200px 이 넘습니다. */
+   그래서 좁은 화면에서는 **흰 글자 칸을 없애고** 사진 한 장이 곧 카드가
+   됩니다. 제목은 사진 아래쪽에 얹고, 그 자리에 짙은 그라데이션(--ov)을
+   깔아 사진 밝기에 기대지 않게 했습니다.
+
+   설명과 자료 건수는 **화면에서만 비켜 둡니다**(sr-only 방식) — 지우면
+   화면낭독기 사용자가 도구가 무엇을 하는지 알 수 없습니다.
+
+   눌렀다는 느낌 — 손가락에는 호버가 없으므로 :active 로 줍니다. 사진이
+   조금 커지고, 그라데이션이 짙어지고, 제목 줄이 오른쪽으로 밀리고, 둥근
+   화살표가 파랗게 찹니다. iOS 에서 :active 가 켜지도록 index.html 에
+   아무 일도 하지 않는 touchstart 듣는 이를 하나 달아 두었습니다. */
 @media (max-width:720px){
-  .pn-ph{aspect-ratio:11/5}
-  .pn a{gap:1rem; padding-bottom:1.4rem}
-  .pn-ov{padding:.8rem var(--pad)}
-  .pn-ov .pn-d{font-size:1.4rem; line-height:1.45}
-  /* 설명 판이 사진의 아래쪽 절반을 덮으므로, **위쪽 절반에 주인공이 오도록**
-     사진마다 남길 자리를 옮깁니다. 안 옮기면 사고지점 핀과 문안이 판 뒤로
-     들어가 사진이 무슨 사진인지 알 수 없습니다. */
-  .pn.t2 .pn-art img{object-position:50% 30%}   /* 지도 — 사고지점 핀 */
-  .pn.t1 .pn-art img{object-position:50% 24%}   /* 문자 — 문안 윗줄 */
-  .pn.t3 .pn-art img{object-position:50% 38%}   /* 방제 — 차체와 인력 */
-  .pn h3{font-size:1.8rem}
-  .pn-no{min-width:2.6rem; height:2.4rem; font-size:1.4rem}
-  .pn-go{width:3rem; height:3rem}
+  /* 머리띠도 낮춥니다 — 카드 세 장이 한 화면에 들어오게 */
+  .hero .wrap{min-height:17rem; padding-top:2rem; padding-bottom:3.2rem; gap:.8rem}
+  .hero h1{font-size:2.4rem}
+  .hero p{font-size:1.5rem; line-height:1.55; max-width:none}
+
+  .pn a{position:relative; display:block; padding:0; background:none;
+    -webkit-tap-highlight-color:transparent}
+  .pn-ph{aspect-ratio:7/3; border-bottom:0}
+  /* 사진 아래쪽 짙은 판 — 제목이 앉는 자리의 밝기를 고정합니다 */
+  .pn-ph::after{content:""; position:absolute; inset:0; z-index:1;
+    pointer-events:none;
+    background:linear-gradient(to top, var(--ov) 0, var(--ov) 22%, var(--ov-0) 62%);
+    transition:background .14s var(--ease)}
+  .pn-hd{position:absolute; left:0; right:0; bottom:0; z-index:2;
+    padding:1.2rem var(--pad); gap:.8rem;
+    transition:transform .14s var(--ease)}
+  .pn-hd h3{font-size:1.9rem; color:var(--on-deep)}
+  /* 짙은 판 위이므로 번호 배지를 뒤집습니다 */
+  .pn-no{min-width:2.6rem; height:2.4rem; font-size:1.4rem;
+    background:var(--on-deep); color:var(--brand-d)}
+  .pn-go{width:3rem; height:3rem; background:none; color:var(--on-deep);
+    border-color:var(--art-w)}
   .pn-go svg{width:1.7rem; height:1.7rem}
+  /* 설명·자료 건수·딱지는 화면에서만 비켜 둡니다 */
+  .pn-ov{position:absolute; width:1px; height:1px; margin:-1px; padding:0;
+    overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;
+    opacity:1; transform:none}
+  .pn-lbs{display:none}
+  /* 눌렀다는 느낌 */
+  .pn a:active .pn-art img{transform:scale(1.05)}
+  .pn a:active .pn-hd{transform:translateX(.8rem)}
+  .pn a:active .pn-ph::after{
+    background:linear-gradient(to top, var(--ov) 0, var(--ov) 40%, var(--ov-0) 84%)}
+  .pn a:active .pn-go{background:var(--brand); border-color:var(--brand);
+    color:var(--on-brand)}
+  /* 제목이 판 아래쪽에 앉으므로 사진의 **주인공은 위쪽**에 옵니다 */
+  .pn.t2 .pn-art img{object-position:50% 38%}   /* 지도 — 사고지점 핀 */
+  .pn.t1 .pn-art img{object-position:50% 30%}   /* 문자 — 문안 윗줄 */
+  .pn.t3 .pn-art img{object-position:50% 44%}   /* 방제 — 차체와 인력 */
+
   main{padding-bottom:3.2rem}
   .notice{margin-top:2rem; font-size:1.35rem}
 }
+
 
 /* ── 움직임을 줄이는 설정 ───────────────────────────────────
    되풀이되는 것은 **끕니다**(멈춘 상태가 곧 다 보이는 상태입니다).

@@ -225,9 +225,11 @@ for (const [w, cols] of [[1440, 3], [1000, 3], [760, 1], [390, 1]]) {
 }
 await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(200);
 
-// ══ 10. 모바일 (실제 터치 기기) ══
-/* 손가락으로 쓰는 기기에는 올릴 마우스가 없습니다 — 설명이 처음부터
-   펼쳐져 있어야 합니다. 여기서 막히면 휴대전화 사용자는 설명을 못 읽습니다. */
+// ══ 10. 모바일 — 카드 한 장이 사진 한 장 ══════════════════════
+/* 사용자 요청 — "모바일에서는 설명은 지우고 제목만. 사진 위에 글을 쓰는 거야."
+   그래서 좁은 화면에서는 흰 글자 칸을 없애고 사진 위에 제목을 얹습니다.
+   설명과 자료 건수는 **화면에서만 비켜 둡니다**(sr-only 방식) — 문서에서
+   지우면 화면낭독기 사용자가 도구가 무엇을 하는지 알 수 없습니다. */
 const M = await B.newPage({ ...devices['iPhone 13'] });
 M.on('pageerror', e => errs.push('MOBILE: ' + e.message));
 await M.goto(PAGE); await M.waitForTimeout(600);
@@ -235,20 +237,51 @@ chk(!(await M.evaluate(() => document.documentElement.scrollWidth > innerWidth +
   '휴대전화 — 가로 스크롤 없음');
 const mob = await M.evaluate(() => {
   const li = document.querySelector('.tools > li');
-  const ov = li.querySelector('.pn-ov'), d = li.querySelector('.pn-d');
-  const or = ov.getBoundingClientRect(), pr = li.querySelector('.pn-ph').getBoundingClientRect();
+  const d = li.querySelector('.pn-d'), hd = li.querySelector('.pn-hd');
+  const ov = li.querySelector('.pn-ov');
+  const ph = li.querySelector('.pn-ph').getBoundingClientRect();
+  const hr = hd.getBoundingClientRect(), h3 = li.querySelector('h3');
+  const lum = s => { const m = s.match(/\d+/g).map(Number); return (m[0]*299 + m[1]*587 + m[2]*114) / 1000; };
   return {
     hoverNone: matchMedia('(hover: none)').matches,
-    ov: +getComputedStyle(ov).opacity,
-    inside: or.bottom <= pr.bottom + 1 && or.top >= pr.top - 1,
-    dh: d.getBoundingClientRect().height,
-    lb: getComputedStyle(li.querySelector('.pn-lbs')).display
+    /* 설명은 문서에 남아 있고(글자 수) 화면에서만 접혀 있다(높이) */
+    /* .pn-d 자체는 제 높이를 갖습니다 — 부모 판(.pn-ov)이 1px 로 접히고
+       clip 으로 잘려 화면에 안 보이는 것이라, 접혔는지는 **부모**를 봅니다. */
+    dLen: d.textContent.trim().length, ovH: ov.getBoundingClientRect().height,
+    /* 제목 줄이 사진 칸 안에(= 사진 위에) 얹혀 있는가 */
+    hdIn: hr.bottom <= ph.bottom + 1 && hr.top >= ph.top - 1,
+    hdBottom: Math.round(ph.bottom - hr.bottom),
+    /* 사진 위 흰 글자가 읽히도록 짙은 판이 깔려 있는가 */
+    scrim: getComputedStyle(li.querySelector('.pn-ph'), '::after').backgroundImage,
+    titleLum: lum(getComputedStyle(h3).color),
+    lb: getComputedStyle(li.querySelector('.pn-lbs')).display,
+    /* 흰 글자 칸(카드 아래쪽 흰 바탕)이 없어졌는가 — 카드 높이 = 사진 높이 */
+    cardIsPhoto: Math.abs(li.getBoundingClientRect().height - ph.height) < 2
   };
 });
 chk(mob.hoverNone, '휴대전화는 호버가 없는 기기로 잡힌다');
-chk(mob.ov > 0.95 && mob.dh > 20, '휴대전화에서는 설명이 처음부터 펼쳐진다');
-chk(mob.inside, '펼쳐진 설명이 그림 칸 안에 들어온다 (잘리지 않는다)');
-chk(mob.lb === 'none', '휴대전화에서는 그림 위 딱지를 빼 설명과 겹치지 않게 한다');
+chk(mob.cardIsPhoto, '카드 한 장이 사진 한 장이다 (흰 글자 칸 없음)');
+chk(mob.hdIn && mob.hdBottom <= 2, `제목이 사진 위에 얹혀 있다 (사진 아래끝에서 ${mob.hdBottom}px)`);
+chk(/gradient/.test(mob.scrim), '제목 자리에 짙은 판이 깔려 있다 (사진 밝기에 기대지 않음)');
+chk(mob.titleLum > 200, `사진 위 제목이 밝은 글자다 (밝기 ${Math.round(mob.titleLum)})`);
+chk(mob.dLen > 30 && mob.ovH <= 2,
+  `설명은 문서에 남고 화면에서만 접힌다 (${mob.dLen}자 · 판 높이 ${Math.round(mob.ovH)}px)`);
+chk(mob.lb === 'none', '휴대전화에서는 사진 위 딱지를 빼 제목과 겹치지 않게 한다');
+/* 눌렀다는 느낌 — 손가락에는 호버가 없으므로 :active 로 줍니다 */
+const box = await M.locator('.tools > li').first().boundingBox();
+await M.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+await M.mouse.down(); await M.waitForTimeout(300);
+const press = await M.evaluate(() => {
+  const a = document.querySelector('.tools > li > a');
+  return { img: getComputedStyle(a.querySelector('.pn-art img')).transform,
+           hd: getComputedStyle(a.querySelector('.pn-hd')).transform,
+           go: getComputedStyle(a.querySelector('.pn-go')).backgroundColor };
+});
+/* 누른 자리에서 그대로 떼면 링크가 열려 버립니다 — 밖으로 옮긴 뒤 뗍니다 */
+await M.mouse.move(4, 4); await M.mouse.up(); await M.waitForTimeout(200);
+chk(/matrix\(1\.0[3-9]/.test(press.img), `누르면 사진이 커진다 (${press.img})`);
+chk(/matrix\(1, 0, 0, 1, [1-9]/.test(press.hd), `누르면 제목 줄이 밀린다 (${press.hd})`);
+chk(!/rgba\(0, 0, 0, 0\)/.test(press.go), `누르면 화살표가 채워진다 (${press.go})`);
 await M.tap('.tools > li > a'); await M.waitForTimeout(600);
 chk(M.url().includes('map/index.html'), '손가락으로 눌러 도구로 이동');
 await M.close();
@@ -425,28 +458,26 @@ for (const w of [1440, 1863]) {
 }
 await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(200);
 
-/* ══ 16. 휴대전화 — 한 화면에 두 칸이 걸치는가 ═══════════════════════
-   세로로 쌓이면 한 칸이 화면을 거의 다 차지해 도구가 세 개라는 것이 보이지
-   않습니다. 사용자 요청 — "클릭하는 칸의 높이를 조금씩 다 줄여서 한 화면에
-   적어도 2개 칸 정도는 보이게".
-   머리띠까지 있으면 두 칸을 **완전히** 담기는 어려우므로(390×664 화면에서
-   머리띠+첫 칸이 이미 508px), 둘째 칸의 사진이 다 보이는 선을 기준으로 잡고,
-   실제 휴대전화 크기(390×750)에서는 두 칸이 온전히 들어오는지 봅니다. */
+/* ══ 16. 휴대전화 — 한 화면에 세 칸이 들어오는가 ════════════════════
+   카드가 사진 한 장이 되면서 한 칸이 153px 로 줄었습니다. 실제 휴대전화
+   크기(390×750)에서 **세 칸이 온전히** 들어오고, 그보다 작은 화면에서도
+   셋째 칸이 사진째로 보입니다. 다시 흰 글자 칸이 붙어 칸이 높아지면
+   여기서 걸립니다. */
 for (const [w, h, 이름] of [[390, 664, '작은 화면'], [390, 750, '실제 휴대전화']]) {
   const M2 = await B.newPage({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true });
   await M2.goto(PAGE); await M2.waitForTimeout(700);
   const m = await M2.evaluate(() => {
     const li = [...document.querySelectorAll('.tools > li')].map(e => e.getBoundingClientRect());
-    const ph = document.querySelector('.pn-ph').getBoundingClientRect();
-    return { card: li[0].height, photo: ph.height,
-             seen2: Math.min(li[1].bottom, innerHeight) - li[1].top,
-             full2: li[1].bottom <= innerHeight, vh: innerHeight };
+    return { card: li[0].height,
+             seen3: Math.min(li[2].bottom, innerHeight) - li[2].top,
+             full3: li[2].bottom <= innerHeight,
+             spread: Math.max(...li.map(r => r.height)) - Math.min(...li.map(r => r.height)) };
   });
-  chk(m.card <= 240, `${이름} — 한 칸 높이가 240px 이하 (${Math.round(m.card)}px)`);
-  chk(m.photo >= 110, `${이름} — 사진이 지나치게 얇은 띠가 되지 않았다 (${Math.round(m.photo)}px)`);
-  chk(m.seen2 >= 120,
-    `${이름} — 둘째 칸이 사진째로 보인다 (보이는 높이 ${Math.round(m.seen2)}px)`);
-  if (h >= 750) chk(m.full2, `${이름} — 두 칸이 온전히 한 화면에 들어온다`);
+  chk(m.card <= 175, `${이름} — 한 칸 높이가 175px 이하 (${Math.round(m.card)}px)`);
+  chk(m.card >= 120, `${이름} — 한 칸이 지나치게 얇은 띠가 되지 않았다 (${Math.round(m.card)}px)`);
+  chk(m.spread < 2, `${이름} — 세 칸 높이가 같다 (차이 ${Math.round(m.spread)}px)`);
+  chk(m.seen3 >= 110, `${이름} — 셋째 칸도 보인다 (보이는 높이 ${Math.round(m.seen3)}px)`);
+  if (h >= 750) chk(m.full3, `${이름} — 세 칸이 온전히 한 화면에 들어온다`);
   await M2.close();
 }
 

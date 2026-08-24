@@ -229,5 +229,11 @@
   </div>
 </footer>
 
+<!-- iOS 사파리는 손가락으로 눌렀을 때 :active 를 잘 켜지 않습니다 — 아무 일도
+     하지 않는 touchstart 듣는 이를 하나 달아 두면 켜집니다(널리 쓰는 방법).
+     좁은 화면에서 카드를 누르면 사진이 살짝 커지고 판이 짙어지는 것이 그
+     :active 입니다. JS 가 꺼져 있어도 링크는 그대로 동작합니다. -->
+<script>document.addEventListener("touchstart", function () {}, { passive: true });</script>
+
 </body>
 </html>
