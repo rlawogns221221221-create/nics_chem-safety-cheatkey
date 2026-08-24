@@ -382,41 +382,68 @@ const heroTxt = await P.evaluate(() => ({
 chk(Math.abs(rgba(heroTxt.fg) - rgba(heroTxt.veil)) > 120,
   `머리띠 제목과 막의 밝기 차가 충분하다 (막 ${Math.round(rgba(heroTxt.veil))} ↔ 글자 ${Math.round(rgba(heroTxt.fg))})`);
 
-/* ══ 15. 카드 띠가 화면 끝까지 붙어 있는가 ═══════════════════════
-   사용자가 **"박스 사이의 공백이 오히려 전문성을 줄인다"** 고 해서 가운데
-   상자를 없애고 세 장을 붙였습니다. 다시 상자 안으로 들어가거나 카드 사이가
-   벌어지면 그 지적이 되살아나므로 여기서 못 박아 둡니다. */
+/* ══ 15. 카드 띠 — 붙어 있고, 크기는 상자에 맞는가 ══════════════════
+   두 번의 지적이 여기서 만납니다.
+     ① "박스 사이의 공백이 오히려 전문성을 줄인다" → 칸 사이를 붙였습니다.
+     ② 그래서 화면 끝까지 늘려 봤더니 "화면 비율이 완전히 바뀌어 오히려
+        가독성이 떨어졌다" → 크기는 가운데 상자(120rem)로 되돌렸습니다.
+   둘 다 되돌아가지 않도록 여기서 못 박아 둡니다. */
 for (const w of [1440, 1863]) {
   await P.setViewportSize({ width: w, height: 900 }); await P.waitForTimeout(300);
   const strip = await P.evaluate(() => {
     const li = [...document.querySelectorAll('.tools > li')].map(e => e.getBoundingClientRect());
     const a = document.querySelector('.tools > li > a');
-    const edge = getComputedStyle(document.documentElement).getPropertyValue('--edge').trim();
-    /* 칸 자체가 아니라 **줄의 첫 글자**(번호 배지)를 봅니다 — .pn-hd 는 칸
-       폭을 다 쓰고 안쪽 여백으로 내용을 밀어 두기 때문입니다. */
-    const txt = document.querySelector('.pn-hd .pn-no').getBoundingClientRect();
+    const ul = document.querySelector('.tools').getBoundingClientRect();
     const logo = document.querySelector('.logo-full').getBoundingClientRect();
     const h1 = document.querySelector('.hero h1').getBoundingClientRect();
     return {
-      left: li[0].left, right: li[li.length - 1].right, vw: innerWidth,
       gaps: li.slice(1).map((r, i) => Math.round(r.left - li[i].right)),
       radius: parseFloat(getComputedStyle(a).borderTopLeftRadius),
-      edge, txt: txt.left, logo: logo.left, h1: h1.left
+      ulW: ul.width, ulL: ul.left, vw: innerWidth,
+      photo: li[0].width, logo: logo.left, h1: h1.left
     };
   });
-  chk(strip.left < 1 && strip.right > strip.vw - 1,
-    `${w}px — 카드 띠가 화면 끝까지 (왼쪽 ${Math.round(strip.left)} · 오른쪽 끝까지 ${Math.round(strip.vw - strip.right)}px 남음)`);
   chk(strip.gaps.every(g => g <= 2),
     `${w}px — 카드 사이가 벌어지지 않는다 (틈 ${strip.gaps.join('/')}px)`);
-  chk(strip.radius <= 2, `${w}px — 카드에 둥근 모서리가 없다 (${strip.radius}px)`);
-  /* 로고 · 머리띠 제목 · 카드 글자가 **한 줄에 선다** — 하나만 어긋나면
-     상자 안에 있던 예전 배치가 남아 있다는 뜻입니다. */
-  chk(Math.abs(strip.txt - strip.logo) < 2 && Math.abs(strip.txt - strip.h1) < 2,
-    `${w}px — 로고·제목·카드 글자가 같은 줄에 선다 (${Math.round(strip.logo)}/${Math.round(strip.h1)}/${Math.round(strip.txt)}px)`);
+  chk(strip.radius <= 2, `${w}px — 카드마다 둥근 모서리를 주지 않는다 (${strip.radius}px)`);
+  /* 상자 폭(120rem = 1200px)을 넘지 않는가 — 넘으면 한 칸이 너무 넓어져
+     사진이 커지고 글자가 흩어집니다(사용자 지적). */
+  chk(strip.ulW <= 1160,
+    `${w}px — 띠가 가운데 상자 안에 있다 (폭 ${Math.round(strip.ulW)}px · 화면 ${strip.vw}px)`);
+  chk(strip.photo < 420,
+    `${w}px — 한 칸이 지나치게 넓어지지 않는다 (${Math.round(strip.photo)}px)`);
+  /* 로고 · 머리띠 제목 · 카드 띠의 왼쪽 끝이 한 줄에 선다 */
+  chk(Math.abs(strip.ulL - strip.logo) < 2 && Math.abs(strip.ulL - strip.h1) < 2,
+    `${w}px — 로고·제목·카드 띠가 같은 줄에서 시작한다 (${Math.round(strip.logo)}/${Math.round(strip.h1)}/${Math.round(strip.ulL)}px)`);
 }
 await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(200);
 
-await P.screenshot({ path: 't9-portal.png' });
+/* ══ 16. 휴대전화 — 한 화면에 두 칸이 걸치는가 ═══════════════════════
+   세로로 쌓이면 한 칸이 화면을 거의 다 차지해 도구가 세 개라는 것이 보이지
+   않습니다. 사용자 요청 — "클릭하는 칸의 높이를 조금씩 다 줄여서 한 화면에
+   적어도 2개 칸 정도는 보이게".
+   머리띠까지 있으면 두 칸을 **완전히** 담기는 어려우므로(390×664 화면에서
+   머리띠+첫 칸이 이미 508px), 둘째 칸의 사진이 다 보이는 선을 기준으로 잡고,
+   실제 휴대전화 크기(390×750)에서는 두 칸이 온전히 들어오는지 봅니다. */
+for (const [w, h, 이름] of [[390, 664, '작은 화면'], [390, 750, '실제 휴대전화']]) {
+  const M2 = await B.newPage({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true });
+  await M2.goto(PAGE); await M2.waitForTimeout(700);
+  const m = await M2.evaluate(() => {
+    const li = [...document.querySelectorAll('.tools > li')].map(e => e.getBoundingClientRect());
+    const ph = document.querySelector('.pn-ph').getBoundingClientRect();
+    return { card: li[0].height, photo: ph.height,
+             seen2: Math.min(li[1].bottom, innerHeight) - li[1].top,
+             full2: li[1].bottom <= innerHeight, vh: innerHeight };
+  });
+  chk(m.card <= 240, `${이름} — 한 칸 높이가 240px 이하 (${Math.round(m.card)}px)`);
+  chk(m.photo >= 110, `${이름} — 사진이 지나치게 얇은 띠가 되지 않았다 (${Math.round(m.photo)}px)`);
+  chk(m.seen2 >= 120,
+    `${이름} — 둘째 칸이 사진째로 보인다 (보이는 높이 ${Math.round(m.seen2)}px)`);
+  if (h >= 750) chk(m.full2, `${이름} — 두 칸이 온전히 한 화면에 들어온다`);
+  await M2.close();
+}
+
+await P.screenshot({ path: 't9-portal.png' });await P.screenshot({ path: 't9-portal.png' });
 
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');
 ok.forEach(m => console.log('  ok  ' + m));

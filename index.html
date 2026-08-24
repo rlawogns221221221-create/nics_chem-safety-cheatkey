@@ -67,152 +67,153 @@
 </div>
 
 <main id="main">
-
-  <!-- 업무도구 세 장 — **화면 끝까지 붙는 한 덩어리**입니다.
-       예전에는 가운데 상자 안에 카드 세 장이 간격을 두고 떠 있었는데,
-       사용자가 "박스 사이 공백이 오히려 전문성을 줄인다"고 해서 붙였습니다.
-       칸 사이는 머리카락 같은 선 하나(.tools 의 gap 1px + 바탕색)뿐입니다.
-
-       제목은 화면에 안 보이지만 문서에는 남겨 둡니다(.sr-only) — 화면낭독기가
-       "업무도구 3종" 을 읽어야 하고, 제목 계단(h1→h2→h3)도 끊기면 안 됩니다. -->
-  <h2 class="sr-only">업무도구 3종</h2>
-
-<ul class="tools" id="tools" aria-label="업무도구 3종">
-
-    <!-- ⚠ 순서를 바꾸지 마세요 — 상사 피드백으로 정한 '실제 업무 순서'입니다
-         (b0802d4). 지도에서 어디로 대피시킬지 정한 다음 그 내용으로 문자를
-         씁니다. 링크를 바꾸려면 아래 href 만 고치면 됩니다.
-
-         ── 카드 한 장의 구성 ────────────────────────────────────
-         ① .pn-art   사진 칸 (16:9). 세 장의 비율이 정확히 같아야 카드 줄이
-                     맞으므로, 어디를 남길지 build/make_site_images.py 에서
-                     미리 잘라 둡니다(원본은 source/photos/). 브라우저의
-                     object-fit 에만 맡기면 사진마다 잘리는 자리가 달라져
-                     사고지점 핀이나 사람이 잘려 나갑니다.
-                     사진 자체는 장식이라 alt="" · aria-hidden 입니다 —
-                     무엇을 하는 도구인지는 제목·설명이 말합니다.
-         ② .pn-lbs   사진 위에 얹는 딱지. 무엇이 찍혀 있는지 이름을 붙여
-                     주고, 하나씩 차례로 나타났다 사라집니다 — 화면이 살아
-                     있다는 신호입니다. 지어낸 수치는 넣지 않았고, 도구가
-                     실제로 다루는 이름만 씁니다.
-                     자리(left/top %)는 portal.css 의 `.pn.tN .lN` 에
-                     있습니다 — 사진을 바꾸면 그 값도 함께 맞춰야 딱지가
-                     엉뚱한 곳을 가리키지 않습니다.
-         ③ .pn-ov    마우스를 올리거나 초점이 오면 그림 위로 올라오는 설명.
-                     평소에는 번호·이름·자료 건수만 보이는 미니멀한 카드고,
-                     "이 도구가 무엇을 하는가"는 올릴 때 읽습니다.
-                     **감추는 것이 아니라 비켜 두는 것** 이므로 화면낭독기는
-                     늘 읽고(opacity 만 0), 손가락으로 쓰는 기기와 인쇄에서는
-                     처음부터 펼쳐 둡니다(호버가 없으니까).
-         ④ .pn-go    오른쪽 둥근 화살표. 카드 어디를 눌러도 되지만, 올리면
-                     이 단추가 파랗게 차서 '눌리는 것'임을 알립니다.
-
-         색은 세 카드 모두 같은 파랑(Primary)입니다. 도구마다 다른 원색을
-         쓰던 것을 개선(안)과 KRDS 원칙(§색은 역할로 쓴다)에 맞춰 통일했고,
-         빨강은 사고지점처럼 **실제 위험**에만, 초록은 지도의 대피장소
-         마커에만 남겼습니다. -->
-    <li class="pn t2">
-      <a href="map/index.html">
-        <div class="pn-ph">
-          <!-- 01 지도 — 사고지점 · 영향 참고 반경 · 주변 대피장소 -->
-          <div class="pn-art" aria-hidden="true">
-            <img src="assets/img/site/card-map.jpg" alt="" width="880" height="495" loading="lazy">
-            <div class="pn-lbs">
-              <b class="pn-lb l1">사고지점</b>
-              <b class="pn-lb l2">대피소</b>
-              <b class="pn-lb l3">대피소</b>
-            </div>
-          </div>
-          <div class="pn-ov">
-            <p class="pn-d">사고지점을 찍으면 주변 대피장소를 가까운 순으로 찾습니다.
-              거리·도보시간·영향 참고 반경·풍하방향을 함께 봅니다.</p>
-          </div>
-        </div>
-        <div class="pn-hd">
-          <span class="pn-no" aria-hidden="true">01</span>
-          <h3>대피장소 지도</h3>
-        </div>
-        <div class="pn-foot">
-          <span class="pn-meta">대피장소 <span class="nb">1,849곳</span> · <span class="nb">기준일 2026-05-19</span></span>
-          <span class="pn-go" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                 stroke-linecap="round" stroke-linejoin="round" focusable="false">
-              <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-            </svg>
-          </span>
-        </div>
-      </a>
-    </li>
-
-    <li class="pn t1">
-      <a href="sms/index.html">
-        <div class="pn-ph">
-          <!-- 02 문자 — 사고정보를 넣어 만든 재난문자 표준문안을 확인하는 화면 -->
-          <div class="pn-art" aria-hidden="true">
-            <img src="assets/img/site/card-sms.jpg" alt="" width="880" height="495" loading="lazy">
-            <div class="pn-lbs">
-              <b class="pn-lb l1">사고정보</b>
-              <b class="pn-lb l2">표준문안</b>
-            </div>
-          </div>
-          <div class="pn-ov">
-            <p class="pn-d">사고정보를 넣으면 재난문자 표준문안이 만들어집니다.
-              90자를 넘으면 줄일 곳을 짚어 주고, 실제 발송 사례를 나란히 봅니다.</p>
-          </div>
-        </div>
-        <div class="pn-hd">
-          <span class="pn-no" aria-hidden="true">02</span>
-          <h3>주민대피 문자 작성</h3>
-        </div>
-        <div class="pn-foot">
-          <span class="pn-meta"><span class="nb">표준문안 12건</span> · <span class="nb">발송 사례 42건</span> · <span class="nb">물질 460종</span></span>
-          <span class="pn-go" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                 stroke-linecap="round" stroke-linejoin="round" focusable="false">
-              <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-            </svg>
-          </span>
-        </div>
-      </a>
-    </li>
-
-    <li class="pn t3">
-      <a href="res/index.html">
-        <div class="pn-ph">
-          <!-- 03 방제자원 — 방제지원차량과 대응인력이 출동 준비를 하는 현장 -->
-          <div class="pn-art" aria-hidden="true">
-            <img src="assets/img/site/card-res.jpg" alt="" width="880" height="495" loading="lazy">
-            <div class="pn-lbs">
-              <b class="pn-lb l1">방제장비</b>
-              <b class="pn-lb l2">대응 인력</b>
-            </div>
-          </div>
-          <div class="pn-ov">
-            <p class="pn-d">지자체 보유 장비·비상캡슐·폐기물 처리·해경 비축기지를
-              사고지점에서 가까운 순으로 찾습니다. 여러 곳을 담아 한 번에 연락합니다.</p>
-          </div>
-        </div>
-        <div class="pn-hd">
-          <span class="pn-no" aria-hidden="true">03</span>
-          <h3>방제자원 동원</h3>
-        </div>
-        <div class="pn-foot">
-          <span class="pn-meta"><span class="nb">자원 470건</span> · <span class="nb">출처 6종</span> · <span class="nb">기준일 2026-08-11</span></span>
-          <span class="pn-go" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                 stroke-linecap="round" stroke-linejoin="round" focusable="false">
-              <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-            </svg>
-          </span>
-        </div>
-      </a>
-    </li>
-
-  </ul>
-
-  <!-- 이 도구가 하지 않는 것 — 예전에는 맨 아래 한 줄이었습니다.
-       판단의 책임이 어디 있는지는 도구를 열기 전에 읽혀야 합니다. -->
   <div class="wrap">
+    <h2 class="tools-hd">업무도구 3종</h2>
+
+    <!-- 업무도구 세 장 — **칸 사이를 붙인 한 덩어리**입니다.
+         카드마다 테두리를 두고 간격을 벌려 두었더니 사용자가 "박스 사이의
+         공백이 오히려 전문성을 줄인다"고 했습니다. 그래서 세 장을 붙이고
+         테두리는 **바깥에 하나만** 둘렀습니다 — 칸 사이는 머리카락 같은 선
+         하나(.tools 의 gap 1px + 바탕색)뿐입니다.
+
+         한 번은 화면 끝까지 늘려 봤는데, 한 칸이 너무 넓어져 사진이 커지고
+         글자가 흩어져 오히려 읽기 나빠졌습니다(사용자 지적). 그래서 크기는
+         원래대로 가운데 상자(120rem)에 맞추고, 붙이는 것만 남겼습니다. -->
+    <ul class="tools" id="tools" aria-label="업무도구 3종">
+
+      <!-- ⚠ 순서를 바꾸지 마세요 — 상사 피드백으로 정한 '실제 업무 순서'입니다
+           (b0802d4). 지도에서 어디로 대피시킬지 정한 다음 그 내용으로 문자를
+           씁니다. 링크를 바꾸려면 아래 href 만 고치면 됩니다.
+
+           ── 카드 한 장의 구성 ────────────────────────────────────
+           ① .pn-art   사진 칸 (16:9). 세 장의 비율이 정확히 같아야 카드 줄이
+                       맞으므로, 어디를 남길지 build/make_site_images.py 에서
+                       미리 잘라 둡니다(원본은 source/photos/). 브라우저의
+                       object-fit 에만 맡기면 사진마다 잘리는 자리가 달라져
+                       사고지점 핀이나 사람이 잘려 나갑니다.
+                       사진 자체는 장식이라 alt="" · aria-hidden 입니다 —
+                       무엇을 하는 도구인지는 제목·설명이 말합니다.
+           ② .pn-lbs   사진 위에 얹는 딱지. 무엇이 찍혀 있는지 이름을 붙여
+                       주고, 하나씩 차례로 나타났다 사라집니다 — 화면이 살아
+                       있다는 신호입니다. 지어낸 수치는 넣지 않았고, 도구가
+                       실제로 다루는 이름만 씁니다.
+                       자리(left/top %)는 portal.css 의 `.pn.tN .lN` 에
+                       있습니다 — 사진을 바꾸면 그 값도 함께 맞춰야 딱지가
+                       엉뚱한 곳을 가리키지 않습니다.
+           ③ .pn-ov    마우스를 올리거나 초점이 오면 그림 위로 올라오는 설명.
+                       평소에는 번호·이름·자료 건수만 보이는 미니멀한 카드고,
+                       "이 도구가 무엇을 하는가"는 올릴 때 읽습니다.
+                       **감추는 것이 아니라 비켜 두는 것** 이므로 화면낭독기는
+                       늘 읽고(opacity 만 0), 손가락으로 쓰는 기기와 인쇄에서는
+                       처음부터 펼쳐 둡니다(호버가 없으니까).
+           ④ .pn-go    오른쪽 둥근 화살표. 카드 어디를 눌러도 되지만, 올리면
+                       이 단추가 파랗게 차서 '눌리는 것'임을 알립니다.
+
+           색은 세 카드 모두 같은 파랑(Primary)입니다. 도구마다 다른 원색을
+           쓰던 것을 개선(안)과 KRDS 원칙(§색은 역할로 쓴다)에 맞춰 통일했고,
+           빨강은 사고지점처럼 **실제 위험**에만, 초록은 지도의 대피장소
+           마커에만 남겼습니다. -->
+      <li class="pn t2">
+        <a href="map/index.html">
+          <div class="pn-ph">
+            <!-- 01 지도 — 사고지점 · 영향 참고 반경 · 주변 대피장소 -->
+            <div class="pn-art" aria-hidden="true">
+              <img src="assets/img/site/card-map.jpg" alt="" width="880" height="495" loading="lazy">
+              <div class="pn-lbs">
+                <b class="pn-lb l1">사고지점</b>
+                <b class="pn-lb l2">대피소</b>
+                <b class="pn-lb l3">대피소</b>
+              </div>
+            </div>
+            <div class="pn-ov">
+              <p class="pn-d">사고지점을 찍으면 주변 대피장소를 가까운 순으로 찾습니다.
+                거리·도보시간·영향 참고 반경·풍하방향을 함께 봅니다.</p>
+            </div>
+          </div>
+          <div class="pn-hd">
+            <span class="pn-no" aria-hidden="true">01</span>
+            <h3>대피장소 지도</h3>
+          </div>
+          <div class="pn-foot">
+            <span class="pn-meta">대피장소 <span class="nb">1,849곳</span> · <span class="nb">기준일 2026-05-19</span></span>
+            <span class="pn-go" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
+        </a>
+      </li>
+
+      <li class="pn t1">
+        <a href="sms/index.html">
+          <div class="pn-ph">
+            <!-- 02 문자 — 사고정보를 넣어 만든 재난문자 표준문안을 확인하는 화면 -->
+            <div class="pn-art" aria-hidden="true">
+              <img src="assets/img/site/card-sms.jpg" alt="" width="880" height="495" loading="lazy">
+              <div class="pn-lbs">
+                <b class="pn-lb l1">사고정보</b>
+                <b class="pn-lb l2">표준문안</b>
+              </div>
+            </div>
+            <div class="pn-ov">
+              <p class="pn-d">사고정보를 넣으면 재난문자 표준문안이 만들어집니다.
+                90자를 넘으면 줄일 곳을 짚어 주고, 실제 발송 사례를 나란히 봅니다.</p>
+            </div>
+          </div>
+          <div class="pn-hd">
+            <span class="pn-no" aria-hidden="true">02</span>
+            <h3>주민대피 문자 작성</h3>
+          </div>
+          <div class="pn-foot">
+            <span class="pn-meta"><span class="nb">표준문안 12건</span> · <span class="nb">발송 사례 42건</span> · <span class="nb">물질 460종</span></span>
+            <span class="pn-go" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
+        </a>
+      </li>
+
+      <li class="pn t3">
+        <a href="res/index.html">
+          <div class="pn-ph">
+            <!-- 03 방제자원 — 방제지원차량과 대응인력이 출동 준비를 하는 현장 -->
+            <div class="pn-art" aria-hidden="true">
+              <img src="assets/img/site/card-res.jpg" alt="" width="880" height="495" loading="lazy">
+              <div class="pn-lbs">
+                <b class="pn-lb l1">방제장비</b>
+                <b class="pn-lb l2">대응 인력</b>
+              </div>
+            </div>
+            <div class="pn-ov">
+              <p class="pn-d">지자체 보유 장비·비상캡슐·폐기물 처리·해경 비축기지를
+                사고지점에서 가까운 순으로 찾습니다. 여러 곳을 담아 한 번에 연락합니다.</p>
+            </div>
+          </div>
+          <div class="pn-hd">
+            <span class="pn-no" aria-hidden="true">03</span>
+            <h3>방제자원 동원</h3>
+          </div>
+          <div class="pn-foot">
+            <span class="pn-meta"><span class="nb">자원 470건</span> · <span class="nb">출처 6종</span> · <span class="nb">기준일 2026-08-11</span></span>
+            <span class="pn-go" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
+        </a>
+      </li>
+
+    </ul>
+
+    <!-- 이 도구가 하지 않는 것 — 예전에는 맨 아래 한 줄이었습니다.
+         판단의 책임이 어디 있는지는 도구를 열기 전에 읽혀야 합니다. -->
     <div class="notice" role="note">
       <b>업무 참고도구입니다</b>
       <p>어느 대피장소가 적절한지, 어디까지 대피시킬지는 이 도구가 판단하지 않습니다.
