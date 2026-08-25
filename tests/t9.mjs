@@ -183,8 +183,9 @@ const skip = await P.evaluate(() => {
   return { cls: a.className, top: a.getBoundingClientRect().top };
 });
 chk(/skip/.test(skip.cls) && skip.top > -10, `첫 탭은 건너뛰기 링크이고 화면에 나타난다 (y=${Math.round(skip.top)})`);
-/* 건너뛰기 → 고대비 단추 → 누리집 → 첫 카드 */
-await P.keyboard.press('Tab'); await P.keyboard.press('Tab'); await P.keyboard.press('Tab');
+/* 건너뛰기 → 고대비 단추 → 누리집 → 사진 넘김 멈춤 → 첫 카드 */
+await P.keyboard.press('Tab'); await P.keyboard.press('Tab');
+await P.keyboard.press('Tab'); await P.keyboard.press('Tab');
 await P.waitForTimeout(420);
 const kb = await P.evaluate(() => {
   const a = document.activeElement;
@@ -195,7 +196,7 @@ const kb = await P.evaluate(() => {
     ov: li ? +getComputedStyle(li.querySelector('.pn-ov')).opacity : -1
   };
 });
-chk(kb.isCard, '탭 네 번이면 첫 도구 카드에 초점이 온다');
+chk(kb.isCard, '탭 다섯 번이면 첫 도구 카드에 초점이 온다');
 chk(/rgb/.test(kb.ring) && !/none/.test(kb.ring), `카드에 초점 표시가 보인다 (${kb.ring.slice(0, 40)}…)`);
 chk(kb.ov > 0.95, '키보드 초점에서도 설명이 나온다 (마우스 없이도 읽을 수 있다)');
 
@@ -406,11 +407,11 @@ chk(art.lbIn, '딱지가 사진 칸 밖으로 삐져나오지 않는다');
 /* 딱지에 지어낸 수치가 없는가 — 숫자가 들어가면 자료처럼 읽힙니다 */
 const flat = art.lbs.reduce((a, b) => a.concat(b), []);
 chk(flat.every(t => !/\d/.test(t)), `딱지에 지어낸 수치가 없다 (${flat.join(' / ')})`);
-/* 쓰는 그림 파일 — 기관 로고 + 사진 4장 */
+/* 쓰는 그림 파일 — 기관 로고 + 사진 8장(머리띠 5 · 카드 3) */
 const imgs = await P.evaluate(() => [...document.images].map(i => i.getAttribute('src')));
-chk(imgs.length === 5 && imgs.filter(u => /gov-logo/.test(u)).length === 1
-    && imgs.filter(u => /img\/site\//.test(u)).length === 4,
-  `그림 파일은 로고 1 + 사진 4 (${imgs.length}개)`);
+chk(imgs.length === 9 && imgs.filter(u => /gov-logo/.test(u)).length === 1
+    && imgs.filter(u => /img\/site\//.test(u)).length === 8,
+  `그림 파일은 로고 1 + 사진 8 (${imgs.length}개)`);
 /* 사진 위 제목이 읽히는가 — 글자가 앉는 자리를 덮는 막(--veil)과 견줍니다.
    사진은 자리마다 밝기가 달라서, 막의 색으로 대비를 고정해 둔 것입니다. */
 const rgba = s => { const m = s.match(/[\d.]+/g).map(Number);
@@ -488,13 +489,12 @@ for (const [w, h, 이름] of [[390, 664, '작은 화면'], [390, 750, '실제 �
      ② "업무참고 도구입니다 박스가 너무 크게 눈에 잘 띈다. 명시는 하되 눈에
         잘 안 띄도록" → 노란 띠를 걷고 작은 회색 글줄로. **지우지는 않습니다.**
      ③ "제목 문구가 너무 정적이다" → 이름을 낱말로 나눠 하나씩 올라오게 하고,
-        아래 한 줄의 세 가지 일이 차례로 물들게 했습니다. */
+        사진·문구가 5초마다 바뀌게 했습니다(넘김 자체는 아래 18 에서 봅니다). */
 await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(600);
 const first = await P.evaluate(() => {
   const g = s => document.querySelector(s).getBoundingClientRect();
   const nt = document.querySelector('.notice'), ns = getComputedStyle(nt);
   const words = [...document.querySelectorAll('.hero h1 span')];
-  const leads = [...document.querySelectorAll('.hero-lead b')];
   return {
     gap: Math.round(g('.tools').top - g('.hero').bottom),
     hdVisible: [...document.querySelectorAll('main h2')]
@@ -505,11 +505,7 @@ const first = await P.evaluate(() => {
     noticeInk: ns.color, noticeH: nt.getBoundingClientRect().height,
     /* 제목이 낱말로 나뉘어 차례로 올라오는가 */
     words: words.length, wordAnim: words.map(w => getComputedStyle(w).animationName),
-    wordDelay: words.map(w => getComputedStyle(w).animationDelay),
-    /* 한 줄의 세 가지가 차례로 물드는가 */
-    leads: leads.map(b => b.textContent.trim()),
-    leadAnim: leads.map(b => getComputedStyle(b).animationName),
-    leadDelay: leads.map(b => getComputedStyle(b).animationDelay)
+    wordDelay: words.map(w => getComputedStyle(w).animationDelay)
   };
 });
 chk(first.gap <= 1, `카드 띠가 머리띠에 딱 붙어 있다 (틈 ${first.gap}px)`);
@@ -522,19 +518,120 @@ chk(first.noticeLen > 120 && first.noticeH > 20,
 chk(lum(first.noticeInk) < 140, `알림 글자가 읽을 만큼 진하다 (밝기 ${Math.round(lum(first.noticeInk))})`);
 chk(first.words === 3 && first.wordAnim.every(n => n !== 'none'),
   `제목이 낱말 ${first.words}개로 나뉘어 차례로 올라온다 (${first.wordDelay.join('/')})`);
-chk(first.leads.length === 3 && first.leadAnim.every(n => n !== 'none'),
-  `한 줄의 세 가지가 차례로 물든다 (${first.leads.join(' / ')})`);
-chk(new Set(first.leadDelay).size === 3, `세 가지가 겹치지 않고 차례로 (${first.leadDelay.join('/')})`);
-/* 모션을 줄이면 이 둘도 멈춘 채 다 보여야 합니다 */
+
+// ══ 18. 머리띠 사진·문구가 5초마다 바뀐다 ═══════════════════════
+/*  사용자 요청 — "긴 배경화면 사진이 5초쯤마다 바뀌면서 문구도 다른 문구로
+    바뀌었으면 좋겠다".
+
+    여기서 반드시 지켜야 하는 것
+      ① 넘김은 **CSS 만으로** 합니다 — 자바스크립트를 꺼도 그대로 넘어가야
+         망분리 PC 의 단일 파일에서도 돌아갑니다(아래 JS off 검사).
+      ② 안 보이는 문구도 **문서에는 그대로** 있어야 합니다. 움직임 뒤에
+         자료를 숨기면 화면낭독기 사용자가 그 문구를 영영 못 읽습니다.
+      ③ 문구가 바뀌어도 **띠 높이가 들썩이면 안 됩니다**(겹쳐 두었는지).
+      ④ **멈춤 단추**가 있어야 합니다(WCAG 2.2.2 — 5초를 넘겨 저절로 움직이는
+         것에는 멈출 방법을 준다). 눌렀을 때 실제로 서는지까지 봅니다. */
+const show = await P.evaluate(() => {
+  const imgs = [...document.querySelectorAll('.hero-img')];
+  const leads = [...document.querySelectorAll('.hero-lead')];
+  const cs = e => getComputedStyle(e);
+  const secs = s => s.split(',').map(v => parseFloat(v));
+  return {
+    nImg: imgs.length, nLead: leads.length,
+    nDot: document.querySelectorAll('.hero-dots b').length,
+    imgAnim: imgs.map(i => cs(i).animationName),
+    leadAnim: leads.map(l => cs(l).animationName),
+    imgDelay: imgs.map(i => secs(cs(i).animationDelay)[0]),
+    leadDelay: leads.map(l => secs(cs(l).animationDelay)[0]),
+    imgDur: secs(cs(imgs[0]).animationDuration)[0],
+    loaded: imgs.map(i => i.naturalWidth > 100),
+    /* 겹쳐 두었는가 — 다섯 줄의 왼쪽 위 모서리가 모두 같은 자리 */
+    leadTops: leads.map(l => Math.round(l.getBoundingClientRect().top)),
+    /* 문서에 남아 있는가 — display:none · visibility:hidden 이면 안 읽힙니다 */
+    leadKept: leads.every(l => cs(l).display !== 'none' && cs(l).visibility !== 'hidden'),
+    leadText: leads.map(l => l.textContent.replace(/\s+/g, ' ').trim()),
+    /* 첫 장은 처음부터 보여야 합니다(검은 띠로 시작하면 안 됨) */
+    firstImgOp: +cs(imgs[0]).opacity, firstLeadOp: +cs(leads[0]).opacity
+  };
+});
+chk(show.nImg === 5 && show.nLead === 5 && show.nDot === 5,
+  `머리띠에 사진 ${show.nImg}장 · 문구 ${show.nLead}줄 · 점 ${show.nDot}개`);
+chk(show.loaded.every(Boolean), '머리띠 사진 다섯 장이 모두 실제로 불러와졌다');
+chk(show.imgAnim.every(n => n !== 'none') && show.leadAnim.every(n => n !== 'none'),
+  `사진·문구가 저절로 넘어간다 (${show.imgAnim[0]} · ${show.leadAnim[0]})`);
+chk(show.imgDelay.join() === '0,5,10,15,20',
+  `사진이 5초마다 넘어간다 (시작 ${show.imgDelay.join('/')}초)`);
+chk(show.leadDelay.join() === show.imgDelay.join(),
+  '문구가 사진과 같은 때에 바뀐다 (짝이 어긋나지 않는다)');
+chk(show.imgDur === show.nImg * 5,
+  `한 바퀴가 ${show.imgDur}초 = 5초 × ${show.nImg}장`);
+chk(new Set(show.leadTops).size === 1,
+  `문구 다섯 줄이 한 자리에 겹쳐 있다 — 바뀌어도 띠가 들썩이지 않는다 (top ${show.leadTops[0]}px)`);
+chk(show.leadKept, '안 보이는 문구도 문서에 남아 있다 (화면낭독기가 다섯 줄을 다 읽는다)');
+chk(show.firstImgOp > 0.95 && show.firstLeadOp > 0.95,
+  '첫 사진·첫 문구는 열자마자 보인다');
+/* 지어낸 수치를 넣지 않았는지 — 문구에 적은 숫자는 카드에 적힌 자료 건수와
+   같은 값이어야 합니다. 다른 숫자가 나오면 어딘가에서 지어낸 것입니다. */
+const nums = show.leadText.join(' ').match(/[\d,]+(?=곳|건|종)/g) || [];
+const cardNums = await P.$$eval('.pn-meta',
+  ps => (ps.map(p => p.textContent).join(' ').match(/[\d,]+(?=곳|건|종)/g) || []));
+chk(nums.every(n => cardNums.indexOf(n) >= 0),
+  `문구의 수치가 카드의 자료 건수와 같다 (${nums.join('/')})`);
+
+/* 멈춤 단추 — 있는가, 그리고 눌렀을 때 실제로 서는가 */
+chk((await P.$$('.hero-btn')).length === 1, '사진 넘김을 멈추는 단추가 있다');
+await P.click('.hero-btn'); await P.waitForTimeout(200);
+const paused = await P.evaluate(() => ({
+  flag: document.documentElement.getAttribute('data-hero'),
+  img: getComputedStyle(document.querySelector('.hero-img')).animationPlayState,
+  lead: getComputedStyle(document.querySelector('.hero-lead')).animationPlayState,
+  pressed: document.querySelector('.hero-btn').getAttribute('aria-pressed'),
+  name: document.querySelector('.hero-btn').getAttribute('aria-label')
+}));
+chk(paused.flag === 'stop' && paused.img === 'paused' && paused.lead === 'paused',
+  '멈춤 단추를 누르면 사진과 문구가 그 자리에 선다');
+chk(paused.pressed === 'true' && /다시 시작|재생/.test(paused.name || ''),
+  `단추가 지금 상태를 말해 준다 (${paused.name})`);
+await P.click('.hero-btn'); await P.waitForTimeout(200);
+chk((await P.$eval('.hero-img', i => getComputedStyle(i).animationPlayState)) === 'running',
+  '다시 누르면 이어서 넘어간다');
+
+/* 모션을 줄이면 — 넘김도 제목도 멈춘 채 첫 장이 다 보여야 합니다 */
 await P.emulateMedia({ reducedMotion: 'reduce' }); await P.waitForTimeout(300);
 const rm2 = await P.evaluate(() => {
-  const w = document.querySelector('.hero h1 span'), b = document.querySelector('.hero-lead b');
+  const w = document.querySelector('.hero h1 span');
+  const i = document.querySelector('.hero-img'), l = document.querySelector('.hero-lead');
   return { w: getComputedStyle(w).animationName, wOp: +getComputedStyle(w).opacity,
-           b: getComputedStyle(b).animationName };
+           i: getComputedStyle(i).animationName, iOp: +getComputedStyle(i).opacity,
+           l: getComputedStyle(l).animationName, lOp: +getComputedStyle(l).opacity,
+           d: getComputedStyle(document.querySelector('.hero-dots b')).animationName };
 });
-chk(rm2.w === 'none' && rm2.b === 'none' && rm2.wOp > 0.95,
-  '움직임을 줄이면 제목·한 줄도 멈춘 채 다 보인다');
+chk(rm2.w === 'none' && rm2.i === 'none' && rm2.l === 'none' && rm2.d === 'none',
+  '움직임을 줄이면 제목도 사진 넘김도 멈춘다');
+chk(rm2.wOp > 0.95 && rm2.iOp > 0.95 && rm2.lOp > 0.95,
+  '멈춘 상태에서도 첫 사진·첫 문구·제목이 다 보인다');
+/* 이 설정에서는 아무 일도 못 하는 단추를 만들지 않습니다 */
+const R = await B.newPage({ viewport: { width: 1440, height: 900 },
+                            reducedMotion: 'reduce' });
+await R.goto(PAGE); await R.waitForTimeout(400);
+chk((await R.$$('.hero-btn')).length === 0,
+  '움직임을 줄이는 설정에서는 멈춤 단추를 만들지 않는다 (누를 것이 없으므로)');
+await R.close();
 await P.emulateMedia({ reducedMotion: 'no-preference' }); await P.waitForTimeout(200);
+
+/* 자바스크립트를 꺼도 넘어가야 합니다 — 망분리 PC 의 단일 파일이 그렇습니다 */
+const J = await B.newPage({ javaScriptEnabled: false,
+                            viewport: { width: 1440, height: 900 } });
+await J.goto(PAGE); await J.waitForTimeout(400);
+const jsOff = await J.evaluate(() => ({
+  anim: getComputedStyle(document.querySelector('.hero-img')).animationName,
+  n: document.querySelectorAll('.hero-img').length,
+  btn: document.querySelectorAll('.hero-btn').length
+}));
+chk(jsOff.anim !== 'none' && jsOff.n === 5,
+  `JS 꺼도 사진은 그대로 넘어간다 (${jsOff.anim} · ${jsOff.n}장)`);
+chk(jsOff.btn === 0, 'JS 꺼지면 멈춤 단추는 안 만들어진다 (넘김은 계속됨)');
+await J.close();
 
 await P.screenshot({ path: 't9-portal.png' });
 

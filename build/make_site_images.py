@@ -35,11 +35,29 @@ OUT = ROOT / "assets" / "img" / "site"
 #
 # anchor 는 "자를 때 원본의 어디를 가운데로 둘까"(0=위/왼쪽, 1=아래/오른쪽).
 # 사진마다 남겨야 하는 것이 달라서 자리마다 따로 정했습니다.
+# 머리띠 사진 다섯 장은 **5초마다 바뀝니다**(사용자 요청). 그래서
+#   ① 비율이 정확히 같아야 하고(3:1) — 다르면 바뀔 때마다 띠 높이가 들썩입니다.
+#   ② 가로 픽셀·화질을 카드보다 낮게 잡습니다 — 다섯 장이 모두 단일 파일
+#      (preview/진입화면_한파일.html) 안에 base64 로 들어가기 때문입니다.
+#      1800px·q78 로 뽑으면 다섯 장만 1MB 가 넘습니다. 사진 위에는 글자가 앉는
+#      옅은 막이 깔려 있어 이 정도로 줄여도 눈에 띄지 않습니다.
+HERO = dict(ratio=3.0, width=1500, q=68)
+
 CROP = [
-    # 머리띠 — 산업단지 파노라마. 왼쪽 하늘은 제목이 앉는 자리라 살려 둡니다.
-    dict(src="hero-plant.webp", out="hero-plant.jpg",
-         ratio=3.0, width=1800, anchor=(0.5, 0.5), q=78,
-         note="증류탑이 가운데, 왼쪽은 제목이 앉을 옅은 하늘"),
+    # 머리띠 ①~⑤ — 5초마다 이 차례로 바뀝니다.
+    # **비슷한 사진을 나란히 두지 마세요.** 눈높이 파노라마와 수직 항공사진을
+    # 번갈아 놓았습니다. 닮은 두 장이 잇달아 나오면 바뀐 줄 모르고 화면이
+    # 잘못된 것처럼 보입니다(원본 순서대로 두었더니 실제로 그랬습니다).
+    dict(src="hero-1.webp", out="hero-1.jpg", anchor=(0.5, 0.5), **HERO,
+         note="산업단지 파노라마 — 증류탑이 가운데"),
+    dict(src="hero-2.webp", out="hero-2.jpg", anchor=(0.5, 0.5), **HERO,
+         note="공단 수직 항공 — 배관·탱크가 격자로"),
+    dict(src="hero-3.webp", out="hero-3.jpg", anchor=(0.5, 0.5), **HERO,
+         note="정유단지 항공 — 저장탱크가 줄지어 선 모습"),
+    dict(src="hero-4.webp", out="hero-4.jpg", anchor=(0.5, 0.5), **HERO,
+         note="수변 공단 수직 항공"),
+    dict(src="hero-5.webp", out="hero-5.jpg", anchor=(0.5, 0.52), **HERO,
+         note="해안 정유단지 — 부두와 탱크"),
     # 01 대피장소 지도 — 항공사진. 사고지점 핀과 대피소 표시를 모두 남깁니다.
     dict(src="card-map.webp", out="card-map.jpg",
          ratio=16 / 9, width=880, anchor=(0.5, 0.46), q=80,

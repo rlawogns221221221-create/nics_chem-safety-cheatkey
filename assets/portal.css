@@ -81,6 +81,9 @@ html{font-size:62.5%}   /* KRDS 토큰이 rem 이라 뿌리를 10px 로 (1.7rem 
   --veil-0:rgba(255,255,255,0);
   --hero-ink:var(--krds-light-color-text-basic);
   --hero-ink-2:var(--krds-light-color-text-subtle);
+  /* 머리띠 아래 '몇 번째 사진인지' 점 — 아직 오지 않은 자리의 색.
+     지금 자리는 --brand-d 로 물듭니다. */
+  --dot:var(--krds-color-light-gray-30);
   /* 카드 사진 칸 — 사진이 오기 전까지 보이는 바탕 */
   --art-bg:var(--krds-color-light-gray-5);
   /* 사진 위 딱지 그림자 — 밝은 사진에서도 딱지가 떠 보이게 */
@@ -133,6 +136,7 @@ html[data-krds-mode="high-contrast"]{
   --veil-0:rgba(0,0,0,0);
   --hero-ink:var(--krds-color-high-contrast-gray-0);
   --hero-ink-2:var(--krds-color-high-contrast-gray-30);
+  --dot:var(--krds-color-high-contrast-gray-60);
   --art-bg:var(--krds-color-high-contrast-gray-90);
   --lb-sh:0 .1rem .4rem rgba(0,0,0,.7);
   --ov:rgba(0,0,0,.94);
@@ -212,11 +216,43 @@ html[data-krds-mode="high-contrast"] .logo-full{
 .hero{position:relative; background:var(--deep);
   border-bottom:.1rem solid var(--line); overflow:hidden}
 .hero-ph{position:absolute; inset:0; z-index:0; pointer-events:none}
-.hero-img{display:block; width:100%; height:100%; object-fit:cover;
-  object-position:58% 50%}
-/* 열 때 한 번만 아주 조금 커졌다 제자리로 — 되풀이하지 않습니다 */
-@keyframes heroPh{from{opacity:0; transform:scale(1.05)} to{opacity:1; transform:none}}
-.hero-img{animation:heroPh 1.1s var(--ease) both}
+/* 다섯 장이 **같은 자리에 겹쳐** 있고, 보이는 것만 opacity 로 드러납니다.
+   자리를 나란히 두면 띠가 다섯 배로 길어집니다. */
+.hero-img{position:absolute; inset:0;
+  display:block; width:100%; height:100%; object-fit:cover;
+  object-position:58% 50%; opacity:0}
+
+/* ── 사진 다섯 장이 5초마다 (전체 25초 한 바퀴) ────────────────
+   왜 CSS 로만 하나 — 자바스크립트가 꺼져 있어도, 망분리 PC 의 단일 파일에서도
+   그대로 돌아야 합니다. 자바스크립트는 **멈추는 단추**만 답니다.
+
+   시간 계산: 25초가 100% 이므로 한 장의 차례는 20%(5초)입니다.
+     0% → 3%    나타남 (0.75초)
+     3% → 20%   그대로
+     20% → 24%  사라짐 (1초)
+   사라지는 시간을 나타나는 시간보다 **길게** 잡은 이유: 딱 맞추면 두 장이
+   동시에 반투명해지는 순간이 생겨 뒤의 짙은 바탕이 비쳐 한 번 어두워집니다.
+   다음 장이 다 나타난 뒤에 앞 장이 마저 사라지면 그 깜빡임이 없습니다.
+
+   첫 장은 `.s1` 에 opacity:1 을 따로 줍니다 — 애니메이션을 못 쓰는 브라우저나
+   모션을 줄이는 설정에서 머리띠가 통째로 검게 남으면 안 됩니다.
+
+   사진은 제 차례에 아주 조금 컸다가(1.04) 제자리로 내려앉습니다. 예전 머리띠가
+   열 때 한 번 하던 것과 같은 움직임이고, 5초를 그냥 서 있는 것보다 사진이
+   살아 있게 보입니다. 영상처럼 움직이는 것은 아닙니다 — 5초에 4% 입니다. */
+@keyframes heroShot{
+  0%{opacity:0; transform:scale(1.04)}
+  3%{opacity:1}
+  20%{opacity:1; transform:scale(1)}
+  24%{opacity:0}
+  100%{opacity:0; transform:scale(1.04)}
+}
+.hero-img.s1{opacity:1}
+.hero-img{animation:heroShot 25s linear infinite}
+.hero-img.s2{animation-delay:5s}
+.hero-img.s3{animation-delay:10s}
+.hero-img.s4{animation-delay:15s}
+.hero-img.s5{animation-delay:20s}
 /* 막의 짙은 구간은 **글자 묶음보다 넓어야** 합니다(아래 .hero h1,p 의
    max-width). 짧게 잡으면 제목 끝쪽이 사진 위로 넘어가 읽히다 안 읽히다 합니다. */
 .hero-veil{position:absolute; inset:0;
@@ -238,19 +274,70 @@ html[data-krds-mode="high-contrast"] .logo-full{
 .hero h1 span:nth-child(2){animation-delay:.1s}
 .hero h1 span:nth-child(3){animation-delay:.2s}
 .hero p{margin:0; font-size:1.9rem; line-height:1.65;
-  color:var(--hero-ink-2);
-  animation:heroIn .55s var(--ease) .32s both}
-/* 한 줄에 적은 **세 가지 일**이 차례로 파랗게 물듭니다(아래 카드와 같은 순서).
-   지어낸 문구가 아니라 도구 세 개가 실제로 하는 일입니다. */
-@keyframes leadOn{
-  0%,6%{color:var(--hero-ink-2)}
-  14%,30%{color:var(--brand-d)}
-  40%,100%{color:var(--hero-ink-2)}
+  color:var(--hero-ink-2)}
+.hero-lead b{font-weight:700; color:var(--brand-d)}
+
+/* ── 문구 다섯 줄 — 사진과 짝을 이뤄 함께 바뀝니다 ────────────
+   다섯 줄을 **한 칸에 겹쳐** 둡니다(grid 의 같은 칸). 세로로 쌓으면 줄 수가
+   다른 문구로 넘어갈 때마다 머리띠 높이가 들썩입니다. 칸의 높이는 가장 긴
+   줄에 맞춰지므로 어느 문구가 와도 자리가 흔들리지 않습니다.
+
+   ⚠ 안 보이는 네 줄도 **문서에는 그대로 있습니다**(opacity 만 0). 화면낭독기는
+   다섯 줄을 다 읽습니다 — 움직임 뒤에 자료를 숨기지 않습니다. */
+.hero-leads{display:grid; align-items:start}
+.hero-lead{grid-area:1/1; opacity:0}
+@keyframes heroLead{
+  0%{opacity:0; transform:translateY(1rem)}
+  4%{opacity:1; transform:none}
+  20%{opacity:1; transform:none}
+  23%{opacity:0; transform:translateY(-.6rem)}
+  100%{opacity:0; transform:translateY(-.6rem)}
 }
-.hero-lead b{font-weight:700; color:var(--hero-ink-2);
-  animation:leadOn 9s var(--ease) infinite}
-.hero-lead b:nth-of-type(2){animation-delay:1s}
-.hero-lead b:nth-of-type(3){animation-delay:2s}
+.hero-lead.s1{opacity:1}
+.hero-lead{animation:heroLead 25s var(--ease) infinite}
+.hero-lead.s2{animation-delay:5s}
+.hero-lead.s3{animation-delay:10s}
+.hero-lead.s4{animation-delay:15s}
+.hero-lead.s5{animation-delay:20s}
+
+/* ── 지금 몇 번째인지 + 멈춤 단추 ──────────────────────────────
+   점은 **표시일 뿐 누르는 것이 아닙니다**(aria-hidden). 사진 넘김을 CSS 가
+   하고 있어 특정 장으로 건너뛰려면 자바스크립트로 전부를 다시 만들어야
+   하는데, 그러면 자바스크립트가 꺼진 곳에서 넘김 자체가 멈춥니다.
+   눌러야 하는 것은 멈춤 단추 하나뿐이고, 그것만 자바스크립트가 만듭니다. */
+.hero-ctl{display:flex; align-items:center; gap:1.2rem; margin-top:.4rem}
+.hero-dots{display:flex; gap:.6rem}
+.hero-dots b{display:block; width:2.4rem; height:.4rem; border-radius:.2rem;
+  background:var(--dot); transition:background .3s var(--ease)}
+@keyframes heroDot{
+  0%,1%{background:var(--dot)}
+  4%,20%{background:var(--brand-d)}
+  24%,100%{background:var(--dot)}
+}
+.hero-dots .d1{background:var(--brand-d)}
+.hero-dots b{animation:heroDot 25s var(--ease) infinite}
+.hero-dots .d2{animation-delay:5s}
+.hero-dots .d3{animation-delay:10s}
+.hero-dots .d4{animation-delay:15s}
+.hero-dots .d5{animation-delay:20s}
+.hero-btn{display:inline-flex; align-items:center; gap:.4rem;
+  height:2.8rem; padding:0 .8rem; border:.1rem solid var(--line);
+  border-radius:.4rem; background:var(--card); color:var(--ink2);
+  font:inherit; font-size:1.3rem; cursor:pointer;
+  transition:border-color .15s, color .15s}
+.hero-btn svg{width:1.4rem; height:1.4rem; flex:none}
+.hero-btn:hover{border-color:var(--brand); color:var(--brand-d)}
+.hero-btn:focus-visible{outline:none; box-shadow:var(--focus)}
+@media (pointer:coarse){ .hero-btn{height:4rem; padding:0 1.2rem} }
+
+/* ── 멈춤 ────────────────────────────────────────────────────
+   단추를 누르면 assets/portal.js 가 <html data-hero="stop"> 을 답니다.
+   실제로 멈추는 것은 여기입니다 — 애니메이션을 지우지 않고 **세워 둡니다**
+   (animation-play-state). 지웠다가는 보고 있던 사진이 사라지고 첫 장으로
+   되돌아가 버립니다. 세워 두면 지금 보고 있는 그 장에서 그대로 섭니다. */
+html[data-hero="stop"] .hero-img,
+html[data-hero="stop"] .hero-lead,
+html[data-hero="stop"] .hero-dots b{animation-play-state:paused}
 /* 상자가 화면보다 좁아지는 폭부터는 글자가 화면 가운데까지 오므로 막의
    짙은 구간을 넓힙니다 — 글자 오른쪽 끝이 사진 위로 넘어가면 안 됩니다. */
 @media (max-width:1100px){
@@ -262,11 +349,9 @@ html[data-krds-mode="high-contrast"] .logo-full{
   .hero-veil{background:linear-gradient(to bottom,
     var(--veil) 0%, var(--veil) 52%, var(--veil-0) 100%)}
   .hero-img{object-position:50% 42%}
-  /* 머리띠를 낮춥니다 — 아래 카드가 한 화면에 두 칸은 걸쳐야 합니다 */
-  .hero .wrap{min-height:16rem; padding-top:2.4rem; padding-bottom:3.6rem;
-    gap:1.2rem; justify-content:flex-start}
-  .hero h1{font-size:2.6rem}
-  .hero p{font-size:1.6rem; max-width:none}
+  .hero .wrap{justify-content:flex-start}
+  /* 크기는 아래 '휴대전화 — 카드 한 장이 사진 한 장' 묶음에서 한 번에
+     정합니다(카드 세 장이 한 화면에 들어와야 해서 함께 봐야 합니다). */
 }
 
 /* ── 도구 세 장 — 칸 사이를 붙인 한 덩어리 ────────────────────
@@ -460,10 +545,14 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
    화살표가 파랗게 찹니다. iOS 에서 :active 가 켜지도록 index.html 에
    아무 일도 하지 않는 touchstart 듣는 이를 하나 달아 두었습니다. */
 @media (max-width:720px){
-  /* 머리띠도 낮춥니다 — 카드 세 장이 한 화면에 들어오게 */
-  .hero .wrap{min-height:17rem; padding-top:2rem; padding-bottom:3.2rem; gap:.8rem}
+  /* 머리띠도 낮춥니다 — 카드 세 장이 한 화면에 들어와야 합니다.
+     사진 넘김을 멈추는 단추 줄(.hero-ctl)이 들어오면서 띠가 40px 높아졌고,
+     그만큼 셋째 칸이 화면 밖으로 밀렸습니다. 여백을 다시 눌러 되돌렸습니다
+     (tests/t9 16 이 390×664 에서 셋째 칸이 보이는지 재고 있습니다). */
+  .hero .wrap{min-height:15rem; padding-top:1.6rem; padding-bottom:1.2rem; gap:.6rem}
   .hero h1{font-size:2.4rem}
   .hero p{font-size:1.5rem; line-height:1.55; max-width:none}
+  .hero-ctl{gap:.8rem}
 
   .pn a{position:relative; display:block; padding:0; background:none;
     -webkit-tap-highlight-color:transparent}
@@ -508,11 +597,16 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
 /* ── 움직임을 줄이는 설정 ───────────────────────────────────
    되풀이되는 것은 **끕니다**(멈춘 상태가 곧 다 보이는 상태입니다).
    길이를 0 으로 줄이기만 하면 무한 반복이 순식간에 되풀이돼 오히려
-   깜빡입니다 — 그래서 animation:none 으로 못 박습니다. */
+   깜빡입니다 — 그래서 animation:none 으로 못 박습니다.
+
+   머리띠 사진 넘김도 여기서 멈춥니다. 첫 장(.s1)만 보이고 나머지 넷은
+   opacity:0 인 채로 남습니다 — 문서에는 그대로 있어 화면낭독기는 다섯 줄을
+   다 읽습니다. 이 설정에서는 멈춤 단추도 만들지 않습니다(portal.js). */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{transition-duration:.01ms!important;
     animation-duration:.01ms!important; animation-iteration-count:1!important}
-  .pn-lb,.hero-img,.hero h1 span,.hero p,.hero-lead b,.pn{animation:none!important}
+  .pn-lb,.hero-img,.hero h1 span,.hero p,.hero-lead,.hero-dots b,
+  .pn{animation:none!important}
 }
 /* 손가락으로 누르는 것은 40px 이상 (KRDS·접근성) */
 @media (pointer:coarse){
@@ -527,6 +621,11 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
        --hero-ink:#000;--hero-ink-2:#222;--veil:#fff;--veil-0:#fff}
   .top .act,.skip{display:none}
   .hero-ph,.pn-art,.pn-go{display:none}
+  /* 종이에는 넘길 수가 없으므로 첫 문구만 남기고 점·멈춤단추는 뺍니다.
+     (:not() 을 쓰지 않은 이유 — 모르는 브라우저가 줄 전체를 버립니다) */
+  .hero-ctl{display:none}
+  .hero-lead{animation:none}
+  .hero-lead.s2,.hero-lead.s3,.hero-lead.s4,.hero-lead.s5{display:none}
   .hero h1,.hero p{color:#000}
   .hero .wrap{min-height:0; padding-top:2.4rem; padding-bottom:2.4rem}
   .pn-ph{position:static; aspect-ratio:auto; height:auto; margin:0;

@@ -40,7 +40,7 @@
   </div>
 </header>
 
-<!-- ══ 머리 — 서비스 이름 ═══════════════════════════════════
+<!-- ══ 머리 — 서비스 이름 + 사진 다섯 장이 5초마다 바뀝니다 ═════
      산업단지 실사 사진 위에 서비스 이름이 앉습니다. 사진 위 글자는 뒤에
      무엇이 오는지에 따라 읽히는 정도가 달라지므로, 왼쪽에 옅은 막
      (.hero-veil)을 깔아 밝기를 고정했습니다 — 급할 때 여는 화면에서는
@@ -50,21 +50,62 @@
      사용자가 "제목 문구가 너무 정적"이라고 했습니다. 서비스 이름은 기관의
      공식 이름이라 바꾸지 않고, 대신 두 가지를 했습니다.
        ① 이름을 낱말로 나눠 열 때 하나씩 올라오게 했습니다(.hero h1 span).
-       ② 아래 한 줄을 **이 도구로 실제로 하는 세 가지 일**로 다시 썼고,
-          그 세 가지가 차례로 파랗게 물듭니다(.hero-lead b).
-          아래 카드 세 장과 같은 순서(대피 → 문자 → 자원)입니다.
-     지어낸 문구는 넣지 않았습니다 — 세 가지 모두 실제 도구 이름입니다. -->
+       ② 아래 한 줄이 사진과 함께 바뀝니다(아래).
+
+     ── 사진·문구가 5초마다 바뀝니다 (사용자 요청) ────────────────
+     사진 다섯 장과 문구 다섯 줄이 짝을 이뤄 5초마다 함께 넘어갑니다
+     (전체 25초 한 바퀴). 넘기는 일은 **CSS 만으로** 합니다 — 자바스크립트가
+     꺼져 있어도, 망분리 PC의 단일 파일에서도 그대로 돌아갑니다.
+
+     지켜야 하는 것 세 가지
+       ① **문구 다섯 줄은 모두 문서에 남습니다.** 눈에 보이는 것은 한 줄뿐이지만
+          화면낭독기는 다섯 줄을 다 읽습니다 — 움직임 뒤에 자료를 숨기지
+          않습니다. 사진만 장식이라 aria-hidden 입니다.
+       ② **멈춤 단추**가 있어야 합니다(KRDS·WCAG 2.2.2 — 5초를 넘겨 저절로
+          움직이는 것에는 멈출 방법을 준다). assets/theme.js 처럼 자바스크립트가
+          만들어 넣습니다(.hero-ctl 안 맨 앞).
+       ③ 모션을 줄이는 설정에서는 **아예 멈추고 첫 장만** 보입니다.
+
+     문구는 지어내지 않았습니다 — 네 줄은 도구가 실제로 하는 일과 자료
+     건수(카드의 숫자와 같은 값)이고, 마지막 한 줄은 이 도구의 원칙입니다. -->
 <div class="hero">
   <div class="hero-ph" aria-hidden="true">
-    <img class="hero-img" src="assets/img/site/hero-plant.jpg" alt=""
-         width="1800" height="600" fetchpriority="high">
+    <img class="hero-img s1" src="assets/img/site/hero-1.jpg" alt=""
+         width="1500" height="500" fetchpriority="high">
+    <img class="hero-img s2" src="assets/img/site/hero-2.jpg" alt=""
+         width="1500" height="500" loading="lazy">
+    <img class="hero-img s3" src="assets/img/site/hero-3.jpg" alt=""
+         width="1500" height="500" loading="lazy">
+    <img class="hero-img s4" src="assets/img/site/hero-4.jpg" alt=""
+         width="1500" height="500" loading="lazy">
+    <img class="hero-img s5" src="assets/img/site/hero-5.jpg" alt=""
+         width="1500" height="500" loading="lazy">
     <span class="hero-veil"></span>
   </div>
   <div class="wrap">
     <h1><span>화학사고</span> <span>대응지원</span> <span>서비스</span></h1>
-    <p class="hero-lead">사고가 나면 <b>어디로 대피시킬지</b>,
-      <b>무엇을 문자로 보낼지</b>, <b>어떤 자원을 부를지</b> —
-      세 가지를 이 화면에서 시작합니다.</p>
+    <!-- 다섯 줄이 같은 자리에 겹쳐 있습니다(.hero-leads 가 grid).
+         겹쳐 두지 않고 순서대로 두면 문구가 바뀔 때마다 띠 높이가 들썩입니다. -->
+    <div class="hero-leads">
+      <p class="hero-lead s1">사고가 나면 <b>어디로 대피시킬지</b>,
+        <b>무엇을 문자로 보낼지</b>, <b>어떤 자원을 부를지</b> —
+        세 가지를 이 화면에서 시작합니다.</p>
+      <p class="hero-lead s2">사고지점을 찍으면 주변 대피장소를
+        <b>가까운 순으로</b> 찾습니다 — 전국 <b>1,849곳</b>.</p>
+      <p class="hero-lead s3">사고정보를 넣으면 <b>재난문자 표준문안</b>이
+        만들어집니다 — 표준문안 12건 · 발송 사례 42건.</p>
+      <p class="hero-lead s4">장비와 업체를 가까운 순으로 찾아
+        <b>바로 연락</b>합니다 — 자원 470건 · 출처 6종.</p>
+      <p class="hero-lead s5">이 도구는 <b>판단하지 않습니다.</b>
+        어디까지 대피시킬지는 담당자가 정하고, 도구는 자료를 모읍니다.</p>
+    </div>
+    <!-- 지금 몇 번째 사진인지 + 멈춤 단추. 단추는 assets/portal.js 가
+         이 자리 맨 앞에 만들어 넣습니다(자바스크립트가 없으면 점만 남습니다). -->
+    <div class="hero-ctl" data-hero-ctl>
+      <span class="hero-dots" aria-hidden="true">
+        <b class="d1"></b><b class="d2"></b><b class="d3"></b><b class="d4"></b><b class="d5"></b>
+      </span>
+    </div>
   </div>
 </div>
 
@@ -229,11 +270,11 @@
   </div>
 </footer>
 
-<!-- iOS 사파리는 손가락으로 눌렀을 때 :active 를 잘 켜지 않습니다 — 아무 일도
-     하지 않는 touchstart 듣는 이를 하나 달아 두면 켜집니다(널리 쓰는 방법).
-     좁은 화면에서 카드를 누르면 사진이 살짝 커지고 판이 짙어지는 것이 그
-     :active 입니다. JS 가 꺼져 있어도 링크는 그대로 동작합니다. -->
-<script>document.addEventListener("touchstart", function () {}, { passive: true });</script>
+<!-- 진입 화면에서만 쓰는 자바스크립트 — 머리띠 사진 넘김을 멈추는 단추와
+     iOS 사파리의 :active 켜기, 두 가지뿐입니다. 화면을 만드는 일은 하지
+     않습니다(사진 넘김도 CSS 가 합니다). 꺼져 있어도 링크는 그대로 동작하고
+     사진도 그대로 넘어갑니다 — 멈출 방법만 없어집니다. -->
+<script src="./assets/portal.js"></script>
 
 </body>
 </html>
