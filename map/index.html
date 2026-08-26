@@ -100,10 +100,18 @@
       <button id="zFit" type="button" title="전체 보기">⤢</button>
     </div>
 
-    <div class="maplegend" id="mLeg"></div>
+    <!-- 지도 왼쪽 위에 세로로 쌓이는 것들 — **한 상자에 담아 둡니다.**
+         예전에는 범례와 '가까운 곳' 카드가 각자 지도에 절대 위치로 붙어
+         있었고, 카드의 위치를 "범례 한 줄 높이"로 못 박아 두었습니다.
+         범례가 두 줄이 되는 순간(③은 종류가 여섯이라 늘 그렇습니다) 카드가
+         범례 위로 올라타 글자를 가렸습니다. 이제 상자가 세로로 쌓아 주므로
+         범례가 몇 줄이든 카드는 그 아래에 섭니다. -->
+    <div class="mapleft">
+      <div class="maplegend" id="mLeg"></div>
 
-    <!-- 급할 때 필요한 세 줄 — 오른쪽 목록을 훑지 않고 바로 읽습니다 -->
-    <div class="mnear" id="mNear" hidden></div>
+      <!-- 급할 때 필요한 세 줄 — 오른쪽 목록을 훑지 않고 바로 읽습니다 -->
+      <div class="mnear" id="mNear" hidden></div>
+    </div>
 
     <div class="mapscale"><i id="scaleBar"></i><b id="scaleTxt"></b></div>
     <div class="mapaddr" id="mAddr" hidden></div>

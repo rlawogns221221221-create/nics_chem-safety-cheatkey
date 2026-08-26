@@ -400,6 +400,12 @@ body.has-stage .steps button.stp:hover{transform:none}
 @media (max-width:560px){
   .stepnav{flex-wrap:wrap}
   .stepnav .sn-next{width:100%;margin-left:0;min-width:0}
+  /* 못 채운 칸 줄 — 한 줄에 [제목][칸 이름들][채우러 가기]를 밀어 넣으면
+     가운데 칸이 좁아져 이름이 석 줄로 쪼개지고, 가운데 정렬이라 계단처럼
+     보였습니다. 좁은 화면에서는 칸 이름을 아랫줄로 내립니다. */
+  .nf-list button{flex-wrap:wrap;align-items:flex-start;gap:6px 10px;padding:10px 12px}
+  .nf-list button span{flex:1 1 100%;order:3}
+  .nf-list button em{margin-left:auto}
 }
 
 /* 아직 못 채운 칸 — 문안 자리에 대신 나옵니다 */
@@ -671,7 +677,16 @@ button.sm{min-height:var(--h-s);padding:0 12px;font-size:var(--fs-s)}
 }
 @media (max-width:560px){
   .wrap{padding:0 12px 48px}
-  .stepsz{padding:16px 0}
+  /* 상단 바 — 휴대전화에서 112px(화면의 1/6)를 쓰고 있었습니다. 제목과 단추는
+     그대로 두고 여백만 눌러 90px 쯤으로 낮춥니다. 아래 지도·문안이 그만큼
+     더 보입니다. */
+  .top{padding:9px 0}
+  .top .wrap{gap:9px}
+  .top h1{font-size:1.9rem}
+  /* ‼ 세로 가운데 정렬을 풉니다. 넓은 화면에서는 고를 것이 셋뿐인 첫 화면을
+     가운데 두는 것이 보기 좋지만, 휴대전화에서는 위아래로 280px 씩 빈 자리가
+     생겨 **화면이 고장 난 것처럼** 보였습니다(사용자 지적). 위에 붙입니다. */
+  .stepsz{padding:16px 0;align-items:flex-start}
   body.has-stage .stepsz{padding:10px 0 8px}
   .steps{gap:7px}
   /* 정사각형 크기도 height 로 직접 줘야 줄어들 때 매끄럽게 보간된다
@@ -680,13 +695,24 @@ button.sm{min-height:var(--h-s);padding:0 12px;font-size:var(--fs-s)}
   .stp-ic{width:30px;height:30px}
   .steps button.stp b{font-size:1.5rem}
   .stp-d{display:none}
-  body.has-stage .steps button.stp{height:52px;min-height:0;padding:6px 6px}
+  /* ‼ 접힌 띠를 52px 로 두었더니 '주민소산(대피명령) 알림' 이 두 줄이 되면서
+     **글자가 단추 밖으로 3px 삐져나왔습니다** — 모든 휴대전화 폭에서 그랬습니다.
+     이름은 기관이 쓰는 분류 이름이라 줄일 수 없으므로 띠를 60px 로 키웁니다. */
+  body.has-stage .steps button.stp{height:60px;min-height:0;padding:6px 6px}
   body.has-stage .stp-ic{width:19px;height:19px}
   body.has-stage .steps button.stp b{font-size:1.3rem}
   .panel .body{padding:13px}
   .msg{font-size:1.9rem}
   .matbar dl{grid-template-columns:1fr;gap:1px}
   .matbar dt{margin-top:6px}
+}
+/* 아주 좁은 화면(320px 급) — 세 분류를 나란히 두면 한 칸이 94px 밖에 안 되어
+   '주민소산(대피명령) 알림' 이 석 줄이 되고 정사각형 밖으로 넘쳤습니다.
+   칸을 높이고 아이콘·글자를 한 단 줄여 안에 들어오게 합니다. */
+@media (max-width:400px){
+  .steps button.stp{height:38vw;padding:8px 4px 7px}
+  .stp-ic{width:26px;height:26px}
+  .steps button.stp b{font-size:1.4rem}
 }
 @media print{
   .top{background:var(--card);color:#000;border-bottom:2px solid #000}
@@ -975,9 +1001,11 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
 .mapctl{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;gap:4px}
 .mapctl button{width:32px;height:32px;min-height:0;padding:0;font-size:1.7rem;line-height:1;
   background:var(--glass)}
-.maplegend{position:absolute;left:10px;top:10px;display:flex;gap:9px;flex-wrap:wrap;
+/* 자리는 위 .mapleft 가 잡습니다 — 여기서 다시 절대 위치를 주면 그 줄에서
+   빠져나와 '가까운 곳' 카드와 다시 겹칩니다. */
+.maplegend{display:flex;gap:9px;flex-wrap:wrap;
   background:var(--glass);border-radius:6px;padding:4px 9px;
-  font-size:1.3rem;color:var(--ink2);pointer-events:none;max-width:calc(100% - 70px)}
+  font-size:1.3rem;color:var(--ink2);pointer-events:none;max-width:100%}
 .maplegend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;
   margin-right:4px;vertical-align:-1px;border:1.5px solid var(--ok);background:var(--card)}
 .maplegend .dot.tmp{border-color:var(--tmp)}
@@ -1028,7 +1056,18 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
    오른쪽에 전체 목록이 이미 있는데도 따로 두는 이유는, 급할 때 필요한 것이
    훑어볼 목록이 아니라 "그래서 어디로 보내면 되는가" 세 줄이기 때문입니다.
    지도에서 눈을 떼지 않고 읽도록 지도 위에 겹쳐 둡니다. */
-.mnear{position:absolute;left:10px;top:46px;width:min(272px,calc(100% - 62px));
+/* 지도 왼쪽 위 세로 줄 — 범례와 '가까운 곳' 카드를 담습니다.
+   ‼ 예전에는 둘이 각자 지도에 절대 위치로 붙어 있었고, 카드의 top 을
+   "범례 한 줄 높이"인 46px 로 못 박아 두었습니다. ③은 종류가 여섯이라 범례가
+   늘 두세 줄(54~103px)이 되어 **카드가 범례 글자 위로 올라탔습니다** — 넓은
+   화면에서도 그랬습니다. 상자가 세로로 쌓아 주면 몇 줄이든 어긋나지 않습니다.
+   상자 자체는 손가락을 통과시키고(pointer-events:none) 안의 카드만 받습니다 —
+   빈 자리가 지도 끌기를 막으면 안 됩니다. */
+.mapleft{position:absolute;left:10px;top:10px;z-index:4;
+  display:flex;flex-direction:column;align-items:flex-start;gap:8px;
+  max-width:calc(100% - 62px);pointer-events:none}
+.mapleft > *{pointer-events:auto}
+.mnear{position:static;width:min(272px,100%);
   border-radius:9px;padding:8px 9px 9px;font-size:1.5rem;
   animation:revealIn .3s var(--ease) both}
 /* 접힘 — 머리표만 남기고 지도를 비워 준다. 휴대전화의 기본 모습이다.
@@ -1223,32 +1262,42 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
   .mb-f select,.mb-f input[type=text]{width:auto;min-width:120px}
   .mb-addr input[type=text]{width:100%;min-width:150px}
   .windbtn{min-width:0}
-  /* 좁은 화면에서는 겹쳐 그리기 줄이 지도를 많이 가리지 않게 촘촘히 */
-  .mapacc{gap:5px;padding:5px 8px;font-size:1.3rem}
+  /* 겹쳐 그리기 줄 — 지도 오른쪽 아래 모서리에 딱 붙여 두었더니 글자가
+     화면 맨 끝까지 닿아 **잘린 것처럼** 보였습니다. 확대·축소 단추(right:10)와
+     같은 자리에 세우고 네 모서리를 둥글려 '패널'로 읽히게 합니다. */
+  .mapacc{right:10px;bottom:10px;gap:5px;padding:5px 8px;font-size:1.3rem;
+    border-radius:var(--r);border:1px solid var(--line)}
   .mapacc label{gap:3px}
   .mapscale{bottom:10px}
+  /* ‼ 지도 아래쪽에 세 가지(축척 막대·겹쳐 그리기 줄·고른 곳 카드)가 모입니다.
+     좁은 화면에서는 서로 밟고 올라서 글자를 가렸습니다 — 실제로 '고른 곳'
+     카드 위에 체크상자 판이 얹혀 주소가 안 보였습니다. 층을 나눕니다:
+       아래층  축척 막대(왼쪽) · 겹쳐 그리기 줄(오른쪽)
+       윗층    고른 곳 카드
+     아주 좁은 화면(320px 급)에서는 아래층 둘이 가로로도 부딪혀
+     (축척 ~132px · 판 107px~) 판을 한 층 더 올립니다. */
+  .mapaddr{bottom:68px;max-width:calc(100% - 20px)}
   /* 좁은 화면에서는 지도가 이미 작습니다 — 3곳 카드가 지도를 절반 넘게
      가리지 않도록 폭을 줄이고, 안내 문구는 뺍니다(목록에도 같은 값이 있음). */
   .mnear{width:min(224px,calc(100% - 62px));padding:6px 8px 7px;font-size:1.3rem}
   .mnear .mnear-note{display:none}
-  .mapaddr{bottom:36px}
 
-  /* ── 요약 줄 — 세로로 쌓이지 않게 ─────────────────────────
-     조각이 늘어날수록 줄바꿈으로 아래로 자랐습니다. ③은 종류 칩에 도착시간이
-     붙으면서 208px(화면의 3분의 1)까지 커졌고, 그만큼 지도가 밀려 사고지점
-     조작줄이 화면 밖으로 나갔습니다. 한 줄에 두고 옆으로 밀어 보게 합니다.
-     오른쪽 끝을 흐리게 해서 뒤에 더 있다는 것이 보이게 합니다. */
-  .msum{flex-wrap:nowrap;overflow-x:auto;gap:10px;padding:7px 12px;
-    scrollbar-width:none;-webkit-overflow-scrolling:touch;
-    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent);
-    mask-image:linear-gradient(90deg,#000 calc(100% - 22px),transparent)}
-  .msum::-webkit-scrollbar{display:none}
-  /* 표시할 것이 없다는 안내는 문구가 길어, 한 줄로 두면 '범위 넓히기'
-     단추가 화면 오른쪽 밖으로 밀려난다. 이때만 줄바꿈을 허용한다. */
-  .msum.is-empty{flex-wrap:wrap;overflow:visible;
-    -webkit-mask-image:none;mask-image:none}
-  .msum > *{flex:none}
-  .ms-bands{flex-wrap:nowrap}
+  /* ── 요약 줄 ─────────────────────────────────────────────
+     ‼ 한 줄에 두고 옆으로 밀어 보게 했다가 되돌렸습니다. 내용이 820px 인데
+     화면은 390px 이라 **450px 이 화면 밖에 숨어** 있었고, 하필 잘리는 자리가
+     `가장 가까운 곳 ○○ 3.0km` 의 거리였습니다 — 이 화면에서 가장 중요한
+     값입니다. 오른쪽을 흐리게 해 두었지만 지도 화면에서 가로로 밀어 보는
+     사람은 없었습니다(사용자가 "깨진다"고 한 자리 중 하나).
+     그래서 **줄바꿈으로 되돌립니다.** 세 줄(약 76px)이 되지만 다 읽힙니다.
+     늘어난 만큼은 상단 바·조건 줄에서 줄여 메웠습니다. */
+  .msum{flex-wrap:wrap;gap:2px 10px;padding:6px 12px;line-height:1.5}
+  /* 한 조각이 화면보다 넓을 수 있습니다 — 320px 화면에서 '가장 가까운 곳
+     ○○○ 6m 남서쪽 · 도보 1분' 이 325px 이라 페이지가 가로로 밀렸습니다.
+     줄바꿈을 허용하고 flex 가 줄일 수 있게 둡니다(min-width:0 이 없으면
+     flex 항목은 내용 크기 밑으로 줄어들지 않습니다). */
+  .msum > *{flex:0 1 auto;min-width:0}
+  .ms-near{flex-wrap:wrap}
+  .ms-bands{flex-wrap:wrap;gap:6px}
   .msum .ms-note{display:none}          /* 같은 안내가 목록 아래에도 있다 */
   .msum .ms-more{margin-left:0}
 
@@ -1256,7 +1305,15 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
      좁은 화면에서 조건이 세로로 쌓여 320px(화면 절반)을 차지했고, 정작 지도는
      84px만 보였습니다. 주소·장소 검색은 가장 먼저 쓰는 것이라 늘 보이게 두고,
      물질·풍향·배경지도는 필요할 때 펴 보게 합니다. */
-  .mbar-in{gap:10px;padding:10px 12px;min-height:0}
+  /* 조건 줄이 휴대전화에서 283px — 화면의 3분의 1을 쓰고 지도는 56% 밖에
+     남지 않았습니다. 여백과 라벨 크기만 눌러 40px 쯤 줄입니다.
+     ‼ 라벨 글자를 감추지는 않았습니다. ③의 '주소·장소·장비 검색' 은 장비
+     이름으로도 찾을 수 있다는 것을 알려 주는 유일한 자리입니다 — 빈칸 안내문
+     ("예) 김천시, 굴착기, 흡착포")만으로는 그 말이 전달되지 않습니다.
+     40px 아끼자고 쓰는 법을 지우지 않습니다. */
+  .mbar-in{gap:8px;padding:8px 12px;min-height:0}
+  .mb-f{gap:3px;font-size:1.3rem}
+  .mb-accrow{gap:5px;padding:3px 6px}
   .mb-toggle{display:inline-flex;align-items:center;gap:5px;min-height:40px;
     padding:0 12px;font-size:1.5rem;font-weight:700;color:var(--ink2);flex:none}
   .mb-toggle .mb-caret{transition:transform .2s var(--ease)}
@@ -1277,10 +1334,26 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
      22%를 덮었습니다. 글자 크기는 그대로 두고(줄이면 못 읽습니다) 종류 이름의
      꼬리만 감춥니다: "폐기물 처리업체" → "폐기물".
      풀어 쓴 이름은 오른쪽 목록의 종류 칩에 그대로 있습니다. */
-  .maplegend{gap:4px 8px;padding:3px 7px;max-width:calc(100% - 58px)}
+  /* 손가락 화면에서는 확대·축소 단추가 40px 로 커집니다(왼쪽 끝 = 폭-50px).
+     상자를 폭-58px 로 두었더니 2px 겹쳤습니다 — 72px 로 띄웁니다. */
+  .mapleft{max-width:calc(100% - 72px)}
+  .maplegend{gap:4px 8px;padding:3px 7px}
   .maplegend span{white-space:nowrap}
   .maplegend .lg-t{display:none}
   .maplegend .dot,.maplegend .rkdot{margin-right:3px}
+}
+@media (max-width:400px){
+  /* 아주 좁은 화면 — 축척 막대(왼쪽 ~132px)와 겹쳐 그리기 줄(왼쪽 끝 107px)이
+     가로로 25px 부딪혔습니다. 줄을 한 층 올리고 고른 곳 카드도 그만큼 올립니다. */
+  .mapacc{bottom:46px}
+  .mapaddr{bottom:104px}
+  /* 320px 화면에서는 지도 위에 얹힌 것들이 네 줄(568px)까지 쌓여 지도가
+     74px 밖에 안 보였습니다. 글자 크기는 건드리지 않고 줄 간격·여백만
+     눌러 45px 쯤 되찾습니다 — 읽는 데 필요한 크기는 지킵니다. */
+  .mbar-warn{padding:5px 12px;font-size:1.4rem;line-height:1.45}
+  .msum{padding:4px 10px;gap:1px 8px;line-height:1.4}
+  .ms-bands{gap:4px}
+  .mb-accrow{padding:2px 5px}
 }
 @media print{
   body.mapapp{height:auto;overflow:visible;display:block}
@@ -1429,6 +1502,11 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 .rs-num{font-size:1.7rem;font-weight:700;color:var(--brand-d);text-decoration:none;
   font-variant-numeric:tabular-nums;border-bottom:1px solid transparent}
 .rs-num:hover{border-bottom-color:var(--brand-d)}
+/* 손가락으로 쓰는 기기에서는 이 번호가 **바로 전화 거는 자리**입니다.
+   글자 높이 그대로(28px) 두면 급할 때 빗나갑니다 — 40px 로 넓힙니다. */
+@media (pointer:coarse){
+  .rs-num{display:inline-flex;align-items:center;min-height:40px}
+}
 .rs-dept{font-size:1.3rem;color:var(--ink3)}
 .rs-none{font-size:1.3rem;font-weight:700;color:var(--err);
   background:var(--err-l);border-radius:4px;padding:1px 6px}
@@ -1470,7 +1548,10 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 #map.hasbg circle.rk{stroke-width:2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 
 @media (max-width:860px){
-  .rstart{padding:20px 14px 44px}
+  /* ① 문자 도구의 첫 화면과 같은 이유로 세로 가운데 정렬을 풉니다 —
+     휴대전화에서 물음 위에 180px 넘는 빈 자리가 생겨 화면이 고장 난 것처럼
+     보였습니다. 위에 붙이고 여백을 줄입니다. */
+  .rstart{padding:18px 14px 40px;align-items:flex-start}
   .rstart h2{font-size:2.4rem}
   .rs-way{padding:14px 15px 14px 50px}
   .rs-wt{font-size:1.7rem}
