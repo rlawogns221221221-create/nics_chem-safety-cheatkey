@@ -159,7 +159,7 @@ const report = (dev, pname, d) => {
 
 for (const [dev, cfg] of DEVICES) {
   const wide = cfg.viewport.width >= 800;
-  for (const pname of ['진입화면', '① 문자작성', '② 대피장소', '③ 방제자원']) {
+  for (const pname of ['진입화면', '① 문자작성', '② 대피장소', '③ 방제 동원']) {
     const ctx = await B.newContext({ ...cfg, permissions: ['geolocation'],
       geolocation: { latitude: 36.14, longitude: 128.1137, accuracy: 50 } });
     const P = await ctx.newPage();
@@ -192,11 +192,17 @@ for (const [dev, cfg] of DEVICES) {
       await P.goto(`${R}/${isRes ? 'res' : 'map'}/index.html`); await P.waitForTimeout(800);
       checks++;
       if (isRes) {
-        /* ③ 은 시작 화면부터 — 지도·조건은 사고지점을 정한 뒤에 나온다 */
-        const dead = await P.evaluate(DEADTOP, '.rstart');
+        /* ③ 은 시작이 두 걸음 — 지도·조건은 사고지점을 정한 뒤에 나온다.
+           걸음 1(무엇이 필요한가)·걸음 2(사고지점)를 각각 재고 지나갑니다. */
+        const dead = await P.evaluate(DEADTOP, '.rz');
         if (!wide && dead > cfg.viewport.height * 0.2)
           note(dev, pname, `시작 화면 위쪽이 ${dead}px 비어 있다 (세로 가운데 정렬)`);
-        report(dev, pname + '(시작)', await P.evaluate(PROBE));
+        report(dev, pname + '(걸음1 필요한 것)', await P.evaluate(PROBE));
+        const need = await P.$('.rz-need');
+        if (need) { await need.click(); await P.waitForTimeout(300); }
+        const nx = await P.$('#rzNext');
+        if (nx) { await nx.click(); await P.waitForTimeout(500); }
+        report(dev, pname + '(걸음2 사고지점)', await P.evaluate(PROBE));
         const b = await P.$('#startPick');
         if (b) { await b.click(); await P.waitForTimeout(900); }
       }

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>화학사고 방제자원 지도</title>
+<title>화학사고 방제 동원 체계</title>
 <!-- KRDS 공식 디자인 토큰 — 원본 그대로. shell.css 가 이 값을 우리 이름으로 잇습니다 -->
 <link rel="stylesheet" href="../assets/krds/krds_tokens.css">
 <link rel="stylesheet" href="../assets/shell.css">
@@ -14,7 +14,7 @@
 
 <div class="top">
   <div class="wrap">
-    <h1>화학사고 방제자원 지도</h1>
+    <h1>화학사고 방제 동원 체계</h1>
     <div class="act noprint">
       <button id="btnSrc" type="button">자료 출처</button>
       <button id="btnPrint" type="button">인쇄</button>
@@ -23,43 +23,86 @@
   </div>
 </div>
 
-<!-- ══ 시작 화면 ══════════════════════════════════════════
-     처음 들어오면 이것 하나만 보입니다. 지도·조건·목록은 사고지점이
-     정해진 뒤에 나옵니다(body.has-acc).
+<!-- ══ 시작 — 두 걸음 ═════════════════════════════════════
+     처음 들어오면 이것 하나만 보입니다. 지도·조건·목록은 두 걸음을 마친
+     뒤에 나옵니다(body.has-acc).
 
-     방제자원 찾기는 결국 "사고지점에서 가까운 순"이라 사고지점 없이는
-     아무것도 못 합니다. 그런데 화면을 한꺼번에 펼쳐 두면 어디부터
-     손대야 하는지 알 수 없습니다. 그래서 첫 화면은 한 가지만 묻습니다. -->
-<div class="rstart" id="rStart">
-  <div class="rs-in">
-    <h2>사고지점이 어디인가요?</h2>
-    <p class="rs-lead">방제자원은 사고지점에서 가까운 순으로 찾습니다.<br>
-      아래 <b>셋 중 하나만</b> 하시면 됩니다.</p>
+     ── 왜 두 걸음인가 ────────────────────────────────────────
+     사용자 요구입니다 — "사용자가 자기가 지금 필요한 걸 누르고, 사고지점의
+     주소 또는 사고가 발생한 사업장을 입력하면, 그 지점 주변의 본인이 선택한
+     방제자원을 알려 주는" 모습.
 
-    <div class="rs-ways">
-      <div class="rs-way rs-way-main">
-        <span class="rs-num2">1</span>
-        <div class="rs-wt">주소나 사업장 이름으로 찾기</div>
-        <div class="rs-wd">예) 김천시 신음동 · ○○화학 여수공장</div>
+     예전에는 사고지점만 묻고 자원 470건을 전부 지도에 뿌린 뒤 "좁히고 싶으면
+     조건을 펴 보라"고 했습니다. 그런데 현장에서 담당자가 아는 것은 **지금
+     무엇이 필요한가**(굴착기가 필요하다 · 보호복이 모자란다)이지 자원 종류가
+     아닙니다. 필요한 것을 먼저 물으면 그 다음 화면에 나올 것이 이미 정해지고,
+     결과도 열 배쯤 줄어 훑을 수 있는 양이 됩니다.
+
+     걸음 1은 자료의 RESOURCE_NEEDS 를 그대로 씁니다(자원마다 g:[...] 로
+     달려 있는 값) — 우리가 지어낸 분류가 아닙니다.
+     ══════════════════════════════════════════════════════ -->
+<div class="rz" id="rz">
+  <div class="rz-in">
+
+    <!-- 어디까지 왔는지. 걸음을 눌러 되돌아갈 수 있습니다(①의 진행 표시와
+         같은 방식) — 급할 때 아는 것부터 채우는 사람이 있습니다. -->
+    <ol class="rz-bar" id="rzBar">
+      <li class="rz-b on"><button type="button" data-go="1"><i>1</i><b>필요한 것</b></button></li>
+      <li class="rz-b"><button type="button" data-go="2"><i>2</i><b>사고지점</b></button></li>
+    </ol>
+
+    <!-- ── 걸음 1 — 무엇이 필요한가 ───────────────────────── -->
+    <section class="rz-pane" id="rzP1" aria-labelledby="rzH1">
+      <h2 id="rzH1">지금 무엇이 필요하세요?</h2>
+      <p class="rz-lead">필요한 것을 고르면 <b>그것을 가진 곳만</b> 찾습니다.
+        여러 개 골라도 됩니다.</p>
+
+      <!-- 칸은 자료(RESOURCE_NEEDS)에서 만들어 넣습니다 — res/app.js -->
+      <div class="rz-needs" id="rzNeeds" role="group" aria-label="필요한 것 고르기"></div>
+
+      <div class="rz-nav">
+        <button type="button" class="rz-skip" id="rzAll">
+          무엇이 필요한지 모르겠어요 — 전부 보기
+        </button>
+        <button type="button" class="rz-next" id="rzNext" disabled>
+          다음 — 사고지점 넣기
+        </button>
+      </div>
+    </section>
+
+    <!-- ── 걸음 2 — 사고지점 ──────────────────────────────── -->
+    <section class="rz-pane" id="rzP2" hidden aria-labelledby="rzH2">
+      <h2 id="rzH2">사고지점이 어디인가요?</h2>
+      <p class="rz-lead" id="rzP2Lead">고른 자원을 <b>사고지점에서 가까운 순</b>으로 찾습니다.</p>
+
+      <!-- 주소·사업장 이름이 첫째 자리입니다 — 사용자가 그렇게 요구했고,
+           상황실에서 실제로 먼저 아는 것도 주소나 사업장 이름입니다.
+           검색 결과는 이 칸 **바로 아래**에 뜹니다(bindAddrSearch). -->
+      <div class="rz-way rz-way-main">
+        <span class="rz-n">1</span>
+        <div class="rz-wt">주소나 사업장 이름 넣기</div>
+        <div class="rz-wd">예) 김천시 신음동 · ○○화학 여수공장</div>
         <input type="text" id="startQ" placeholder="주소 또는 사업장 이름" autocomplete="off">
       </div>
 
-      <button type="button" class="rs-way" id="startPick">
-        <span class="rs-num2">2</span>
-        <span class="rs-wt">지도에서 직접 찍기</span>
-        <span class="rs-wd">주소를 모를 때. 지도를 눌러 표시합니다</span>
+      <button type="button" class="rz-way" id="startPick">
+        <span class="rz-n">2</span>
+        <span class="rz-wt">지도에서 직접 찍기</span>
+        <span class="rz-wd">주소를 모를 때. 지도를 눌러 표시합니다</span>
       </button>
 
-      <button type="button" class="rs-way" id="startMe">
-        <span class="rs-num2">3</span>
-        <span class="rs-wt">지금 내가 있는 곳</span>
-        <span class="rs-wd">현장에 나와 있을 때</span>
+      <button type="button" class="rz-way" id="startMe">
+        <span class="rz-n">3</span>
+        <span class="rz-wt">지금 내가 있는 곳</span>
+        <span class="rz-wd">현장에 나와 있을 때</span>
       </button>
-    </div>
 
-    <button type="button" class="rs-skip" id="startSkip">
-      사고지점 없이 지역으로 둘러보기
-    </button>
+      <div class="rz-nav">
+        <button type="button" class="rz-back" id="rzBack">← 이전 — 필요한 것</button>
+        <button type="button" class="rz-skip" id="startSkip">사고지점 없이 지역으로 둘러보기</button>
+      </div>
+    </section>
+
   </div>
 </div>
 
@@ -152,7 +195,7 @@
 <!-- ── 지도 + 목록 ──────────────────────────────────────── -->
 <div class="mmain">
   <div class="mmap">
-    <svg id="map" role="img" aria-label="화학사고 방제자원 지도"></svg>
+    <svg id="map" role="img" aria-label="화학사고 방제 동원 체계 지도"></svg>
 
     <div class="mapctl noprint">
       <button id="zIn" type="button" title="확대">＋</button>

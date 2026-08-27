@@ -14,11 +14,51 @@ const P = await B.newPage({ viewport:{width:1500,height:950} });
 P.on('pageerror', e => errs.push(e.message));
 await P.goto(ROOT + 'res/index.html'); await P.waitForTimeout(1200);
 
-// ── 시작 화면 — 처음엔 한 가지만 묻는다 ──
-chk(!(await P.isHidden('#rStart')), '들어오면 시작 화면 하나만 보인다');
-chk(await P.isHidden('.mmain'), '사고지점 전에는 지도·목록을 두지 않는다');
-chk(await P.isHidden('.mbar'), '사고지점 전에는 조건 줄도 없다');
-chk((await P.$$('#rStart .rs-way')).length===3, '고를 것이 셋뿐');
+/* ── 시작 — 두 걸음 ───────────────────────────────────────────
+   사용자 요구로 다시 짰습니다 — "필요한 걸 누르고, 사고지점 주소나 사업장을
+   넣으면, 그 지점 주변의 고른 자원을 알려 준다."
+   걸음 1 무엇이 필요한가 → 걸음 2 사고지점 → 결과. */
+chk(!(await P.isHidden('#rz')), '들어오면 시작 화면 하나만 보인다');
+chk(await P.isHidden('.mmain'), '두 걸음 전에는 지도·목록을 두지 않는다');
+chk(await P.isHidden('.mbar'), '두 걸음 전에는 조건 줄도 없다');
+
+// 걸음 1 — 필요한 것
+chk(!(await P.isHidden('#rzP1')) && await P.isHidden('#rzP2'), '걸음 1 부터 시작한다');
+const needCards = await P.$$eval('.rz-need', bs => bs.map(b => ({
+  t: b.querySelector('.rz-need-t').textContent.trim(),
+  n: b.querySelector('.rz-need-n').textContent.trim(),
+  on: b.getAttribute('aria-pressed') })));
+chk(needCards.length === 7, `필요한 것 일곱 갈래 (${needCards.length})`);
+chk(needCards.every(c => c.on === 'false'), '처음에는 아무것도 안 골라져 있다');
+/* 건수는 지어내지 않고 자료에서 센 값이어야 한다 */
+const realCnt = await P.evaluate(() => RESOURCE_NEEDS.map(n => ({
+  id: n.id,
+  n: RESOURCES.filter(r => (r.g || []).indexOf(n.id) >= 0).length })));
+chk(needCards.every((c, i) => c.n === realCnt[i].n + '곳'),
+  `칸의 건수가 자료와 같다 (${needCards.map(c => c.n).join('/')})`);
+/* 아무것도 안 고르면 다음으로 갈 수 없다 — "고른 자원" 이 거짓말이 된다 */
+chk(await P.$eval('#rzNext', b => b.disabled), '아무것도 안 고르면 다음 단추가 잠긴다');
+await P.click('#rzP2Lead').catch(()=>{});
+chk(await P.isHidden('#rzP2'), '잠긴 채로는 걸음 2 로 넘어가지 않는다');
+
+await P.click('.rz-need[data-n=car]'); await P.waitForTimeout(300);
+chk(await P.$eval('.rz-need[data-n=car]', b => b.getAttribute('aria-pressed')) === 'true',
+  '누르면 골라진 것이 보인다');
+chk(!(await P.$eval('#rzNext', b => b.disabled)), '하나라도 고르면 다음으로 갈 수 있다');
+const nextTxt = await P.$eval('#rzNext', b => b.textContent.trim());
+chk(/\d+곳/.test(nextTxt), `다음 단추가 몇 곳이 나올지 알려 준다 (${nextTxt})`);
+
+await P.click('#rzNext'); await P.waitForTimeout(500);
+chk(!(await P.isHidden('#rzP2')) && await P.isHidden('#rzP1'), '걸음 2 로 넘어간다');
+const lead2 = await P.$eval('#rzP2Lead', e => e.textContent.replace(/\s+/g, ' ').trim());
+chk(/차량·중장비/.test(lead2), `걸음 2 가 무엇을 골랐는지 다시 적어 준다 (${lead2.slice(0, 40)})`);
+chk((await P.$$('#rzP2 .rz-way')).length === 3, '사고지점 넣는 길이 셋');
+// 걸음 표시를 눌러 되돌아가기
+await P.click('#rzBar button[data-go="1"]'); await P.waitForTimeout(400);
+chk(!(await P.isHidden('#rzP1')), '걸음 표시를 눌러 1걸음으로 되돌아간다');
+chk(await P.$eval('.rz-need[data-n=car]', b => b.getAttribute('aria-pressed')) === 'true',
+  '되돌아가도 고른 것이 남아 있다');
+await P.click('#rzNext'); await P.waitForTimeout(400);
 
 /* ── 시작 화면 검색 미리보기 ────────────────────────────────────
    몇 글자만 쳐도 **그 칸 바로 아래**에 후보가 떠서 눌러 고를 수 있어야 한다.
@@ -74,16 +114,19 @@ await P.selectOption('#mScope','50000'); await P.waitForTimeout(1200);
 const n50 = await P.$$eval('#shList .ms-it', e=>e.length);
 chk(n50>n, `범위를 넓히면 더 나온다 (${n} → ${n50})`);
 
-// 필요한 것으로 찾기
-await P.evaluate(()=>{[...document.querySelectorAll('#rNeeds .rk-chip')]
+/* 필요한 것으로 찾기 — 걸음 1 에서 이미 '차량·중장비'를 골라 두었으므로
+   지금 목록은 그것으로 걸러진 상태다. 껐다 다시 켜서 실제로 걸러지는지 본다.
+   (예전에는 걸음 1 이 없어 여기서 처음 켰다) */
+const carChip = () => P.evaluate(()=>{[...document.querySelectorAll('#rNeeds .rk-chip')]
   .find(b=>/차량·중장비/.test(b.textContent)).click();});
-await P.waitForTimeout(900);
+await carChip(); await P.waitForTimeout(900);          // 끈다
+const nNoCar = await P.$$eval('#shList .ms-it', e=>e.length);
+chk(nNoCar>n50, `거르개를 끄면 더 나온다 (${n50} → ${nNoCar})`);
+await carChip(); await P.waitForTimeout(900);          // 다시 켠다
 const nCar = await P.$$eval('#shList .ms-it', e=>e.length);
-chk(nCar>0 && nCar<n50, `'차량·중장비'로 거르면 줄어든다 (${n50} → ${nCar})`);
+chk(nCar>0 && nCar<nNoCar, `'차량·중장비'로 거르면 줄어든다 (${nNoCar} → ${nCar})`);
 const txt = await P.textContent('#shList');
 chk(/굴착기|암롤차|탱크로리|스키드로더|진공흡입|지게차/.test(txt), '거른 결과가 실제로 차량·중장비를 가진 곳');
-await P.evaluate(()=>{[...document.querySelectorAll('#rNeeds .rk-chip')]
-  .find(b=>/차량·중장비/.test(b.textContent)).click();});
 await P.waitForTimeout(700);
 
 // 종류 끄기
@@ -91,7 +134,7 @@ await P.evaluate(()=>{[...document.querySelectorAll('#rKinds .rk-chip')]
   .find(b=>/지자체/.test(b.textContent)).click();});
 await P.waitForTimeout(900);
 const nOff = await P.$$eval('#shList .ms-it', e=>e.length);
-chk(nOff<n50, `종류를 끄면 줄어든다 (${n50} → ${nOff})`);
+chk(nOff<nCar, `종류를 끄면 줄어든다 (${nCar} → ${nOff})`);
 await P.evaluate(()=>{[...document.querySelectorAll('#rKinds .rk-chip')]
   .find(b=>/지자체/.test(b.textContent)).click();});
 await P.waitForTimeout(800);
@@ -181,8 +224,14 @@ await P.click('#btnSrcClose'); await P.waitForTimeout(400);
 
 // 처음 화면으로 되돌아가기
 await P.click('#rhAgain'); await P.waitForTimeout(900);
-chk(!(await P.isHidden('#rStart')), '"다시 정하기"를 누르면 처음 화면으로 돌아간다');
+chk(!(await P.isHidden('#rz')), '"다시 정하기"를 누르면 시작 화면으로 돌아간다');
 chk(await P.isHidden('.mmain'), '돌아가면 지도도 다시 숨는다');
+/* 고른 '필요한 것'은 그대로 두고 사고지점 걸음으로 되돌아갑니다 — 사고지점만
+   잘못 찍어 되돌아오는 경우가 대부분인데, 고른 것까지 지우면 처음부터
+   다시 해야 합니다. */
+chk(!(await P.isHidden('#rzP2')), '고른 것은 그대로 두고 사고지점 걸음으로 간다');
+chk(await P.$eval('.rz-need[data-n=car]', b => b.getAttribute('aria-pressed')) === 'true',
+  '되돌아가도 걸음 1 에서 고른 것이 남아 있다');
 await P.click('#startPick'); await P.waitForTimeout(900);
 
 await P.screenshot({path:'res_2.png'});

@@ -34,9 +34,9 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 PAGES = [
     (ROOT / "sms" / "index.html", "화학사고_주민대피문자_작성도구.html", None),
     (ROOT / "map" / "index.html", "화학사고_대피장소_지도.html", None),
-    (ROOT / "res" / "index.html", "화학사고_방제자원_동원.html", None),
+    (ROOT / "res" / "index.html", "화학사고_방제_동원체계.html", None),
 ]
-INTERNAL_PAGE = (ROOT / "res" / "index.html", "화학사고_방제자원_동원_내부용.html",
+INTERNAL_PAGE = (ROOT / "res" / "index.html", "화학사고_방제_동원체계_내부용.html",
                  ("../data/resources.js", "../data/resources.internal.js"))
 
 # 있으면 넣고 없으면 넘어가는 자료 파일

@@ -62,7 +62,7 @@ const setF = async (P, k, v) => {
   console.log('진입화면:', panels.map(p => `${p.no} ${p.title}`).join(' / '));
   chk(panels[0].href === 'map/index.html' && panels[0].no === '01', '01 = 대피장소 지도');
   chk(panels[1].href === 'sms/index.html' && panels[1].no === '02', '02 = 주민대피 문자 작성');
-  chk(panels[2].href === 'res/index.html' && panels[2].no === '03', '03 = 방제자원 동원');
+  chk(panels[2].href === 'res/index.html' && panels[2].no === '03', '03 = 방제 동원 체계');
   // 링크가 실제로 열리는가
   await P.click('.tools .pn:nth-child(1) a'); await P.waitForTimeout(900);
   chk(P.url().includes('/map/'), '첫 카드를 누르면 지도가 열린다');

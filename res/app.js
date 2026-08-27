@@ -1,5 +1,5 @@
 /* ============================================================
-   화학사고 방제자원 지도
+   화학사고 방제 동원 체계
 
    ② 대피장소 지도와 **같은 엔진·같은 조작**입니다(assets/mapcore.js).
    사고지점을 찍는 네 가지 방법, 찾는 범위, 거리 눈금, 풍하방향, 가까운
@@ -123,6 +123,10 @@ var st = {
   nearFold: matchMedia("(max-width: 860px)").matches,
   kinds: {},                       // 켜 둔 자원 종류
   needs: {},                       // 켜 둔 '필요한 것' (빈 값 = 전부)
+  /* 걸음 1 에서 "무엇이 필요한지 모르겠어요 — 전부 보기"를 골랐는가.
+     needs 가 비어 있는 것과 화면상 뜻이 같지만, "아직 안 골랐다"와
+     "전부를 고른 것이다"를 갈라 두어야 걸음 2 로 넘어가도 되는지 압니다. */
+  needAll: false,
   mob: {},                         // 동원 목록에 담은 것 (key → 자원)
   begun: false,                    // 시작 화면을 벗어났는가
   walk: true,                      // 도보 경로를 길찾기로 받아올까 (인터넷 필요)
@@ -709,19 +713,137 @@ function anyFilterOff() {
       || NEEDS.some(function (n) { return st.needs[n.id]; });
 }
 
-/* ══ 시작 화면 ═══════════════════════════════════════════════
-   처음에는 "사고지점이 어디인가요?" 하나만 묻고, 지도·조건·목록은
-   답이 나온 뒤에 보여 줍니다(body.has-acc). 방제자원 찾기는 결국
-   사고지점에서 가까운 순이라 그것 없이는 할 수 있는 일이 없는데,
-   화면을 한꺼번에 펼쳐 두면 어디부터 손대야 하는지 알 수 없습니다. */
+/* ══ 시작 — 두 걸음 ══════════════════════════════════════════
+   걸음 1 "지금 무엇이 필요하세요?" → 걸음 2 "사고지점이 어디인가요?" → 결과.
+
+   ── 왜 이렇게 바뀌었나 (사용자 요구) ─────────────────────────
+   "사용자가 자기가 지금 필요한 걸 누르고, 사고지점의 주소 또는 사고가 발생한
+   사업장을 입력하면, 그 지점 주변의 본인이 선택한 방제자원을 알려 주는" 모습.
+
+   예전에는 사고지점만 묻고 자원 470건을 전부 뿌린 뒤 "좁히고 싶으면 조건을
+   펴 보라"고 했습니다. 그런데 현장에서 담당자가 아는 것은 **지금 무엇이
+   필요한가**(굴착기가 필요하다 · 보호복이 모자란다)이지 자원 종류가 아닙니다.
+   필요한 것을 먼저 물으면 다음 화면에 나올 것이 이미 정해지고, 결과도 훑을 수
+   있는 양으로 줄어듭니다.
+
+   걸음 1의 일곱 가지는 자료의 RESOURCE_NEEDS 를 그대로 씁니다 — 자원마다
+   g:[...] 로 달려 있는 값이라 우리가 지어낸 분류가 아닙니다. */
+
 /* 시작 화면을 벗어났는가. 사고지점이 정해졌거나, 지역을 골랐거나,
-   "지도에서 찍기"처럼 사용자가 이미 다음 단계로 넘어간 경우. */
+   "지도에서 찍기"처럼 사용자가 이미 결과 화면으로 넘어간 경우. */
 function started() {
   return !!(st.begun || st.acc || st.sido || st.sgg);
 }
 
+/* 지금 몇 번째 걸음인가 (1 · 2). 결과 화면에서는 쓰지 않습니다. */
+var rzStep = 1;
+
+function rzGo(n) {
+  /* 필요한 것을 고르지 않고 2걸음으로 건너뛸 수는 없습니다 — 건너뛰면
+     "고른 자원" 이라는 말이 거짓이 됩니다. '전부 보기'로는 갈 수 있습니다. */
+  if (n === 2 && !rzChosen() && !st.needAll) return;
+  rzStep = n;
+  renderStart();
+  /* 걸음이 바뀌면 그 걸음의 제목으로 초점을 옮깁니다 — 화면낭독기 사용자가
+     무엇이 바뀌었는지 알아야 합니다. */
+  var h = $(n === 1 ? "#rzH1" : "#rzH2");
+  if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+  window.scrollTo(0, 0);
+}
+
+function rzChosen() {
+  return NEEDS.some(function (n) { return st.needs[n.id]; });
+}
+
+/* 고른 것으로 몇 곳이 나오는가 — 걸음 2의 안내에 그대로 적습니다.
+   "고른 자원 470건 중 62곳" 처럼 지어내지 않고 실제로 세어 적습니다. */
+function rzHitCount() {
+  var need = NEEDS.filter(function (n) { return st.needs[n.id]; });
+  if (!need.length) return allRes().length;
+  return allRes().filter(function (s) {
+    return need.some(function (n) {
+      return (s.g || []).indexOf(n.id) >= 0;
+    });
+  }).length;
+}
+
 function renderStart() {
   document.body.classList.toggle("has-acc", started());
+  if (started()) return;
+
+  /* 걸음 표시 */
+  var bs = $$("#rzBar .rz-b");
+  bs.forEach(function (li, i) {
+    li.classList.toggle("on", i + 1 === rzStep);
+    li.classList.toggle("done", i + 1 < rzStep && (rzChosen() || st.needAll));
+    var b = li.querySelector("button");
+    if (b) b.setAttribute("aria-current", i + 1 === rzStep ? "step" : "false");
+  });
+  var p1 = $("#rzP1"), p2 = $("#rzP2");
+  if (p1) p1.hidden = rzStep !== 1;
+  if (p2) p2.hidden = rzStep !== 2;
+
+  /* 걸음 1 — 필요한 것 칸 */
+  renderRzNeeds();
+
+  /* 다음 단추 — 하나도 안 골랐으면 누를 수 없습니다.
+     막다른 길은 아닙니다. 옆에 '전부 보기'가 있습니다. */
+  var next = $("#rzNext");
+  if (next) {
+    var n = NEEDS.filter(function (x) { return st.needs[x.id]; }).length;
+    next.disabled = !n;
+    next.textContent = n ? "다음 — 사고지점 넣기 (" + rzHitCount() + "곳)"
+                         : "다음 — 사고지점 넣기";
+  }
+
+  /* 걸음 2 — 무엇을 고른 상태인지 다시 적어 줍니다. 한 화면 넘어와서
+     "내가 무엇을 골랐더라" 를 되짚게 하면 안 됩니다. */
+  var lead = $("#rzP2Lead");
+  if (lead) {
+    var picked = NEEDS.filter(function (x) { return st.needs[x.id]; })
+                      .map(function (x) { return x.이름; });
+    lead.innerHTML = picked.length
+      ? "<b>" + picked.map(esc).join(" · ") + "</b> 을(를) 가진 "
+        + rzHitCount() + "곳을 <b>사고지점에서 가까운 순</b>으로 찾습니다."
+      : "방제자원 " + allRes().length
+        + "곳 전부를 <b>사고지점에서 가까운 순</b>으로 찾습니다.";
+  }
+}
+
+/* ── 걸음 1의 칸 만들기 ──────────────────────────────────────
+   건수는 실제로 세어 적습니다. "0곳" 인 것도 감추지 않고 그대로 둡니다 —
+   없다는 것도 알아야 하는 정보이고, 감추면 자료가 빠진 것처럼 보입니다. */
+var TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+  + ' stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"'
+  + ' aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>';
+
+function renderRzNeeds() {
+  var box = $("#rzNeeds");
+  if (!box) return;
+  var pool = allRes();
+  box.innerHTML = NEEDS.map(function (n) {
+    var cnt = pool.filter(function (s) {
+      return (s.g || []).indexOf(n.id) >= 0;
+    }).length;
+    return '<button type="button" class="rz-need" data-n="' + esc(n.id) + '"'
+      + ' aria-pressed="' + (st.needs[n.id] ? "true" : "false") + '">'
+      + '<span class="rz-need-x" aria-hidden="true">' + TICK + "</span>"
+      + '<span class="rz-need-b">'
+      + '<span class="rz-need-t">' + esc(n.이름) + "</span>"
+      + '<span class="rz-need-d">' + esc(n.설명) + "</span>"
+      + '<span class="rz-need-n">' + cnt + "곳</span>"
+      + "</span></button>";
+  }).join("");
+  $$("#rzNeeds .rz-need").forEach(function (b) {
+    b.onclick = function () {
+      var id = b.dataset.n;
+      st.needs[id] = !st.needs[id];
+      if (!st.needs[id]) delete st.needs[id];
+      st.needAll = false;
+      renderStart();
+      refresh();
+    };
+  });
 }
 
 function backToStart() {
@@ -739,18 +861,41 @@ function backToStart() {
   setMode("pick");
   refresh(true);
   var q = $("#startQ"); if (q) { q.value = ""; }
-  window.scrollTo(0, 0);
+  /* 고른 '필요한 것'은 그대로 둡니다 — 사고지점만 잘못 찍어 되돌아오는
+     경우가 대부분인데 고른 것까지 지우면 처음부터 다시 해야 합니다.
+     걸음 표시를 눌러 1걸음으로 가면 바꿀 수 있습니다. */
+  rzGo(rzChosen() || st.needAll ? 2 : 1);
 }
 
 function initStart() {
-  /* 1. 주소·사업장 이름 — 시작 화면의 검색칸은 bindAddrSearch 가 조건 줄
-        칸과 똑같이 붙여 둡니다. 결과 목록이 **이 칸 바로 아래**에 뜨므로
-        몇 글자만 쳐도 눌러서 고를 수 있습니다.
-        예전에는 조건 줄 칸으로 글자를 옮겨 붙이고 조건 줄을 잠깐 드러내
-        목록을 띄웠는데, 목록이 시작 화면과 떨어진 자리에 떠 무엇을 눌러야
-        하는지 알기 어려웠습니다. */
+  /* 걸음 표시를 눌러 되돌아가기 */
+  $$("#rzBar button").forEach(function (b) {
+    b.onclick = function () { rzGo(+b.dataset.go); };
+  });
 
-  /* 2. 지도에서 찍기 — 지도를 보여 주고 바로 '찍기' 모드로 */
+  /* 걸음 1 → 2 */
+  var next = $("#rzNext");
+  if (next) next.onclick = function () { rzGo(2); };
+
+  /* "무엇이 필요한지 모르겠어요 — 전부 보기"
+     모르는 사람을 막다른 길에 세우지 않습니다. 고른 것 없이 넘어가면
+     자원 전부가 가까운 순으로 나옵니다(예전 화면과 같은 결과). */
+  var all = $("#rzAll");
+  if (all) all.onclick = function () {
+    st.needs = {}; st.needAll = true;
+    renderStart(); refresh();
+    rzGo(2);
+  };
+
+  /* 걸음 2 → 1 */
+  var back = $("#rzBack");
+  if (back) back.onclick = function () { rzGo(1); };
+
+  /* 걸음 2 ① 주소·사업장 이름 — 시작 화면의 검색칸은 bindAddrSearch 가
+     조건 줄 칸과 똑같이 붙여 둡니다. 결과 목록이 **이 칸 바로 아래**에
+     뜨므로 몇 글자만 쳐도 눌러서 고를 수 있습니다. */
+
+  /* 걸음 2 ② 지도에서 찍기 — 지도를 보여 주고 바로 '찍기' 모드로 */
   var pick = $("#startPick");
   if (pick) pick.onclick = function () {
     st.sido = ""; st.sgg = ""; st.begun = true;
@@ -759,7 +904,7 @@ function initStart() {
     toast("<b>지도를 눌러 사고지점을 표시하세요.</b> 누른 자리에서 가까운 순으로 찾습니다.");
     var m = $(".mmap"); if (m) m.scrollIntoView({ block: "center", behavior: "smooth" });
   };
-  /* 3. 내 위치 */
+  /* 걸음 2 ③ 내 위치 */
   var me = $("#startMe");
   if (me) me.onclick = function () { locateMe(); };
   /* 사고지점 없이 지역으로 둘러보기 */
@@ -770,6 +915,8 @@ function initStart() {
     var sel = $("#mSido");
     if (sel) { sel.scrollIntoView({ block: "center" }); sel.focus(); }
   };
+
+  renderStart();
 }
 
 /* ── 조건 접기 ────────────────────────────────────────────────
@@ -793,11 +940,13 @@ function renderRbarLabel() {
   if (!t) return;
   var need = NEEDS.filter(function (n) { return st.needs[n.id]; });
   var off = KINDS.filter(function (k) { return !st.kinds[k.id]; });
-  if (!need.length && !off.length) { t.textContent = "무엇이 필요하세요?"; return; }
+  /* 걸음 1 에서 이미 물었으므로 여기서는 "바꾸는 자리"라고 적습니다 —
+     같은 질문이 두 번 나오면 어느 쪽이 진짜인지 헷갈립니다. */
+  if (!need.length && !off.length) { t.textContent = "찾는 조건 바꾸기 — 전부 보는 중"; return; }
   var bits = [];
   if (need.length) bits.push(need.map(function (n) { return n.이름; }).join("·"));
   if (off.length) bits.push("종류 " + (KINDS.length - off.length) + "/" + KINDS.length);
-  t.textContent = "좁혀 보는 중 — " + bits.join(" · ");
+  t.textContent = "찾는 조건 바꾸기 — " + bits.join(" · ");
 }
 
 /* ── 자원 종류 · 필요한 것 거르개 ─────────────────────────────
@@ -882,7 +1031,7 @@ function renderMob() {
 function mobText() {
   var d = new Date();
   var p = function (n) { return (n < 10 ? "0" : "") + n; };
-  var L = ["화학사고 방제자원 동원 목록",
+  var L = ["화학사고 방제 동원 체계 — 동원 목록",
            "작성 " + d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate())
            + " " + p(d.getHours()) + ":" + p(d.getMinutes())];
   if (st.acc) L.push("사고지점 " + st.acc.lat + ", " + st.acc.lon);
@@ -1555,7 +1704,7 @@ function clearAcc() {
   refresh(true);
 }
 
-/* ③ 에는 문자 작성으로 넘기는 단추가 없습니다 — 방제자원 동원은 주민에게
+/* ③ 에는 문자 작성으로 넘기는 단추가 없습니다 — 방제 동원은 주민에게
    보내는 문자와 다른 일입니다. 대신 '동원 목록'으로 모아 복사합니다. */
 function renderToSms() {}
 
@@ -1864,9 +2013,10 @@ function init() {
     st.route = null; st.routeErr = null; st.routeBusy = false;
     st.accAddr = null; accSeq++;
     pickedPlace = null;
-    st.needs = {}; st.mob = {};
+    st.needs = {}; st.mob = {}; st.needAll = false;
     KINDS.forEach(function (k) { st.kinds[k.id] = true; });
     st.begun = false;
+    rzStep = 1;                       // 초기화는 첫 걸음으로 되돌립니다
     document.body.classList.remove("has-acc");
     var box = $("#rbMore");
     if (box) { box.hidden = true; $("#rbToggle").setAttribute("aria-expanded", "false"); }

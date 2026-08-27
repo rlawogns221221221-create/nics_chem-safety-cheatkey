@@ -104,7 +104,9 @@ await check('② 대피장소', `file://${R}/map/index.html`, async (P) => {
   await P.dispatchEvent('#acLat', 'input'); await P.waitForTimeout(900);
 });
 await check('③ 방제자원', `file://${R}/res/index.html`, async (P) => {
-  // ③ 은 시작 화면부터 — 지도는 사고지점을 정한 뒤에 나온다
+  /* ③ 은 시작 두 걸음부터 — 지도는 사고지점을 정한 뒤에 나온다.
+     걸음 1(무엇이 필요한가)을 '전부 보기'로 지나 걸음 2 로 간다. */
+  await P.click('#rzAll'); await P.waitForTimeout(500);
   await P.click('#startPick'); await P.waitForTimeout(700);
   await P.fill('#acLat', '34.8500'); await P.fill('#acLon', '127.7200');
   await P.dispatchEvent('#acLat', 'input'); await P.waitForTimeout(900);

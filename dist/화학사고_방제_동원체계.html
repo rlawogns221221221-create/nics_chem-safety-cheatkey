@@ -11,7 +11,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>화학사고 방제자원 지도</title>
+<title>화학사고 방제 동원 체계</title>
 <!-- KRDS 공식 디자인 토큰 — 원본 그대로. shell.css 가 이 값을 우리 이름으로 잇습니다 -->
 <style>
 
@@ -2215,14 +2215,21 @@ a.btnlink:hover{border-color:var(--brand)}
 .rkdot.rk-marine{background:var(--rk-marine);border-radius:2px}
 .rkdot.rk-water{background:var(--rk-water);border-radius:2px}
 
-/* ══ 시작 화면 ═══════════════════════════════════════════════
-   처음 들어오면 이것 하나만 보입니다. 방제자원 찾기는 결국 "사고지점에서
-   가까운 순"이라 사고지점 없이는 아무것도 못 하는데, 화면을 한꺼번에
-   펼쳐 두면 어디부터 손대야 하는지 알 수 없습니다. 한 가지만 묻습니다. */
-.rstart{flex:1;display:flex;align-items:center;justify-content:center;
-  padding:28px 18px 60px;animation:revealIn .34s var(--ease) both}
-body.has-acc .rstart{display:none}
-/* 사고지점이 정해지기 전에는 지도·조건·목록을 아예 두지 않습니다.
+/* ══ 시작 — 두 걸음 ══════════════════════════════════════════
+   걸음 1 "무엇이 필요하세요?" → 걸음 2 "사고지점이 어디인가요?" → 결과.
+
+   ── 왜 이렇게 바뀌었나 ────────────────────────────────────────
+   예전에는 사고지점만 묻고 자원 470건을 전부 뿌린 뒤 "좁히고 싶으면 조건을
+   펴 보라"고 했습니다. 현장에서 담당자가 아는 것은 **지금 무엇이 필요한가**
+   이지 자원 종류가 아닙니다(사용자 요구). 필요한 것을 먼저 물으면 다음 화면에
+   나올 것이 이미 정해지고, 결과도 훑을 수 있는 양으로 줄어듭니다.
+
+   ‼ 세로 가운데 정렬을 쓰지 않습니다 — 휴대전화에서 위쪽이 텅 비어 화면이
+   고장 난 것처럼 보입니다(7절). 위에 붙이고 아래 여백만 넉넉히 둡니다. */
+.rz{flex:1;display:flex;justify-content:center;align-items:flex-start;
+  padding:24px 18px 60px;animation:revealIn .34s var(--ease) both}
+body.has-acc .rz{display:none}
+/* 두 걸음을 마치기 전에는 지도·조건·목록을 아예 두지 않습니다.
    ③(body.resapp)에만 거는 규칙입니다 — ②는 시작 화면이 없습니다. */
 body.resapp:not(.has-acc) .mbar,
 body.resapp:not(.has-acc) .rbar,
@@ -2230,33 +2237,115 @@ body.resapp:not(.has-acc) .mbar-warn,
 body.resapp:not(.has-acc) .mrad,
 body.resapp:not(.has-acc) .msum,
 body.resapp:not(.has-acc) .mmain{display:none!important}
-/* (예전에 있던 .start-search 규칙은 없앴습니다 — 시작 화면에서 주소를 칠 때
-   결과 목록이 조건 줄 아래에 떠서, 조건 줄을 투명하게 드러내야 했습니다.
-   지금은 목록이 시작 화면의 검색칸 바로 아래에 붙으므로 필요 없습니다.) */
 
-.rs-in{width:100%;max-width:660px;text-align:center}
-.rstart h2{margin:0 0 8px;font-size:3.2rem;font-weight:800;letter-spacing:-.02em}
-.rs-lead{margin:0 0 26px;font-size:1.7rem;color:var(--ink2);line-height:1.75}
-.rs-lead b{color:var(--brand-d)}
+.rz-in{width:100%;max-width:680px}
+.rz h2{margin:0 0 8px;font-size:3.2rem;font-weight:800;letter-spacing:-.02em;
+  text-align:center}
+.rz-lead{margin:0 0 22px;font-size:1.7rem;color:var(--ink2);line-height:1.75;
+  text-align:center}
+.rz-lead b{color:var(--brand-d)}
 
-.rs-ways{display:flex;flex-direction:column;gap:11px;text-align:left}
-.rs-way{position:relative;display:block;width:100%;background:var(--card);
+/* ── 걸음 표시 ────────────────────────────────────────────────
+   ①의 진행 표시와 같은 방식입니다 — 눌러서 되돌아갈 수 있어야 합니다.
+   급할 때 아는 것부터 채우는 사람이 있습니다. */
+.rz-bar{list-style:none;display:flex;gap:0;margin:0 0 20px;padding:0}
+.rz-b{flex:1 1 0;min-width:0}
+.rz-b button{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:9px 6px;background:none;border:0;border-bottom:3px solid var(--line);
+  font:inherit;font-size:1.5rem;color:var(--ink3);cursor:pointer}
+.rz-b button i{flex:none;display:grid;place-items:center;width:24px;height:24px;
+  border-radius:50%;background:var(--line2);color:var(--ink2);
+  font-style:normal;font-size:1.3rem;font-weight:700}
+.rz-b button b{font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rz-b button:hover{color:var(--ink2)}
+.rz-b.on button{color:var(--brand-d);border-bottom-color:var(--brand)}
+.rz-b.on button i{background:var(--brand);color:var(--on-brand)}
+.rz-b.on button b{font-weight:700}
+.rz-b.done button i{background:var(--ok);color:var(--on-brand)}
+
+/* ── 걸음 1 — 필요한 것 고르기 ────────────────────────────────
+   자료(RESOURCE_NEEDS)에 있는 일곱 가지를 그대로 씁니다. 우리가 지어낸
+   분류가 아니라 자원마다 g:[...] 로 달려 있는 값입니다. */
+.rz-needs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+/* ‼ justify-content 를 못 박습니다 — 브라우저가 <button> 안의 내용을 가운데로
+   모으는 바람에, 글이 짧은 칸("가스 회수")만 체크상자가 안쪽으로 밀려 들어가
+   칸마다 시작 자리가 달랐습니다. */
+.rz-need{position:relative;display:flex;align-items:flex-start;
+  justify-content:flex-start;gap:11px;
+  padding:14px 14px 14px 13px;background:var(--card);
+  border:1.5px solid var(--line);border-radius:12px;
+  font:inherit;color:inherit;text-align:left;cursor:pointer;
+  transition:border-color .16s,box-shadow .16s,background .16s}
+.rz-need:hover{border-color:var(--brand);box-shadow:0 2px 10px rgba(11,87,164,.12)}
+/* 고른 것은 **테두리와 바탕과 체크표시** 셋으로 보여 줍니다 — 색 하나만으로
+   구분하면 색각 이상이 있는 사람에게는 고른 것이 안 보입니다. */
+.rz-need[aria-pressed=true]{border-color:var(--brand);background:var(--brand-l)}
+.rz-need-x{flex:none;display:grid;place-items:center;width:22px;height:22px;margin-top:1px;
+  border:1.5px solid var(--line-d);border-radius:6px;background:var(--card)}
+.rz-need-x svg{width:14px;height:14px;color:var(--on-brand);opacity:0}
+.rz-need[aria-pressed=true] .rz-need-x{background:var(--brand);border-color:var(--brand)}
+.rz-need[aria-pressed=true] .rz-need-x svg{opacity:1}
+.rz-need-b{flex:1;min-width:0}
+.rz-need-t{display:block;font-size:1.7rem;font-weight:700;line-height:1.35}
+.rz-need-d{display:block;margin-top:2px;font-size:1.4rem;color:var(--ink3);line-height:1.5}
+.rz-need-n{display:block;margin-top:5px;font-size:1.3rem;font-weight:700;color:var(--ink3);
+  font-variant-numeric:tabular-nums}
+.rz-need[aria-pressed=true] .rz-need-n{color:var(--brand-d)}
+
+/* ── 걸음 2 — 사고지점 ────────────────────────────────────────
+   주소·사업장 이름이 첫째 자리입니다(사용자 요구). 상황실에서 실제로 먼저
+   아는 것도 주소나 사업장 이름입니다. */
+.rz-way{position:relative;display:block;width:100%;background:var(--card);
   border:1.5px solid var(--line);border-radius:12px;padding:16px 18px 16px 56px;
   font:inherit;color:inherit;text-align:left;cursor:pointer;
   transition:border-color .16s,box-shadow .16s}
-.rs-way:hover{border-color:var(--brand);box-shadow:0 2px 10px rgba(11,87,164,.12)}
-.rs-way-main{cursor:default}
-.rs-way-main:hover{border-color:var(--line);box-shadow:none}
-.rs-way-main:focus-within{border-color:var(--brand);box-shadow:0 2px 10px rgba(11,87,164,.12)}
-.rs-num2{position:absolute;left:16px;top:16px;width:26px;height:26px;border-radius:50%;
+.rz-way + .rz-way{margin-top:11px}
+.rz-way:hover{border-color:var(--brand);box-shadow:0 2px 10px rgba(11,87,164,.12)}
+.rz-way-main{cursor:default}
+.rz-way-main:hover{border-color:var(--line);box-shadow:none}
+.rz-way-main:focus-within{border-color:var(--brand);box-shadow:0 2px 10px rgba(11,87,164,.12)}
+.rz-n{position:absolute;left:16px;top:16px;width:26px;height:26px;border-radius:50%;
   background:var(--brand);color:var(--on-brand);font-size:1.5rem;font-weight:800;
   display:flex;align-items:center;justify-content:center}
-.rs-wt{display:block;font-size:1.9rem;font-weight:700;line-height:1.4}
-.rs-wd{display:block;margin-top:3px;font-size:1.5rem;color:var(--ink3);line-height:1.5}
-.rs-way input[type=text]{width:100%;margin-top:11px;padding:11px 13px;font-size:1.7rem}
-.rs-skip{margin-top:20px;background:none;border:0;color:var(--ink3);
-  font-size:1.5rem;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
-.rs-skip:hover{color:var(--brand-d)}
+.rz-wt{display:block;font-size:1.9rem;font-weight:700;line-height:1.4}
+.rz-wd{display:block;margin-top:3px;font-size:1.5rem;color:var(--ink3);line-height:1.5}
+.rz-way input[type=text]{width:100%;margin-top:11px;padding:11px 13px;font-size:1.7rem}
+
+/* ── 걸음 아래 줄 ─────────────────────────────────────────── */
+.rz-nav{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:20px}
+.rz-next{margin-left:auto;min-height:var(--h-l);padding:0 22px;font-size:1.9rem;
+  font-weight:700;background:var(--brand);border-color:var(--brand);
+  color:var(--on-brand);border-radius:10px}
+.rz-next:hover:not(:disabled){background:var(--brand-d);border-color:var(--brand-d)}
+/* 아직 아무것도 고르지 않았을 때 — 눌러도 되는 것처럼 보이면 안 됩니다.
+   '전부 보기'가 옆에 있으므로 막다른 길은 아닙니다. */
+.rz-next:disabled{background:var(--panel);border-color:var(--line);color:var(--ink3);
+  cursor:not-allowed;opacity:1}
+.rz-back{background:none;border:0;color:var(--ink2);font-size:1.5rem;
+  font-weight:600;cursor:pointer;padding:6px 0}
+.rz-back:hover{color:var(--brand-d)}
+.rz-skip{background:none;border:0;color:var(--ink3);font-size:1.5rem;
+  text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px 0}
+.rz-skip:hover{color:var(--brand-d)}
+
+/* 좁은 화면 — 칸이 한 줄에 하나씩. 두 줄로 두면 한 칸이 150px 로 좁아져
+   '중화제·흡착재' 같은 이름이 석 줄로 쪼개집니다. */
+@media (max-width:620px){
+  .rz-needs{grid-template-columns:1fr;gap:8px}
+  .rz-need{padding:12px}
+  .rz-need-d{font-size:1.35rem}
+  /* 칸이 일곱이라 세로로 쌓으면 800px 가까이 됩니다 — '다음'이 화면 밖으로
+     밀려나 고른 뒤에 한참을 내려야 했습니다. 아래에 붙여 둡니다.
+     (걸음 2 는 길이 셋뿐이라 그냥 둡니다) */
+  #rzP1 .rz-nav{position:sticky;bottom:0;z-index:3;
+    margin:14px -14px 0;padding:11px 14px;
+    padding-bottom:calc(11px + env(safe-area-inset-bottom, 0px));
+    background:var(--bg);border-top:1px solid var(--line)}
+}
+@media (pointer:coarse){
+  .rz-need{min-height:4.4rem}
+  .rz-back,.rz-skip{min-height:4rem}
+}
 
 /* 처음 화면으로 — 요약 줄 오른쪽 끝. 따로 띠를 두면 "사고지점 ○○"가
    두 줄에 두 번 나온다. */
@@ -2360,10 +2449,15 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
   /* ① 문자 도구의 첫 화면과 같은 이유로 세로 가운데 정렬을 풉니다 —
      휴대전화에서 물음 위에 180px 넘는 빈 자리가 생겨 화면이 고장 난 것처럼
      보였습니다. 위에 붙이고 여백을 줄입니다. */
-  .rstart{padding:18px 14px 40px;align-items:flex-start}
-  .rstart h2{font-size:2.4rem}
-  .rs-way{padding:14px 15px 14px 50px}
-  .rs-wt{font-size:1.7rem}
+  .rz{padding:16px 14px 40px}
+  .rz h2{font-size:2.4rem}
+  .rz-lead{font-size:1.5rem;margin-bottom:18px}
+  .rz-way{padding:14px 15px 14px 50px}
+  .rz-wt{font-size:1.7rem}
+  /* 다음 단추는 좁은 화면에서 한 줄을 다 씁니다 — 오른쪽 끝에 붙여 두면
+     엄지로 닿기 어렵고, 무엇이 다음인지도 덜 보입니다. */
+  .rz-nav{gap:8px}
+  .rz-next{margin-left:0;order:-1;width:100%}
   .rbar{padding:0 12px}
   .rbar-t{width:100%}
   .rbar-row + .rbar-row{margin-top:5px;padding-top:5px}
@@ -2375,7 +2469,7 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 @media print{
   .databar.is-internal{background:var(--card);color:#000;border:2px solid #000}
   .databar.is-example{background:var(--card);color:#000;border:1px solid #000}
-  .rbar,.rmob,.rstart,.ms-again{display:none!important}
+  .rbar,.rmob,.rz,.ms-again{display:none!important}
   .rs-num{color:#000}
   .ap-tag,.rs-none{background:var(--card);border:1px solid #000;color:#000}
 }
@@ -2724,7 +2818,7 @@ window.addEventListener("storage", function (e) {
 
 <div class="top">
   <div class="wrap">
-    <h1>화학사고 방제자원 지도</h1>
+    <h1>화학사고 방제 동원 체계</h1>
     <div class="act noprint">
       <button id="btnSrc" type="button">자료 출처</button>
       <button id="btnPrint" type="button">인쇄</button>
@@ -2733,43 +2827,86 @@ window.addEventListener("storage", function (e) {
   </div>
 </div>
 
-<!-- ══ 시작 화면 ══════════════════════════════════════════
-     처음 들어오면 이것 하나만 보입니다. 지도·조건·목록은 사고지점이
-     정해진 뒤에 나옵니다(body.has-acc).
+<!-- ══ 시작 — 두 걸음 ═════════════════════════════════════
+     처음 들어오면 이것 하나만 보입니다. 지도·조건·목록은 두 걸음을 마친
+     뒤에 나옵니다(body.has-acc).
 
-     방제자원 찾기는 결국 "사고지점에서 가까운 순"이라 사고지점 없이는
-     아무것도 못 합니다. 그런데 화면을 한꺼번에 펼쳐 두면 어디부터
-     손대야 하는지 알 수 없습니다. 그래서 첫 화면은 한 가지만 묻습니다. -->
-<div class="rstart" id="rStart">
-  <div class="rs-in">
-    <h2>사고지점이 어디인가요?</h2>
-    <p class="rs-lead">방제자원은 사고지점에서 가까운 순으로 찾습니다.<br>
-      아래 <b>셋 중 하나만</b> 하시면 됩니다.</p>
+     ── 왜 두 걸음인가 ────────────────────────────────────────
+     사용자 요구입니다 — "사용자가 자기가 지금 필요한 걸 누르고, 사고지점의
+     주소 또는 사고가 발생한 사업장을 입력하면, 그 지점 주변의 본인이 선택한
+     방제자원을 알려 주는" 모습.
 
-    <div class="rs-ways">
-      <div class="rs-way rs-way-main">
-        <span class="rs-num2">1</span>
-        <div class="rs-wt">주소나 사업장 이름으로 찾기</div>
-        <div class="rs-wd">예) 김천시 신음동 · ○○화학 여수공장</div>
+     예전에는 사고지점만 묻고 자원 470건을 전부 지도에 뿌린 뒤 "좁히고 싶으면
+     조건을 펴 보라"고 했습니다. 그런데 현장에서 담당자가 아는 것은 **지금
+     무엇이 필요한가**(굴착기가 필요하다 · 보호복이 모자란다)이지 자원 종류가
+     아닙니다. 필요한 것을 먼저 물으면 그 다음 화면에 나올 것이 이미 정해지고,
+     결과도 열 배쯤 줄어 훑을 수 있는 양이 됩니다.
+
+     걸음 1은 자료의 RESOURCE_NEEDS 를 그대로 씁니다(자원마다 g:[...] 로
+     달려 있는 값) — 우리가 지어낸 분류가 아닙니다.
+     ══════════════════════════════════════════════════════ -->
+<div class="rz" id="rz">
+  <div class="rz-in">
+
+    <!-- 어디까지 왔는지. 걸음을 눌러 되돌아갈 수 있습니다(①의 진행 표시와
+         같은 방식) — 급할 때 아는 것부터 채우는 사람이 있습니다. -->
+    <ol class="rz-bar" id="rzBar">
+      <li class="rz-b on"><button type="button" data-go="1"><i>1</i><b>필요한 것</b></button></li>
+      <li class="rz-b"><button type="button" data-go="2"><i>2</i><b>사고지점</b></button></li>
+    </ol>
+
+    <!-- ── 걸음 1 — 무엇이 필요한가 ───────────────────────── -->
+    <section class="rz-pane" id="rzP1" aria-labelledby="rzH1">
+      <h2 id="rzH1">지금 무엇이 필요하세요?</h2>
+      <p class="rz-lead">필요한 것을 고르면 <b>그것을 가진 곳만</b> 찾습니다.
+        여러 개 골라도 됩니다.</p>
+
+      <!-- 칸은 자료(RESOURCE_NEEDS)에서 만들어 넣습니다 — res/app.js -->
+      <div class="rz-needs" id="rzNeeds" role="group" aria-label="필요한 것 고르기"></div>
+
+      <div class="rz-nav">
+        <button type="button" class="rz-skip" id="rzAll">
+          무엇이 필요한지 모르겠어요 — 전부 보기
+        </button>
+        <button type="button" class="rz-next" id="rzNext" disabled>
+          다음 — 사고지점 넣기
+        </button>
+      </div>
+    </section>
+
+    <!-- ── 걸음 2 — 사고지점 ──────────────────────────────── -->
+    <section class="rz-pane" id="rzP2" hidden aria-labelledby="rzH2">
+      <h2 id="rzH2">사고지점이 어디인가요?</h2>
+      <p class="rz-lead" id="rzP2Lead">고른 자원을 <b>사고지점에서 가까운 순</b>으로 찾습니다.</p>
+
+      <!-- 주소·사업장 이름이 첫째 자리입니다 — 사용자가 그렇게 요구했고,
+           상황실에서 실제로 먼저 아는 것도 주소나 사업장 이름입니다.
+           검색 결과는 이 칸 **바로 아래**에 뜹니다(bindAddrSearch). -->
+      <div class="rz-way rz-way-main">
+        <span class="rz-n">1</span>
+        <div class="rz-wt">주소나 사업장 이름 넣기</div>
+        <div class="rz-wd">예) 김천시 신음동 · ○○화학 여수공장</div>
         <input type="text" id="startQ" placeholder="주소 또는 사업장 이름" autocomplete="off">
       </div>
 
-      <button type="button" class="rs-way" id="startPick">
-        <span class="rs-num2">2</span>
-        <span class="rs-wt">지도에서 직접 찍기</span>
-        <span class="rs-wd">주소를 모를 때. 지도를 눌러 표시합니다</span>
+      <button type="button" class="rz-way" id="startPick">
+        <span class="rz-n">2</span>
+        <span class="rz-wt">지도에서 직접 찍기</span>
+        <span class="rz-wd">주소를 모를 때. 지도를 눌러 표시합니다</span>
       </button>
 
-      <button type="button" class="rs-way" id="startMe">
-        <span class="rs-num2">3</span>
-        <span class="rs-wt">지금 내가 있는 곳</span>
-        <span class="rs-wd">현장에 나와 있을 때</span>
+      <button type="button" class="rz-way" id="startMe">
+        <span class="rz-n">3</span>
+        <span class="rz-wt">지금 내가 있는 곳</span>
+        <span class="rz-wd">현장에 나와 있을 때</span>
       </button>
-    </div>
 
-    <button type="button" class="rs-skip" id="startSkip">
-      사고지점 없이 지역으로 둘러보기
-    </button>
+      <div class="rz-nav">
+        <button type="button" class="rz-back" id="rzBack">← 이전 — 필요한 것</button>
+        <button type="button" class="rz-skip" id="startSkip">사고지점 없이 지역으로 둘러보기</button>
+      </div>
+    </section>
+
   </div>
 </div>
 
@@ -2862,7 +2999,7 @@ window.addEventListener("storage", function (e) {
 <!-- ── 지도 + 목록 ──────────────────────────────────────── -->
 <div class="mmain">
   <div class="mmap">
-    <svg id="map" role="img" aria-label="화학사고 방제자원 지도"></svg>
+    <svg id="map" role="img" aria-label="화학사고 방제 동원 체계 지도"></svg>
 
     <div class="mapctl noprint">
       <button id="zIn" type="button" title="확대">＋</button>
@@ -4640,7 +4777,7 @@ window.MAPCORE = {
      나가지 않습니다. 없어도 화면은 그대로 돕니다. -->
 <script>
 /* ============================================================
-   화학사고 방제자원 지도
+   화학사고 방제 동원 체계
 
    ② 대피장소 지도와 **같은 엔진·같은 조작**입니다(assets/mapcore.js).
    사고지점을 찍는 네 가지 방법, 찾는 범위, 거리 눈금, 풍하방향, 가까운
@@ -4764,6 +4901,10 @@ var st = {
   nearFold: matchMedia("(max-width: 860px)").matches,
   kinds: {},                       // 켜 둔 자원 종류
   needs: {},                       // 켜 둔 '필요한 것' (빈 값 = 전부)
+  /* 걸음 1 에서 "무엇이 필요한지 모르겠어요 — 전부 보기"를 골랐는가.
+     needs 가 비어 있는 것과 화면상 뜻이 같지만, "아직 안 골랐다"와
+     "전부를 고른 것이다"를 갈라 두어야 걸음 2 로 넘어가도 되는지 압니다. */
+  needAll: false,
   mob: {},                         // 동원 목록에 담은 것 (key → 자원)
   begun: false,                    // 시작 화면을 벗어났는가
   walk: true,                      // 도보 경로를 길찾기로 받아올까 (인터넷 필요)
@@ -5350,19 +5491,137 @@ function anyFilterOff() {
       || NEEDS.some(function (n) { return st.needs[n.id]; });
 }
 
-/* ══ 시작 화면 ═══════════════════════════════════════════════
-   처음에는 "사고지점이 어디인가요?" 하나만 묻고, 지도·조건·목록은
-   답이 나온 뒤에 보여 줍니다(body.has-acc). 방제자원 찾기는 결국
-   사고지점에서 가까운 순이라 그것 없이는 할 수 있는 일이 없는데,
-   화면을 한꺼번에 펼쳐 두면 어디부터 손대야 하는지 알 수 없습니다. */
+/* ══ 시작 — 두 걸음 ══════════════════════════════════════════
+   걸음 1 "지금 무엇이 필요하세요?" → 걸음 2 "사고지점이 어디인가요?" → 결과.
+
+   ── 왜 이렇게 바뀌었나 (사용자 요구) ─────────────────────────
+   "사용자가 자기가 지금 필요한 걸 누르고, 사고지점의 주소 또는 사고가 발생한
+   사업장을 입력하면, 그 지점 주변의 본인이 선택한 방제자원을 알려 주는" 모습.
+
+   예전에는 사고지점만 묻고 자원 470건을 전부 뿌린 뒤 "좁히고 싶으면 조건을
+   펴 보라"고 했습니다. 그런데 현장에서 담당자가 아는 것은 **지금 무엇이
+   필요한가**(굴착기가 필요하다 · 보호복이 모자란다)이지 자원 종류가 아닙니다.
+   필요한 것을 먼저 물으면 다음 화면에 나올 것이 이미 정해지고, 결과도 훑을 수
+   있는 양으로 줄어듭니다.
+
+   걸음 1의 일곱 가지는 자료의 RESOURCE_NEEDS 를 그대로 씁니다 — 자원마다
+   g:[...] 로 달려 있는 값이라 우리가 지어낸 분류가 아닙니다. */
+
 /* 시작 화면을 벗어났는가. 사고지점이 정해졌거나, 지역을 골랐거나,
-   "지도에서 찍기"처럼 사용자가 이미 다음 단계로 넘어간 경우. */
+   "지도에서 찍기"처럼 사용자가 이미 결과 화면으로 넘어간 경우. */
 function started() {
   return !!(st.begun || st.acc || st.sido || st.sgg);
 }
 
+/* 지금 몇 번째 걸음인가 (1 · 2). 결과 화면에서는 쓰지 않습니다. */
+var rzStep = 1;
+
+function rzGo(n) {
+  /* 필요한 것을 고르지 않고 2걸음으로 건너뛸 수는 없습니다 — 건너뛰면
+     "고른 자원" 이라는 말이 거짓이 됩니다. '전부 보기'로는 갈 수 있습니다. */
+  if (n === 2 && !rzChosen() && !st.needAll) return;
+  rzStep = n;
+  renderStart();
+  /* 걸음이 바뀌면 그 걸음의 제목으로 초점을 옮깁니다 — 화면낭독기 사용자가
+     무엇이 바뀌었는지 알아야 합니다. */
+  var h = $(n === 1 ? "#rzH1" : "#rzH2");
+  if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
+  window.scrollTo(0, 0);
+}
+
+function rzChosen() {
+  return NEEDS.some(function (n) { return st.needs[n.id]; });
+}
+
+/* 고른 것으로 몇 곳이 나오는가 — 걸음 2의 안내에 그대로 적습니다.
+   "고른 자원 470건 중 62곳" 처럼 지어내지 않고 실제로 세어 적습니다. */
+function rzHitCount() {
+  var need = NEEDS.filter(function (n) { return st.needs[n.id]; });
+  if (!need.length) return allRes().length;
+  return allRes().filter(function (s) {
+    return need.some(function (n) {
+      return (s.g || []).indexOf(n.id) >= 0;
+    });
+  }).length;
+}
+
 function renderStart() {
   document.body.classList.toggle("has-acc", started());
+  if (started()) return;
+
+  /* 걸음 표시 */
+  var bs = $$("#rzBar .rz-b");
+  bs.forEach(function (li, i) {
+    li.classList.toggle("on", i + 1 === rzStep);
+    li.classList.toggle("done", i + 1 < rzStep && (rzChosen() || st.needAll));
+    var b = li.querySelector("button");
+    if (b) b.setAttribute("aria-current", i + 1 === rzStep ? "step" : "false");
+  });
+  var p1 = $("#rzP1"), p2 = $("#rzP2");
+  if (p1) p1.hidden = rzStep !== 1;
+  if (p2) p2.hidden = rzStep !== 2;
+
+  /* 걸음 1 — 필요한 것 칸 */
+  renderRzNeeds();
+
+  /* 다음 단추 — 하나도 안 골랐으면 누를 수 없습니다.
+     막다른 길은 아닙니다. 옆에 '전부 보기'가 있습니다. */
+  var next = $("#rzNext");
+  if (next) {
+    var n = NEEDS.filter(function (x) { return st.needs[x.id]; }).length;
+    next.disabled = !n;
+    next.textContent = n ? "다음 — 사고지점 넣기 (" + rzHitCount() + "곳)"
+                         : "다음 — 사고지점 넣기";
+  }
+
+  /* 걸음 2 — 무엇을 고른 상태인지 다시 적어 줍니다. 한 화면 넘어와서
+     "내가 무엇을 골랐더라" 를 되짚게 하면 안 됩니다. */
+  var lead = $("#rzP2Lead");
+  if (lead) {
+    var picked = NEEDS.filter(function (x) { return st.needs[x.id]; })
+                      .map(function (x) { return x.이름; });
+    lead.innerHTML = picked.length
+      ? "<b>" + picked.map(esc).join(" · ") + "</b> 을(를) 가진 "
+        + rzHitCount() + "곳을 <b>사고지점에서 가까운 순</b>으로 찾습니다."
+      : "방제자원 " + allRes().length
+        + "곳 전부를 <b>사고지점에서 가까운 순</b>으로 찾습니다.";
+  }
+}
+
+/* ── 걸음 1의 칸 만들기 ──────────────────────────────────────
+   건수는 실제로 세어 적습니다. "0곳" 인 것도 감추지 않고 그대로 둡니다 —
+   없다는 것도 알아야 하는 정보이고, 감추면 자료가 빠진 것처럼 보입니다. */
+var TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+  + ' stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"'
+  + ' aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>';
+
+function renderRzNeeds() {
+  var box = $("#rzNeeds");
+  if (!box) return;
+  var pool = allRes();
+  box.innerHTML = NEEDS.map(function (n) {
+    var cnt = pool.filter(function (s) {
+      return (s.g || []).indexOf(n.id) >= 0;
+    }).length;
+    return '<button type="button" class="rz-need" data-n="' + esc(n.id) + '"'
+      + ' aria-pressed="' + (st.needs[n.id] ? "true" : "false") + '">'
+      + '<span class="rz-need-x" aria-hidden="true">' + TICK + "</span>"
+      + '<span class="rz-need-b">'
+      + '<span class="rz-need-t">' + esc(n.이름) + "</span>"
+      + '<span class="rz-need-d">' + esc(n.설명) + "</span>"
+      + '<span class="rz-need-n">' + cnt + "곳</span>"
+      + "</span></button>";
+  }).join("");
+  $$("#rzNeeds .rz-need").forEach(function (b) {
+    b.onclick = function () {
+      var id = b.dataset.n;
+      st.needs[id] = !st.needs[id];
+      if (!st.needs[id]) delete st.needs[id];
+      st.needAll = false;
+      renderStart();
+      refresh();
+    };
+  });
 }
 
 function backToStart() {
@@ -5380,18 +5639,41 @@ function backToStart() {
   setMode("pick");
   refresh(true);
   var q = $("#startQ"); if (q) { q.value = ""; }
-  window.scrollTo(0, 0);
+  /* 고른 '필요한 것'은 그대로 둡니다 — 사고지점만 잘못 찍어 되돌아오는
+     경우가 대부분인데 고른 것까지 지우면 처음부터 다시 해야 합니다.
+     걸음 표시를 눌러 1걸음으로 가면 바꿀 수 있습니다. */
+  rzGo(rzChosen() || st.needAll ? 2 : 1);
 }
 
 function initStart() {
-  /* 1. 주소·사업장 이름 — 시작 화면의 검색칸은 bindAddrSearch 가 조건 줄
-        칸과 똑같이 붙여 둡니다. 결과 목록이 **이 칸 바로 아래**에 뜨므로
-        몇 글자만 쳐도 눌러서 고를 수 있습니다.
-        예전에는 조건 줄 칸으로 글자를 옮겨 붙이고 조건 줄을 잠깐 드러내
-        목록을 띄웠는데, 목록이 시작 화면과 떨어진 자리에 떠 무엇을 눌러야
-        하는지 알기 어려웠습니다. */
+  /* 걸음 표시를 눌러 되돌아가기 */
+  $$("#rzBar button").forEach(function (b) {
+    b.onclick = function () { rzGo(+b.dataset.go); };
+  });
 
-  /* 2. 지도에서 찍기 — 지도를 보여 주고 바로 '찍기' 모드로 */
+  /* 걸음 1 → 2 */
+  var next = $("#rzNext");
+  if (next) next.onclick = function () { rzGo(2); };
+
+  /* "무엇이 필요한지 모르겠어요 — 전부 보기"
+     모르는 사람을 막다른 길에 세우지 않습니다. 고른 것 없이 넘어가면
+     자원 전부가 가까운 순으로 나옵니다(예전 화면과 같은 결과). */
+  var all = $("#rzAll");
+  if (all) all.onclick = function () {
+    st.needs = {}; st.needAll = true;
+    renderStart(); refresh();
+    rzGo(2);
+  };
+
+  /* 걸음 2 → 1 */
+  var back = $("#rzBack");
+  if (back) back.onclick = function () { rzGo(1); };
+
+  /* 걸음 2 ① 주소·사업장 이름 — 시작 화면의 검색칸은 bindAddrSearch 가
+     조건 줄 칸과 똑같이 붙여 둡니다. 결과 목록이 **이 칸 바로 아래**에
+     뜨므로 몇 글자만 쳐도 눌러서 고를 수 있습니다. */
+
+  /* 걸음 2 ② 지도에서 찍기 — 지도를 보여 주고 바로 '찍기' 모드로 */
   var pick = $("#startPick");
   if (pick) pick.onclick = function () {
     st.sido = ""; st.sgg = ""; st.begun = true;
@@ -5400,7 +5682,7 @@ function initStart() {
     toast("<b>지도를 눌러 사고지점을 표시하세요.</b> 누른 자리에서 가까운 순으로 찾습니다.");
     var m = $(".mmap"); if (m) m.scrollIntoView({ block: "center", behavior: "smooth" });
   };
-  /* 3. 내 위치 */
+  /* 걸음 2 ③ 내 위치 */
   var me = $("#startMe");
   if (me) me.onclick = function () { locateMe(); };
   /* 사고지점 없이 지역으로 둘러보기 */
@@ -5411,6 +5693,8 @@ function initStart() {
     var sel = $("#mSido");
     if (sel) { sel.scrollIntoView({ block: "center" }); sel.focus(); }
   };
+
+  renderStart();
 }
 
 /* ── 조건 접기 ────────────────────────────────────────────────
@@ -5434,11 +5718,13 @@ function renderRbarLabel() {
   if (!t) return;
   var need = NEEDS.filter(function (n) { return st.needs[n.id]; });
   var off = KINDS.filter(function (k) { return !st.kinds[k.id]; });
-  if (!need.length && !off.length) { t.textContent = "무엇이 필요하세요?"; return; }
+  /* 걸음 1 에서 이미 물었으므로 여기서는 "바꾸는 자리"라고 적습니다 —
+     같은 질문이 두 번 나오면 어느 쪽이 진짜인지 헷갈립니다. */
+  if (!need.length && !off.length) { t.textContent = "찾는 조건 바꾸기 — 전부 보는 중"; return; }
   var bits = [];
   if (need.length) bits.push(need.map(function (n) { return n.이름; }).join("·"));
   if (off.length) bits.push("종류 " + (KINDS.length - off.length) + "/" + KINDS.length);
-  t.textContent = "좁혀 보는 중 — " + bits.join(" · ");
+  t.textContent = "찾는 조건 바꾸기 — " + bits.join(" · ");
 }
 
 /* ── 자원 종류 · 필요한 것 거르개 ─────────────────────────────
@@ -5523,7 +5809,7 @@ function renderMob() {
 function mobText() {
   var d = new Date();
   var p = function (n) { return (n < 10 ? "0" : "") + n; };
-  var L = ["화학사고 방제자원 동원 목록",
+  var L = ["화학사고 방제 동원 체계 — 동원 목록",
            "작성 " + d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate())
            + " " + p(d.getHours()) + ":" + p(d.getMinutes())];
   if (st.acc) L.push("사고지점 " + st.acc.lat + ", " + st.acc.lon);
@@ -6196,7 +6482,7 @@ function clearAcc() {
   refresh(true);
 }
 
-/* ③ 에는 문자 작성으로 넘기는 단추가 없습니다 — 방제자원 동원은 주민에게
+/* ③ 에는 문자 작성으로 넘기는 단추가 없습니다 — 방제 동원은 주민에게
    보내는 문자와 다른 일입니다. 대신 '동원 목록'으로 모아 복사합니다. */
 function renderToSms() {}
 
@@ -6505,9 +6791,10 @@ function init() {
     st.route = null; st.routeErr = null; st.routeBusy = false;
     st.accAddr = null; accSeq++;
     pickedPlace = null;
-    st.needs = {}; st.mob = {};
+    st.needs = {}; st.mob = {}; st.needAll = false;
     KINDS.forEach(function (k) { st.kinds[k.id] = true; });
     st.begun = false;
+    rzStep = 1;                       // 초기화는 첫 걸음으로 되돌립니다
     document.body.classList.remove("has-acc");
     var box = $("#rbMore");
     if (box) { box.hidden = true; $("#rbToggle").setAttribute("aria-expanded", "false"); }
