@@ -1340,7 +1340,8 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
   .maplegend{gap:4px 8px;padding:3px 7px}
   .maplegend span{white-space:nowrap}
   .maplegend .lg-t{display:none}
-  .maplegend .dot,.maplegend .rkdot{margin-right:3px}
+  .maplegend .dot,.maplegend .rk-ic{margin-right:3px}
+  .maplegend .rk-ic{width:1.5rem;height:1.5rem;vertical-align:-.3rem}
 }
 @media (max-width:400px){
   /* 아주 좁은 화면 — 축척 막대(왼쪽 ~132px)와 겹쳐 그리기 줄(왼쪽 끝 107px)이
@@ -1394,17 +1395,26 @@ a.btnlink:hover{border-color:var(--brand)}
   --rk-water:#0e7c9e;    /* 수질방제센터    — 청록 ■ */
 }
 
-/* 목록·범례에 쓰는 작은 표식 */
-.rkdot{display:inline-block;width:10px;height:10px;flex:none;margin-right:5px;
-  vertical-align:-1px;background:var(--ink3);border-radius:50%}
-.rkdot.rk-local{background:var(--rk-local)}
-.rkdot.rk-waste{background:var(--rk-waste)}
-.rkdot.rk-capsule{background:var(--rk-capsule);border-radius:0;
-  clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)}
-.rkdot.rk-toxgas{background:var(--rk-toxgas);border-radius:0;
-  clip-path:polygon(50% 0,100% 100%,0 100%)}
-.rkdot.rk-marine{background:var(--rk-marine);border-radius:2px}
-.rkdot.rk-water{background:var(--rk-water);border-radius:2px}
+/* ── 자원 아이콘 ──────────────────────────────────────────────
+   자원 종류(6)와 필요한 것(7)에 각각 그림을 답니다(res/app.js 의 ICONS).
+   사용자 요구 — "아이콘만 보면 이게 무엇이겠구나 유추가 될만한" 것.
+
+   ‼ **그림만으로 뜻을 전하지 않습니다.** 그림 옆에는 늘 이름이 붙어 있고
+   그림 자체는 aria-hidden 입니다 — 화면낭독기 사용자와, 그림이 안 그려진
+   경우에도 읽는 데 지장이 없어야 합니다.
+
+   색은 **지도 마커와 같은 색**을 씁니다. 지도에는 종류마다 색이 다른
+   동그라미가 찍히므로, 같은 색이라야 "이 색이 저 종류"가 이어집니다.
+   (예전에는 범례에 마름모·세모를 썼는데 지도에 없는 모양이라 잘못
+   이어졌습니다. 색은 그대로 두고 모양만 뜻이 있는 그림으로 바꿨습니다.) */
+.rk-ic{display:inline-block;width:1.7rem;height:1.7rem;flex:none;
+  margin-right:5px;vertical-align:-.35rem;color:var(--ink3)}
+.rk-ic.rk-local{color:var(--rk-local)}
+.rk-ic.rk-capsule{color:var(--rk-capsule)}
+.rk-ic.rk-toxgas{color:var(--rk-toxgas)}
+.rk-ic.rk-waste{color:var(--rk-waste)}
+.rk-ic.rk-marine{color:var(--rk-marine)}
+.rk-ic.rk-water{color:var(--rk-water)}
 
 /* ══ 시작 — 두 걸음 ══════════════════════════════════════════
    걸음 1 "무엇이 필요하세요?" → 걸음 2 "사고지점이 어디인가요?" → 결과.
@@ -1476,6 +1486,13 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 .rz-need-x svg{width:14px;height:14px;color:var(--on-brand);opacity:0}
 .rz-need[aria-pressed=true] .rz-need-x{background:var(--brand);border-color:var(--brand)}
 .rz-need[aria-pressed=true] .rz-need-x svg{opacity:1}
+/* 걸음 1 카드의 그림 — 옅은 바탕 위에 얹어 카드에서 가장 먼저 눈에 띄게 */
+.rz-need-ic{flex:none;display:grid;place-items:center;width:4.4rem;height:4.4rem;
+  border-radius:11px;background:var(--panel);color:var(--brand-d)}
+/* .rk-ic 가 제 색(--ink3)을 직접 갖고 있어 상자에서 물려받지 못합니다 —
+   여기서 되돌려 줘야 파랗게 나옵니다. */
+.rz-need-ic .rk-ic{width:2.6rem;height:2.6rem;margin:0;vertical-align:0;color:inherit}
+.rz-need[aria-pressed=true] .rz-need-ic{background:var(--card)}
 .rz-need-b{flex:1;min-width:0}
 .rz-need-t{display:block;font-size:1.7rem;font-weight:700;line-height:1.35}
 .rz-need-d{display:block;margin-top:2px;font-size:1.4rem;color:var(--ink3);line-height:1.5}
@@ -1563,7 +1580,8 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 .rk-chip{display:inline-flex;align-items:center;padding:4px 10px;font-size:1.5rem;
   font-weight:600;background:var(--card);border-radius:20px;line-height:1.4;border-width:1.5px}
 .rk-chip[aria-pressed=false]{color:var(--ink3);background:var(--panel);opacity:.72}
-.rk-chip[aria-pressed=false] .rkdot{filter:grayscale(1);opacity:.6}
+.rk-chip[aria-pressed=false] .rk-ic{color:var(--ink3);opacity:.7}
+.rk-chip .rk-ic{width:1.6rem;height:1.6rem;margin-right:4px;vertical-align:-.3rem}
 .rk-chip[aria-pressed=true]{border-color:var(--brand);background:var(--brand-l);
   color:var(--brand-d)}
 .rk-chip.need[aria-pressed=true]{border-color:var(--ok);background:var(--ok-l);color:var(--ok)}

@@ -37,6 +37,18 @@ const realCnt = await P.evaluate(() => RESOURCE_NEEDS.map(n => ({
 chk(needCards.every((c, i) => c.n === realCnt[i].n + '곳'),
   `칸의 건수가 자료와 같다 (${needCards.map(c => c.n).join('/')})`);
 /* 아무것도 안 고르면 다음으로 갈 수 없다 — "고른 자원" 이 거짓말이 된다 */
+/* ── 아이콘 ────────────────────────────────────────────────────
+   사용자 요구 — "아이콘만 보면 이게 무엇이겠구나 유추가 될만한" 것.
+   ‼ 그림만으로 뜻을 전하면 안 됩니다. 그림 옆에는 늘 이름이 있고 그림은
+   aria-hidden 이어야 합니다(화면낭독기가 두 번 읽지 않게). */
+const ics = await P.$$eval('.rz-need .rk-ic', es => es.map(e => ({
+  hidden: e.getAttribute('aria-hidden'),
+  paths: e.querySelectorAll('path,circle,rect').length })));
+chk(ics.length === 7, `필요한 것 일곱에 모두 그림이 있다 (${ics.length})`);
+chk(ics.every(i => i.paths > 0), '그림이 실제로 그려진다 (빈 svg 가 아니다)');
+chk(ics.every(i => i.hidden === 'true'), '그림은 화면낭독기에서 빠진다 (이름이 옆에 있다)');
+chk(needCards.every(c => c.t.length > 1), '그림 옆에 이름이 늘 있다');
+
 chk(await P.$eval('#rzNext', b => b.disabled), '아무것도 안 고르면 다음 단추가 잠긴다');
 await P.click('#rzP2Lead').catch(()=>{});
 chk(await P.isHidden('#rzP2'), '잠긴 채로는 걸음 2 로 넘어가지 않는다');
@@ -210,6 +222,27 @@ await P.click('#mobClear'); await P.waitForTimeout(400);
 // 범례가 켜 둔 종류를 따라간다
 const leg0 = (await P.textContent('#mLeg')).replace(/\s+/g,' ');
 chk(/지자체/.test(leg0), '범례에 켜 둔 종류가 나온다');
+/* 범례·목록·칩의 그림은 **지도 마커와 같은 색**이어야 "이 색이 저 종류"가
+   이어집니다(지도에는 종류마다 색이 다른 동그라미가 찍힙니다). */
+const legIc = await P.evaluate(() => {
+  const out = [];
+  document.querySelectorAll('#mLeg .rk-ic').forEach(e => {
+    const k = [...e.classList].find(c => c.startsWith('rk-') && c !== 'rk-ic');
+    if (!k) return;
+    /* 마커는 좌표가 정확하면 그 색으로 **채우고**(fill), 어림값이면
+       속을 비우고 그 색으로 **테두리**를 그립니다. 둘 중 하나와 맞으면 됩니다. */
+    const mk = document.querySelector('#map circle.' + k);
+    const cs = mk ? getComputedStyle(mk) : null;
+    out.push({ k, ic: getComputedStyle(e).color,
+               mk: cs ? [cs.fill, cs.stroke] : null });
+  });
+  return out;
+});
+chk(legIc.length >= 1, `범례에 그림이 있다 (${legIc.length}개)`);
+chk(legIc.every(x => !x.mk || x.mk.indexOf(x.ic) >= 0),
+  `범례 그림 색이 지도 마커 색과 같다 (${legIc.filter(x => x.mk).length}개 대조)`);
+chk((await P.$$eval('#mLeg .rk-ic', es => es.every(e => e.getAttribute('aria-hidden') === 'true'))),
+  '범례 그림도 화면낭독기에서 빠진다 (종류 이름이 옆에 있다)');
 await P.evaluate(()=>{[...document.querySelectorAll('#rKinds .rk-chip')]
   .find(b=>/지자체/.test(b.textContent)).click();});
 await P.waitForTimeout(800);

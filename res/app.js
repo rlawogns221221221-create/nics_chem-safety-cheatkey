@@ -708,6 +708,86 @@ function telRow(s) {
     + "원자료에 사업장 번호가 없습니다</div>";
 }
 
+/* ══ 아이콘 ══════════════════════════════════════════════════
+   자원 종류(6)와 필요한 것(7)에 각각 그림을 답니다. 사용자 요구입니다 —
+   "아이콘만 보면 이게 무엇이겠구나 유추가 될만한" 것.
+
+   ── 지키는 것 ─────────────────────────────────────────────────
+   ① **그림만으로 뜻을 전하지 않습니다.** 아이콘 옆에는 늘 이름이 붙어
+      있고(범례·칩·목록 모두), 그림은 `aria-hidden` 입니다. 화면낭독기
+      사용자는 이름만 읽으면 되고, 그림이 안 그려져도 읽는 데 지장이
+      없어야 합니다.
+   ② **색은 지도 마커와 같은 색**(--rk-*)을 씁니다. 지도에는 종류마다
+      색이 다른 동그라미가 찍히므로, 범례·목록의 아이콘도 같은 색이어야
+      "이 색이 저 종류" 가 이어집니다. 색만으로 구분하지 않도록 그림
+      모양도 서로 다르게 그렸습니다.
+   ③ 선 그림(stroke)이라 고대비 화면에서도 그대로 보입니다 —
+      currentColor 만 씁니다. 채워 그리면 어두운 화면에서 뭉갭니다.
+
+   ── 무엇을 그렸나 ───────────────────────────────────────────
+   실제로 그 자원이 무엇인지 바로 떠오르는 것을 골랐습니다. 뜻이 같은
+   것끼리는 같은 그림을 씁니다(예: 종류 '독성가스 회수업체' 와 필요한 것
+   '가스 회수'). 뜻이 같은데 그림이 다르면 다른 것으로 읽힙니다. */
+var ICONS = {
+  /* 지자체 보유 장비 — 관공서 청사(지붕 + 기둥). 관내 시·군·구가 직접
+     가진 것이라 '기관' 임이 한눈에 보여야 합니다. */
+  local: '<path d="M3 10.2 12 4.2l9 6"/><path d="M4.6 20h14.8"/>'
+       + '<path d="M6.6 10.6V20M12 10.6V20M17.4 10.6V20"/>',
+  /* 비상캡슐(ERCV) — 누출 봄베를 통째로 담아 밀봉하는 통. 위에 잠금 밸브. */
+  capsule: '<rect x="8.6" y="6.4" width="6.8" height="14" rx="3.4"/>'
+         + '<path d="M9.6 20.4h4.8"/><path d="M8.7 11.4h6.6"/>'
+         + '<path d="M10.9 6.4V4.4h2.2v2"/><path d="M9.8 3.4h4.4"/>',
+  /* 독성가스 회수 — 퍼진 가스를 아래로 거둬들이는 모습(구름 + 내림 화살표) */
+  gas: '<path d="M7 11.4a3 3 0 0 1 1-5.8 4.2 4.2 0 0 1 7.9 1.1 3.2 3.2 0 0 1 .6 6.3H7.4"/>'
+     + '<path d="M12 14.6v5.6"/><path d="M9.3 17.6 12 20.4l2.7-2.8"/>',
+  /* 폐기물 처리 — 뚜껑 달린 수거함 */
+  waste: '<path d="M4.2 7h15.6"/><path d="M9.4 7V5.4a1.2 1.2 0 0 1 1.2-1.2h2.8a1.2 1.2 0 0 1 1.2 1.2V7"/>'
+       + '<path d="M6.2 7l1 12.4A1.6 1.6 0 0 0 8.8 21h6.4a1.6 1.6 0 0 0 1.6-1.6L17.8 7"/>'
+       + '<path d="M10.2 11v6M13.8 11v6"/>',
+  /* 해경 방제비축기지 — 배. 바다에서 오는 자원임이 바로 보입니다. */
+  marine: '<path d="M3 18.6c1.5.9 2.9 1.4 4.4 1.4s2.9-.5 4.4-1.4c1.5.9 2.9 1.4 4.4 1.4s2.9-.5 4.4-1.4"/>'
+        + '<path d="M5 15.4 6.6 10h10.8l1.6 5.4"/>'
+        + '<path d="M12 10V3.6"/><path d="M12 4.6h4.8l-1.9 2.1 1.9 2.1H12"/>',
+  /* 수질오염방제센터 — 물방울 + 물결 */
+  water: '<path d="M12 3.6s5 5.4 5 8.8a5 5 0 0 1-10 0c0-3.4 5-8.8 5-8.8z"/>'
+       + '<path d="M8.6 13.4c.9.7 1.8.7 2.7 0s1.8-.7 2.7 0"/>',
+  /* 차량·중장비 — 짐칸 있는 화물차 */
+  car: '<path d="M2.6 16.6V7.6a1 1 0 0 1 1-1h8.2v10"/>'
+     + '<path d="M11.8 10.2h3.6l3.2 3.4v3h-6.8"/>'
+     + '<circle cx="6.9" cy="18" r="2"/><circle cx="16.4" cy="18" r="2"/>'
+     + '<path d="M2.6 16.6h2.3M8.9 16.6h1"/>',
+  /* 보호구 — 방독면. 목록의 첫 물건이고 화학 보호구 하면 떠오르는 그림입니다. */
+  gear: '<path d="M5.6 6.8h12.8v3.6a6.4 6.4 0 0 1-6.4 6.4 6.4 6.4 0 0 1-6.4-6.4z"/>'
+      + '<path d="M5.6 6.8 6.9 4.2h10.2l1.3 2.6"/>'
+      + '<circle cx="9.3" cy="10.2" r="1.35"/><circle cx="14.7" cy="10.2" r="1.35"/>'
+      + '<circle cx="12" cy="13.9" r="1.9"/>',
+  /* 중화제·흡착재 — 포대(자루). 소석회·마른모래·흡착포 모두 자루로 옵니다. */
+  chem: '<path d="M7.4 8.2h9.2l1.3 10.9A1.7 1.7 0 0 1 16.2 21H7.8a1.7 1.7 0 0 1-1.7-1.9z"/>'
+      + '<path d="M8.7 8.2 9.8 4.6h4.4l1.1 3.6"/>'
+      + '<path d="M10 13.4h4"/>',
+  /* 대량 비축 — 창고에 쌓인 상자 */
+  stock: '<rect x="8.5" y="3.6" width="7" height="7" rx="1"/>'
+       + '<rect x="3.2" y="13.4" width="7" height="7" rx="1"/>'
+       + '<rect x="13.8" y="13.4" width="7" height="7" rx="1"/>'
+       + '<path d="M11 3.6v7M5.7 13.4v7M16.3 13.4v7"/>'
+};
+/* 종류·필요한 것의 id 를 그림에 잇습니다. 뜻이 같은 것은 같은 그림입니다. */
+var ICON_OF = {
+  local: "local", capsule: "capsule", toxgas: "gas", waste: "waste",
+  marine: "marine", water: "water",
+  car: "car", gear: "gear", chem: "chem", gas: "gas", stock: "stock"
+};
+
+/* cls 로 색을 입힙니다(.rk-local … — 지도 마커와 같은 색).
+   그림은 늘 이름과 함께 나오므로 화면낭독기에서는 뺍니다. */
+function icon(id, cls) {
+  var d = ICONS[ICON_OF[id] || id];
+  if (!d) return "";
+  return '<svg class="rk-ic ' + (cls || "") + '" viewBox="0 0 24 24" fill="none"'
+    + ' stroke="currentColor" stroke-width="1.7" stroke-linecap="round"'
+    + ' stroke-linejoin="round" aria-hidden="true" focusable="false">' + d + "</svg>";
+}
+
 function anyFilterOff() {
   return KINDS.some(function (k) { return !st.kinds[k.id]; })
       || NEEDS.some(function (n) { return st.needs[n.id]; });
@@ -825,14 +905,19 @@ function renderRzNeeds() {
     var cnt = pool.filter(function (s) {
       return (s.g || []).indexOf(n.id) >= 0;
     }).length;
+    /* 그림 → 이름 → 건수 → 고름표시 차례. 그림이 맨 앞이라 훑을 때
+       글자를 읽기 전에 무엇인지 짐작할 수 있습니다(사용자 요구).
+       그림만으로 뜻을 전하지는 않습니다 — 이름이 늘 옆에 있습니다. */
     return '<button type="button" class="rz-need" data-n="' + esc(n.id) + '"'
       + ' aria-pressed="' + (st.needs[n.id] ? "true" : "false") + '">'
-      + '<span class="rz-need-x" aria-hidden="true">' + TICK + "</span>"
+      + '<span class="rz-need-ic" aria-hidden="true">' + icon(n.id) + "</span>"
       + '<span class="rz-need-b">'
       + '<span class="rz-need-t">' + esc(n.이름) + "</span>"
       + '<span class="rz-need-d">' + esc(n.설명) + "</span>"
       + '<span class="rz-need-n">' + cnt + "곳</span>"
-      + "</span></button>";
+      + "</span>"
+      + '<span class="rz-need-x" aria-hidden="true">' + TICK + "</span>"
+      + "</button>";
   }).join("");
   $$("#rzNeeds .rz-need").forEach(function (b) {
     b.onclick = function () {
@@ -961,7 +1046,7 @@ function renderFilters() {
       return '<button type="button" class="rk-chip" data-k="' + esc(k.id) + '"'
         + ' aria-pressed="' + (st.kinds[k.id] ? "true" : "false") + '"'
         + ' title="' + esc(k.쓰임) + '">'
-        + '<i class="rkdot rk-' + esc(k.id) + '"></i>' + esc(k.이름)
+        + icon(k.id, "rk-" + esc(k.id)) + esc(k.이름)
         + '<span class="rk-n">' + n + "</span></button>";
     }).join("");
     $$("#rKinds .rk-chip").forEach(function (b) {
@@ -980,7 +1065,7 @@ function renderFilters() {
     nb.innerHTML = NEEDS.map(function (n) {
       return '<button type="button" class="rk-chip need" data-n="' + esc(n.id) + '"'
         + ' aria-pressed="' + (st.needs[n.id] ? "true" : "false") + '"'
-        + ' title="' + esc(n.설명) + '">' + esc(n.이름) + "</button>";
+        + ' title="' + esc(n.설명) + '">' + icon(n.id) + esc(n.이름) + "</button>";
     }).join("");
     $$("#rNeeds .rk-chip").forEach(function (b) {
       b.onclick = function () {
@@ -1080,7 +1165,7 @@ function renderList() {
       : "";
     return '<div class="ms-it' + (on ? " on" : "") + (s.inRing ? " ring" : "")
       + '" data-i="' + i + '" role="button" tabindex="0" aria-pressed="' + (on ? "true" : "false") + '">'
-      + '<div class="l1"><i class="rkdot rk-' + esc(s.t) + '"></i><b>' + esc(s.name) + "</b>"
+      + '<div class="l1">' + icon(s.t, "rk-" + esc(s.t)) + '<b>' + esc(s.name) + "</b>"
       + (s.detail ? '<span class="dt">' + esc(s.detail) + "</span>" : "")
       + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
       + "</div>" + bar
@@ -1190,7 +1275,11 @@ function showAddr() {
 
 function renderLegend() {
   var it = KINDS.filter(function (k) { return st.kinds[k.id]; }).map(function (k) {
-    return '<span><i class="rkdot rk-' + k.id + '"></i>'
+    /* ‼ 지도 마커는 **종류마다 색이 다른 동그라미**입니다. 그래서 범례의
+       그림도 같은 색이어야 "이 색이 저 종류" 가 이어집니다.
+       예전에는 여기에 마름모·세모 같은 모양을 썼는데, 그 모양은 지도에
+       없는 것이라 오히려 잘못 이어졌습니다. */
+    return '<span>' + icon(k.id, "rk-" + k.id)
       + esc(k.이름.replace(/\(ERCV\)|업체|센터$/g, "").trim() || k.이름) + "</span>";
   });
   if (st.acc) it.push('<span><i class="dot acc"></i>사고지점</span>');
