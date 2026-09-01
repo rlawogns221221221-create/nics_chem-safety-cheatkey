@@ -33,7 +33,7 @@
 
 <h1>방제자원 좌표 정확하게 만들기</h1>
 <p class="sub">한 번만 돌리면 됩니다. 결과 파일을 <code>data/</code> 에 넣으면
-③ 방제 동원 체계의 위치가 주소 그대로 정확해집니다.</p>
+③ 방제 물품·장비 찾기의 위치가 주소 그대로 정확해집니다.</p>
 
 <div class="note">
   <b>왜 필요한가</b><br>
@@ -169,7 +169,7 @@ $("#go").onclick = function () {
 $("#dl").onclick = function () {
   var head = "/* 방제자원 정확 좌표 — build/geocode.html 로 만든 파일입니다.\n"
     + "   키: 종류|이름|시도|시군구  값: {la, lo}\n"
-    + "   이 파일이 있으면 ③ 방제 동원 체계가 이 좌표를 먼저 씁니다.\n"
+    + "   이 파일이 있으면 ③ 방제 물품·장비 찾기가 이 좌표를 먼저 씁니다.\n"
     + "   만든 날: " + new Date().toISOString().slice(0, 10)
     + "  ·  찾음 " + Object.keys(got).length + " / 모두 " + rows.length + " */\n";
   var body = "var RESOURCE_GEO = " + JSON.stringify(got) + ";\n";

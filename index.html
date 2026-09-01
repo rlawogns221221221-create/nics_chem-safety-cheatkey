@@ -67,7 +67,8 @@
        ③ 모션을 줄이는 설정에서는 **아예 멈추고 첫 장만** 보입니다.
 
      문구는 지어내지 않았습니다 — 네 줄은 도구가 실제로 하는 일과 자료
-     건수(카드의 숫자와 같은 값)이고, 마지막 한 줄은 이 도구의 원칙입니다. -->
+     건수(카드의 숫자와 같은 값)이고, 마지막 한 줄은 이 도구의 원칙입니다.
+     둘째~넷째 줄의 차례는 **아래 카드와 같은 차례**입니다. -->
 <div class="hero">
   <div class="hero-ph" aria-hidden="true">
     <img class="hero-img s1" src="assets/img/site/hero-1.jpg" alt=""
@@ -87,15 +88,15 @@
     <!-- 다섯 줄이 같은 자리에 겹쳐 있습니다(.hero-leads 가 grid).
          겹쳐 두지 않고 순서대로 두면 문구가 바뀔 때마다 띠 높이가 들썩입니다. -->
     <div class="hero-leads">
-      <p class="hero-lead s1">사고가 나면 <b>어디로 대피시킬지</b>,
-        <b>무엇을 문자로 보낼지</b>, <b>어떤 자원을 부를지</b> —
+      <p class="hero-lead s1">사고가 나면 <b>무엇을 부를지</b>,
+        <b>어디로 대피시킬지</b>, <b>무엇을 문자로 보낼지</b> —
         세 가지를 이 화면에서 시작합니다.</p>
-      <p class="hero-lead s2">사고지점을 찍으면 주변 대피장소를
+      <p class="hero-lead s2">필요한 물품·장비를 고르고 사고지점을 넣으면
+        <b>가진 곳을 가까운 순으로</b> 찾습니다 — 자원 470건 · 출처 6종.</p>
+      <p class="hero-lead s3">사고지점을 찍으면 주변 대피장소를
         <b>가까운 순으로</b> 찾습니다 — 전국 <b>1,849곳</b>.</p>
-      <p class="hero-lead s3">사고정보를 넣으면 <b>재난문자 표준문안</b>이
+      <p class="hero-lead s4">사고정보를 넣으면 <b>재난문자 표준문안</b>이
         만들어집니다 — 표준문안 12건 · 발송 사례 42건.</p>
-      <p class="hero-lead s4">장비와 업체를 가까운 순으로 찾아
-        <b>바로 연락</b>합니다 — 자원 470건 · 출처 6종.</p>
       <p class="hero-lead s5">이 도구는 <b>판단하지 않습니다.</b>
         어디까지 대피시킬지는 담당자가 정하고, 도구는 자료를 모읍니다.</p>
     </div>
@@ -125,9 +126,11 @@
          사진이 커지고 글자가 흩어져 오히려 읽기 나빠집니다(사용자 지적). -->
     <ul class="tools" id="tools" aria-label="업무도구 3종">
 
-      <!-- ⚠ 순서를 바꾸지 마세요 — 상사 피드백으로 정한 '실제 업무 순서'입니다
-           (b0802d4). 지도에서 어디로 대피시킬지 정한 다음 그 내용으로 문자를
-           씁니다. 링크를 바꾸려면 아래 href 만 고치면 됩니다.
+      <!-- ⚠ 순서는 사용자가 정합니다 — 지금은
+           `01 방제 물품·장비 찾기 → 02 주민 대피장소 찾기 → 03 주민대피 문자생성기`
+           입니다. 한동안 `대피장소 → 문자 → 방제자원` 이었는데(상사 피드백,
+           b0802d4) 사용자가 이 차례로 바꾸라고 했습니다. 임의로 되돌리지 마세요.
+           링크를 바꾸려면 아래 href 만 고치면 됩니다.
 
            ── 카드 한 장의 구성 ────────────────────────────────────
            ① .pn-art   사진 칸 (16:9). 세 장의 비율이 정확히 같아야 카드 줄이
@@ -151,10 +154,41 @@
 
            색은 세 카드 모두 같은 파랑(Primary)입니다. 빨강은 사고지점처럼
            실제 위험에만, 초록은 지도의 대피장소 마커에만 씁니다. -->
+      <li class="pn t3">
+        <a href="res/index.html">
+          <div class="pn-ph">
+            <!-- 01 방제 물품·장비 — 방제지원차량과 대응인력이 출동 준비를 하는 현장 -->
+            <div class="pn-art" aria-hidden="true">
+              <img src="assets/img/site/card-res.jpg" alt="" width="1200" height="675" loading="lazy">
+              <div class="pn-lbs">
+                <b class="pn-lb l1">방제장비</b>
+                <b class="pn-lb l2">대응 인력</b>
+              </div>
+            </div>
+            <div class="pn-ov">
+              <p class="pn-d">지금 필요한 것을 고르고 사고지점을 넣으면, 그것을 가진 곳을
+                가까운 순으로 찾습니다. 여러 곳을 담아 한 번에 연락합니다.</p>
+              <p class="pn-meta"><span class="nb">자원 470건</span> ·
+                <span class="nb">출처 6종</span> · <span class="nb">기준일 2026-08-11</span></p>
+            </div>
+          </div>
+          <div class="pn-hd">
+            <span class="pn-no" aria-hidden="true">01</span>
+            <h3>방제 물품·장비 찾기</h3>
+            <span class="pn-go" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
+        </a>
+      </li>
+
       <li class="pn t2">
         <a href="map/index.html">
           <div class="pn-ph">
-            <!-- 01 지도 — 사고지점 · 영향 참고 반경 · 주변 대피장소 -->
+            <!-- 02 대피장소 — 사고지점 · 영향 참고 반경 · 주변 대피장소 -->
             <div class="pn-art" aria-hidden="true">
               <img src="assets/img/site/card-map.jpg" alt="" width="1200" height="675" loading="lazy">
               <div class="pn-lbs">
@@ -171,8 +205,8 @@
             </div>
           </div>
           <div class="pn-hd">
-            <span class="pn-no" aria-hidden="true">01</span>
-            <h3>대피장소 지도</h3>
+            <span class="pn-no" aria-hidden="true">02</span>
+            <h3>주민 대피장소 찾기</h3>
             <span class="pn-go" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
                    stroke-linecap="round" stroke-linejoin="round" focusable="false">
@@ -186,7 +220,7 @@
       <li class="pn t1">
         <a href="sms/index.html">
           <div class="pn-ph">
-            <!-- 02 문자 — 사고정보를 넣어 만든 재난문자 표준문안을 확인하는 화면 -->
+            <!-- 03 문자 — 사고정보를 넣어 만든 재난문자 표준문안을 확인하는 화면 -->
             <div class="pn-art" aria-hidden="true">
               <img src="assets/img/site/card-sms.jpg" alt="" width="1200" height="675" loading="lazy">
               <div class="pn-lbs">
@@ -202,39 +236,8 @@
             </div>
           </div>
           <div class="pn-hd">
-            <span class="pn-no" aria-hidden="true">02</span>
-            <h3>주민대피 문자 작성</h3>
-            <span class="pn-go" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
-                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-              </svg>
-            </span>
-          </div>
-        </a>
-      </li>
-
-      <li class="pn t3">
-        <a href="res/index.html">
-          <div class="pn-ph">
-            <!-- 03 방제자원 — 방제지원차량과 대응인력이 출동 준비를 하는 현장 -->
-            <div class="pn-art" aria-hidden="true">
-              <img src="assets/img/site/card-res.jpg" alt="" width="1200" height="675" loading="lazy">
-              <div class="pn-lbs">
-                <b class="pn-lb l1">방제장비</b>
-                <b class="pn-lb l2">대응 인력</b>
-              </div>
-            </div>
-            <div class="pn-ov">
-              <p class="pn-d">지금 필요한 것을 고르고 사고지점을 넣으면, 그것을 가진 곳을
-                가까운 순으로 찾습니다. 여러 곳을 담아 한 번에 연락합니다.</p>
-              <p class="pn-meta"><span class="nb">자원 470건</span> ·
-                <span class="nb">출처 6종</span> · <span class="nb">기준일 2026-08-11</span></p>
-            </div>
-          </div>
-          <div class="pn-hd">
             <span class="pn-no" aria-hidden="true">03</span>
-            <h3>방제 동원 체계</h3>
+            <h3>주민대피 문자생성기</h3>
             <span class="pn-go" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
                    stroke-linecap="round" stroke-linejoin="round" focusable="false">

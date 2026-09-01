@@ -1,5 +1,5 @@
 /* ============================================================
-   대피장소 지도에서 고르기
+   주민 대피장소 찾기에서 고르기
 
      SHMAP.open({
        시군구,          사고 시·군·구 (있으면 그 관내를 먼저 보여준다)
@@ -15,7 +15,7 @@
        onPick(이름들, 칸)
      })
 
-   투영·거리·배경지도 타일은 assets/mapcore.js 를 씁니다 (② 대피장소 지도와 공용).
+   투영·거리·배경지도 타일은 assets/mapcore.js 를 씁니다 (② 주민 대피장소 찾기와 공용).
    좌표계는 웹 메르카토르(EPSG:3857)이므로 타일·행정경계선·마커가 정확히 겹칩니다.
 
    이 창은 어느 대피장소가 적절한지 판단하지 않습니다. 거리·방위·반경은
@@ -32,7 +32,7 @@ var esc = function (s) {
 var $ = function (s, r) { return (r || document).querySelector(s); };
 var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
 
-/* 투영·거리·타일은 assets/mapcore.js 에 모아 두었습니다 — ② 대피장소 지도와
+/* 투영·거리·타일은 assets/mapcore.js 에 모아 두었습니다 — ② 주민 대피장소 찾기와
    같은 코드를 써야 두 지도가 어긋나지 않습니다. */
 var MC = window.MAPCORE;
 var wx = MC.wx, wy = MC.wy, wxInv = MC.wxInv, wyInv = MC.wyInv;
@@ -57,7 +57,7 @@ var st = {
   sort: "name", q: ""
 };
 var SVG = null, VB = null;
-/* 모든 시야 이동이 이 카메라를 거친다 — ② 대피장소 지도(map/app.js)와 같은
+/* 모든 시야 이동이 이 카메라를 거친다 — ② 주민 대피장소 찾기(map/app.js)와 같은
    공용 헬퍼(assets/mapcore.js)라서 두 지도가 똑같이 부드럽게 움직인다 */
 var CAM = MC.camera(function () { return st.view; }, function (v) { st.view = v; }, draw);
 
@@ -556,10 +556,10 @@ function buildBox() {
   box.className = "shmap-back";
   box.setAttribute("role", "dialog");
   box.setAttribute("aria-modal", "true");
-  box.setAttribute("aria-label", "대피장소 지도에서 고르기");
+  box.setAttribute("aria-label", "주민 대피장소 찾기에서 고르기");
   box.innerHTML =
     '<div class="shmap">'
-    + '<header><b>대피장소 지도에서 고르기</b>'
+    + '<header><b>주민 대피장소 찾기에서 고르기</b>'
       + '<span class="shmap-src"></span>'
       + '<button type="button" class="shmap-x" aria-label="닫기">✕</button></header>'
     + '<div class="shmap-bar">'
@@ -576,7 +576,7 @@ function buildBox() {
     + '<div class="shmap-rad" hidden></div>'
     + '<div class="shmap-body">'
       + '<div class="shmap-mapwrap">'
-        + '<svg class="shmap-svg" role="img" aria-label="대피장소 지도"></svg>'
+        + '<svg class="shmap-svg" role="img" aria-label="주민 대피장소 찾기"></svg>'
         + '<div class="shmap-ctl">'
           + '<button type="button" class="shmap-zi" title="확대">＋</button>'
           + '<button type="button" class="shmap-zo" title="축소">−</button>'

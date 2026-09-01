@@ -83,10 +83,11 @@ chk(Math.abs(ratio - 1) < 0.02, `로고 비율 그대로 (원본 대비 ${ratio.
 chk(logo.x < 260, `로고가 머리띠 왼쪽에 (x=${Math.round(logo.x)})`);
 
 // ══ 4. 도구 링크 — 카드 전체가 링크이고 '실제 업무 순서' ══
-//    지도 → 문자 → 방제자원. 상사 피드백으로 정한 순서라 바꾸면 안 됩니다(b0802d4).
+//    방제 물품·장비 → 주민 대피장소 → 주민대피 문자. 차례는 사용자가 정합니다
+//    (한동안 지도 → 문자 → 방제자원 이었습니다 — 상사 피드백, b0802d4).
 const links = await P.$$eval('.tools > li > a', as => as.map(a => a.getAttribute('href')));
-chk(links.length === 3 && links[0] === 'map/index.html' && links[1] === 'sms/index.html'
-    && links[2] === 'res/index.html', `링크 순서 지도→문자→방제: ${links.join(' / ')}`);
+chk(links.length === 3 && links[0] === 'res/index.html' && links[1] === 'map/index.html'
+    && links[2] === 'sms/index.html', `링크 순서 방제→대피장소→문자: ${links.join(' / ')}`);
 const nos = await P.$$eval('.pn-no', ns => ns.map(n => n.textContent.trim()));
 chk(nos.join('') === '010203', `번호 01·02·03 (실제 ${nos.join('·')})`);
 /* 번호 배지는 세 장 모두 같은 색 — 도구마다 다른 원색을 쓰지 않습니다
@@ -284,7 +285,7 @@ chk(/matrix\(1\.0[3-9]/.test(press.img), `누르면 사진이 커진다 (${press
 chk(/matrix\(1, 0, 0, 1, [1-9]/.test(press.hd), `누르면 제목 줄이 밀린다 (${press.hd})`);
 chk(!/rgba\(0, 0, 0, 0\)/.test(press.go), `누르면 화살표가 채워진다 (${press.go})`);
 await M.tap('.tools > li > a'); await M.waitForTimeout(600);
-chk(M.url().includes('map/index.html'), '손가락으로 눌러 도구로 이동');
+chk(M.url().includes('res/index.html'), '손가락으로 눌러 도구로 이동 (첫 카드 = 방제 물품·장비)');
 await M.close();
 
 // ══ 11. 모션 감소 — 되풀이되는 움직임은 멈추고, 멈춘 채로 다 보인다 ══
@@ -315,7 +316,7 @@ await N.hover('.tools > li:nth-child(1) > a'); await N.waitForTimeout(400);
 chk(+(await N.$eval('.pn-ov', o => getComputedStyle(o).opacity)) > 0.95,
   'JS 꺼도 올리면 설명이 나온다 (CSS 로만 그린다)');
 await N.click('.tools > li > a'); await N.waitForTimeout(400);
-chk(N.url().includes('map/index.html'), 'JS 꺼도 진입 가능');
+chk(N.url().includes('res/index.html'), 'JS 꺼도 진입 가능');
 await N.close();
 
 // ══ 13. 인쇄 — 고대비로 보고 있어도 흰 종이에 검정 ══

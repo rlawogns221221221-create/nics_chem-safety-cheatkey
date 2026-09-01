@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>화학사고 주민대피 문자 작성 지원도구</title>
+<title>화학사고 주민대피 문자생성기</title>
 <!-- KRDS 공식 디자인 토큰 — 원본 그대로. shell.css 가 이 값을 우리 이름으로 잇습니다 -->
 <link rel="stylesheet" href="../assets/krds/krds_tokens.css">
 <link rel="stylesheet" href="../assets/shell.css">
@@ -14,7 +14,7 @@
 
 <div class="top">
   <div class="wrap">
-    <h1>화학사고 주민대피 문자 생성 도구</h1>
+    <h1>화학사고 주민대피 문자생성기</h1>
     <div class="act noprint">
       <button id="btnCases" type="button" hidden>실제 발송 사례</button>
       <button id="btnTxt" disabled>기록 저장</button>
@@ -24,7 +24,7 @@
 
 </div>
 
-<!-- 대피장소 지도에서 값을 들고 왔을 때 무엇이 채워졌는지 알리는 띠.
+<!-- 주민 대피장소 찾기에서 값을 들고 왔을 때 무엇이 채워졌는지 알리는 띠.
      모르는 사이에 값이 바뀌어 있으면 그게 더 위험하므로 항목을 그대로 적는다.
      "어디서 왔는지"가 먼저, "지금 무엇을 쓰고 있는지"(아래 안내 띠)가 다음이다. -->
 <div class="seedbar noprint" id="seedBar" hidden></div>

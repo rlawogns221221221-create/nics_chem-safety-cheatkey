@@ -36,7 +36,7 @@ const SCOPED = []
 /* 화면마다 어느 스타일시트를 쓰는가 */
 const PAGES = [
   ['sms/index.html', 'assets/shell.css', '① 문자 도구'],
-  ['map/index.html', 'assets/shell.css', '② 대피장소 지도'],
+  ['map/index.html', 'assets/shell.css', '② 주민 대피장소 찾기'],
   ['res/index.html', 'assets/shell.css', '③ 방제자원'],
   ['index.html', 'assets/portal.css', '진입 화면']
 ];

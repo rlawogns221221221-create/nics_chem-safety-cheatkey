@@ -1,4 +1,4 @@
-/* ② 대피장소 지도 회귀 — 지도로 찾기 기능을 합친 뒤
+/* ② 주민 대피장소 찾기 회귀 — 지도로 찾기 기능을 합친 뒤
    배경지도 · 거리 눈금 · 요약 줄 · 행정구역 넘어 찾기 · 연결선 · 인쇄 · 모바일 */
 import { chromium } from 'playwright';
 /* 저장소를 어디에 두어도 돌게 — 이 파일 자리에서 저장소 뿌리를 찾는다.
@@ -21,7 +21,7 @@ await P.route(/vworld|openstreetmap/, tile);
 await P.goto(URL); await P.waitForTimeout(500);
 
 // ══ 1. 화면 뼈대 ══
-chk((await P.textContent('.top h1')).trim() === '화학사고 대피장소 지도',
+chk((await P.textContent('.top h1')).trim() === '화학사고 주민 대피장소 찾기',
   `제목: "${(await P.textContent('.top h1')).trim()}"`);
 chk((await P.$$('.top h1 .sub')).length === 0, '부제 없음 (① 도구와 같은 방식으로 간소화)');
 chk((await P.$$('.foot .disc')).length === 0, '하단 안내문구 → 자료 출처 창으로 이동');
@@ -197,7 +197,7 @@ const D = await B.newPage({ viewport: { width: 1400, height: 900 } });
 await D.route(/vworld|openstreetmap/, tile);
 D.on('pageerror', e => errs.push('DIST: ' + e.message));
 await D.goto(ROOT + 'dist/'
-  + encodeURIComponent('화학사고_대피장소_지도.html'));
+  + encodeURIComponent('화학사고_주민대피장소_찾기.html'));
 await D.waitForTimeout(600);
 await D.selectOption('#mSido', '충청남도'); await D.waitForTimeout(150);
 await D.selectOption('#mSgg', '서산시'); await D.waitForTimeout(1200);

@@ -1,7 +1,7 @@
 /* ============================================================
-   화학사고 방제 동원 체계
+   화학사고 방제 물품·장비 찾기
 
-   ② 대피장소 지도와 **같은 엔진·같은 조작**입니다(assets/mapcore.js).
+   ② 주민 대피장소 찾기와 **같은 엔진·같은 조작**입니다(assets/mapcore.js).
    사고지점을 찍는 네 가지 방법, 찾는 범위, 거리 눈금, 풍하방향, 가까운
    3곳, 내 위치, 경로선, 손가락 확대, 인쇄까지 동작이 모두 같습니다.
    두 화면에서 같은 사고지점을 찍으면 같은 거리가 나옵니다.
@@ -1116,7 +1116,7 @@ function renderMob() {
 function mobText() {
   var d = new Date();
   var p = function (n) { return (n < 10 ? "0" : "") + n; };
-  var L = ["화학사고 방제 동원 체계 — 동원 목록",
+  var L = ["화학사고 방제 물품·장비 찾기 — 동원 목록",
            "작성 " + d.getFullYear() + "-" + p(d.getMonth() + 1) + "-" + p(d.getDate())
            + " " + p(d.getHours()) + ":" + p(d.getMinutes())];
   if (st.acc) L.push("사고지점 " + st.acc.lat + ", " + st.acc.lon);
@@ -1540,7 +1540,7 @@ function moveToAcc(jump) {
 var PLACE_IDX = null;
 /* 시·군·구 경계의 가운데 — 공용(assets/mapcore.js). ①③ 도 같은 값을 씁니다. */
 var boundaryCenter = MC.boundaryCenter;
-/* ② 대피장소 지도에서 그대로 옮겨 온 코드가 **줄 배열**(대피장소 원자료)을
+/* ② 주민 대피장소 찾기에서 그대로 옮겨 온 코드가 **줄 배열**(대피장소 원자료)을
    훑도록 되어 있었는데, ③ 의 resTree() 는 "어느 시·도에 어느 시·군·구가
    있는가"만 담은 표(값이 1)입니다. 그래서 rows.forEach 에서 매 글자마다
    오류가 나 **도구 안 검색이 통째로 죽어 있었습니다** — 인터넷 결과만

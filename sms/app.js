@@ -1,4 +1,4 @@
-/* 화학사고 주민대피 문자 작성 지원도구 — 로직
+/* 화학사고 주민대피 문자생성기 — 로직
    외부 라이브러리·네트워크 호출 없음. 입력값은 브라우저 밖으로 나가지 않습니다. */
 (function () {
 "use strict";
@@ -80,8 +80,8 @@ function load() {
   return false;
 }
 
-/* ══ 대피장소 지도에서 넘어온 값 받기 ════════════════════════
-   ② 대피장소 지도에서 사고지점을 찍고 대피장소를 확인한 뒤 "이 내용으로
+/* ══ 주민 대피장소 찾기에서 넘어온 값 받기 ════════════════════════
+   ② 주민 대피장소 찾기에서 사고지점을 찍고 대피장소를 확인한 뒤 "이 내용으로
    문자 만들기"를 누르면, 그 값이 sessionStorage 에 담겨 이 화면으로
    넘어옵니다(map/app.js 의 goToSms). 같은 내용을 두 번 입력하지 않게
    하려는 것입니다.
@@ -122,7 +122,7 @@ function takeSeed() {
      하므로 seedInfo 가 아니라 state 에 둔다. */
   if (o.acc && o.acc.lat != null && o.acc.lon != null) {
     state.acc = { lat: +o.acc.lat, lon: +o.acc.lon, 어림: !!o.어림,
-                  근거: "대피장소 지도에서 찍은 사고지점" };
+                  근거: "주민 대피장소 찾기에서 찍은 사고지점" };
   }
   save();
 }
@@ -155,7 +155,7 @@ function renderSeedBar() {
   var names = { 시군: "사고 시·군·구", 읍면동: "사고 읍·면·동",
                 사업장: "사업장·장소명", 대피소: "대피소" };
   el.innerHTML = '<div class="wrap"><span class="sb-t">'
-    + "<b>대피장소 지도에서 넘어왔습니다.</b> "
+    + "<b>주민 대피장소 찾기에서 넘어왔습니다.</b> "
     + seedInfo.keys.map(function (k) {
         return '<i><em>' + esc(names[k] || k) + "</em>" + esc(state.data[k]) + "</i>";
       }).join("")

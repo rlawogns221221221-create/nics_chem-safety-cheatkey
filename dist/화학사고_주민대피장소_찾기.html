@@ -11,7 +11,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>화학사고 대피장소 지도</title>
+<title>화학사고 주민 대피장소 찾기</title>
 <!-- KRDS 공식 디자인 토큰 — 원본 그대로. shell.css 가 이 값을 우리 이름으로 잇습니다 -->
 <style>
 
@@ -1539,7 +1539,7 @@ button.sm{min-height:var(--h-s);padding:0 12px;font-size:var(--fs-s)}
   .ohd{color:#000}
 }
 
-/* ══ 대피장소 지도 ══════════════════════════════════════════
+/* ══ 주민 대피장소 찾기 ══════════════════════════════════════════
    지도가 주인공인 화면이라 한 화면에 꽉 채웁니다(스크롤 없이 지도·목록이
    동시에 보이도록). 지도는 화면 픽셀 좌표계로 그리므로(assets/mapcore.js)
    아래 선 굵기·글자 크기는 그대로 화면 픽셀이며 확대해도 변하지 않습니다. */
@@ -2190,7 +2190,7 @@ a.btnlink{display:inline-block;text-decoration:none;color:var(--brand-d);font-we
 a.btnlink:hover{border-color:var(--brand)}
 
 /* ══ ③ 방제자원 동원 ═══════════════════════════════════════
-   ② 대피장소 지도의 뼈대(.mmain / .mmap / .mside)를 그대로 쓰고,
+   ② 주민 대피장소 찾기의 뼈대(.mmain / .mmap / .mside)를 그대로 쓰고,
    ③ 에만 있는 것(자원 종류 · 연락처 · 동원 목록)만 여기 더합니다. */
 
 /* 자원 종류 색 — 색만으로 구분하면 배경지도 위에서 헷갈리고 색각 이상이
@@ -2536,7 +2536,7 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
   .mpk-row .fq{display:none}
 }
 
-/* ══ 대피장소 지도에서 고르기 (두 도구 공용) ═══════════════════
+/* ══ 주민 대피장소 찾기에서 고르기 (두 도구 공용) ═══════════════════
    지도가 없어도 목록만으로 고를 수 있도록 좌우 2단으로 두었습니다.
    지도는 화면 픽셀 좌표계로 그립니다(assets/shmap.js 참고). 그래서 아래
    선 굵기·글자 크기는 그대로 화면 픽셀이며 확대해도 변하지 않습니다. */
@@ -2836,7 +2836,7 @@ window.addEventListener("storage", function (e) {
 
 <div class="top">
   <div class="wrap">
-    <h1>화학사고 대피장소 지도</h1>
+    <h1>화학사고 주민 대피장소 찾기</h1>
     <div class="act noprint">
       <button id="btnSrc" type="button">자료 출처</button>
       <button id="btnPrint" type="button">인쇄</button>
@@ -2914,7 +2914,7 @@ window.addEventListener("storage", function (e) {
 <!-- ── 지도 + 목록 ──────────────────────────────────────── -->
 <div class="mmain">
   <div class="mmap">
-    <svg id="map" role="img" aria-label="화학사고 대피장소 지도"></svg>
+    <svg id="map" role="img" aria-label="화학사고 주민 대피장소 찾기 지도"></svg>
 
     <div class="mapctl noprint">
       <button id="zIn" type="button" title="확대">＋</button>
@@ -3000,7 +3000,7 @@ window.addEventListener("storage", function (e) {
 <script>
 /* 도구 기준정보 — 문안/데이터 갱신 시 이 파일을 수정하세요. */
 var VERSION = {
-  도구명: "화학사고 주민대피 문자 작성 지원도구",
+  도구명: "화학사고 주민대피 문자생성기",
   도구버전: "0.5.0-draft",
   반영일: "2026-08-06",
 
@@ -3053,7 +3053,7 @@ var VERSION = {
 </script>
 <script>
 /* ============================================================
-   배경지도 설정 — 대피장소 지도 선택 화면의 배경(도로·건물·지명)
+   배경지도 설정 — 주민 대피장소 찾기 선택 화면의 배경(도로·건물·지명)
 
    이 도구는 인터넷이 되는 환경에서 씁니다. 배경지도를 기본으로 켜 둡니다.
 
@@ -3386,7 +3386,7 @@ window.MatPicker = { close: close, refresh: function () { READY = false; ALL = [
    지도 공용 엔진 — 투영 · 거리 · 배경지도 타일 · 행정경계선
 
    ① 문자 작성 도구의 "지도에서 고르기" 창(assets/shmap.js)과
-   ② 대피장소 지도(map/app.js)가 같은 코드를 씁니다.
+   ② 주민 대피장소 찾기(map/app.js)가 같은 코드를 씁니다.
    앞으로 만들 ③ 방제자원업체 지도도 이 파일을 그대로 씁니다.
    따로 두면 타일 대체 규칙 같은 것을 고칠 때 두 번 고쳐야 하고,
    한쪽만 고쳐지면 두 지도가 서로 다르게 동작하게 됩니다.
@@ -4192,7 +4192,7 @@ window.MAPCORE = {
      내보내지 않기로 해 이 파일을 부르지 않습니다. 없어도 화면은 돕니다. -->
 <script>
 /* ============================================================
-   화학사고 대피장소 지도
+   화학사고 주민 대피장소 찾기
 
    ① 문자 작성 도구 안의 "지도에서 고르기"(assets/shmap.js)와 같은 엔진
    (assets/mapcore.js)을 씁니다. 배경지도·투영·거리 계산이 같으므로 두 화면에서

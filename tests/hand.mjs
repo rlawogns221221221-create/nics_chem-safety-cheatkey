@@ -60,7 +60,7 @@ const page = async (w = 1500, h = 900) => {
   chk(!(await P.isHidden('#seedBar')), '넘어온 값을 알리는 띠가 뜬다');
   const bar = await P.textContent('#seedBar');
   console.log('알림 띠:', bar.replace(/\s+/g, ' ').trim());
-  chk(/지도에서 넘어왔습니다/.test(bar), '어디서 왔는지 적혀 있다');
+  chk(/찾기에서 넘어왔습니다/.test(bar), '어디서 왔는지 적혀 있다');
   chk(/김천/.test(bar), '시·군·구가 넘어왔다');
 
   // 실제 입력칸에 값이 들어갔는지 — 대피소 칸은 '주민소산(대피명령)'에만 있다
@@ -145,7 +145,7 @@ const page = async (w = 1500, h = 900) => {
 // ══ 6. 단일 파일판에는 단추가 없고, 그래도 오류가 없다 ══
 {
   const P = await page();
-  await P.goto(`${R}/dist/화학사고_대피장소_지도.html`); await P.waitForTimeout(1000);
+  await P.goto(`${R}/dist/화학사고_주민대피장소_찾기.html`); await P.waitForTimeout(1000);
   const has = await P.evaluate(() => !!document.querySelector('#btnToSms'));
   chk(!has, '단일 파일판에는 이어쓰기 단추가 없다');
   await P.fill('#acLat', '36.14'); await P.fill('#acLon', '128.1137');

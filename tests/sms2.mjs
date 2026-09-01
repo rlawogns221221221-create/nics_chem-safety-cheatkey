@@ -60,12 +60,14 @@ const setF = async (P, k, v) => {
     href: e.querySelector('a').getAttribute('href')
   })));
   console.log('진입화면:', panels.map(p => `${p.no} ${p.title}`).join(' / '));
-  chk(panels[0].href === 'map/index.html' && panels[0].no === '01', '01 = 대피장소 지도');
-  chk(panels[1].href === 'sms/index.html' && panels[1].no === '02', '02 = 주민대피 문자 작성');
-  chk(panels[2].href === 'res/index.html' && panels[2].no === '03', '03 = 방제 동원 체계');
+  /* 차례는 사용자가 정합니다 — 지금은 방제 물품·장비 → 대피장소 → 문자입니다.
+     한동안 대피장소 → 문자 → 방제자원 이었습니다(상사 피드백, b0802d4). */
+  chk(panels[0].href === 'res/index.html' && panels[0].no === '01', '01 = 방제 물품·장비 찾기');
+  chk(panels[1].href === 'map/index.html' && panels[1].no === '02', '02 = 주민 대피장소 찾기');
+  chk(panels[2].href === 'sms/index.html' && panels[2].no === '03', '03 = 주민대피 문자생성기');
   // 링크가 실제로 열리는가
   await P.click('.tools .pn:nth-child(1) a'); await P.waitForTimeout(900);
-  chk(P.url().includes('/map/'), '첫 카드를 누르면 지도가 열린다');
+  chk(P.url().includes('/res/'), '첫 카드를 누르면 방제 물품·장비 찾기가 열린다');
   await P.close();
 }
 

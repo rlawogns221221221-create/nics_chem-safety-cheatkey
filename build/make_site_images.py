@@ -75,15 +75,15 @@ CROP = [
          note="수변 공단 수직 항공"),
     dict(src="hero-5.webp", out="hero-5.jpg", anchor=(0.5, 0.52), **HERO,
          note="해안 정유단지 — 부두와 탱크"),
-    # 01 대피장소 지도 — 항공사진. 사고지점 핀과 대피소 표시를 모두 남깁니다.
+    # 02 주민 대피장소 찾기 — 항공사진. 사고지점 핀과 대피소 표시를 모두 남깁니다.
     dict(src="card-map.webp", out="card-map.jpg",
          ratio=16 / 9, width=1200, anchor=(0.5, 0.46), q=80,
          note="가운데 붉은 핀 + 초록 대피소 표시 세 개가 다 들어와야 함"),
-    # 02 주민대피 문자 — 손에 든 휴대전화. 화면 글자가 잘리면 안 됩니다.
+    # 03 주민대피 문자 — 손에 든 휴대전화. 화면 글자가 잘리면 안 됩니다.
     dict(src="card-sms.webp", out="card-sms.jpg",
          ratio=16 / 9, width=1200, anchor=(0.5, 0.5), q=80,
          note="문자 화면 전체가 들어와야 함"),
-    # 03 방제자원 — 방제지원차량과 대응인력. 둘 다 남깁니다.
+    # 01 방제 물품·장비 — 방제지원차량과 대응인력. 둘 다 남깁니다.
     dict(src="card-res.webp", out="card-res.jpg",
          ratio=16 / 9, width=1200, anchor=(0.5, 0.56), q=80,
          note="차량 + 노란 보호복 인력이 함께 보여야 함"),
