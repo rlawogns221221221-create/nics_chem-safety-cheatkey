@@ -72,6 +72,7 @@ sw.js             예전에 깔린 서비스워커를 지움 ← 뿌리여야 �
 data/             화면이 읽는 자료 (기계 생성 — 손으로 고치지 말 것)
 build/            자료 생성·빌드 스크립트
 tests/            화면 검증 (실제 브라우저로 눌러 봄)
+docs/사용설명서.html  지자체 담당자용 설명서 **원본** — PDF 를 고치지 말고 여기를
 preview/          사용자가 눌러 보는 확인용 진입 화면 (Artifact 로 올림 · 5절)
 dist/             망분리 PC용 단일 HTML (build_single.py 가 만듦)
 release/          다른 기관에 넘길 폴더 (make_release.py 가 만듦 · git 제외)
@@ -126,6 +127,7 @@ python3 build/make_resources.py  # 방제자원 자료
 python3 build/build_single.py    # dist/ 단일 파일 3개
 python3 build/make_release.py    # release/ 배포 폴더 + zip
 node   build/make_icons.mjs      # build/icon.svg → 바탕화면 아이콘 PNG 3종
+node   build/make_guide.mjs      # 지자체 담당자용 사용설명서 PDF (사진도 다시 찍음)
 ```
 
 **지자체에 링크로 나눠 주는 법은 `docs/배포하기.md`** 에 있습니다 —

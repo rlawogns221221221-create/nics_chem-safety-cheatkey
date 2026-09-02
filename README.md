@@ -935,6 +935,8 @@ build/build_single.py 단일 HTML 빌드
 build/make_release.py 배포 폴더·압축파일 만들기
 build/icon.svg        바탕화면 아이콘 원본
 build/make_icons.mjs  아이콘 원본 → assets/img/icon-192·512·180.png
+build/make_guide.mjs  사용설명서 PDF 굽기 (화면 사진도 실제 화면에서 다시 찍음)
+docs/사용설명서.html  지자체 담당자용 설명서 원본 (PDF 를 직접 고치지 말 것)
 build/fetch_tempshelter.html  이재민 임시주거시설 자료 받기 (브라우저에서 1회)
 build/geocode.html    방제자원 정확 좌표 받기 (브라우저에서 1회)
 tests/                화면 검증 — 실제 브라우저로 눌러 봄 (tests/run.sh)
