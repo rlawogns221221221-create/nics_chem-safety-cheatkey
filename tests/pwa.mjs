@@ -125,6 +125,15 @@ chk(!/cache\.put\(req[,)]/.test(sw) && !/cache\.match\(req[,)]/.test(sw),
 chk(!/cache\.add\(/.test(sw),
   'sw.js 가 설치 단계에서 cache.add() 를 쓰지 않는다'
   + '(리다이렉트를 따라간 표시가 붙은 채로 저장되어 나중에 하위 화면 진입이 끊긴다)');
+
+/* 실제로 겪은 세 번째 사고 — 고친 서비스워커를 올려도 화면이 그대로였다.
+   서비스워커는 기본적으로 "이 사이트를 열어 둔 탭이 전부 닫힐 때까지"
+   옛 것이 계속 맡는다. 옛 것이 고장 나 있으면 고친 것을 올려도 사용자는
+   계속 고장 난 것을 본다(고친 판을 두 번 올리고도 그대로였던 이유).
+   skipWaiting() 이 있어야 새로고침 한 번으로 갈린다. */
+chk(/self\.skipWaiting\(\)/.test(sw),
+  'sw.js 가 skipWaiting() 으로 고친 판을 바로 넘겨받는다'
+  + '(없으면 고장 난 판이 탭을 다 닫을 때까지 계속 화면을 맡는다)');
 chk(/PRECACHE\.map[\s\S]*?res\.redirected/.test(sw),
   'sw.js 가 미리 받을 때도 리다이렉트 표시를 지우고 저장한다');
 const listed = new Set(
@@ -367,6 +376,36 @@ chk(!navErr,
 if (!navErr) {
   chk(await p5.$('.rz') !== null,
     '리다이렉트를 지나 실제로 방제 물품·장비 찾기 화면이 그려진다');
+}
+
+/* 미리 받아 둔 사본이 **없는** 상태로도 들어가 본다.
+   앞 검사는 미리받기가 끝난 뒤라 캐시에 있는 것을 돌려주는 길만 지났다.
+   실제로는 미리받기가 끝나기 전에 카드를 누르는 사람도 있고, 목록에 없는
+   주소로 들어오는 경우도 있다. 그때는 서비스워커가 **그 자리에서 받아**
+   돌려주는데, 리다이렉트를 따라간 응답을 그대로 돌려주면 역시 끊긴다.
+   그래서 저장된 사본을 일부러 지우고 다시 들어가 본다. */
+await p5.evaluate(async () => {
+  const ks = await caches.keys();
+  for (const k of ks) {
+    const c = await caches.open(k);
+    for (const r of await c.keys()) {
+      if (r.url.endsWith('/res/index.html')) await c.delete(r);
+    }
+  }
+});
+let navErr2 = null;
+try {
+  await p5.goto(`${BASE2}/`);
+  await p5.goto(`${BASE2}/res/index.html`, { waitUntil: 'load' });
+} catch (e) {
+  navErr2 = e;
+}
+chk(!navErr2,
+  '미리 받아 둔 사본이 없어도(그 자리에서 받아 올 때도) 진입이 끊기지 않는다'
+  + (navErr2 ? ` (${String(navErr2.message || navErr2).slice(0, 90)})` : ''));
+if (!navErr2) {
+  chk(await p5.$('.rz') !== null,
+    '그 자리에서 받아 온 화면도 제대로 그려진다');
 }
 await c5.close();
 server2.close();
