@@ -106,6 +106,15 @@ for (const rel of PAGES) {
 
 /* ══ 3. 미리받을목록이 화면과 어긋나지 않는가 ════════════════ */
 const sw = readFileSync(`${RPATH}/sw.js`, 'utf8');
+
+/* 실제로 겪은 사고 — 페이지 이동(mode:"navigate") 요청 객체를 그대로
+   캐시 키로 쓰면 일부 브라우저에서 저장이 조용히 실패해, 첫 방문에 아직
+   안 받아 둔 하위 화면(res/index.html 등)으로 들어갈 때만 연결이 아예
+   끊겼다(ERR_FAILED). 사진 같은 하위 자원은 이동 요청이 아니라 멀쩡했다.
+   주소 문자열로 저장·조회하게 고쳤다 — 이 검사가 되돌아가는 것을 막는다. */
+chk(!/cache\.put\(req[,)]/.test(sw) && !/cache\.match\(req[,)]/.test(sw),
+  'sw.js 가 요청 객체가 아니라 주소 문자열로 캐시를 저장·조회한다'
+  + '(페이지 이동 요청을 그대로 캐시 키로 쓰면 하위 화면 진입이 끊긴다)');
 const listed = new Set(
   (sw.match(/var PRECACHE = \[([\s\S]*?)\n\];/)[1].match(/"([^"]+)"/g) || [])
     .map(s => s.slice(1, -1)));

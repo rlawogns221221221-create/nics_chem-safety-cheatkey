@@ -32,7 +32,7 @@
    ═══════════════════════════════════════════════════════════════ */
 "use strict";
 
-var 버전 = "v1";
+var 버전 = "v2";
 var CACHE = "화학사고-초동대응-" + 버전;
 
 /* 미리 받아 둘 것 — 이것만 있으면 네 화면이 인터넷 없이 전부 동작합니다.
@@ -125,13 +125,22 @@ self.addEventListener("fetch", function (e) {
   /* 다른 도메인(배경지도 타일·주소검색)은 그대로 흘려보냅니다 */
   if (new URL(req.url).origin !== self.location.origin) return;
 
+  /* 캐시에 넣고 찾을 때는 요청 객체를 그대로 쓰지 않고 **주소 문자열**을
+     씁니다. 페이지 이동(주소창에 새로 치거나 링크를 눌러 여는 것)의
+     요청은 `mode: "navigate"` 인데, 이런 요청을 캐시 키로 그대로 쓰면
+     저장이 조용히 실패하는 브라우저가 있습니다 — 실제로 이 문제 때문에
+     하위 화면(예: res/index.html)으로 들어갈 때만 연결이 끊겨 버리는
+     일이 있었습니다(사진 같은 하위 자원은 이동 요청이 아니라서 멀쩡했음).
+     주소 문자열로 저장·조회하면 이 문제를 피하면서 결과는 똑같습니다. */
+  var key = req.url;
+
   e.respondWith(
     caches.open(CACHE).then(function (cache) {
-      return cache.match(req).then(function (hit) {
+      return cache.match(key).then(function (hit) {
         var fresh = fetch(req).then(function (res) {
           /* 200 인 것만 저장합니다. 오류 응답을 저장하면 다음에도 계속
              그 오류가 나옵니다. */
-          if (res && res.status === 200) cache.put(req, res.clone());
+          if (res && res.status === 200) cache.put(key, res.clone());
           return res;
         })["catch"](function () {
           return null;
@@ -143,13 +152,16 @@ self.addEventListener("fetch", function (e) {
         return fresh.then(function (res) {
           if (res) return res;
           /* 인터넷도 없고 저장된 것도 없을 때 — 화면 이동이라면 첫 화면을
-             대신 보여 줍니다. 빈 오류 화면보다 낫습니다. */
+             대신 보여 줍니다. 그것도 없으면 마지막으로 한 번 더 그물을
+             던져 봅니다 — 우리가 일부러 연결을 끊는 것보다, 브라우저가
+             실제 사정(진짜 오프라인인지·서버 문제인지)을 그대로 보여
+             주는 쪽이 낫습니다. */
           if (req.mode === "navigate") {
             return cache.match("index.html").then(function (home) {
-              return home || Response.error();
+              return home || fetch(req);
             });
           }
-          return Response.error();
+          return fetch(req);
         });
       });
     })
