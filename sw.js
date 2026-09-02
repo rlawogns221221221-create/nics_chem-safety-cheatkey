@@ -1,195 +1,55 @@
 /* ═══════════════════════════════════════════════════════════════
-   서비스워커 — 인터넷이 끊겨도 도구가 열리게 하고, 바탕화면에 깔 수 있게
-   합니다. **웹서버에 올렸을 때만** 도는 파일입니다.
+   서비스워커 — **지금은 아무 일도 하지 않습니다. 스스로를 지웁니다.**
 
-   ── 왜 필요한가 ────────────────────────────────────────────────
-   ① 현장에서 신호가 약하거나 끊겨도 도구가 열려야 합니다. 거리 계산·
-      문안 만들기·대피장소 목록은 원래 인터넷 없이 도는 기능인데, 파일
-      자체를 못 받으면 화면이 아예 안 뜹니다. 그 파일들을 미리 받아 둡니다.
-   ② 안드로이드가 "홈 화면에 추가"를 권하려면 서비스워커가 있어야 합니다.
-      (아이폰은 없어도 되지만, 있으면 끊겼을 때도 열립니다)
+   ── 왜 이렇게 되었나 ───────────────────────────────────────────
+   원래 이 파일은 "인터넷이 끊겨도 도구가 열리게" 하는 것이었습니다.
+   그런데 실제로 Cloudflare Pages 에 올려 보니, 진입 화면은 뜨는데
+   **하위 화면(res/index.html 등)으로 들어가면 연결이 끊겼습니다**
+   (ERR_FAILED). 원인을 셋이나 찾아 고쳤지만(리다이렉트 딱지 지우기 ·
+   미리 받을 때도 같은 처리 · skipWaiting), **네 번 올려도 그대로였습니다.**
 
-   ── 어떤 방식으로 캐시하나 ──────────────────────────────────────
-   **먼저 저장된 것을 보여 주고, 뒤에서 새것을 받아 둡니다**
-   (stale-while-revalidate). 그래서
-     · 열면 즉시 뜹니다 — 신호가 나빠도 기다리지 않습니다.
-     · 인터넷이 없어도 그대로 열립니다.
-     · 자료를 새로 올리면 **그다음에 열 때** 반영됩니다.
-   마지막 항목이 이 방식의 값입니다. 자료를 갈아 끼운 직후 한 번은 이전
-   자료가 보일 수 있습니다. 그래서 화면마다 **자료 기준일**을 늘 적어 두고
-   있습니다 — 어느 시점 자료를 보고 있는지 사람이 확인할 수 있어야 합니다.
-   급히 최신으로 맞춰야 하면 새로고침을 두 번 하면 됩니다.
+   그래서 이 기능을 **뺍니다.** 시범운영에 필요한 것은 "링크를 누르면
+   도구가 열리는 것"이지, 끊겼을 때도 열리는 것이 아닙니다. 되는지 안 되는지
+   모르는 기능을 붙여 두고 링크가 안 열리는 것보다, 기능을 빼고 링크가
+   확실히 도는 쪽이 낫습니다.
 
-   ── 자료를 새로 올렸을 때 ───────────────────────────────────────
-   아래 `버전` 을 올리세요. 브라우저가 이 파일이 바뀐 것을 보고 새 꾸러미를
-   내려받습니다. 옛 꾸러미는 activate 에서 지웁니다.
-   ⚠ 버전을 안 올려도 stale-while-revalidate 가 파일을 하나씩 갱신하므로
-     결국 최신이 됩니다. 버전 올리기는 **한꺼번에 확실히** 갈아 끼우는 길입니다.
+   ── 그런데 왜 파일을 지우지 않고 남겨 두나 ─────────────────────
+   이미 한 번이라도 사이트를 열어 본 사람의 브라우저에는 **고장 난 예전
+   서비스워커가 그대로 설치되어 있습니다.** 파일을 지우기만 하면 그 사람들은
+   계속 고장 난 것을 봅니다 — 자기 브라우저에 남은 것이 계속 일하기 때문에
+   우리가 무엇을 올리든 소용이 없습니다.
 
-   ── 바깥 주소는 건드리지 않습니다 ───────────────────────────────
-   배경지도 타일·주소검색은 다른 도메인이라 여기서 가로채지 않고 그대로
-   흘려보냅니다. 저장해 봐야 내용을 읽을 수 없고(opaque), 용량만 먹습니다.
+   그래서 이 파일을 **스스로를 지우는 것**으로 바꿔 둡니다. 예전 것을 밀어내고
+   들어와, 저장해 둔 것을 전부 비우고, 자기 등록까지 지운 뒤 사라집니다.
+   그다음부터 이 사이트는 서비스워커가 없는 평범한 웹사이트가 됩니다.
+
+   **이 파일을 지우지 마세요.** 예전 판을 열어 본 사람들이 아직 남아 있는
+   동안에는 이 파일이 그 사람들을 고쳐 줍니다. (assets/pwa.js 도 같은 일을
+   한 번 더 합니다 — 두 길로 확실히 지웁니다)
+
+   ── 다시 넣고 싶다면 ───────────────────────────────────────────
+   지난 판은 git 기록에 그대로 있습니다(커밋 4ba4228 의 sw.js).
+   되살리기 전에 **실제 배포 주소에서** 하위 화면 진입이 되는지 먼저
+   확인하세요. 검증(tests/pwa)만으로는 못 잡은 사고였습니다.
    ═══════════════════════════════════════════════════════════════ */
 "use strict";
 
-var 버전 = "v4";
-var CACHE = "화학사고-초동대응-" + 버전;
-
-/* 미리 받아 둘 것 — 이것만 있으면 네 화면이 인터넷 없이 전부 동작합니다.
-   진입 화면 사진(assets/img/site/*.jpg · 1.6MB)은 여기 없습니다. 없어도
-   화면은 멀쩡히 뜨고, 처음 열 때 받은 것이 그때 저장됩니다. 휴대전화에서
-   첫 방문에 1.6MB 를 더 받게 하지 않으려는 것입니다.
-
-   ⚠ 이 목록은 tests/pwa 가 네 HTML 이 실제로 부르는 것과 대조합니다.
-     화면에 파일을 새로 붙이면 여기에도 넣으세요(안 넣으면 검증이 잡습니다). */
-var PRECACHE = [
-  "./",
-  "index.html",
-  "manifest.webmanifest",
-
-  "sms/index.html", "sms/app.js",
-  "map/index.html", "map/app.js",
-  "res/index.html", "res/app.js",
-
-  "assets/krds/krds_tokens.css",
-  "assets/shell.css",
-  "assets/portal.css",
-  "assets/theme.js",
-  "assets/portal.js",
-  "assets/pwa.js",
-  "assets/mapcore.js",
-  "assets/matpicker.js",
-  "assets/shmap.js",
-  "assets/online.js",
-
-  "assets/fonts/PretendardGOV-Regular.subset.woff2",
-  "assets/fonts/PretendardGOV-Bold.subset.woff2",
-
-  "assets/img/gov-logo.png",
-  "assets/img/icon-192.png",
-  "assets/img/icon-512.png",
-  "assets/img/icon-180.png",
-
-  "data/basemap.js",
-  "data/boundaries.js",
-  "data/cases.js",
-  "data/materials.js",
-  "data/resources.js",
-  "data/shelters.js",
-  "data/stats.js",
-  "data/templates.js",
-  "data/version.js",
-
-  /* 있으면 쓰고 없으면 그 기능만 빠지는 파일 — 없어도 설치가 실패하면
-     안 되므로 아래에서 하나씩 따로 받습니다(addAll 이 아니라). */
-  "data/resources.geo.js",
-  "data/tempshelters.js"
-];
-
-self.addEventListener("install", function (e) {
-  /* 새 서비스워커가 **기다리지 않고 바로** 일을 넘겨받게 합니다.
-     기본 동작은 "이 사이트를 열어 둔 탭이 전부 닫힐 때까지 옛 것이 계속
-     맡는다" 입니다. 보수적이라 좋아 보였지만, 옛 것이 **고장 나 있으면**
-     고친 것을 올려도 사용자가 탭을 다 닫기 전까지 계속 고장 난 채입니다 —
-     실제로 이 때문에 고친 판을 두 번 올려도 화면이 그대로였습니다.
-     새로고침 한 번으로 고친 것이 적용되어야 합니다. */
+self.addEventListener("install", function () {
+  /* 예전 것이 탭을 다 닫을 때까지 버티지 못하게 바로 밀어냅니다 */
   self.skipWaiting();
-  e.waitUntil(
-    caches.open(CACHE).then(function (cache) {
-      /* addAll 을 쓰지 않습니다 — 하나라도 없으면(선택 파일) 전부 실패해
-         설치 자체가 안 됩니다. 하나씩 받고 실패는 넘어갑니다.
-
-         cache:"reload" 는 브라우저가 들고 있던 사본을 쓰지 않고 **새로 받게**
-         합니다. 그래서 처음 열 때 2.4MB 쯤을 한 번 더 받습니다(화면을 그리며
-         이미 받은 것을 또 받는 셈). 그래도 이렇게 두는 이유는, 자료를 갈아
-         끼우고 버전을 올렸을 때 **옛 사본이 그대로 굳어 버리는 일**을 막아야
-         하기 때문입니다. 승인받은 문안이 옛것인 채로 남는 쪽이 훨씬 나쁩니다. */
-      /* 캐시에 넣는 그 편한 방법(한 줄짜리 caches API) 대신 fetch 로 직접
-         받아 넣습니다 — 그 편한 방법은 Cloudflare Pages 가 "/res/index.html"
-         을 "/res/" 로 정리하며 돌려주는 리다이렉트를 그대로 따라간
-         응답(redirected:true)을 **그 딱지가 붙은 채로** 저장합니다. 그러면
-         나중에 화면 이동 때 이 저장된 사본을 그대로 돌려주기만 해도 크롬이
-         거부합니다(아래 fetch 처리기의 실시간 받기 쪽만 고치는 것으로는
-         부족했던 이유입니다 — 미리 받아 둔 사본에도 같은 문제가 있었습니다). */
-      return Promise.all(PRECACHE.map(function (url) {
-        return fetch(new Request(url, { cache: "reload" })).then(function (res) {
-          if (res.redirected) res = new Response(res.body, res);
-          return cache.put(url, res);
-        })["catch"](function () {});
-      }));
-    })
-  );
 });
 
 self.addEventListener("activate", function (e) {
   e.waitUntil(
     caches.keys().then(function (names) {
-      return Promise.all(names.map(function (n) {
-        return n === CACHE ? null : caches["delete"](n);
-      }));
+      return Promise.all(names.map(function (n) { return caches["delete"](n); }));
+    }).then(function () {
+      return self.registration.unregister();
     }).then(function () {
       return self.clients.claim();
-    })
+    })["catch"](function () { /* 지우다 실패해도 화면은 그대로 돕니다 */ })
   );
 });
 
-self.addEventListener("fetch", function (e) {
-  var req = e.request;
-
-  /* 읽기만 가로챕니다 */
-  if (req.method !== "GET") return;
-
-  /* 다른 도메인(배경지도 타일·주소검색)은 그대로 흘려보냅니다 */
-  if (new URL(req.url).origin !== self.location.origin) return;
-
-  /* 캐시에 넣고 찾을 때는 요청 객체를 그대로 쓰지 않고 **주소 문자열**을
-     씁니다. 페이지 이동(주소창에 새로 치거나 링크를 눌러 여는 것)의
-     요청은 `mode: "navigate"` 인데, 이런 요청을 캐시 키로 그대로 쓰면
-     저장이 조용히 실패하는 브라우저가 있습니다 — 실제로 이 문제 때문에
-     하위 화면(예: res/index.html)으로 들어갈 때만 연결이 끊겨 버리는
-     일이 있었습니다(사진 같은 하위 자원은 이동 요청이 아니라서 멀쩡했음).
-     주소 문자열로 저장·조회하면 이 문제를 피하면서 결과는 똑같습니다. */
-  var key = req.url;
-
-  e.respondWith(
-    caches.open(CACHE).then(function (cache) {
-      return cache.match(key).then(function (hit) {
-        var fresh = fetch(req).then(function (res) {
-          /* Cloudflare Pages 같은 곳은 "/res/index.html" 을 "/res/" 로
-             자동으로 정리해 돌려줍니다(리다이렉트). fetch() 가 그 리다이렉트를
-             그대로 따라가면 res.redirected 가 true 가 되는데, 화면 이동
-             (mode:"navigate") 요청에 그런 응답을 그대로 돌려주면 크롬이
-             "주소창과 실제로 받아 온 곳이 다르다"며 연결 자체를 거부합니다
-             (ERR_FAILED — 실제로 이 때문에 하위 화면 진입이 끊겼습니다).
-             몸통·상태·헤더만 옮겨 **새 Response** 를 만들면 이 딱지가 없어져
-             안전하게 돌려줄 수 있습니다 — 화면에 보이는 내용은 같습니다. */
-          if (res && res.redirected) res = new Response(res.body, res);
-          /* 200 인 것만 저장합니다. 오류 응답을 저장하면 다음에도 계속
-             그 오류가 나옵니다. */
-          if (res && res.status === 200) cache.put(key, res.clone());
-          return res;
-        })["catch"](function () {
-          return null;
-        });
-
-        /* 저장된 것이 있으면 그것을 즉시 주고, 새것은 뒤에서 받아 둡니다 */
-        if (hit) { e.waitUntil(fresh); return hit; }
-
-        return fresh.then(function (res) {
-          if (res) return res;
-          /* 인터넷도 없고 저장된 것도 없을 때 — 화면 이동이라면 첫 화면을
-             대신 보여 줍니다. 그것도 없으면 마지막으로 한 번 더 그물을
-             던져 봅니다 — 우리가 일부러 연결을 끊는 것보다, 브라우저가
-             실제 사정(진짜 오프라인인지·서버 문제인지)을 그대로 보여
-             주는 쪽이 낫습니다. */
-          if (req.mode === "navigate") {
-            return cache.match("index.html").then(function (home) {
-              return home || fetch(req);
-            });
-          }
-          return fetch(req);
-        });
-      });
-    })
-  );
-});
+/* fetch 를 가로채지 않습니다 — 가로채지 않으면 브라우저가 평소처럼
+   직접 받아 옵니다. 이 파일이 화면 이동을 망가뜨릴 여지를 아예 없앱니다. */
