@@ -30,7 +30,7 @@ import zipfile
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "release"
-SITE_NAME = "화학사고_대응지원_서비스"
+SITE_NAME = "화학사고_초동대응_지원_서비스"
 OFFLINE_NAME = "망분리PC용_단일파일"
 
 # 화면이 실제로 부르는 것만
@@ -120,7 +120,7 @@ def handover(site: pathlib.Path) -> str:
     n_files = sum(1 for p in site.rglob("*") if p.is_file())
     size_mb = sum(p.stat().st_size for p in site.rglob("*") if p.is_file()) / 1024 / 1024
 
-    return f"""# 화학사고 대응지원 서비스 — 전달 안내
+    return f"""# 화학사고 초동대응 지원 서비스 — 전달 안내
 
 화학사고가 났을 때 지자체 담당자가 쓰는 업무도구 3종과, 그 셋을 고르는
 첫 화면입니다. 웹브라우저만 있으면 되고 별도 프로그램 설치가 필요 없습니다.

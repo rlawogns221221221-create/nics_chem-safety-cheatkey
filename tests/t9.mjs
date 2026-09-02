@@ -517,7 +517,7 @@ chk(first.noticeSize <= 15, `알림 글자가 본문보다 작다 (${first.notic
 chk(first.noticeLen > 120 && first.noticeH > 20,
   `알림 내용은 그대로 있다 (${first.noticeLen}자 · ${Math.round(first.noticeH)}px)`);
 chk(lum(first.noticeInk) < 140, `알림 글자가 읽을 만큼 진하다 (밝기 ${Math.round(lum(first.noticeInk))})`);
-chk(first.words === 3 && first.wordAnim.every(n => n !== 'none'),
+chk(first.words === 4 && first.wordAnim.every(n => n !== 'none'),
   `제목이 낱말 ${first.words}개로 나뉘어 차례로 올라온다 (${first.wordDelay.join('/')})`);
 
 // ══ 18. 머리띠 사진·문구가 5초마다 바뀐다 ═══════════════════════

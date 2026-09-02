@@ -1,5 +1,5 @@
 /* ============================================================
-   화학사고 대응지원 서비스 — 진입 화면
+   화학사고 초동대응 지원 서비스 — 진입 화면
 
    KRDS(대한민국 정부 디자인시스템) 표준형입니다. 색·글자·크기는 업무도구
    (assets/shell.css)와 **같은 토큰**을 씁니다 — 진입 화면에서 도구로 넘어갈 때
@@ -273,6 +273,7 @@ html[data-krds-mode="high-contrast"] .logo-full{
 .hero h1 span{display:inline-block; animation:heroIn .6s var(--ease) both}
 .hero h1 span:nth-child(2){animation-delay:.1s}
 .hero h1 span:nth-child(3){animation-delay:.2s}
+.hero h1 span:nth-child(4){animation-delay:.3s}
 .hero p{margin:0; font-size:1.9rem; line-height:1.65;
   color:var(--hero-ink-2)}
 .hero-lead b{font-weight:700; color:var(--brand-d)}
