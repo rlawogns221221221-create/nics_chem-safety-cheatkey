@@ -115,6 +115,18 @@ const sw = readFileSync(`${RPATH}/sw.js`, 'utf8');
 chk(!/cache\.put\(req[,)]/.test(sw) && !/cache\.match\(req[,)]/.test(sw),
   'sw.js 가 요청 객체가 아니라 주소 문자열로 캐시를 저장·조회한다'
   + '(페이지 이동 요청을 그대로 캐시 키로 쓰면 하위 화면 진입이 끊긴다)');
+
+/* 실제로 겪은 또 하나의 사고 — Cloudflare Pages 는 "/res/index.html" 을
+   "/res/" 로 정리해 돌려주는데(리다이렉트), cache.add() 로 미리 받으면
+   그 리다이렉트를 따라간 표시(redirected:true)가 붙은 채로 저장된다.
+   나중에 화면 이동 때 그 저장본을 그대로 돌려주기만 해도 끊긴다 —
+   그래서 install 단계에서 cache.add() 대신 fetch 한 뒤 표시를 지우고
+   직접 넣어야 한다. */
+chk(!/cache\.add\(/.test(sw),
+  'sw.js 가 설치 단계에서 cache.add() 를 쓰지 않는다'
+  + '(리다이렉트를 따라간 표시가 붙은 채로 저장되어 나중에 하위 화면 진입이 끊긴다)');
+chk(/PRECACHE\.map[\s\S]*?res\.redirected/.test(sw),
+  'sw.js 가 미리 받을 때도 리다이렉트 표시를 지우고 저장한다');
 const listed = new Set(
   (sw.match(/var PRECACHE = \[([\s\S]*?)\n\];/)[1].match(/"([^"]+)"/g) || [])
     .map(s => s.slice(1, -1)));
@@ -298,6 +310,66 @@ chk(await p4.evaluate(() => document.querySelectorAll('.pn').length) === 3,
 chk(await p4.$('.inst') === null,
   'file:// 에서는 설치 안내를 띄우지 않는다(설치할 수 없는 상태이므로)');
 await c4.close();
+
+/* ══ 9. Cloudflare 식 "주소 정리" 리다이렉트를 실제로 겪어 본다 ══
+   실제 사고 — Cloudflare Pages 는 "/res/index.html" 요청을 "/res/" 로
+   자동으로 정리해(308) 돌려준다. 우리 서비스워커가 화면 이동(navigate)
+   요청에 그 리다이렉트를 그대로 따라간 응답을 돌려주면, 크롬이
+   "주소창과 실제로 받아 온 곳이 다르다"며 연결 자체를 거부한다
+   (ERR_FAILED). 앞의 1~8절은 이 서버가 리다이렉트를 하지 않아 이 사고를
+   그대로 두면 못 잡는다 — 그래서 실제로 리다이렉트하는 서버를 하나 더
+   띄워, 진짜로 겪어 보고 확인한다. */
+const server2 = createServer((req, res) => {
+  const p = decodeURIComponent(req.url.split('?')[0]);
+  if (p.endsWith('/index.html')) {
+    res.writeHead(308, { location: p.slice(0, -'index.html'.length) });
+    res.end();
+    return;
+  }
+  let f = p.endsWith('/') ? p + 'index.html' : p;
+  if (f.includes('..')) { res.writeHead(400).end(); return; }
+  const file = RPATH + f;
+  if (!existsSync(file)) { res.writeHead(404).end('없음'); return; }
+  const ext = f.slice(f.lastIndexOf('.'));
+  res.writeHead(200, { 'content-type': MIME[ext] || 'application/octet-stream',
+    'cache-control': 'no-store' });
+  res.end(readFileSync(file));
+});
+await new Promise(r => server2.listen(0, '127.0.0.1', r));
+const BASE2 = `http://127.0.0.1:${server2.address().port}`;
+
+const c5 = await browser.newContext();
+const p5 = await c5.newPage();
+/* 실제 이용자도 뿌리 주소로 열지 "…/index.html" 로 직접 열지 않는다 */
+await p5.goto(`${BASE2}/`);
+await p5.waitForLoadState('load');
+await p5.waitForFunction(() => !!navigator.serviceWorker.controller, null,
+  { timeout: 10000 }).catch(() => {});
+/* 미리받기가 res/index.html 까지 끝날 때까지 기다린다 — 이 목록에 있는
+   화면은 미리 받아 두는 것이 설계이므로, 끝난 뒤에 들어가는 것이
+   실제 상황과 같다(사용자도 사이트를 열고 몇 초 뒤에 카드를 눌렀다). */
+await p5.waitForFunction(async () => {
+  const ks = await caches.keys();
+  if (!ks.length) return false;
+  const c = await caches.open(ks[0]);
+  return (await c.match('res/index.html')) !== undefined;
+}, null, { timeout: 15000 }).catch(() => {});
+
+let navErr = null;
+try {
+  await p5.goto(`${BASE2}/res/index.html`, { waitUntil: 'load' });
+} catch (e) {
+  navErr = e;
+}
+chk(!navErr,
+  '리다이렉트를 돌려주는 서버에서도 하위 화면 진입이 끊기지 않는다'
+  + (navErr ? ` (${String(navErr.message || navErr).slice(0, 90)})` : ''));
+if (!navErr) {
+  chk(await p5.$('.rz') !== null,
+    '리다이렉트를 지나 실제로 방제 물품·장비 찾기 화면이 그려진다');
+}
+await c5.close();
+server2.close();
 
 await browser.close();
 server.close();

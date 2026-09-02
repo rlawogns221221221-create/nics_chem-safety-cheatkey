@@ -32,7 +32,7 @@
    ═══════════════════════════════════════════════════════════════ */
 "use strict";
 
-var 버전 = "v2";
+var 버전 = "v3";
 var CACHE = "화학사고-초동대응-" + 버전;
 
 /* 미리 받아 둘 것 — 이것만 있으면 네 화면이 인터넷 없이 전부 동작합니다.
@@ -97,8 +97,18 @@ self.addEventListener("install", function (e) {
          이미 받은 것을 또 받는 셈). 그래도 이렇게 두는 이유는, 자료를 갈아
          끼우고 버전을 올렸을 때 **옛 사본이 그대로 굳어 버리는 일**을 막아야
          하기 때문입니다. 승인받은 문안이 옛것인 채로 남는 쪽이 훨씬 나쁩니다. */
+      /* 캐시에 넣는 그 편한 방법(한 줄짜리 caches API) 대신 fetch 로 직접
+         받아 넣습니다 — 그 편한 방법은 Cloudflare Pages 가 "/res/index.html"
+         을 "/res/" 로 정리하며 돌려주는 리다이렉트를 그대로 따라간
+         응답(redirected:true)을 **그 딱지가 붙은 채로** 저장합니다. 그러면
+         나중에 화면 이동 때 이 저장된 사본을 그대로 돌려주기만 해도 크롬이
+         거부합니다(아래 fetch 처리기의 실시간 받기 쪽만 고치는 것으로는
+         부족했던 이유입니다 — 미리 받아 둔 사본에도 같은 문제가 있었습니다). */
       return Promise.all(PRECACHE.map(function (url) {
-        return cache.add(new Request(url, { cache: "reload" }))["catch"](function () {});
+        return fetch(new Request(url, { cache: "reload" })).then(function (res) {
+          if (res.redirected) res = new Response(res.body, res);
+          return cache.put(url, res);
+        })["catch"](function () {});
       }));
     })
   );
@@ -138,6 +148,15 @@ self.addEventListener("fetch", function (e) {
     caches.open(CACHE).then(function (cache) {
       return cache.match(key).then(function (hit) {
         var fresh = fetch(req).then(function (res) {
+          /* Cloudflare Pages 같은 곳은 "/res/index.html" 을 "/res/" 로
+             자동으로 정리해 돌려줍니다(리다이렉트). fetch() 가 그 리다이렉트를
+             그대로 따라가면 res.redirected 가 true 가 되는데, 화면 이동
+             (mode:"navigate") 요청에 그런 응답을 그대로 돌려주면 크롬이
+             "주소창과 실제로 받아 온 곳이 다르다"며 연결 자체를 거부합니다
+             (ERR_FAILED — 실제로 이 때문에 하위 화면 진입이 끊겼습니다).
+             몸통·상태·헤더만 옮겨 **새 Response** 를 만들면 이 딱지가 없어져
+             안전하게 돌려줄 수 있습니다 — 화면에 보이는 내용은 같습니다. */
+          if (res && res.redirected) res = new Response(res.body, res);
           /* 200 인 것만 저장합니다. 오류 응답을 저장하면 다음에도 계속
              그 오류가 나옵니다. */
           if (res && res.status === 200) cache.put(key, res.clone());
