@@ -526,6 +526,28 @@ main{flex:1; padding:0 0 3.2rem}
   font-size:1.4rem; line-height:1.7; color:var(--ink2)}
 .notice b{font-weight:700; color:var(--ink)}
 
+/* ── 바탕화면에 놓고 쓰기 안내 (assets/pwa.js 가 넣습니다) ────
+   참고도구 안내와 같은 크기·같은 회색입니다. 설치는 **도구를 쓰는 일이
+   아니라 편의**라서, 도구 고르는 카드보다 눈에 띄면 안 됩니다.
+   서버에 올리지 않았거나 이미 설치했으면 이 줄 자체가 없습니다. */
+.inst{max-width:100ch; margin:1.2rem 0 0;
+  font-size:1.4rem; line-height:1.7; color:var(--ink2)}
+/* 크기는 --h-s 같은 이름 대신 숫자로 적습니다 — 그 이름들은 도구 화면
+   (shell.css)에만 있고 이 파일에는 없습니다. 값은 같은 KRDS 계단입니다
+   (4rem=40px · 4.8rem=48px). 없는 이름을 쓰면 CSS 가 그 줄을 조용히
+   버려서 단추가 글자 높이로 쪼그라듭니다 — 실제로 그랬습니다. */
+.instbtn{display:inline-flex; align-items:center;
+  height:4rem; padding:0 1.4rem; margin-left:.4rem;
+  border:.1rem solid var(--brand); border-radius:.4rem;
+  background:var(--card); color:var(--brand-d);
+  font:inherit; font-size:1.4rem; font-weight:700; cursor:pointer;
+  transition:background-color .15s, border-color .15s}
+.instbtn:hover{background:var(--brand-l)}
+.instbtn:focus-visible{outline:none; box-shadow:var(--focus)}
+.instbtn[disabled]{opacity:.5; cursor:default}
+/* 손가락으로 누르는 기기 — KRDS 최소 크기(48px) */
+@media (pointer: coarse){ .instbtn{height:4.8rem; padding:0 1.8rem} }
+
 footer{background:var(--card); border-top:.1rem solid var(--line);
   padding:2rem 0; font-size:1.5rem; color:var(--ink3)}
 footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}

@@ -108,9 +108,33 @@ def read(base: pathlib.Path, rel: str) -> str:
     return path.read_text(encoding="utf-8")
 
 
+# 웹앱(바탕화면 설치)용 줄들 — 단일 파일에서는 빼야 하는 것
+#
+# 이 파일은 망분리 PC 로 옮겨 file:// 로 여는 한 덩어리입니다. 옆에 파일이
+# 없으므로 매니페스트·아이콘 파일을 부르면 그냥 404 가 납니다. 서비스워커도
+# file:// 에서는 브라우저가 아예 막습니다. 그래서 아예 빼고 만듭니다.
+#
+# ⚠ 탭 아이콘(<link rel="icon" href="data:…>)은 **빼지 않습니다.**
+#   그림이 주소 안에 그대로 들어 있어 파일을 더 부르지 않고, 단일 파일에서도
+#   탭에 아이콘이 보입니다.
+PWA_TAGS = [
+    r'[ \t]*<link rel="manifest"[^>]*>\n?',
+    r'[ \t]*<link rel="apple-touch-icon"[^>]*>\n?',
+    r'[ \t]*<meta name="apple-mobile-web-app-[^>]*>\n?',
+    r'[ \t]*<script src="[^"]*assets/pwa\.js"></script>\n?',
+]
+
+
+def strip_pwa(html: str) -> str:
+    for pat in PWA_TAGS:
+        html = re.sub(pat, "", html)
+    return html
+
+
 def build(page: pathlib.Path, out: pathlib.Path, swap=None) -> None:
     html = page.read_text(encoding="utf-8")
     base = page.parent
+    html = strip_pwa(html)
 
     # 내부판이면 데이터 파일 참조를 먼저 갈아끼운다 (인라인 전에 해야 함)
     if swap:
@@ -189,6 +213,7 @@ PORTAL_BANNER = """<!-- ──────────────────�
 def build_portal(out: pathlib.Path) -> None:
     page = ROOT / "index.html"
     html = page.read_text(encoding="utf-8")
+    html = strip_pwa(html)
     html = re.sub(
         r'[ \t]*<link rel="stylesheet" href="([^"]+)">',
         lambda m: "<style>\n" + read(page.parent, m.group(1)) + "\n</style>",

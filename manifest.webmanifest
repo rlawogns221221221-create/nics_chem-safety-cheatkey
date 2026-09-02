@@ -1,0 +1,39 @@
+{
+  "id": "./",
+  "name": "화학사고 초동대응 지원 서비스",
+  "short_name": "화학사고 초동대응",
+  "description": "화학사고가 났을 때 지자체 담당자가 쓰는 업무도구 3종 — 방제 물품·장비 찾기, 주민 대피장소 찾기, 주민대피 문자생성기.",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "theme_color": "#256ef4",
+  "background_color": "#ffffff",
+  "categories": ["government", "utilities"],
+  "icons": [
+    { "src": "assets/img/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "assets/img/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "방제 물품·장비 찾기",
+      "short_name": "방제 물품·장비",
+      "url": "res/index.html",
+      "icons": [{ "src": "assets/img/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "주민 대피장소 찾기",
+      "short_name": "대피장소",
+      "url": "map/index.html",
+      "icons": [{ "src": "assets/img/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "주민대피 문자생성기",
+      "short_name": "대피문자",
+      "url": "sms/index.html",
+      "icons": [{ "src": "assets/img/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

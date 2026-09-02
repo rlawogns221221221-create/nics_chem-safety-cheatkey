@@ -6,6 +6,11 @@
 #
 #      https://rlawogns221221221-create.github.io/nics_chem-safety-cheatkey/
 #
+#  ⚠ 이 주소에는 **깃허브 계정 이름과 저장소 이름이 그대로 보입니다.**
+#     지자체에 나눠 줄 시범운영 링크로는 맞지 않습니다 — 계정을 감추는
+#     세 가지 길이 docs/배포하기.md 에 있습니다(기관 서버 · Cloudflare
+#     Pages · 사용자 지정 도메인). 여기는 개발 중 확인용으로 그대로 둡니다.
+#
 #  ── 저장소 전체를 그대로 올리지 않는 이유 ──────────────────
 #  Pages 는 올린 것을 전부 공개합니다. 저장소에는 화면에 필요 없는 것도
 #  들어 있습니다.
@@ -63,6 +68,10 @@ jobs:
         run: |
           mkdir -p _site
           cp index.html _site/
+          # 매니페스트와 서비스워커는 사이트 뿌리에 있어야 합니다 —
+          # 서비스워커는 자기가 놓인 폴더까지만 맡아서, 하위로 내리면
+          # 도구 세 개가 오프라인에서 열리지 않습니다.
+          cp manifest.webmanifest sw.js _site/
           cp -r assets data sms map res _site/
           # 망분리 PC로 옮길 단일 파일도 함께 올린다 — 내부망 담당자가
           # 이 주소에서 내려받아 USB·공유폴더로 옮길 수 있게.

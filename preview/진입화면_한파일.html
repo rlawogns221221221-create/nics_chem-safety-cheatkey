@@ -12,6 +12,22 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>화학사고 초동대응 지원 서비스 · 화학물질안전원</title>
 <meta name="description" content="화학사고 초기 대응과 주민안전 업무를 지원하는 화학물질안전원 업무지원 서비스입니다.">
+
+<!-- ══ 바탕화면에 놓고 쓰기 (웹앱) ═════════════════════════════
+     웹서버에 올렸을 때만 쓰이는 줄들입니다. file:// 로 열거나 망분리용
+     단일 파일에서는 브라우저가 조용히 무시합니다(build_single.py 가
+     아예 빼기도 합니다). 그래서 여기 있어도 기존 사용법은 그대로입니다.
+
+     주소를 상대경로(./)로 적는 이유 — 어느 웹서버의 어느 폴더에 올려도
+     그대로 동작해야 하기 때문입니다. 뿌리(/)로 적으면 하위 폴더에 올린
+     순간 아이콘·설치가 통째로 깨집니다.
+     ══════════════════════════════════════════════════════════ -->
+<meta name="theme-color" content="#256ef4">
+<!-- 아이폰은 매니페스트의 short_name 이 아니라 이 값을 홈 화면 이름으로 씁니다 -->
+<!-- 탭 아이콘 — 그림을 주소 안에 그대로 적었습니다. 파일을 하나 더 받지
+     않고, file:// 로 열 때도 단일 파일에서도 똑같이 보입니다. -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='%23256ef4'/><path d='M256 132 396 366H116Z' fill='none' stroke='%23fff' stroke-width='34' stroke-linejoin='round'/><path d='M256 218v68' stroke='%23fff' stroke-width='30' stroke-linecap='round'/><circle cx='256' cy='325' r='17' fill='%23fff'/></svg>">
+
 <!-- KRDS 공식 디자인 토큰 — 원본 그대로. portal.css 가 이 값을 우리 이름으로 잇습니다 -->
 <style>
 
@@ -1335,6 +1351,28 @@ main{flex:1; padding:0 0 3.2rem}
   font-size:1.4rem; line-height:1.7; color:var(--ink2)}
 .notice b{font-weight:700; color:var(--ink)}
 
+/* ── 바탕화면에 놓고 쓰기 안내 (assets/pwa.js 가 넣습니다) ────
+   참고도구 안내와 같은 크기·같은 회색입니다. 설치는 **도구를 쓰는 일이
+   아니라 편의**라서, 도구 고르는 카드보다 눈에 띄면 안 됩니다.
+   서버에 올리지 않았거나 이미 설치했으면 이 줄 자체가 없습니다. */
+.inst{max-width:100ch; margin:1.2rem 0 0;
+  font-size:1.4rem; line-height:1.7; color:var(--ink2)}
+/* 크기는 --h-s 같은 이름 대신 숫자로 적습니다 — 그 이름들은 도구 화면
+   (shell.css)에만 있고 이 파일에는 없습니다. 값은 같은 KRDS 계단입니다
+   (4rem=40px · 4.8rem=48px). 없는 이름을 쓰면 CSS 가 그 줄을 조용히
+   버려서 단추가 글자 높이로 쪼그라듭니다 — 실제로 그랬습니다. */
+.instbtn{display:inline-flex; align-items:center;
+  height:4rem; padding:0 1.4rem; margin-left:.4rem;
+  border:.1rem solid var(--brand); border-radius:.4rem;
+  background:var(--card); color:var(--brand-d);
+  font:inherit; font-size:1.4rem; font-weight:700; cursor:pointer;
+  transition:background-color .15s, border-color .15s}
+.instbtn:hover{background:var(--brand-l)}
+.instbtn:focus-visible{outline:none; box-shadow:var(--focus)}
+.instbtn[disabled]{opacity:.5; cursor:default}
+/* 손가락으로 누르는 기기 — KRDS 최소 크기(48px) */
+@media (pointer: coarse){ .instbtn{height:4.8rem; padding:0 1.8rem} }
+
 footer{background:var(--card); border-top:.1rem solid var(--line);
   padding:2rem 0; font-size:1.5rem; color:var(--ink3)}
 footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
@@ -1799,6 +1837,15 @@ window.addEventListener("storage", function (e) {
       늘려 잡은 어림값입니다. 지도의 반경 원은 물질정보에 적힌 참고 거리이며
       확산 모델링 결과가 아닙니다.
     </p>
+
+    <!-- 바탕화면에 놓고 쓰는 안내가 들어올 자리 — assets/pwa.js 가 채웁니다.
+         기기마다 방법이 달라서(안드로이드는 단추 하나, 아이폰은 공유 메뉴)
+         화면에 미리 적어 두지 않고 그 기기에 맞는 것만 넣습니다.
+         이미 설치해 앱으로 열었으면 아무것도 넣지 않습니다.
+
+         자리를 **참고도구 안내 아래**에 둔 이유 — 위쪽에 뭔가를 더하면
+         머리띠가 높아져 휴대전화에서 셋째 카드가 화면 밖으로 밀립니다. -->
+    <div data-install-slot></div>
   </div>
 </main>
 
@@ -1919,6 +1966,9 @@ document.addEventListener("touchstart", function () {}, { passive: true });
 })();
 
 </script>
+
+<!-- 웹앱 설치 안내 + 인터넷 없이도 열리게 하기. 서버에 올렸을 때만 돌고,
+     file:// 에서는 아무 일도 하지 않습니다. -->
 
 </body>
 </html>
