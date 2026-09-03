@@ -1,0 +1,724 @@
+<title>방제자원 정의와 서비스 방향</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=Noto+Serif+KR:wght@600;700&display=swap">
+<style>
+/* ── 토큰 ─────────────────────────────────────────────
+   서비스가 쓰는 KRDS 색을 그대로 가져왔습니다(Primary #256ef4).
+   Artifact 는 구글 폰트만 불러올 수 있어 본체의 Pretendard GOV 대신
+   Noto 를 씁니다 — 서비스 화면과 글꼴이 다른 것은 그 때문입니다. */
+:root{
+  --bg:#ffffff;        --surf:#f3f6fb;      --surf2:#e9eef7;
+  --ink:#16191d;       --ink2:#525c68;      --ink3:#79838f;
+  --line:#d7dde6;      --line2:#bcc5d1;
+  --pri:#256ef4;       --pri-deep:#0b48b8;  --pri-soft:#e8f0ff;
+  --warn:#a1420a;      --warn-bg:#fdf1e5;   --warn-line:#e8c49c;
+  --ok:#0a6045;        --ok-bg:#e7f4ee;     --ok-line:#a8d5c2;
+  --shadow:0 1px 2px rgba(16,25,40,.06), 0 8px 24px -16px rgba(16,25,40,.25);
+  --rail:#c9d3e0;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#13161a;      --surf:#1b2027;      --surf2:#232a33;
+    --ink:#e9edf2;     --ink2:#a6b0bd;      --ink3:#7f8996;
+    --line:#2e3742;    --line2:#424d5a;
+    --pri:#7aa7ff;     --pri-deep:#a8c5ff;  --pri-soft:#1b2a45;
+    --warn:#f0a969;    --warn-bg:#2c2015;   --warn-line:#5c4326;
+    --ok:#7fd3b0;      --ok-bg:#152a23;     --ok-line:#2d5646;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+    --rail:#3a4552;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#13161a;        --surf:#1b2027;      --surf2:#232a33;
+  --ink:#e9edf2;       --ink2:#a6b0bd;      --ink3:#7f8996;
+  --line:#2e3742;      --line2:#424d5a;
+  --pri:#7aa7ff;       --pri-deep:#a8c5ff;  --pri-soft:#1b2a45;
+  --warn:#f0a969;      --warn-bg:#2c2015;   --warn-line:#5c4326;
+  --ok:#7fd3b0;        --ok-bg:#152a23;     --ok-line:#2d5646;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.7);
+  --rail:#3a4552;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--bg); color:var(--ink);
+  font-family:"Noto Sans KR",-apple-system,BlinkMacSystemFont,"Malgun Gothic",sans-serif;
+  font-size:16px; line-height:1.75; letter-spacing:-.01em;
+  -webkit-font-smoothing:antialiased;
+  /* 한국어는 낱말 안에서 줄이 바뀌면 안 됩니다 — 없으면 제목이
+     "…우 / 리 도구는" 처럼 갈라집니다 */
+  word-break:keep-all; overflow-wrap:break-word;
+}
+.wrap{max-width:860px; margin:0 auto; padding:0 24px 96px}
+
+/* ── 머리 ───────────────────────────────────────────── */
+.mast{padding:56px 0 32px; border-bottom:2px solid var(--ink)}
+.kicker{
+  font-size:12px; font-weight:700; letter-spacing:.16em;
+  color:var(--pri); margin:0 0 14px;
+}
+h1{
+  font-family:"Noto Serif KR",serif; font-weight:700;
+  font-size:clamp(28px,5vw,40px); line-height:1.3; letter-spacing:-.02em;
+  margin:0 0 14px; text-wrap:balance;
+}
+.sub{font-size:17px; color:var(--ink2); margin:0; max-width:56ch; text-wrap:pretty}
+.meta{
+  display:flex; flex-wrap:wrap; gap:8px 28px; margin:24px 0 0;
+  font-size:13px; color:var(--ink3);
+}
+.meta b{color:var(--ink2); font-weight:500}
+
+/* 읽은 자료 — 근거를 앞에 밝히는 공문 머리 방식 */
+.srcs{
+  margin:28px 0 0; padding:0; list-style:none;
+  border-top:1px solid var(--line); border-bottom:1px solid var(--line);
+}
+.srcs li{
+  display:grid; grid-template-columns:26px 1fr auto; gap:4px 14px;
+  padding:11px 0; font-size:14px; align-items:baseline;
+}
+.srcs li + li{border-top:1px solid var(--line)}
+.srcs .mk{color:var(--pri); font-weight:700; font-variant-numeric:tabular-nums}
+.srcs .wh{color:var(--ink3); font-size:12.5px; white-space:nowrap}
+@media(max-width:620px){
+  .srcs li{grid-template-columns:26px 1fr}
+  .srcs .wh{grid-column:2; white-space:normal}
+}
+
+/* ── 요약 ───────────────────────────────────────────── */
+.lede{
+  margin:36px 0 0; padding:24px 26px;
+  background:var(--surf); border-radius:3px;
+  border-left:3px solid var(--pri);
+}
+.lede p{margin:0; font-size:17px; line-height:1.8}
+.lede p + p{margin-top:12px}
+.lede strong{font-weight:700}
+
+/* ── 절 ─────────────────────────────────────────────── */
+.part{margin:64px 0 0; padding-top:28px; border-top:1px solid var(--line)}
+.part-lbl{
+  font-size:12px; font-weight:700; letter-spacing:.14em;
+  color:var(--ink3); margin:0 0 8px;
+}
+h2{
+  font-family:"Noto Serif KR",serif; font-weight:600;
+  font-size:26px; line-height:1.4; letter-spacing:-.02em;
+  margin:0 0 6px; text-wrap:balance;
+}
+h3{
+  font-size:18px; font-weight:700; line-height:1.5;
+  margin:44px 0 10px; text-wrap:balance;
+}
+h3 .n{
+  color:var(--pri); font-variant-numeric:tabular-nums;
+  margin-right:8px; font-weight:700;
+}
+h4{font-size:15px; font-weight:700; margin:26px 0 6px; color:var(--ink)}
+p{margin:0 0 14px; text-wrap:pretty}
+p:last-child{margin-bottom:0}
+small{font-size:13.5px; color:var(--ink2); line-height:1.7; display:block}
+b,strong{font-weight:700}
+em{font-style:normal; background:var(--pri-soft); padding:0 3px; border-radius:2px}
+
+/* ── 정의 인용 ──────────────────────────────────────── */
+.def{
+  margin:20px 0; padding:22px 24px;
+  border:1px solid var(--line2); border-radius:3px;
+  background:var(--bg); box-shadow:var(--shadow);
+}
+.def .t{
+  font-size:12px; font-weight:700; letter-spacing:.12em;
+  color:var(--ink3); margin:0 0 10px;
+}
+.def q{
+  display:block; quotes:none;
+  font-family:"Noto Serif KR",serif; font-size:18px; line-height:1.75;
+  letter-spacing:-.015em;
+}
+.def q b{color:var(--pri-deep)}
+
+/* ── 표 ─────────────────────────────────────────────── */
+.tw{overflow-x:auto; margin:18px 0 8px; border:1px solid var(--line); border-radius:3px}
+table{border-collapse:collapse; width:100%; font-size:14px; min-width:520px}
+caption{
+  caption-side:top; text-align:left; padding:12px 16px 0;
+  font-size:12.5px; color:var(--ink3); font-weight:500;
+}
+th,td{
+  padding:10px 14px; text-align:left; vertical-align:top;
+  border-bottom:1px solid var(--line); line-height:1.6;
+}
+thead th{
+  background:var(--surf); font-weight:700; font-size:12.5px;
+  letter-spacing:.03em; color:var(--ink2); white-space:nowrap;
+}
+tbody tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+td.k{font-weight:700; white-space:nowrap}
+.mg{
+  display:inline-block; min-width:26px; text-align:center;
+  font-weight:700; color:var(--pri-deep); font-variant-numeric:tabular-nums;
+}
+
+/* ── 동원 사다리 ────────────────────────────────────── */
+.ladder{margin:22px 0 10px; display:flex; flex-direction:column; gap:10px}
+.rung{
+  display:grid; grid-template-columns:82px 1fr 150px; gap:0 18px;
+  align-items:center; padding:16px 18px;
+  border:1px solid var(--line); border-radius:3px; background:var(--bg);
+}
+.rung .r1{
+  font-family:"Noto Serif KR",serif; font-weight:700; font-size:17px;
+  color:var(--pri-deep); line-height:1.3;
+}
+.rung .r1 span{display:block; font-family:"Noto Sans KR",sans-serif;
+  font-size:12px; font-weight:500; color:var(--ink3); letter-spacing:.02em}
+.rung .r2{font-size:14px; line-height:1.6}
+.rung .r2 b{display:block; font-size:14.5px}
+.rung .r2 small{margin-top:2px}
+.rung .r3{
+  text-align:right; font-size:13px; color:var(--ink2);
+  font-variant-numeric:tabular-nums;
+}
+.rung .r3 b{display:block; font-size:20px; color:var(--ink); font-weight:700}
+.rung.gap{background:var(--warn-bg); border-color:var(--warn-line)}
+.rung.gap .r1,.rung.gap .r3 b{color:var(--warn)}
+.rung.gap .r3{color:var(--warn)}
+@media(max-width:620px){
+  .rung{grid-template-columns:1fr; gap:10px}
+  .rung .r3{text-align:left}
+  .rung .r3 b{display:inline; font-size:16px; margin-right:6px}
+}
+
+/* ── 이어짐 그림 ────────────────────────────────────── */
+.flow{
+  margin:20px 0; padding:22px 20px; background:var(--surf); border-radius:3px;
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:center;
+  gap:10px 14px; text-align:center;
+}
+.flow .box{
+  padding:10px 16px; background:var(--bg); border:1px solid var(--line2);
+  border-radius:3px; font-size:13.5px; line-height:1.5; min-width:118px;
+}
+.flow .box b{display:block; font-size:14.5px}
+.flow .box small{margin-top:2px; font-size:12px}
+.flow .box.hi{border-color:var(--pri); background:var(--pri-soft)}
+.flow .box.hi b{color:var(--pri-deep)}
+.flow .ar{color:var(--ink3); font-size:18px; line-height:1}
+
+/* ── 강조 상자 ──────────────────────────────────────── */
+.note{
+  margin:18px 0; padding:16px 20px; border-radius:3px;
+  border:1px solid var(--line); background:var(--surf); font-size:14.5px;
+}
+.note.warn{background:var(--warn-bg); border-color:var(--warn-line)}
+.note.warn .h{color:var(--warn)}
+.note.ok{background:var(--ok-bg); border-color:var(--ok-line)}
+.note.ok .h{color:var(--ok)}
+.note .h{
+  display:block; font-weight:700; margin-bottom:6px; font-size:14px;
+  letter-spacing:.01em;
+}
+.note p{margin:0 0 8px; font-size:14.5px; line-height:1.7}
+.note p:last-child{margin-bottom:0}
+
+/* ── 목록 ───────────────────────────────────────────── */
+ul.bul{margin:12px 0 16px; padding-left:0; list-style:none}
+ul.bul li{position:relative; padding-left:18px; margin-bottom:8px; line-height:1.72}
+ul.bul li::before{
+  content:""; position:absolute; left:2px; top:.72em;
+  width:5px; height:5px; border-radius:50%; background:var(--line2);
+}
+ul.bul li:last-child{margin-bottom:0}
+
+/* ── 물음 ───────────────────────────────────────────── */
+.ask{margin:22px 0 0; display:flex; flex-direction:column; gap:12px}
+.q{
+  display:grid; grid-template-columns:36px 1fr; gap:4px 14px;
+  padding:18px 20px; border:1px solid var(--line2); border-radius:3px;
+  background:var(--bg); box-shadow:var(--shadow);
+}
+.q .qn{
+  font-family:"Noto Serif KR",serif; font-weight:700; font-size:20px;
+  color:var(--pri); line-height:1.2; font-variant-numeric:tabular-nums;
+}
+.q .qt{font-size:15.5px; font-weight:700; line-height:1.6}
+.q .qa{
+  grid-column:2; font-size:13.5px; color:var(--ink2); line-height:1.65;
+  padding-top:4px; margin-top:6px; border-top:1px dashed var(--line);
+}
+.q .qa b{color:var(--pri-deep)}
+.q.done{background:var(--ok-bg); border-color:var(--ok-line); box-shadow:none}
+.q.done .qn{color:var(--ok)}
+.q.done .qt{text-decoration:none}
+.q.done .qa b{color:var(--ok)}
+
+/* ── 끝맺음 ─────────────────────────────────────────── */
+.foot{
+  margin:64px 0 0; padding:22px 0 0; border-top:2px solid var(--ink);
+  font-size:13px; color:var(--ink3); line-height:1.75;
+}
+.foot b{color:var(--ink2); font-weight:500}
+
+@media (prefers-reduced-motion:no-preference){
+  a{transition:color .12s}
+}
+a{color:var(--pri-deep); text-underline-offset:3px}
+a:focus-visible{outline:2px solid var(--pri); outline-offset:2px; border-radius:2px}
+</style>
+
+<div class="wrap">
+
+<header class="mast">
+  <p class="kicker">화학사고 초동대응 지원 서비스 · 검토 문서</p>
+  <h1>방제자원이란 무엇이고, 우리 도구는 어디에 서야 하는가</h1>
+  <p class="sub">원내 자료 3건을 읽고 정리한 공식 정의·기준과, 그에 맞춘
+     서비스 최종 진행 방향(안)입니다.</p>
+  <div class="meta">
+    <span><b>작성</b> 2026-09-03</span>
+    <span><b>상태</b> 서비스 반영 전 — 정하시면 그때 만듭니다</span>
+    <span><b>원본</b> docs/원내자료_공부와_최종방향.md</span>
+  </div>
+
+  <ul class="srcs">
+    <li><span class="mk">㉮</span>
+        <span>산단별 주요 화학물질 중심 <b>방제자원 동원체계 매칭조사 구축(안)</b></span>
+        <span class="wh">사고대응총괄과 · ’26.8.13</span></li>
+    <li><span class="mk">㉯</span>
+        <span>화학사고 <b>방제자원 통합 관리체계 구축</b>을 위한 관계기관 세미나 계획(안)</span>
+        <span class="wh">사고대응총괄과 · ’26.3.23</span></li>
+    <li><span class="mk">㉰</span>
+        <span><b>지역화학사고대비체계 기반</b> (발표자료 46쪽)</span>
+        <span class="wh">사고대응총괄과</span></li>
+  </ul>
+</header>
+
+<div class="lede">
+  <p>세 자료를 읽고 <strong>가장 크게 달라진 생각</strong>은 이것입니다 —
+     원내는 ’26.11 에 <strong>사고상황공유앱</strong>에 방제자원 DB 를 올립니다.
+     우리 도구와 보는 사람이 달라 겹치지는 않지만,
+     <strong>자료의 ‘속’을 원내 표준 서식에 맞춰 두어야</strong> 그때 그대로
+     갈아끼울 수 있습니다. 맞춰 두지 않으면 전부 다시 만들어야 합니다.</p>
+  <p>그래서 이번 방향의 한 줄은
+     <strong>「속은 표준대로, 겉은 담당자 말로」</strong> 입니다.
+     화면은 지금 그대로 두고, 자료에만 표준 코드를 붙입니다.</p>
+</div>
+
+<!-- ══════════════ 1부 ══════════════ -->
+<section class="part">
+  <p class="part-lbl">1부</p>
+  <h2>공부한 것 — 공식 정의와 기준</h2>
+
+  <h3><span class="n">1</span>방제자원의 공식 정의</h3>
+  <div class="def">
+    <p class="t">㉯ 관계기관 세미나 계획(안)</p>
+    <q>방제자원 — 화학사고 피해 최소화 및 신속한 대응을 위한
+       <b>장비 · 인력 · 물품</b> 으로 구성</q>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>구분</th><th>무엇이 들어가나</th></tr></thead>
+    <tbody>
+      <tr><td class="k">장비</td><td>대응차량(굴삭기·지게차), 폐기물 회수 차량(진공흡입·방제전문차량)</td></tr>
+      <tr><td class="k">인력</td><td>민간(화학안전공동체·폐기물 처리업체), 유관기관(환경청·지자체)</td></tr>
+      <tr><td class="k">물품</td><td>방제물품(케미칼 흡착포·중화제), 개인보호장구(보호복·마스크)</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note ok">
+    <span class="h">✔ 두 가지가 여기서 답이 났습니다</span>
+    <p><b>‘인력’이 공식 정의에 들어 있습니다.</b> 앞서 “인력 지원 갈래를
+       넣을까요”라고 여쭈었던 것 — 넣는 것이 맞습니다.</p>
+    <p><b>독성가스 취급사업장은 정의에 없습니다.</b> 보류하자는 판단이
+       맞았습니다. 원내 문서에서도 그것은 자원이 아니라 조사 대상입니다.</p>
+  </div>
+
+  <p>목표도 숫자로 적혀 있습니다 — 화학사고 현장 잔류폐기물
+     <em>3시간 이내 초동대응 완료</em>. 방제자원을 모으는 이유가 이 3시간입니다.</p>
+
+  <h3><span class="n">2</span>표준 조사서식(안) — 앞으로 전국이 쓸 칸</h3>
+  <p>㉮ 참고4 입니다. <b>우리 자료를 이 칸에 맞춰 두는 것</b>이 이번 방향의
+     핵심입니다.</p>
+  <div class="tw"><table>
+    <caption>굵은 칸이 지금 우리 자료에 없는 것 · ‘신설’은 이번에 새로 생긴 항목</caption>
+    <thead><tr><th>항목</th><th>어떻게 적나</th><th>우리 자료</th></tr></thead>
+    <tbody>
+      <tr><td class="k">보유기관·사업장명</td><td>정식 명칭</td><td>있음</td></tr>
+      <tr><td class="k"><b>자원유형</b></td><td>①차량·장비 ②방제물품 ③중화·처리제 ④보호구 ⑤선박 ⑥처리시설</td><td><b>없음</b></td></tr>
+      <tr><td class="k"><b>대응 물질군</b></td><td>A·A′·B·C·D·E — 복수 선택. <b>“매칭의 핵심 항목”</b></td><td><b>없음</b></td></tr>
+      <tr><td class="k">품목·규격·수량</td><td>예) 중탄산나트륨 25kg×40포 = 1,000kg</td><td>글로 있음</td></tr>
+      <tr><td class="k">보관장소·주소·위경도</td><td>“위경도는 앱 지도 표출용”</td><td>주소만 · 좌표 어림값</td></tr>
+      <tr><td class="k"><b>취약시간 가용여부</b> <small>신설</small></td><td>야간 / 주말 / 대정비 각각 ○·△·×</td><td><b>없음</b></td></tr>
+      <tr><td class="k"><b>출동 소요시간</b> <small>신설</small></td><td>관할 산단 정문 기준 <b>분(分) 단위 실측치</b></td><td><b>없음</b></td></tr>
+      <tr><td class="k"><b>동원 조건</b> <small>신설</small></td><td>무상지원 / 유상 / 협약 범위 내 / 사전승인 필요</td><td><b>없음</b></td></tr>
+      <tr><td class="k">담당자·연락처</td><td>주간 사무실 + 24시간 비상연락처</td><td>대표번호만 (개인정보 제외)</td></tr>
+      <tr><td class="k"><b>최종 현행화일</b> <small>신설</small></td><td>반기 1회 이상 갱신 · <b>미갱신은 앱에서 회색 표시</b></td><td><b>없음</b></td></tr>
+    </tbody>
+  </table></div>
+  <p><small>㉮ 가 짚은 지금 자료의 문제가 우리가 겪은 것과 똑같습니다 —
+     “자원 목록이 <b>보유 수량 중심</b>이라 위험물질과의 <b>연결고리가 없고</b>,
+     취약시간 가용 여부·출동 소요시간도 미표기”.</small></p>
+
+  <h3><span class="n">3</span>물질을 여섯 군으로 묶습니다 — 매칭의 핵심</h3>
+  <div class="tw"><table>
+    <thead><tr><th>물질군</th><th>대표 물질</th><th>대응 원칙</th><th>핵심 방제자원</th></tr></thead>
+    <tbody>
+      <tr><td class="k"><span class="mg">A</span> 산류</td><td>황산·염산·질산·폐산</td>
+          <td>중화 후 회수<br><small>중화제 과투입 금지</small></td>
+          <td>중탄산나트륨(표준)·소석회, 내산 흡착포, 진공흡입차, pH계</td></tr>
+      <tr><td class="k"><span class="mg">A′</span> 불산</td><td>불화수소·불산 혼산</td>
+          <td>Ca²⁺ 고정(CaF₂) → 전량 회수</td>
+          <td>소석회·탄산칼슘 톤 단위, 칼슘글루코네이트 겔, Level A</td></tr>
+      <tr><td class="k"><span class="mg">B</span> 염기류</td><td>가성소다·암모니아수·폐알칼리</td>
+          <td>희석·약산 중화<br><small>과중화 금지</small></td>
+          <td>구연산·초산, 내알칼리 펌프·중화조</td></tr>
+      <tr><td class="k"><span class="mg">C</span> 유기용제</td><td>톨루엔·자일렌·페놀·SM·아크릴산·MDI</td>
+          <td><b>중화 불가</b> → 봉쇄·흡착·회수</td>
+          <td>유흡착재·활성탄, 방폭 진공흡입차, AR-AFFF, 중합억제제(TBC)</td></tr>
+      <tr><td class="k"><span class="mg">D</span> 독성가스</td><td>염소·암모니아·포스겐·불화수소·실란</td>
+          <td>차단·격리·회수<br><small>고압수 직사 금지</small></td>
+          <td>이동식 스크러버, ERaCV 회수용기, 물스프레이 커튼, Level A</td></tr>
+      <tr><td class="k"><span class="mg">E</span> 유류·HNS</td><td>원유·나프타·아스팔트유</td>
+          <td>거동특성별 해상 방제</td>
+          <td>오일펜스·유회수기·유처리제, 해경 방제정·화학방제함</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note warn">
+    <span class="h">금지사항이 함께 적혀 있습니다</span>
+    <p>불산에 <b>염화칼슘·염화마그네슘을 쓰면 염화수소가 생깁니다.</b>
+       시안화나트륨과 산이 만나면 HCN 이 됩니다 — 시화·반월산단이 바로 그
+       조합(A·B, 시안+산)이라 ㉮ 가 따로 표시해 두었습니다.</p>
+    <p>이것이 <b>물질군 태깅을 우리가 지어내면 안 되는 이유</b>입니다.
+       잘못 묶으면 틀린 중화제를 권하게 됩니다.</p>
+  </div>
+
+  <h3><span class="n">4</span>부르는 차례가 정해져 있습니다</h3>
+  <div class="ladder">
+    <div class="rung gap">
+      <div class="r1">1순위<span>0~30분</span></div>
+      <div class="r2"><b>긴급동원체계 사업장 13개社 · 산단 화학안전공동체</b>
+        <small>탱크로리·진공흡입차·중화제·흡착포, 주관기업 방재인력·소방차량</small></div>
+      <div class="r3"><b>0건</b>우리 자료에 없음</div>
+    </div>
+    <div class="rung">
+      <div class="r1">2순위<span>30분~2시간</span></div>
+      <div class="r2"><b>합동방재센터 · 지자체 · 소방서 · 해양경찰서 · 수질오염방제센터</b>
+        <small>방제장비함, 굴착기·암롤차·진공흡입차, 방제정·오일펜스·유회수기</small></div>
+      <div class="r3"><b>434건</b>지자체 427 · 해경 3 · 수질센터 4</div>
+    </div>
+    <div class="rung">
+      <div class="r1">3순위<span>2시간 이후</span></div>
+      <div class="r2"><b>폐기물처리업체 · 독성가스 회수업체 · 해양오염방제업체 · 중장비업체</b>
+        <small>소각·중화·매립 처리시설, 민간 방제선, 폐기물 운반·회수 장비</small></div>
+      <div class="r3"><b>17건</b>폐기물 15 · 독성가스 회수 2</div>
+    </div>
+  </div>
+  <p><small>※ 434·17 은 지금 서비스 470건을 기관 종류로 나눠 센 값입니다.
+     남는 <b>ERaCV 비상캡슐 19곳</b>은 ㉮ 의 3단계 사다리에 이름이 적혀 있지
+     않아 어느 순위인지 <b>우리가 정하지 않았습니다</b> — 참고1 표에서는
+     ‘민간’으로 분류되어 있습니다.</small></p>
+  <div class="note warn">
+    <span class="h">⚠ 가장 먼저 불러야 할 자원이 통째로 비어 있습니다</span>
+    <p>㉮ 참고3 에 13개社의 <b>권역·소재지·전문 처리분야·보유 처리시설</b>이
+       다 있습니다. 13곳뿐이라 목록을 망치지 않으면서
+       <b>가장 먼저 부를 곳</b>이 생깁니다 — 2부 제안 3.</p>
+  </div>
+
+  <h3><span class="n">5</span>원내가 만들려는 것 — 앱의 자원조회 흐름</h3>
+  <div class="flow">
+    <div class="box"><b>사고 접수</b><small>위치 · 물질명/CAS</small></div>
+    <span class="ar">→</span>
+    <div class="box hi"><b>물질군 자동판정</b><small>A~E</small></div>
+    <span class="ar">→</span>
+    <div class="box"><b>권역별 자원 조회</b><small>30 · 60 · 120분</small></div>
+    <span class="ar">→</span>
+    <div class="box"><b>순차 호출</b><small>1 → 2 → 3순위</small></div>
+    <span class="ar">→</span>
+    <div class="box"><b>투입·소진 차감</b></div>
+  </div>
+  <p><small>일정 — ’26.9 기관 회신 → ’26.10 매칭 매트릭스 확정 →
+     <b>’26.11 앱 자원 DB 탑재·시범운영</b> → ’26.12 도상훈련 →
+     ’27 전국 확대·반기 1회 현행화.</small></p>
+
+  <h3><span class="n">6</span>대피장소 — 공식 정의와 지정요건</h3>
+  <div class="def">
+    <p class="t">㉰ 지역화학사고대비체계 기반</p>
+    <q>화학사고 대피장소 — 주민대피 명령을 발령할 경우 지역주민이 안전하게
+       대피할 수 있는 장소에 대한 <b>최소한의 선정기준</b>을 제시하는 것으로,
+       <b>지방자치단체장은 지역여건을 고려하여 탄력적으로 적용</b>할 수 있습니다.</q>
+  </div>
+  <div class="note ok">
+    <span class="h">✔ 우리 원칙이 공식 문서로 확인됩니다</span>
+    <p>“최소한의 기준 · 탄력적 적용” 입니다. <b>도구가 대피장소를
+       판정하면 안 되는 근거</b>가 공식 문서에 적혀 있는 셈입니다.</p>
+  </div>
+  <div class="tw"><table>
+    <thead><tr><th>지정요건</th><th>기준</th></tr></thead>
+    <tbody>
+      <tr><td class="k">시설위치</td><td>화학물질 취급시설로부터 <b>최소 500m 이상 이격</b>
+        <br><small>다만 공단과 주거지역 경계가 미약해 지키지 못할 경우 — “적절한 선정이 중요”</small></td></tr>
+      <tr><td class="k">규모</td><td>대규모 인원 수용 · 소규모 장소 제외
+        <br><small>읍·면·동 단위 인원 파악을 위해 소규모 분산대피는 지양 — <b>초기집결지로 이용</b></small></td></tr>
+      <tr><td class="k">시설접근성</td><td>비상출입 가능(민간시설보다 <b>공공시설 권장</b>) · 비상연락체계 구축</td></tr>
+      <tr><td class="k">제외 대상</td><td><b>옥외공간 · 지하장소 · 단순 장소</b> (공원, ○○마을, 농촌체험 휴양마을)</td></tr>
+    </tbody>
+  </table></div>
+
+  <h4>현황 — 우리 자료와 정확히 맞습니다</h4>
+  <div class="tw"><table>
+    <thead><tr><th>구분</th><th class="num">’25년</th><th class="num">’26년</th></tr></thead>
+    <tbody>
+      <tr><td class="k">화학사고 대피소</td><td class="num">1,834</td><td class="num"><b>1,849</b></td></tr>
+      <tr><td class="k">안내표지판 설치</td><td class="num">1,183</td><td class="num">1,235</td></tr>
+      <tr><td class="k">공동활용<br><small>이재민임시·산사태·민방위·화학사고</small></td><td class="num">–</td><td class="num">1,167</td></tr>
+    </tbody>
+  </table></div>
+  <p>우리 <b>대피장소 자료가 1,849건</b>입니다 — 공식 ’26년 수치와 같습니다.
+     시·도별로는 경기 359 · 경남 195 · 경북 173 · 충남 171 순입니다.</p>
+  <div class="note">
+    <span class="h">오래 찾던 ‘이재민 임시주거시설’에 대하여</span>
+    <p>행안부 「주민 대피시설 공동활용 지침」에 따라
+       <b>1,167개소가 이미 겹쳐 있습니다.</b> 우리 원칙(별개의 층으로만 다룸)은
+       그대로 두되, 겹치는 곳이 이만큼이라는 사실은 알고 있어야 합니다.</p>
+  </div>
+
+  <h3><span class="n">7</span>주민대피체계 — 우리 ① 의 뼈대와 같습니다</h3>
+  <div class="flow">
+    <div class="box"><b>사전대비</b></div><span class="ar">→</span>
+    <div class="box"><b>사고대응</b></div><span class="ar">→</span>
+    <div class="box hi"><b>주민대피</b>
+      <small>사고초기Ⅰ 실내대피<br>사고초기Ⅱ 취약계층 사전대피<br>사고확대 주민소산</small></div>
+    <span class="ar">→</span>
+    <div class="box"><b>주민복귀</b></div>
+  </div>
+  <p>우리 ① 이 <b>‘실내 대피’ / ‘대피명령’</b> 두 분류로 나뉜 것이 여기에
+     정확히 대응합니다. 다만 공식 체계에는 그 사이에
+     <b>사고초기Ⅱ(취약계층 사전대피)</b>가 한 단계 더 있습니다.</p>
+
+  <h4>대피 안내문구에 반드시 들어갈 것</h4>
+  <div class="tw"><table>
+    <caption>㉰ 35쪽 — 여섯 가지를 우리 ① 이 모두 갖췄습니다</caption>
+    <thead><tr><th>공식 항목</th><th>우리 ① 의 칸</th></tr></thead>
+    <tbody>
+      <tr><td class="k">업체명</td><td>사업장·장소명</td></tr>
+      <tr><td class="k">주소</td><td>사고 시·군·구 + 읍·면·동</td></tr>
+      <tr><td class="k">시간</td><td>발생시각</td></tr>
+      <tr><td class="k">우회도로</td><td>도로 우회 알림 문안</td></tr>
+      <tr><td class="k">집결지</td><td>집결지 (선택 칸)</td></tr>
+      <tr><td class="k">화학사고대피장소</td><td>대피소</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note ok">
+    <span class="h">✔ 위험범위도 방식이 같습니다</span>
+    <p>㉰ 는 “사고 초기 신속한 가이드를 위해
+       <b>비상대응핸드북(ERG) 안전거리 우선 제공</b> → 확산모델링(CARIS)은
+       기상·공정정보를 파악한 뒤”라고 정해 두었습니다.
+       우리 ② 의 <b>영향 참고 반경</b>이 이미 ERG 초기이격거리·방호활동거리로
+       그려집니다.</p>
+  </div>
+</section>
+
+<!-- ══════════════ 2부 ══════════════ -->
+<section class="part">
+  <p class="part-lbl">2부</p>
+  <h2>우리 서비스의 최종 방향(안)</h2>
+
+  <h3><span class="n">1</span>먼저 자리를 정합니다 — 원내 앱과 겹치는가</h3>
+  <div class="tw"><table>
+    <thead><tr><th></th><th>사고상황공유앱 <small>’26.11 자원 DB 탑재</small></th><th>우리 도구</th></tr></thead>
+    <tbody>
+      <tr><td class="k">쓰는 사람</td><td>유관기관 1,216개 기관·2,987명</td><td><b>지자체 담당자</b></td></tr>
+      <tr><td class="k">언제</td><td>사고 접수 이후 상황 공유</td><td><b>사고 나기 전 준비 + 초동 몇 분</b></td></tr>
+      <tr><td class="k">무엇</td><td>상황 공유·자원 호출·소진 차감</td><td><b>몇 초 안에 답 찾기</b></td></tr>
+      <tr><td class="k">어디서</td><td>기관 계정으로 접속</td><td><b>링크 하나 · 망분리 PC 단일 파일</b></td></tr>
+      <tr><td class="k">인터넷</td><td>필요</td><td><b>없어도 됨</b></td></tr>
+    </tbody>
+  </table></div>
+  <div class="note">
+    <span class="h">겹치지 않습니다 — 다만 같은 표준을 써야 합니다</span>
+    <p>자료의 <b>속</b>(자원유형·물질군·현행화일)을 표준 서식에 맞춰 두면
+       ’26.11 에 원내 DB 가 나올 때 <b>그대로 갈아끼울 수 있습니다.</b></p>
+  </div>
+
+  <h3><span class="n">2</span>화면은 지금 그대로 둡니다</h3>
+  <p>㉮ 의 서식을 그대로 화면에 옮기면 안 됩니다. 담당자는 현장에서
+     “자원유형 ③ 중화·처리제, 물질군 A′” 라고 생각하지 않습니다.
+     <b>“불산이 샜는데 뭘 부르지”</b> 라고 생각합니다.</p>
+  <div class="tw"><table>
+    <thead><tr><th></th><th>화면 (겉)</th><th>자료 (속)</th></tr></thead>
+    <tbody>
+      <tr><td class="k">③ 걸음 1</td><td>“지금 무엇이 필요하세요?” 7갈래 + 인력 <small>지금 그대로</small></td><td>자원유형 6종 코드</td></tr>
+      <tr><td class="k">③ 자원 카드</td><td>이름 · 거리 · 전화 · 보유 내용</td><td>물질군 A~E · 동원순위 · 현행화일</td></tr>
+      <tr><td class="k">① 물질 칸</td><td>460종 검색 <small>지금 그대로</small></td><td>물질군 태그</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="n">3</span>새로 하자고 제안하는 것 — 다섯 가지</h3>
+
+  <h4>제안 1 ★ 물질군으로 ① 과 ③ 을 잇습니다</h4>
+  <p>지금 세 도구는 <b>② 지도 → ① 문자</b> 로만 이어집니다(좌표·대피소).
+     ① 이 물어본 사고물질이 ③ 으로 가지 않습니다. 물질군 태그를 붙이면
+     이렇게 됩니다.</p>
+  <div class="flow">
+    <div class="box"><b>① 사고물질</b><small>“불화수소” 입력</small></div>
+    <span class="ar">→</span>
+    <div class="box hi"><b>물질군 A′</b></div>
+    <span class="ar">→</span>
+    <div class="box"><b>③ 이 미리 골라 놓음</b>
+      <small>소석회·탄산칼슘 / 칼슘글루코네이트<br>Level A 보호구 / 진공흡입차<br>⚠ 염화칼슘·염화마그네슘 금지</small></div>
+  </div>
+  <p><b>이번 자료로 할 수 있는 가장 큰 일입니다.</b> 원내 앱의 “물질군
+     자동판정”과 같은 것을, 인터넷 없이 도는 우리 도구에서 합니다.</p>
+  <div class="note warn">
+    <span class="h">⚠ 다만 태깅은 우리가 지어내면 안 됩니다</span>
+    <p>㉮ 에 <b>“’26.8월 물질군 분류표 배포”</b> 라고 적혀 있습니다.
+       그 분류표를 받아야 합니다. 못 받으면 ㉮ 참고2 의 대표물질 30여 종만
+       태그하고 나머지는 비워 둡니다 — <b>460종을 우리 판단으로 나누는 일은
+       하지 않습니다.</b></p>
+  </div>
+
+  <h4>제안 2 ★ 자원 카드에 ‘동원 순위’ 딱지를 답니다</h4>
+  <p>거리순만으로는 <b>20km 밖 1순위 사업장보다 5km 앞 폐기물업체가 먼저
+     뜹니다</b> — 실제로는 반대로 불러야 합니다. 1·2·3순위는 기관 종류로
+     정해지므로 지금 자료로도 붙일 수 있습니다.</p>
+
+  <h4>제안 3 ★ 빠져 있는 1순위 13개社를 넣습니다</h4>
+  <p>㉮ 참고3 에 권역·소재지·전문 처리분야·보유 처리시설이 다 있습니다.
+     예) 여수·광양권 ㈜그린(탱크로리 9대/71.1톤) · 씨이케이㈜(소각 98톤/일) /
+     울산·온산권 ㈜코엔텍(소각 300톤/일) / 대산권 ㈜대성에코에너지(소각
+     188톤/일).</p>
+
+  <h4>제안 4 ② 대피장소에 ‘공식 요건’을 참고로만 답니다</h4>
+  <ul class="bul">
+    <li>원자료에 있으면 <b>안내표지판 설치 여부 · 공동활용 여부</b>를 카드에 답니다.</li>
+    <li><b>500m 이격은 화면에 넣지 않기를 권합니다.</b> 그것은
+        <b>대피장소를 지정할 때</b> 취급시설로부터 재는 값입니다.
+        사고 시점에 사고지점에서 500m 를 재어 보여 주면
+        <b>뜻이 완전히 달라져</b> 담당자가 오해합니다.</li>
+    <li>옥외·지하·소규모 제외도 이미 지정 단계에서 걸러진 것이라 다시 보여
+        줄 필요가 없습니다.</li>
+  </ul>
+
+  <h4>제안 5 건마다 ‘자료 기준일’을 답니다</h4>
+  <p>㉮ 가 <b>“미갱신 자원은 앱에서 회색 표시”</b> 라고 정해 두었습니다.
+     우리 자료는 기관마다 2024-12 ~ 2026-01 로 흩어져 있어, 화면에 기준일을
+     하나만 적으면 거짓이 됩니다.</p>
+
+  <h3><span class="n">4</span>하지 않기를 권하는 것</h3>
+  <div class="tw"><table>
+    <thead><tr><th>하지 않을 것</th><th>왜</th></tr></thead>
+    <tbody>
+      <tr><td class="k">실내대피 / 소산을<br>도구가 판단</td>
+          <td>「화관법」 기준표를 <b>보여 주는 것</b>까지는 자료 제공이지만,
+              조건을 체크하면 “소산하세요”가 나오는 순간 <b>도구가 판단</b>합니다.
+              우리 원칙 1번을 정면으로 어깁니다 → 3부 물음 ③</td></tr>
+      <tr><td class="k">30/60/120분<br>시간권역</td>
+          <td>출동 소요시간 실측치가 없습니다. 직선거리를 시간으로 바꾸면
+              <b>어림값을 실측처럼</b> 보여 주게 됩니다</td></tr>
+      <tr><td class="k">독성가스 취급사업장<br>1,579곳을 자원으로</td>
+          <td>공식 정의(장비·인력·물품)에 없습니다. 보류가 맞습니다</td></tr>
+      <tr><td class="k">460종을 우리가<br>물질군으로 나누기</td>
+          <td>원내 분류표가 있습니다. 지어내면 <b>틀린 중화제를 권하게</b> 됩니다</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3><span class="n">5</span>순서 — 이렇게 하시길 권합니다</h3>
+  <div class="tw"><table>
+    <thead><tr><th></th><th>무엇</th><th>왜 이 차례인가</th></tr></thead>
+    <tbody>
+      <tr><td class="k">0차</td><td>물질군 분류표 · 1순위 13개社 자료 확보</td><td>나머지가 여기에 붙습니다</td></tr>
+      <tr><td class="k">1차</td><td>1순위 13개社 + 지자체 장비 갱신 + 관할 중장비 166곳</td><td>먼저 부르는 곳부터 · 건수가 적어 화면이 안 무너집니다</td></tr>
+      <tr><td class="k">2차</td><td>물질군 태그 + 동원순위 딱지 + 건별 기준일</td><td><b>자료를 더 넣기 전에 보여 주는 방식을 먼저 고칩니다</b></td></tr>
+      <tr><td class="k">3차</td><td>방제장비함 48 + 사업장 106 + 특수자원 13</td><td>현장에 실제로 물건이 있는 곳</td></tr>
+      <tr><td class="k">4차</td><td>폐기물처리업체 1,123곳</td><td>가장 큼 — 좁히기를 끝낸 뒤</td></tr>
+    </tbody>
+  </table></div>
+  <p><small>2차를 3·4차보다 앞에 둔 것이 중요합니다. 자료를 다 넣고 나서
+     화면을 고치면, 무엇 때문에 느려졌는지·왜 엉뚱한 게 먼저 뜨는지
+     못 찾습니다.</small></p>
+</section>
+
+<!-- ══════════════ 3부 ══════════════ -->
+<section class="part">
+  <p class="part-lbl">3부</p>
+  <h2>정해 주셔야 하는 것</h2>
+  <p>이 여섯 가지에 답해 주시면 그때부터 만들겠습니다.</p>
+
+  <div class="ask">
+    <div class="q">
+      <span class="qn">①</span>
+      <span class="qt">원내 「물질군(A~E) 분류표」를 받을 수 있나요?</span>
+      <span class="qa">㉮ 에 ’26.8월 배포로 적혀 있습니다. 이게 있어야 ①↔③ 연결을
+        제대로 합니다. <b>받아 주시면 가장 좋습니다</b> — 없으면 대표물질
+        30여 종만 태그합니다.</span>
+    </div>
+    <div class="q">
+      <span class="qn">②</span>
+      <span class="qt">1순위 긴급동원체계 13개社를 서비스에 넣을까요?</span>
+      <span class="qa">사업장 이름·소재지·처리시설이 도구에 들어갑니다.
+        <b>넣기를 권합니다</b> — 지금 없는, 가장 먼저 불러야 하는 자원입니다.</span>
+    </div>
+    <div class="q">
+      <span class="qn">③</span>
+      <span class="qt">실내대피 / 소산 기준표를 ① 에 ‘참고’로 둘까요?</span>
+      <span class="qa">「화관법」 기준을 <b>읽기만 하는 표</b>로 둡니다.
+        체크박스·자동 판정은 하지 않습니다. 표만 두는 것은 괜찮다고 보지만,
+        화면에 새 내용을 얹는 일이라 여쭙습니다.</span>
+    </div>
+    <div class="q">
+      <span class="qn">④</span>
+      <span class="qt">‘사고초기Ⅱ(취약계층 사전대피)’ 단계를 ① 문안 분류에 더할까요?</span>
+      <span class="qa">지금은 실내대피 / 대피명령 둘뿐입니다.
+        <b>표준(안) 12개 문안에 그 단계 문안이 있는지 원내 확인이 필요합니다.</b></span>
+    </div>
+    <div class="q">
+      <span class="qn">⑤</span>
+      <span class="qt">대피장소의 ‘공동활용 여부·안내표지판 설치 여부’ 자료를 받을 수 있나요?</span>
+      <span class="qa">공식 수치로는 1,167개소·1,235개소인데,
+        <b>우리 자료에는 시설별 표시가 없습니다.</b> 있으면 카드에 답니다.</span>
+    </div>
+    <div class="q">
+      <span class="qn">⑥</span>
+      <span class="qt">폐기물 자료는 전국취합본(1,123곳)으로 갈까요?</span>
+      <span class="qa">유역청별 회신(1,669곳)과 기준일·범위가 달라 겹칩니다.
+        하나만 골라야 합니다 — <b>전국취합본을 권합니다</b>(전화 99.8% 보유).</span>
+    </div>
+    <div class="q done">
+      <span class="qn">✔</span>
+      <span class="qt">이미 답이 난 것 — ‘인력 지원’ 갈래 · 독성가스 사업장</span>
+      <span class="qa"><b>인력은 넣습니다</b> (공식 정의가 장비·인력·물품).
+        <b>독성가스 취급사업장은 보류합니다</b> (자원이 아님).</span>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 덧 ══════════════ -->
+<section class="part">
+  <p class="part-lbl">덧</p>
+  <h2>이번 공부로 확인된 것 — 되돌리지 않아도 됩니다</h2>
+  <ul class="bul">
+    <li>② 의 <b>영향 참고 반경</b>이 ERG 초기이격거리·방호활동거리 기반
+        → 공식 “ERG 안전거리 우선 제공”과 같은 방식</li>
+    <li>① 의 <b>실내대피 / 대피명령</b> 두 분류 → 공식 사고초기Ⅰ / 사고확대(소산)</li>
+    <li>① 의 <b>집결지를 선택 칸으로</b> 둔 것 → “소규모 분산대피 지양,
+        초기집결지로 이용”</li>
+    <li>① 의 <b>필수 항목 여섯 가지</b> → 공식 대피 안내문구 항목과 일치</li>
+    <li>② 의 <b>대피장소 1,849곳</b> → 공식 ’26년 지정 수와 일치</li>
+    <li>도구가 <b>판단하지 않는다</b>는 원칙 → 공식 문서가 “최소한의 기준 ·
+        탄력적 적용”이라고 못박고 있음</li>
+  </ul>
+</section>
+
+<footer class="foot">
+  <p><b>본문 원본</b> docs/원내자료_공부와_최종방향.md &nbsp;·&nbsp;
+     <b>자료를 넣는 순서</b> docs/방제자원_정리/반영방안.md &nbsp;·&nbsp;
+     <b>표 18개</b> docs/방제자원_정리/표/</p>
+  <p>이 문서는 <b>검토용</b>입니다. 서비스(<code>data/</code>)에는 아직 아무것도
+     반영하지 않았습니다. ㉰ 표지에 담당자 실명이 있어 문서에는 옮기지
+     않았습니다.</p>
+</footer>
+
+</div>
