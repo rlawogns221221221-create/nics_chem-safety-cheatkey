@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>화학사고 초동대응 지원 서비스 — 한 장 요약</title>
+<!-- ────────────────────────────────────────────────────────────
+     원페이퍼(한 장 요약) — 인쇄해서 책상·상황실에 붙여 두는 것
+
+     `docs/사용설명서.html`(10쪽)과 **다른 물건**입니다. 이것은 급할 때
+     한 장만 보고 움직일 수 있게, **중요한 것만** 담습니다.
+
+     ── 무엇을 넣고 무엇을 뺐나 ────────────────────────────────
+     넣은 것 — 주소 · 도구 세 가지가 하는 일과 걸음 · 바탕화면에 놓는 법 ·
+              꼭 기억할 것(도구가 판단하지 않는다는 것) · 안 될 때
+     뺀 것  — 화면 사진, 자료 출처표, 세부 옵션 설명. 그것은 10쪽짜리에
+              있습니다. 한 장에 다 넣으면 한 장의 값이 없어집니다.
+
+     ⚠ **반드시 A4 한 쪽에 들어가야 합니다.** 내용을 더하면 두 쪽이 되고,
+       그러면 '한 장 요약'이 아닙니다. build/make_guide.mjs 가 굽고 나서
+       쪽수를 세어 두 쪽이면 멈춥니다.
+     ──────────────────────────────────────────────────────────── -->
+<style>
+  @font-face{font-family:"Pretendard GOV";font-weight:400;font-display:block;
+    src:url("../assets/fonts/PretendardGOV-Regular.subset.woff2") format("woff2")}
+  @font-face{font-family:"Pretendard GOV";font-weight:700;font-display:block;
+    src:url("../assets/fonts/PretendardGOV-Bold.subset.woff2") format("woff2")}
+
+  @page{size:A4}
+
+  :root{
+    --ink:#12181f; --ink2:#4a5563; --ink3:#78838f;
+    --line:#d5dce3; --line2:#e8edf1;
+    --blue:#256ef4; --blue-d:#0b50d0; --blue-l:#ecf2fe;
+    --red:#de3412; --red-l:#fdeeeb;
+    --amber:#8a5c00; --amber-l:#fff3db;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:"Pretendard GOV",system-ui,sans-serif;
+    font-size:10.5pt; line-height:1.55; color:var(--ink); word-break:keep-all;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact}
+
+  /* ── 머리띠 — 주소가 가장 크게 보여야 합니다 ───────────────── */
+  .hd{display:flex; align-items:center; gap:12pt;
+    background:linear-gradient(135deg,#2f7cf6,#0b50d0); color:#fff;
+    border-radius:6pt; padding:12pt 14pt; margin-bottom:10pt}
+  .hd .mark{flex:none; width:52pt; height:52pt}
+  .hd h1{margin:0 0 1pt; font-size:19pt; letter-spacing:-.01em; line-height:1.2}
+  .hd .sub{margin:0; font-size:10pt; opacity:.9}
+  .hd .url{margin-left:auto; text-align:right; flex:none}
+  .hd .url b{display:block; font-size:8.5pt; opacity:.85; font-weight:400;
+    letter-spacing:.04em}
+  .hd .url code{font-family:inherit; font-size:15.5pt; font-weight:700}
+
+  h2{margin:0 0 6pt; font-size:12pt; letter-spacing:-.01em;
+    padding-bottom:3pt; border-bottom:1.2pt solid var(--ink)}
+
+  /* ── 도구 세 장 ─────────────────────────────────────────── */
+  .tools{display:flex; gap:7pt; margin-bottom:10pt}
+  .t{flex:1; border:1pt solid var(--line); border-radius:5pt; overflow:hidden}
+  .t .th{background:var(--blue-l); padding:5pt 8pt;
+    border-bottom:1pt solid var(--line)}
+  .t .no{display:inline-block; width:13pt; height:13pt; margin-right:4pt;
+    border-radius:2.5pt; background:var(--blue); color:#fff;
+    font-size:7.5pt; font-weight:700; text-align:center; line-height:13pt;
+    vertical-align:1pt}
+  .t .tn{font-size:11.5pt; font-weight:700; color:var(--blue-d)}
+  .t .tb{padding:6pt 8pt 7pt}
+  .t .what{margin:0 0 5pt; color:var(--ink2)}
+  .t ol{margin:0; padding:0; list-style:none; counter-reset:s}
+  .t ol li{position:relative; padding-left:16pt; margin-bottom:3.5pt;
+    counter-increment:s}
+  .t ol li::before{content:counter(s); position:absolute; left:0; top:1pt;
+    width:11.5pt; height:11.5pt; border-radius:50%; background:var(--ink);
+    color:#fff; font-size:7.5pt; font-weight:700; text-align:center;
+    line-height:11.5pt}
+  .t ol b{color:var(--blue-d)}
+
+  /* ── 아래 두 칸 ─────────────────────────────────────────── */
+  .cols{display:flex; gap:10pt; align-items:flex-start}
+  .cols > div{flex:1}
+
+  table{width:100%; border-collapse:collapse; font-size:9.8pt}
+  th,td{border:1pt solid var(--line); padding:4pt 6pt; text-align:left;
+    vertical-align:top}
+  th{background:#f4f6f9; font-weight:700; white-space:nowrap; width:72pt}
+  td b{color:var(--blue-d)}
+
+  .box{padding:7pt 9pt; border-radius:4pt; margin-top:8pt}
+  .box .t2{font-weight:700; margin-bottom:4pt; font-size:10.5pt}
+  .warn{background:var(--red-l); border-left:3pt solid var(--red)}
+  .warn .t2{color:var(--red)}
+  .warn ul{margin:0; padding-left:11pt}
+  .warn li{margin-bottom:2pt}
+
+  footer{margin-top:11pt; padding-top:6pt; border-top:1pt solid var(--line);
+    font-size:8.5pt; color:var(--ink3); display:flex; justify-content:space-between}
+</style>
+</head>
+<body>
+
+<!-- ══ 머리 — 아이콘 · 이름 · 주소 ══ -->
+<div class="hd">
+  <svg class="mark" viewBox="0 0 512 512" aria-hidden="true">
+    <path d="M256 92 L402 146 V264 C402 342 334 402 256 428 C178 402 110 342 110 264 V146 Z"
+          fill="#fff"/>
+    <circle cx="256" cy="252" r="82" fill="none" stroke="#0b50d0" stroke-width="22"/>
+    <circle cx="256" cy="252" r="26" fill="#0b50d0"/>
+  </svg>
+  <div>
+    <h1>화학사고 초동대응 지원 서비스</h1>
+    <p class="sub">한 장 요약 · 화학물질안전원 · 지자체 담당자용</p>
+  </div>
+  <div class="url">
+    <b>설치·가입 없이 주소만 열면 됩니다</b>
+    <code>chem-safety-kr.pages.dev</code>
+  </div>
+</div>
+
+<!-- ══ 도구 세 가지 ══ -->
+<h2>업무도구 세 가지 — 카드를 눌러 들어갑니다</h2>
+<div class="tools">
+
+  <div class="t">
+    <div class="th"><span class="no">01</span><span class="tn">방제 물품·장비 찾기</span></div>
+    <div class="tb">
+      <p class="what">필요한 물품·장비를 가진 곳을 사고지점 가까운 순으로 찾습니다.</p>
+      <ol>
+        <li><b>필요한 것</b>을 고릅니다 (여러 개 가능)</li>
+        <li><b>사고지점</b>을 넣습니다 — 주소·사업장 이름 / 지도에서 찍기 / 내 위치</li>
+        <li>목록에서 <b>거리·보유 물품·전화번호</b> 확인</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="t">
+    <div class="th"><span class="no">02</span><span class="tn">주민 대피장소 찾기</span></div>
+    <div class="tb">
+      <p class="what">사고지점 주변 대피장소를 거리·도보시간과 함께 찾습니다.</p>
+      <ol>
+        <li>위쪽 <b>‘사고지점 찍기’</b> 또는 <b>‘내 위치’</b></li>
+        <li>목록에서 <b>수용인원·주소·관할부서 전화</b> 확인</li>
+        <li><b>‘이 내용으로 주민대피 문자 만들기’</b> 로 03 에 값 전달</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="t">
+    <div class="th"><span class="no">03</span><span class="tn">주민대피 문자생성기</span></div>
+    <div class="tb">
+      <p class="what">사고 정보를 넣으면 재난문자 표준문안이 만들어집니다.</p>
+      <ol>
+        <li><b>실내대피 / 도로 우회 / 주민소산</b> 중 하나를 고릅니다</li>
+        <li>걸음마다 칸을 채웁니다 (위 진행 표시를 눌러 건너뛰어도 됨)</li>
+        <li><b>‘복사’</b> 를 눌러 문자발송시스템에 붙여 넣기</li>
+      </ol>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ 아래 두 칸 ══ -->
+<div class="cols">
+
+  <div>
+    <h2>바탕화면(홈 화면)에 놓기 — 처음 한 번만</h2>
+    <table>
+      <tr><th>업무용 PC</th>
+        <td>크롬으로 주소 열기 → 오른쪽 위 <b>⋮</b> →
+          <b>저장 및 공유</b> → <b>바로가기 만들기</b><br>
+          <span style="color:#78838f">엣지는 ··· → 앱 → 이 사이트를 앱으로 설치</span></td></tr>
+      <tr><th>안드로이드</th>
+        <td>크롬으로 주소 열기 → 오른쪽 위 <b>⋮</b> → <b>홈 화면에 추가</b></td></tr>
+      <tr><th>아이폰</th>
+        <td><b>사파리</b>로 주소 열기 → 아래쪽 <b>공유 단추(□↑)</b> →
+          <b>홈 화면에 추가</b><br>
+          <span style="color:#78838f">크롬이 아니라 사파리여야 합니다</span></td></tr>
+    </table>
+
+    <div class="box warn">
+      <div class="t2">꼭 기억할 것</div>
+      <ul>
+        <li><b>이 도구는 판단하지 않습니다.</b> 어디까지 대피시킬지는
+          담당자가 정하고, 최종 판단과 책임은 관계기관에 있습니다.</li>
+        <li><b>거리는 직선거리</b>, 도보·차량 시간은 <b>어림값</b>입니다.</li>
+        <li>지도의 <b>반경 원은 참고 거리</b>이며 확산 모델링이 아닙니다.</li>
+        <li>업체는 폐업하고 담당자는 바뀝니다 — <b>연락 전 확인.</b></li>
+      </ul>
+    </div>
+  </div>
+
+  <div>
+    <h2>잘 안 될 때</h2>
+    <table>
+      <tr><th>주소가 안 열림</th>
+        <td>업무망에서 외부 인터넷이 막힌 경우입니다. 휴대전화(LTE)로 열어
+          보시고, 안 되면 <b>망분리PC용 단일파일</b>을 쓰세요.</td></tr>
+      <tr><th>지도에 선만 보임</th>
+        <td>배경지도만 못 받은 것으로 <b>거리·목록은 정상</b>입니다.
+          위쪽 <b>‘조건 더보기’</b> 에서 배경지도를 바꿔 보세요.</td></tr>
+      <tr><th>‘내 위치’ 안 됨</th>
+        <td>위치 사용을 물었을 때 <b>허용</b>을 눌러야 합니다.
+          대신 <b>지도에서 직접 찍기</b>를 쓰세요.</td></tr>
+      <tr><th>문안이 안 만들어짐</th>
+        <td>필수 칸이 비면 <b>일부러 만들지 않습니다</b>(반쪽 문안 발송을
+          막기 위해). 비어 있는 걸음을 알려 주니 그 단추를 누르세요.</td></tr>
+      <tr><th>예전 화면이 보임</th>
+        <td>새로고침 — PC 는 <b>Ctrl+F5</b>, 휴대전화는 화면을 위에서
+          아래로 당기기</td></tr>
+      <tr><th>인쇄해서 보고</th>
+        <td>각 도구 오른쪽 위 <b>‘인쇄’</b> — 지도와 목록이 함께 나옵니다.</td></tr>
+    </table>
+  </div>
+
+</div>
+
+<footer>
+  <span>업무 참고도구 · 최종 판단과 책임은 관계기관에 있습니다</span>
+  <span>자세한 사용법은 <b>사용설명서(10쪽)</b> 를 보세요</span>
+</footer>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-/* 지자체 담당자용 사용설명서 만들기 (PDF)
+/* 지자체 담당자용 설명서 만들기 (PDF 두 가지)
    ───────────────────────────────────────────────────────────────
        node build/make_guide.mjs
 
@@ -6,7 +6,12 @@
    ① 실제 화면을 몰아 놓고 **사진을 찍습니다**(docs/guide-img/).
       손으로 캡처하면 화면을 고칠 때마다 설명서 사진이 옛것이 됩니다.
       여기서 찍으면 언제든 다시 돌려 최신으로 맞출 수 있습니다.
-   ② `docs/사용설명서.html` 을 열어 **A4 인쇄용 PDF** 로 굽습니다.
+   ② `docs/사용설명서.html`(10쪽)과 `docs/원페이퍼.html`(1쪽)을 각각
+      **A4 인쇄용 PDF** 로 굽습니다.
+      · 사용설명서 — 처음 접하는 사람이 앉아서 읽는 것
+      · 원페이퍼   — 인쇄해 책상·상황실에 붙여 두고 급할 때 보는 것
+      원페이퍼는 **한 쪽을 넘기면 멈춥니다.** 두 쪽이 되면 '한 장 요약'이
+      아니고, 붙여 둘 수도 없기 때문입니다.
 
    ── 왜 PDF 인가 ────────────────────────────────────────────────
    지자체에 공문으로 붙이고, 인쇄해 상황실에 두고, 휴대전화로도 열어 봅니다.
@@ -147,21 +152,36 @@ const 찍기 = async (page, 이름, sel) => {
 }
 
 /* ── 설명서를 PDF 로 굽기 ────────────────────────────────────── */
-{
+async function 굽기(원본, 낼이름, 여백) {
   const ctx = await browser.newContext();
   const p = await ctx.newPage();
-  await p.goto(`${ROOT}docs/사용설명서.html`);
+  await p.goto(`${ROOT}docs/${원본}`);
   await p.waitForLoadState('load');
   await p.waitForTimeout(1200);
-  await p.pdf({
-    path: `${RPATH}/docs/화학사고_초동대응_지원_서비스_사용설명서.pdf`,
-    format: 'A4', printBackground: true,
-    margin: { top: '14mm', bottom: '14mm', left: '14mm', right: '14mm' },
-  });
-  const size = readFileSync(
-    `${RPATH}/docs/화학사고_초동대응_지원_서비스_사용설명서.pdf`).length;
-  console.log(`\ndocs/화학사고_초동대응_지원_서비스_사용설명서.pdf   ${(size / 1024).toFixed(0)} KB`);
+  const out = `${RPATH}/docs/${낼이름}`;
+  await p.pdf({ path: out, format: 'A4', printBackground: true,
+    margin: { top: 여백, bottom: 여백, left: 여백, right: 여백 } });
   await ctx.close();
+  const size = readFileSync(out).length;
+  console.log(`\ndocs/${낼이름}   ${(size / 1024).toFixed(0)} KB`);
+  return out;
+}
+
+await 굽기('사용설명서.html', '화학사고_초동대응_지원_서비스_사용설명서.pdf', '14mm');
+const 한장 = await 굽기('원페이퍼.html', '화학사고_초동대응_지원_서비스_한장요약.pdf', '10mm');
+
+/* 원페이퍼가 한 쪽을 넘겼는지 셉니다 — PDF 안의 "/Type /Page" 개수.
+   넘겼는데 모르고 나눠 주면 '한 장 요약'이 아니게 됩니다. */
+{
+  const buf = readFileSync(한장).toString('latin1');
+  const 쪽 = (buf.match(/\/Type\s*\/Page[^s]/g) || []).length;
+  if (쪽 > 1) {
+    console.error(`\n⚠ 원페이퍼가 ${쪽}쪽이 되었습니다 — 내용을 줄이거나 `
+      + `docs/원페이퍼.html 의 글자·여백을 줄이세요.`);
+    process.exitCode = 1;
+  } else {
+    console.log('  원페이퍼 한 쪽 확인');
+  }
 }
 
 await browser.close();
