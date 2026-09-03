@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>화학사고 방제자원 DB 취합 현황 — 한 장 보고</title>
+<!-- ────────────────────────────────────────────────────────────
+     발표용 한 장 보고 — 「방제자원_전체」 원자료를 정리한 결과의 요약
+
+     ⚠ **A4 한 쪽을 넘기면 build/make_guide.mjs 가 빌드를 멈춥니다.**
+       내용을 더할 때는 다른 것을 빼세요.
+
+     ⚠ 여기 적힌 수치는 **전부 `build/방제자원_통계.py` 가 세어 낸 값**
+       입니다. 손으로 고치지 마세요 — 자료가 바뀌면 숫자만 남습니다.
+       고칠 일이 있으면 스크립트를 다시 돌리고 그 값을 옮기세요.
+     ──────────────────────────────────────────────────────────── -->
+<style>
+  @font-face{font-family:"Pretendard GOV";font-weight:400;font-display:block;
+    src:url("../assets/fonts/PretendardGOV-Regular.subset.woff2") format("woff2")}
+  @font-face{font-family:"Pretendard GOV";font-weight:700;font-display:block;
+    src:url("../assets/fonts/PretendardGOV-Bold.subset.woff2") format("woff2")}
+  @page{size:A4}
+  :root{
+    --ink:#12181f; --ink2:#4a5563; --ink3:#78838f;
+    --line:#d5dce3; --line2:#eaeef2;
+    --blue:#256ef4; --blue-d:#0b50d0; --blue-l:#eef4fe;
+    --red:#de3412; --red-l:#fdeeeb; --amber:#8a5c00; --amber-l:#fff5e0;
+    --green:#0f7b4f; --green-l:#e8f6ef;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:"Pretendard GOV",system-ui,sans-serif;
+    font-size:8.85pt; line-height:1.42; color:var(--ink); word-break:keep-all;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact}
+
+  .hd{display:flex; align-items:center; gap:10pt;
+    background:linear-gradient(135deg,#2f7cf6,#0b50d0); color:#fff;
+    border-radius:5pt; padding:7.5pt 11pt; margin-bottom:6pt}
+  .hd .mark{flex:none; width:34pt; height:34pt}
+  .hd h1{margin:0 0 1pt; font-size:15.5pt; letter-spacing:-.02em; line-height:1.2}
+  .hd .sub{margin:0; font-size:8.6pt; opacity:.92}
+  .hd .rt{margin-left:auto; text-align:right; font-size:8.2pt; opacity:.9}
+
+  h2{margin:0 0 4pt; font-size:10.2pt; letter-spacing:-.01em;
+    padding-bottom:2pt; border-bottom:1.1pt solid var(--ink)}
+  section{margin-bottom:6pt}
+
+  /* 핵심 수치 4장 */
+  .kpi{display:flex; gap:5pt; margin-bottom:6pt}
+  .k{flex:1; border:1pt solid var(--line); border-radius:4pt; padding:5pt 7pt;
+    background:var(--blue-l)}
+  .k .t{font-size:8pt; font-weight:700; color:var(--blue-d)}
+  .k b{display:block; font-size:17.5pt; line-height:1.08; letter-spacing:-.03em}
+  .k .s{font-size:7.4pt; color:var(--ink2); line-height:1.35; margin-top:1pt}
+  /* 설명줄 안의 <b> 가 위 큰 숫자 규칙(.k b)을 물려받아 17.5pt 로 튀었습니다 */
+  .k .s b{font-size:inherit; color:var(--blue-d)}
+
+  table{width:100%; border-collapse:collapse; font-size:8.1pt}
+  th,td{border:.8pt solid var(--line); padding:1.9pt 4.5pt; text-align:left;
+    vertical-align:middle}
+  th{background:#f3f6f9; font-weight:700; white-space:nowrap}
+  td.n,th.n{text-align:right; white-space:nowrap}
+  tr.sum td{background:#f7f9fb; font-weight:700}
+  .new{color:var(--green); font-weight:700}
+
+  .two{display:flex; gap:9pt; align-items:flex-start}
+  .two > div{flex:1}
+
+  ul{margin:0; padding-left:11pt}
+  li{margin-bottom:1.7pt}
+  b.hl{color:var(--blue-d)}
+
+  .box{padding:4.5pt 7pt; border-radius:3pt; margin-top:4pt; font-size:8pt}
+  .warn{background:var(--red-l); border-left:2.6pt solid var(--red)}
+  .warn .t2{font-weight:700; color:var(--red); margin-bottom:2pt}
+  .ok{background:var(--green-l); border-left:2.6pt solid var(--green)}
+  .ok .t2{font-weight:700; color:var(--green); margin-bottom:2pt}
+
+  /* 470 → 2,571 막대 */
+  .bars{margin-top:3pt}
+  .bar{display:flex; align-items:center; gap:5pt; margin-bottom:2.6pt}
+  .bar .lb{width:78pt; flex:none; font-size:8pt; color:var(--ink2)}
+  .bar .tr{flex:1; background:var(--line2); border-radius:2pt; height:11.5pt;
+    position:relative; overflow:hidden}
+  .bar .fl{position:absolute; left:0; top:0; bottom:0; background:var(--blue);
+    border-radius:2pt}
+  .bar .fl.g{background:var(--green)}
+  .bar .fl.a{background:#c9d3de}
+  .bar .vv{width:34pt; flex:none; text-align:right; font-weight:700; font-size:8.4pt}
+
+  footer{margin-top:7pt; padding-top:4pt; border-top:.8pt solid var(--line);
+    font-size:7.5pt; color:var(--ink3); display:flex; justify-content:space-between}
+</style>
+</head>
+<body>
+
+<!-- ══ 머리 ══ -->
+<div class="hd">
+  <svg class="mark" viewBox="0 0 512 512" aria-hidden="true">
+    <path d="M256 92 L402 146 V264 C402 342 334 402 256 428 C178 402 110 342 110 264 V146 Z" fill="#fff"/>
+    <circle cx="256" cy="252" r="82" fill="none" stroke="#0b50d0" stroke-width="22"/>
+    <circle cx="256" cy="252" r="26" fill="#0b50d0"/>
+  </svg>
+  <div>
+    <h1>화학사고 방제자원 DB 취합 현황</h1>
+    <p class="sub">기관별 회신 자료 정리 결과 · 화학사고 초동대응 지원 서비스 반영 검토</p>
+  </div>
+  <div class="rt">화학물질안전원<br>2026. 9. 3.</div>
+</div>
+
+<!-- ══ 핵심 수치 ══ -->
+<div class="kpi">
+  <div class="k"><div class="t">정리한 자료</div><b>7,469</b>
+    <div class="s">표 14개 · 원자료 폴더 5개·파일 100여 개</div></div>
+  <div class="k"><div class="t">바로 반영 가능</div><b>1,141</b>
+    <div class="s">주소·연락처가 있어 지도에 올릴 수 있는 지점</div></div>
+  <div class="k"><div class="t">현재 서비스 등재</div><b>470</b>
+    <div class="s">2026-08-11 기준 → <b>2.4배</b> 확대</div></div>
+  <div class="k"><div class="t">개인정보 제거</div><b>7,252</b>
+    <div class="s">실명 2,480 · 휴대전화 495 · 사업자번호 4,277</div></div>
+</div>
+
+<!-- ══ 자료원별 확보 현황 ══ -->
+<section>
+  <h2>1. 자료원별 확보 현황</h2>
+  <table>
+    <tr><th>자료원</th><th class="n">행</th><th class="n">지점</th><th>주요 내용</th>
+        <th class="n">현재 등재</th></tr>
+    <tr><td>지자체 보유 방재장비</td><td class="n">437</td><td class="n">437</td>
+        <td>218개 지자체 — 굴착기 382·암롤차 291·방독면 284,818개·마른모래 1,326톤</td>
+        <td class="n">427</td></tr>
+    <tr><td>지자체 관할 민간업체</td><td class="n">763</td><td class="n">496</td>
+        <td>중장비 166곳(암롤트럭 109·덤프 76) + 폐기물 330곳</td>
+        <td class="n new">0 → 신규</td></tr>
+    <tr><td>산단·고속도로 방제장비함</td><td class="n">492</td><td class="n">48</td>
+        <td>현장 비치 — 화학보호복·전면형 방독면·내화학장갑</td>
+        <td class="n new">0 → 신규</td></tr>
+    <tr><td>사업장 자체 방제물품</td><td class="n">1,296</td><td class="n">106</td>
+        <td>화학안전공동체 · 품목 484종 · 방재인원 68곳</td>
+        <td class="n new">0 → 신규</td></tr>
+    <tr><td>해경 비축기지 · 화학방제정</td><td class="n">46</td><td class="n">28</td>
+        <td>항만 3곳 개인보호구 6.7만 세트 + 방제정 25척</td>
+        <td class="n">3</td></tr>
+    <tr><td>수질오염방제센터</td><td class="n">54</td><td class="n">4</td>
+        <td>4개 권역 · Level C 보호구·케미컬흡착재</td><td class="n">4</td></tr>
+    <tr><td>ERaCV 비상캡슐 · 중합방지제</td><td class="n">22</td><td class="n">22</td>
+        <td>누출 봄베 밀봉 19곳 · 중합 억제 약품 3곳</td><td class="n">19</td></tr>
+    <tr class="sum"><td>소 계 (즉시 반영 가능)</td><td class="n">3,110</td>
+        <td class="n">1,141</td><td>—</td><td class="n">470</td></tr>
+    <tr><td>지정폐기물 처리업체</td><td class="n">—</td><td class="n">1,430</td>
+        <td>유역청 6곳 확인 · 양식이 달라 <b>건수만</b> 확정 (대구청 미확인)</td>
+        <td class="n">15</td></tr>
+    <tr><td>독성가스 취급사업장 <b style="color:#de3412">※위험시설</b></td>
+        <td class="n">4,277</td><td class="n">1,579</td>
+        <td>취급물질 256종 — 암모니아 1,774·염소 400건</td>
+        <td class="n">—</td></tr>
+  </table>
+</section>
+
+<div class="two">
+  <div>
+    <!-- ══ 확대 규모 ══ -->
+    <section>
+      <h2>2. 서비스 반영 시 확대 규모</h2>
+      <div class="bars">
+        <div class="bar"><span class="lb">현재</span>
+          <span class="tr"><span class="fl a" style="width:18.3%"></span></span>
+          <span class="vv">470</span></div>
+        <div class="bar"><span class="lb">1·2차 반영</span>
+          <span class="tr"><span class="fl" style="width:44.4%"></span></span>
+          <span class="vv">1,141</span></div>
+        <div class="bar"><span class="lb">전체 반영</span>
+          <span class="tr"><span class="fl g" style="width:100%"></span></span>
+          <span class="vv">2,571</span></div>
+      </div>
+      <div class="ok">
+        <div class="t2">담당자에게 달라지는 것</div>
+        지금은 “우리 지자체가 가진 것”만 나옵니다. 반영하면 <b>관할 민간업체
+        496곳·현장 장비함 48곳·사업장 106곳</b>이 사고지점 가까운 순으로
+        함께 나와, <b>전화 한 통이면 되는 곳</b>을 바로 찾습니다.
+      </div>
+    </section>
+  </div>
+
+  <div>
+    <!-- ══ 자료 품질 ══ -->
+    <section>
+      <h2>3. 반영 전 해결할 사항</h2>
+      <ul>
+        <li><b class="hl">좌표가 전무</b> — 1,141곳 모두 주소 문자열뿐.
+          현재 등재분 470건도 정확좌표 0건(시·군·구 어림 276건).
+          <b>지오코딩 필요</b>(브이월드 활용도메인 등록 선행)</li>
+        <li><b class="hl">자료 기준일 상이</b> — 금강청 2024-12 ↔ 낙동강청
+          2026-01. 화면에 단일 기준일 표기 시 사실과 어긋남 →
+          <b>건별 기준일 표기</b>로 변경</li>
+        <li><b class="hl">업종 표기 19종</b> — ‘폐기물 수집∙운반업체/
+          폐기물수집운반업/수집운반업’이 각각 존재 → <b>4종으로 표준화</b></li>
+        <li><b class="hl">연락처 결측 19%</b> — 763행 중 148행.
+          기존 원칙대로 <b>공란 유지</b>(임의 기재 금지)</li>
+        <li><b class="hl">미판독 파일 8건</b> — hwp·hwpx 6, 구형 xls 1,
+          155MB PDF 1. <b>xlsx 재제출 시 즉시 반영</b>
+          (특히 ‘전국 독성가스 처리업체.hwp’)</li>
+      </ul>
+      <div class="warn">
+        <div class="t2">개인정보 — 원자료 그대로 배포 불가</div>
+        담당자 실명 2,480건·개인 휴대전화 495건이 포함되어 있었습니다.
+        정리본은 <b>기관·사업장 대표번호만</b> 남겼습니다.
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ══ 추진 계획 ══ -->
+<section>
+  <h2>4. 단계별 추진(안)</h2>
+  <table>
+    <tr><th style="width:34pt">단계</th><th>대상</th><th>사유</th>
+        <th class="n" style="width:52pt">지오코딩</th><th class="n" style="width:44pt">누적</th></tr>
+    <tr><td><b>1차</b></td><td>지자체 장비 갱신 + 관할 민간업체 496곳</td>
+        <td>담당자가 최초로 연락하는 대상 · 현재 미등재</td>
+        <td class="n">496건</td><td class="n">933</td></tr>
+    <tr><td><b>2차</b></td><td>방제장비함 48 + 사업장 106 + 국가기관·특수자원 54</td>
+        <td>현물이 현장에 있는 자원 · 건수가 적어 목록 부담 없음</td>
+        <td class="n">208건</td><td class="n">1,141</td></tr>
+    <tr><td><b>3차</b></td><td>독성가스 사업장 1,579곳 — <b>사고지점 검색용</b></td>
+        <td>“○○화학에서 발생” 입력만으로 사고지점 특정 · 지도 미표출</td>
+        <td class="n">불필요</td><td class="n">1,141</td></tr>
+    <tr><td><b>4차</b></td><td>지정폐기물 1,430곳</td>
+        <td>최대 물량 — <b>목록 좁히기 기능 검증 후</b> 반영</td>
+        <td class="n">1,430건</td><td class="n">2,571</td></tr>
+  </table>
+  <div class="box warn" style="margin-top:5pt">
+    <div class="t2">검토 필요 — 자원 5.5배 증가에 따른 화면 부담</div>
+    현행 화면은 470건 기준입니다. 2,571건에서는 거리순 나열만으로 화면이
+    넘칩니다. <b>기본 반경 30km 적용 · 종류별 상위 3곳 우선 표출</b>을
+    함께 적용해야 합니다. (상세: <span style="font-family:monospace">docs/방제자원_정리/반영방안.md</span>)
+  </div>
+</section>
+
+<footer>
+  <span>자료: 지자체·유역환경청·해양경찰청·화학안전공동체 회신분 (구글드라이브 ‘방제자원_전체’)</span>
+  <span>업무 참고자료 · 최종 판단과 책임은 관계기관에 있습니다</span>
+</footer>
+
+</body>
+</html>
