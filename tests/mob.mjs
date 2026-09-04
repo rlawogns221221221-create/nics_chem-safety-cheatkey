@@ -241,6 +241,17 @@ for (const [dev, cfg] of DEVICES) {
           const bad = [];
           if (li >= 0 && li < 60) bad.push(`목록 칸이 ${li}px 로 눌림`);
           if (mp >= 0 && mp < 150) bad.push(`지도 칸이 ${mp}px 로 눌림`);
+          /* 지도 안에 그린 글자(SVG)와 지도 위에 얹은 판이 겹치는가.
+             PROBE 는 svg 안을 건너뛰므로 여기서 따로 봅니다 — 실제로
+             안내 한 줄이 축척 막대와 겹쳐 둘 다 못 읽었습니다. */
+          const hint = document.querySelector('.shmap-svg .mkh');
+          const scale = document.querySelector('.shmap-scale');
+          if (hint && scale) {
+            const a = hint.getBoundingClientRect(), b = scale.getBoundingClientRect();
+            const ox = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+            const oy = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+            if (ox > 4 && oy > 4) bad.push(`지도 안내 글자가 축척 막대와 겹침 (${Math.round(ox)}×${Math.round(oy)}px)`);
+          }
           return bad;
         });
         if (sh.length) note(dev, pname + '(지도에서 찾기)', sh.join(' / '));

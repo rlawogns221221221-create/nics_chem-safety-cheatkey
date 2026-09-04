@@ -243,9 +243,13 @@ function draw() {
       + '" class="mkl' + (st.sel[s.key] ? " on" : "") + '" font-size="12">'
       + esc(s.name) + (s.d != null ? " " + fmtDist(s.d) : "") + "</text>");
   });
+  /* 안내 한 줄 — 좁은 화면에서는 **위쪽**에 적습니다.
+     아래에 두었더니 왼쪽 아래 축척 막대(.shmap-scale)와 글자가 겹쳐
+     둘 다 못 읽었습니다. 넓은 화면은 가로가 넉넉해 겹치지 않으므로
+     원래대로 아래에 둡니다. */
   if (st.show.length > cap)
-    g.push('<text x="' + (vb.sw / 2) + '" y="' + (vb.sh - 10) + '" class="mkh"'
-      + ' font-size="11">확대하거나 목록에서 가리키면 이름이 보입니다</text>');
+    g.push('<text x="' + (vb.sw / 2) + '" y="' + (vb.sw < 520 ? 18 : vb.sh - 10)
+      + '" class="mkh" font-size="11">확대하거나 목록에서 가리키면 이름이 보입니다</text>');
 
   /* 사고지점 — 십자 표시 */
   if (st.acc) {
