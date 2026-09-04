@@ -169,6 +169,7 @@ python3 build/hwp읽기.py 파일.hwp  # hwp·hwpx 에서 글자 뽑기 (한 번
 | 디자인 방향 3안 (고르는 중) | `preview/design.html` | https://claude.ai/code/artifact/270fca8b-6a22-47b3-8dd1-58c66f0216bf |
 | 방제자원 원자료 정리 (검토용) | `docs/방제자원_정리/한눈에보기.html` | https://claude.ai/code/artifact/a4d7613d-8a20-4384-966e-3442d5edf5f3 |
 | **원내 자료 공부 + 최종 방향(안)** (검토용) | `preview/최종방향.html` | https://claude.ai/code/artifact/cf7fb0fa-5c7f-46ea-a3f5-429ddf0ce654 |
+| **공유대회 [붙임2] 대표사례 작성본** | `preview/공유대회_붙임2.html` | https://claude.ai/code/artifact/a3905cc4-cfd3-4725-98da-d33965a20788 |
 
 진입 화면은 `index.html` + `portal.css` + 로고로 되어 있어 Artifact(한 파일만
 올라감)로 그대로 못 올립니다. `build_single.py` 가 한 덩어리로 합친
