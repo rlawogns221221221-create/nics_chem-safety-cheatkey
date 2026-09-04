@@ -504,7 +504,9 @@ function prefill() {
 function fillSido() {
   var S = window.SHELTERS || {};
   var sel = $(".shmap-sido", box);
-  sel.innerHTML = '<option value="">선택</option>'
+  /* '선택' 만 적어 두면 좁은 화면에서 이름표를 비켜 둘 때 이 칸이 무엇인지
+     알 수 없습니다 — 칸 스스로 이름을 말하게 합니다. */
+  sel.innerHTML = '<option value="">시·도 선택</option>'
     + Object.keys(S).sort().map(function (s) {
         return '<option' + (s === st.sido ? " selected" : "") + ">" + esc(s) + "</option>";
       }).join("");
@@ -516,7 +518,7 @@ function fillSgg() {
   var ks = Object.keys(m).sort();
   if (!ks.length) { sel.innerHTML = '<option value="">시·도 먼저</option>'; return; }
   if (ks.indexOf(st.sgg) < 0) st.sgg = "";
-  sel.innerHTML = '<option value="">선택</option>'
+  sel.innerHTML = '<option value="">시·군·구 선택</option>'
     + ks.map(function (s) {
         return '<option' + (s === st.sgg ? " selected" : "") + ">" + esc(s) + "</option>";
       }).join("");
@@ -563,8 +565,11 @@ function buildBox() {
       + '<span class="shmap-src"></span>'
       + '<button type="button" class="shmap-x" aria-label="닫기">✕</button></header>'
     + '<div class="shmap-bar">'
-      + '<label>시·도<select class="shmap-sido"></select></label>'
-      + '<label>시·군·구<select class="shmap-sgg"></select></label>'
+      /* 이름표를 <span> 으로 감쌉니다 — 좁은 화면에서 화면에서만 비켜 두고
+         (shell.css 의 .shmap-bar label span) 화면낭독기에는 그대로 읽히게
+         하려면 글자를 잡을 수 있어야 합니다. 맨 글자는 CSS 로 못 잡습니다. */
+      + '<label><span>시·도</span><select class="shmap-sido"></select></label>'
+      + '<label><span>시·군·구</span><select class="shmap-sgg"></select></label>'
       + '<div class="shmap-lyr" role="group" aria-label="배경지도 선택"></div>'
       + '<button type="button" class="shmap-accbtn sm">사고지점 찍기</button>'
       + '<span class="shmap-hint">지도의 점이나 오른쪽 목록을 눌러 고르세요 · 여러 곳도 됩니다</span>'

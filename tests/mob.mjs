@@ -139,6 +139,40 @@ const OVERLAP = () => {
   return [...new Set(out)].slice(0, 4);
 };
 
+/* ── 사고지점 줄 — 위도와 경도가 같은 줄에 있는가 ─────────────────
+   ‼ 예전에는 그냥 flex-wrap 이라 브라우저가 남는 자리대로 접어서 위도는
+   첫 줄, 경도는 둘째 줄로 갈라졌습니다. 한 쌍인데 따로 놓이면 "값이 두
+   군데에 있다"고 읽혀 보기 나쁩니다(사용자 지적). 자리를 격자로 못 박은
+   뒤라 다시 갈라지면 여기서 걸립니다. */
+const COORDROW = () => {
+  const row = document.querySelector('.mb-accrow');
+  if (!row) return null;
+  const ll = [...row.querySelectorAll('label')]
+    .map(e => Math.round(e.getBoundingClientRect().top));
+  if (ll.length < 2) return null;
+  return ll[0] === ll[1] ? null : `위도(${ll[0]}px)와 경도(${ll[1]}px)가 다른 줄`;
+};
+
+/* ── 첫 화면에 지도가 얼마나 보이는가 ─────────────────────────────
+   지도 도구인데 지도가 안 보이면 아무 소용이 없습니다. 사용자가 "지도를
+   보는 화면이 너무 작아서 답답하다"고 한 그 자리입니다 — 그때는 상단 바·
+   조건 줄·요약 띠가 465px 을 먹어 지도가 **199px** 밖에 안 보였습니다.
+
+   170px 은 손을 본 뒤 실제로 잰 값 가운데 가장 낮은 것(320px 화면의 ③)에서
+   딱 떨어지는 선입니다. ③ 이 ② 보다 낮은 것은 '찾는 조건 바꾸기' 띠가
+   하나 더 있기 때문이고, 그 띠는 ③ 에만 필요합니다.
+   ※ 이 환경은 배경지도 타일을 못 받아 경고 띠(31px)가 늘 떠 있습니다.
+      인터넷이 되는 곳에서는 그만큼 더 보입니다. */
+const MAPSEEN = () => {
+  const m = document.getElementById('map');
+  if (!m) return null;
+  const r = m.getBoundingClientRect();
+  const seen = Math.round(Math.min(r.bottom, innerHeight) - r.top);
+  return seen < 170
+    ? `첫 화면에 지도가 ${seen}px 만 보임 (지도 시작 ${Math.round(r.top)}px / 화면 ${innerHeight}px)`
+    : null;
+};
+
 /* 첫 화면이 세로 가운데 정렬이라 위쪽이 텅 비지 않았는가 */
 const DEADTOP = sel => {
   const box = document.querySelector(sel);
@@ -187,6 +221,33 @@ for (const [dev, cfg] of DEVICES) {
       await P.waitForTimeout(700);
       report(dev, pname + '(문안 확인)', await P.evaluate(PROBE));
 
+      /* ‼ '지도에서 찾기' 창 — 휴대전화에서 조건 줄·경고 띠가 길어지면서
+         **목록 칸이 0px 로 눌리고 아래 단추와 겹쳤습니다.** 눈으로는 잘
+         안 보이는 자리라(창을 열어야 나옴) 검사로 못 박습니다. */
+      const evac = await P.$$('.stepbar .stp-i button');
+      for (const b of evac) {
+        if (/대피장소/.test(await b.textContent())) { await b.click(); break; }
+      }
+      await P.waitForTimeout(500);
+      const mb = await P.$('#btnMap');
+      if (mb && await mb.isVisible()) {
+        await mb.click(); await P.waitForTimeout(1200);
+        checks++;
+        report(dev, pname + '(지도에서 찾기)', await P.evaluate(PROBE));
+        const sh = await P.evaluate(() => {
+          const g = s => { const e = document.querySelector(s);
+            return e ? Math.round(e.getBoundingClientRect().height) : -1; };
+          const li = g('.shmap-list'), mp = g('.shmap-mapwrap');
+          const bad = [];
+          if (li >= 0 && li < 60) bad.push(`목록 칸이 ${li}px 로 눌림`);
+          if (mp >= 0 && mp < 150) bad.push(`지도 칸이 ${mp}px 로 눌림`);
+          return bad;
+        });
+        if (sh.length) note(dev, pname + '(지도에서 찾기)', sh.join(' / '));
+        const x = await P.$('.shmap-x');
+        if (x) await x.click();
+      }
+
     } else {
       const isRes = pname.includes('방제');
       await P.goto(`${R}/${isRes ? 'res' : 'map'}/index.html`); await P.waitForTimeout(800);
@@ -215,6 +276,15 @@ for (const [dev, cfg] of DEVICES) {
       report(dev, pname + '(결과)', await P.evaluate(PROBE));
       const ov = await P.evaluate(OVERLAP);
       if (ov.length) note(dev, pname + '(결과)', `지도 위 패널끼리 겹침: ${ov.join(', ')}`);
+      /* 사고지점 줄과 지도 자리 — 이번에 사용자가 짚은 두 가지 */
+      const cr = await P.evaluate(COORDROW);
+      if (cr) note(dev, pname + '(결과)', cr);
+      if (!wide) {
+        await P.evaluate(() => window.scrollTo(0, 0));
+        const mt = await P.evaluate(MAPSEEN);
+        if (mt) note(dev, pname + '(결과)', mt);
+      }
+      checks += 2;
       /* 지도가 화면에서 사라질 만큼 위가 무겁지 않은가 */
       const m = await P.evaluate(() => {
         const r = document.getElementById('map').getBoundingClientRect();
