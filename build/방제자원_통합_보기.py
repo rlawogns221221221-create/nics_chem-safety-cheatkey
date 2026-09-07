@@ -42,8 +42,8 @@ def main():
 
     # 화면으로 넘기는 자료 — 열 이름을 짧게 줄여 파일을 작게 만듭니다
     업체칸 = ["갈래", "업체명", "권역", "시도", "시군구", "주소", "대표전화",
-           "허가현황", "처리가능폐기물", "보유장비", "협의권역", "확인못함",
-           "자료출처"]
+           "허가현황", "처리가능폐기물", "보유장비", "협의권역", "찾을권역",
+           "확인못함", "자료출처"]
     물품칸 = ["물품명", "분류", "원래이름", "개수", "단위", "보유처", "보유처종류",
            "권역", "시도", "시군구", "주소", "대표전화", "자료출처"]
     자료 = {
@@ -140,6 +140,7 @@ def main():
  .row .tag{font-size:11.5px;font-weight:600;padding:1px 8px;border-radius:3px;
    background:var(--brand-l);color:var(--brand-t);white-space:nowrap}
  .row .tag.ok{background:var(--ok-l);color:var(--ok)}
+ .row .tag.two{background:var(--wait-l);color:var(--wait)}
  .row .n{font-family:ui-monospace,monospace;font-size:13px;color:var(--ink2);
    font-variant-numeric:tabular-nums;white-space:nowrap}
  .row .m{margin:3px 0 0;color:var(--ink2);font-size:13.5px}
@@ -254,9 +255,16 @@ function 알림그리기(){
       '허가증에도 <b>“붙임 참조”로만 적힌 것이 12건</b> 있어(분량이 최대 39쪽) ' +
       '그 줄은 <b>허가 종류만</b> 적었습니다 — 말씀하신 대로입니다.</p>' +
       '<p><b>폐수 수탁처리 4곳</b>(유니큰 온산공장 · 공공폐수처리시설 3곳)은 ' +
-      '폐기물 여섯 갈래에 안 들어갑니다. 물환경보전법 허가인데 <b>폐산·알카리 ' +
-      '폐수를 받는 곳</b>이라 빼지 않고 따로 칸을 두었습니다 — 어디에 넣을지 ' +
-      '정해 주세요.</p></div>';
+      '말씀대로 <b>별도 갈래</b>로 두었습니다. 물환경보전법 허가라 폐기물 ' +
+      '갈래에 억지로 섞지 않습니다 — 섞으면 “이 업체가 폐기물도 받는다”고 ' +
+      '잘못 읽힙니다. <b>폐산·알카리 폐수를 받는 곳</b>이라 화학사고에서 ' +
+      '실제로 필요합니다.</p>' +
+      '<p><b>업체가 있는 곳과 맡기로 한 곳이 다를 수 있습니다.</b> 권역을 ' +
+      '고르면 <b>둘 다에서 찾힙니다</b>(' + s.업체.두권역이상 + '줄) — ' +
+      '(주)세송유화텍은 충북 진천에 있는데 강원권을 맡고(강원권에 업체가 ' +
+      '없어서), 씨이케이는 여수에 있는데 경상권도, (주)상록은 여수에 ' +
+      '있는데 충청권도 맡습니다. 그 줄에는 <b>“○○ + ○○ 둘 다”</b> 딱지가 ' +
+      '붙습니다.</p></div>';
   } else {
     h = '<div class="note"><h2>물품 — 이름을 어떻게 묶었나</h2>' +
       '<p>원자료의 물품 이름이 <b>한 표에서만 484가지</b>였습니다. 그대로 두면 ' +
@@ -328,11 +336,15 @@ function 칩그리기(){
 function 골라채우기(){
   var 줄들 = 지금 === "업체" ? D.업체 : D.물품;
   var 칸들 = 지금 === "업체" ? 업체칸 : 물품칸;
-  var 권칸 = 칸(칸들, "권역"), 시칸 = 칸(칸들, "시도");
+  /* 권역은 **찾을권역**(소재 + 협의)에서 뽑습니다 — 업체가 있는 곳과
+     맡기로 한 곳이 다를 수 있어서, 둘 다에서 찾혀야 합니다. */
+  var 권칸 = 칸(칸들, "찾을권역") >= 0 ? 칸(칸들, "찾을권역") : 칸(칸들, "권역");
+  var 시칸 = 칸(칸들, "시도");
   var 권 = document.getElementById("권역"), 시 = document.getElementById("시도");
   var 있는권 = {}, 있는시 = {};
   for (var i = 0; i < 줄들.length; i++) {
-    if (줄들[i][권칸]) 있는권[줄들[i][권칸]] = 1;
+    var vs = (줄들[i][권칸] || "").split("·");
+    for (var q = 0; q < vs.length; q++) if (vs[q]) 있는권[vs[q]] = 1;
     if (줄들[i][시칸]) 있는시[줄들[i][시칸]] = 1;
   }
   var h = '<option value="">권역 전체</option>';
@@ -350,7 +362,8 @@ function 걸러내기(){
   var 줄들 = 지금 === "업체" ? D.업체 : D.물품;
   var 칸들 = 지금 === "업체" ? 업체칸 : 물품칸;
   var 갈칸 = 지금 === "업체" ? 칸(칸들, "갈래") : 칸(칸들, "물품명");
-  var 권칸 = 칸(칸들, "권역"), 시칸 = 칸(칸들, "시도");
+  var 권칸 = 칸(칸들, "찾을권역") >= 0 ? 칸(칸들, "찾을권역") : 칸(칸들, "권역");
+  var 시칸 = 칸(칸들, "시도");
   var 말 = document.getElementById("찾기").value.trim().toLowerCase();
   var 권 = document.getElementById("권역").value;
   var 시 = document.getElementById("시도").value;
@@ -358,7 +371,8 @@ function 걸러내기(){
   for (var i = 0; i < 줄들.length; i++) {
     var r = 줄들[i];
     if (고른갈래 && (r[갈칸] || "(빈칸)") !== 고른갈래) continue;
-    if (권 && r[권칸] !== 권) continue;
+    /* 두 권역을 맡는 업체가 있어 **하나라도 맞으면** 남깁니다 */
+    if (권 && (r[권칸] || "").split("·").indexOf(권) < 0) continue;
     if (시 && r[시칸] !== 시) continue;
     if (말 && r.join(" ").toLowerCase().indexOf(말) < 0) continue;
     남.push(r);
@@ -392,6 +406,9 @@ function 그리기(){
         '<span class="nm">' + r[칸(칸들,"업체명")] + '</span>' +
         (r[칸(칸들,"협의권역")] ? '<span class="tag ok">협의 완료 · ' +
           r[칸(칸들,"협의권역")] + '</span>' : "") +
+        ((r[칸(칸들,"찾을권역")] || "").indexOf("·") >= 0
+          ? '<span class="tag two">' + r[칸(칸들,"찾을권역")].split("·").join(" + ") +
+            ' 둘 다</span>' : "") +
         '<span class="n">' + 전화(r[칸(칸들,"대표전화")]) + '</span></div>' +
         '<p class="m">' + 곳(r, 칸들) + ' · ' +
         (r[칸(칸들,"주소")] || "주소 없음") + '</p>' +
