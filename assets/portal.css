@@ -504,7 +504,7 @@ main{flex:1; padding:0 0 3.2rem}
   padding:0 .6rem; border-radius:.4rem;
   background:var(--brand); color:var(--on-brand);
   font-size:1.5rem; font-weight:700; line-height:1; flex:none}
-.pn h3{margin:0; font-size:2.6rem; font-weight:700; letter-spacing:-.02em;
+.pn h3{margin:0; font-size:3.0rem; font-weight:700; letter-spacing:-.02em;
   line-height:1.3}
 /* 날짜·건수처럼 중간에서 끊기면 읽기 나쁜 토막은 통째로 넘깁니다
    ("2026-05-" / "19" 로 갈라졌습니다 — 붙임표에서 줄이 바뀝니다) */
@@ -602,7 +602,7 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
     backdrop-filter:saturate(150%) blur(1.2rem);
     border-top:.1rem solid var(--band-line);
     transition:transform .14s var(--ease), background .14s var(--ease)}
-  .pn-hd h3{font-size:2.6rem; line-height:1.25; letter-spacing:-.035em;
+  .pn-hd h3{font-size:2.8rem; line-height:1.25; letter-spacing:-.035em;
     color:var(--on-deep)}
   /* 번호는 이름보다 작고 조용하게 — 이름이 커진 만큼 채운 배지는
      무거워 보입니다. 테두리만 남긴 알약으로 바꿉니다. */
