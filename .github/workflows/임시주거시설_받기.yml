@@ -47,7 +47,11 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  받기:
+  # ⚠ 잡 id 는 영문·숫자·_·- 만 됩니다(깃허브 규칙 — 한국어를 쓰면
+  #   "The identifier is invalid" 로 워크플로가 아예 안 돕니다).
+  #   눈에 보이는 이름은 name 으로 한국어를 둡니다.
+  fetch:
+    name: 오픈API 로 받기
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
