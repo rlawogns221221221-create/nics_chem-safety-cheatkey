@@ -208,23 +208,14 @@ def fix_sgg(sido: str, cand: str, addr: str, S: dict) -> str:
     return cand or ""
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("파일", help="내려받은 목록 파일 (csv · xlsx · 오픈API json)")
-    ap.add_argument("--sheet", type=int, default=0, help="xlsx 시트 번호 (0부터)")
-    args = ap.parse_args()
+def 칸찍기(rows: list) -> dict:
+    """무엇을 무엇으로 읽었는지 화면에 그대로 찍고, 짝지은 것을 돌려준다.
 
-    path = pathlib.Path(args.파일)
-    if not path.exists():
-        fail(f"파일이 없습니다: {path}")
-
-    rows = read_rows(path, args.sheet)
-    if not rows:
-        fail("줄이 하나도 없습니다.")
+    ‼ 이 자리에서는 원자료의 칸 이름을 확인할 수 없습니다(그 서버로 나갈 수
+    없음). 짐작으로 짝지었으므로 **짝지은 결과가 눈에 보여야** 틀린 것을
+    고칠 수 있습니다."""
     cols = [c for c in rows[0].keys() if c]
     mapping = map_cols(cols)
-
-    print(f"\n{path.name} — {len(rows):,}줄\n")
     print("  칸 짝짓기")
     for name, _ in RULES:
         print(f"    {name:8} ← {mapping.get(name) or '원자료에 없음'}")
@@ -234,8 +225,17 @@ def main() -> None:
     if not mapping.get("시설명") or not mapping.get("위도") or not mapping.get("경도"):
         fail("시설명·위도·경도 칸을 찾지 못했습니다.\n"
              "      시설 하나하나가 한 줄인 목록 자료라야 합니다.\n"
-             f"      이 파일의 칸: {', '.join(cols)}")
+             "      (시·도별 개소·수용능력만 있는 집계표로는 지도를 만들 수 없습니다)\n"
+             f"      이 자료의 칸: {', '.join(cols)}")
+    return mapping
 
+
+def 만들기(rows: list, 원본이름: str, 출처: str = "행정안전부 이재민 임시주거시설") -> dict:
+    """줄 목록 → data/tempshelters.js 파일로 쓰고 통계를 돌려준다.
+
+    파일로 받은 것(csv·xlsx·json)과 오픈API 로 받은 것이 **같은 규칙으로 같은
+    결과**가 되도록, 두 길이 이 함수 하나를 함께 씁니다."""
+    mapping = 칸찍기(rows)
     S = shelters()
     out, n, no_xy, no_name = {}, 0, 0, 0
     for r in rows:
@@ -281,19 +281,21 @@ def main() -> None:
     today = date.today().isoformat()
     meta = {
         "받은날": today, "총건수": n, "원자료건수": len(rows),
-        "출처": "행정안전부 이재민 임시주거시설",
-        "원본파일": path.name,
+        "출처": 출처,
+        "원본파일": 원본이름,
         "필드": ["시설명", "면적", "주소", "최대수용인원", "시설구분",
                  "위도", "경도", "관리기관", "전화"],
     }
     head = (
-        "/* 이재민 임시주거시설 — 원자료: 행정안전부 이재민 임시주거시설\n"
-        f"     내려받은 파일: {path.name}\n"
+        f"/* 이재민 임시주거시설 — 원자료: {출처}\n"
+        f"     받은 곳: {원본이름}\n"
         "   구조: TEMPSHELTERS[시도][시군구] =\n"
         "     [[시설명, 면적, 주소, 최대수용인원, 시설구분, 위도, 경도, 관리기관, 전화], ...]\n"
         "   화학사고 대피장소(data/shelters.js)와 같은 줄 구조라 같은 화면에서 함께 씁니다.\n"
         "   ※ 좌표가 없는 줄은 지도에 찍을 수 없어 뺐습니다.\n"
-        "   ※ 자동 생성 파일입니다. build/make_tempshelters.py 로 다시 만드세요.\n"
+        "   ※ 자동 생성 파일입니다 — 손으로 고치지 마세요.\n"
+        "     파일로 받았을 때  build/make_tempshelters.py 받은것.json\n"
+        "     오픈API 로 받을 때 build/fetch_tempshelter.py (인터넷 필요)\n"
         f"   만든 날: {today}  ·  실은 줄 {n:,} / 받은 줄 {len(rows):,} */\n"
     )
     OUT.write_text(
@@ -309,6 +311,25 @@ def main() -> None:
         f"{sd} {sum(len(v) for v in out[sd].values()):,}" for sd in sorted(out)))
     print(f"\n  {OUT.relative_to(ROOT)}  {OUT.stat().st_size / 1024:.0f} KB")
     print("  → python3 build/build_single.py 로 단일 파일도 다시 만드세요.\n")
+    return {"실은줄": n, "받은줄": len(rows), "좌표없음": no_xy, "이름없음": no_name,
+            "시도수": len(out)}
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("파일", help="내려받은 목록 파일 (csv · xlsx · 오픈API json)")
+    ap.add_argument("--sheet", type=int, default=0, help="xlsx 시트 번호 (0부터)")
+    args = ap.parse_args()
+
+    path = pathlib.Path(args.파일)
+    if not path.exists():
+        fail(f"파일이 없습니다: {path}")
+
+    rows = read_rows(path, args.sheet)
+    if not rows:
+        fail("줄이 하나도 없습니다.")
+    print(f"\n{path.name} — {len(rows):,}줄\n")
+    만들기(rows, path.name)
 
 
 if __name__ == "__main__":
