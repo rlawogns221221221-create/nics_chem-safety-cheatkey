@@ -13,7 +13,7 @@ set -u
 cd "$(dirname "$0")"
 HERE=$(pwd)
 
-ALL="t2 t8 t9 tok n1 n3 pinch widen mob bug1 car sms2 hand addr res2 tmp2 fetchpage pwa"
+ALL="t2 t8 t9 tok n1 n3 pinch widen mob bug1 car sms2 hand addr res2 tmp2 tmpbig fetchpage pwa"
 
 declare -A WHAT=(
   [t2]="① 문자 도구 — 문안 생성·접기·글자수·모바일"
@@ -32,6 +32,7 @@ declare -A WHAT=(
   [addr]="주소·장소 검색"
   [res2]="③ 방제자원 — 시작 화면·조건·목록"
   [tmp2]="② 이재민 임시주거시설 층 (검증용 가짜 자료를 잠깐 넣고 돌립니다)"
+  [tmpbig]="② 이재민 임시주거시설이 **실제 규모(만 이천 곳)**로 들어와도 지도가 버티는가"
   [fetchpage]="자료 받는 페이지 — 칸 짝짓기·지역 이름 맞추기"
   [pwa]="바탕화면 웹앱 — 진짜 서버를 띄워 설치·오프라인까지"
 )

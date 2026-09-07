@@ -109,6 +109,32 @@ def head_msg(d):
     return f"{code} {msg}"
 
 
+def 오류풀이(bad: str) -> str:
+    """서버가 준 코드를 **무엇을 하면 되는지**로 바꿔 적습니다.
+    "32 UNREGISTERED IP ERROR" 만 보고 무엇을 해야 하는지 아는 사람은 없습니다."""
+    if re.search(r"\bUNREGISTERED IP|^32\b", bad, re.I):
+        return (
+            "      ── 인증키에 **부르는 쪽 IP** 가 등록되어 있지 않습니다 ──────\n"
+            "      이 오픈API 는 활용신청 때 적어 둔 IP 에서만 받을 수 있습니다.\n"
+            "      1) safetydata.go.kr 로그인 → 마이페이지 → 오픈API 활용신청 현황\n"
+            "      2) 이 API 를 열고 **활용 IP(서버 IP)** 에 부를 자리의 IP 를 넣습니다\n"
+            "         · 제한 없음으로 둘 수 있으면 그렇게 두어도 됩니다\n"
+            "         · 깃허브 액션 러너는 IP 가 매번 달라 등록해 두기 어렵습니다\n"
+            "      3) 등록한 그 자리에서 build/fetch_tempshelter.html 을 열거나\n"
+            "         이 스크립트를 돌리면 그대로 받아집니다\n"
+            "      ── 또는 파일로 받아 넘기는 길 ──────────────────────────\n"
+            "      플랫폼 화면에서 목록을 파일로 내려받아\n"
+            "        python3 build/make_tempshelters.py 받은것.json\n"
+            "      을 돌리면 같은 결과가 됩니다(csv·xlsx 도 됩니다)."
+        )
+    if re.search(r"SERVICE_?KEY|인증키", bad, re.I):
+        return ("      인증키 활용신청이 승인됐는지(신청 직후에는 한 시간쯤 걸립니다),\n"
+                "      Decoding 키를 넣었는지 확인하세요.")
+    if re.search(r"LIMITED|초과|한도", bad, re.I):
+        return "      하루 호출 한도에 걸렸습니다. 내일 다시 받으면 됩니다."
+    return "      코드 뜻은 그 플랫폼의 오픈API 안내(오류코드 표)를 보세요."
+
+
 def get(url: str, 초=25) -> dict:
     req = urllib.request.Request(url, headers={
         "User-Agent": "nics-chem-safety/1.0 (+github actions)",
@@ -139,8 +165,7 @@ def 받기(base: str, key: str, per: int, 최대쪽: int, 쉬기: float) -> list
 
         bad = head_msg(d)
         if bad:
-            fail("서버가 오류를 돌려주었습니다 — " + bad
-                 + "\n      인증키 활용신청이 승인됐는지, Decoding 키인지 확인하세요.")
+            fail("서버가 오류를 돌려주었습니다 — " + bad + "\n" + 오류풀이(bad))
 
         rows = rows_of(d)
         if page == 1:
@@ -188,7 +213,10 @@ def main() -> None:
 
     import os
     base = args.url or html에서_찾기("url") or 기본주소
-    key = args.key or os.environ.get("TEMPSHELTER_KEY", "") or html에서_찾기("key")
+    # 두 플랫폼은 인증키가 다릅니다 — 주소를 보고 알맞은 것을 씁니다
+    키칸 = "key" if is_safety(base) else "keyOd"
+    key = (args.key or os.environ.get("TEMPSHELTER_KEY", "")
+           or html에서_찾기(키칸) or html에서_찾기("key"))
     if not key:
         fail("인증키가 없습니다. --key 나 환경변수 TEMPSHELTER_KEY 로 주세요.")
     per = args.per or (100 if is_safety(base) else 1000)

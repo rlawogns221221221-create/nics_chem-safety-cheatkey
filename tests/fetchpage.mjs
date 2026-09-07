@@ -110,6 +110,24 @@ chk(log3.includes('서버 오류') && log3.includes('인증키'),
     `몸통에 담긴 오류를 0건으로 넘기지 않는다 — ${log3.trim().split('\n').pop()}`);
 chk(await P.isHidden('#dlCard'), '오류 응답으로는 파일을 만들지 않는다');
 
+/* ── 서버가 "IP 가 등록 안 됐다" 고 답할 때 ────────────────────
+   2026-09-07 깃허브 액션에서 실제로 이 오류를 받았습니다("32 UNREGISTERED IP
+   ERROR"). 이 오픈API 는 활용신청 때 적어 둔 IP 에서만 받아집니다.
+   코드만 띄우면 사용자가 무엇을 해야 하는지 알 수 없으므로, **무엇을 하면
+   되는지**가 화면에 나와야 합니다. */
+await P.goto(ROOT + 'build/fetch_tempshelter.html');
+await P.waitForTimeout(400);
+await P.setInputFiles('#file', RPATH + '/tests/fixtures/sample_api_iperr.json');
+await P.waitForTimeout(700);
+const ipTxt = (await P.textContent('.card')).replace(/\s+/g, ' ');
+chk(/IP/.test(ipTxt) && /등록/.test(ipTxt),
+  'IP 가 등록 안 됐다는 오류를 그대로 짚어 준다');
+chk(/마이페이지|활용 IP|활용신청/.test(ipTxt),
+  '어디를 눌러 고치는지 알려 준다');
+chk(/파일로 내려받아|JSON 파일로 하기/.test(ipTxt),
+  '막혔을 때 대신 갈 길(파일로 받기)도 알려 준다');
+chk(await P.isHidden('#dlCard'), 'IP 오류로는 파일을 만들지 않는다');
+
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length);
 bad.forEach(m => console.log('  FAIL ' + m));
 if (errs.length) { console.log('오류:'); errs.forEach(e => console.log('  ' + e)); }
