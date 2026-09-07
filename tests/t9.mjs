@@ -424,30 +424,50 @@ const heroTxt = await P.evaluate(() => ({
 chk(Math.abs(rgba(heroTxt.fg) - rgba(heroTxt.veil)) > 120,
   `머리띠 제목과 막의 밝기 차가 충분하다 (막 ${Math.round(rgba(heroTxt.veil))} ↔ 글자 ${Math.round(rgba(heroTxt.fg))})`);
 
-/* ══ 15. 카드 띠 — 붙어 있고, 크기는 상자에 맞는가 ══════════════════
-   두 번의 지적이 여기서 만납니다.
-     ① "박스 사이의 공백이 오히려 전문성을 줄인다" → 칸 사이를 붙였습니다.
-     ② 그래서 화면 끝까지 늘려 봤더니 "화면 비율이 완전히 바뀌어 오히려
-        가독성이 떨어졌다" → 크기는 가운데 상자(120rem)로 되돌렸습니다.
-   둘 다 되돌아가지 않도록 여기서 못 박아 둡니다. */
+/* ══ 15. 카드 세 장 — 사진 위에 뜨고, 크기는 상자에 맞는가 ═══════════
+   세 번의 지적이 여기서 만납니다.
+     ① "화면 끝까지 늘렸더니 화면 비율이 완전히 바뀌어 오히려 가독성이
+        떨어졌다" → 크기는 가운데 상자(120rem)로 되돌렸습니다.
+     ② "이 사진이 화면을 가득 채우고 3가지 도구 버튼은 지금 자리 그대로
+        가득 찬 화면 위에 있으면 좋겠어"(2026-09-07) → 사진이 상단 바
+        아래부터 꼬리 위까지 채우고, 카드는 그 위에 뜹니다.
+     ③ "각 박스별로 확실한 태두리를 가져야 해"(같은 날) → 넓은 화면에서는
+        한 장씩 테두리·모서리·틈을 갖습니다.
+   ⚠ ③ 은 그 전의 "칸 사이를 붙인다"(박스 사이 공백이 전문성을 줄인다)를
+     사용자가 **바꾼 것**입니다. 좁은 화면은 예전대로 붙여 둡니다(16 에서
+     세 칸이 한 화면에 들어오는지 잽니다). 임의로 되돌리지 마세요. */
 for (const w of [1440, 1863]) {
   await P.setViewportSize({ width: w, height: 900 }); await P.waitForTimeout(300);
   const strip = await P.evaluate(() => {
     const li = [...document.querySelectorAll('.tools > li')].map(e => e.getBoundingClientRect());
-    const a = document.querySelector('.tools > li > a');
+    const a = document.querySelector('.tools > li > a'), as = getComputedStyle(a);
     const ul = document.querySelector('.tools').getBoundingClientRect();
     const logo = document.querySelector('.logo-full').getBoundingClientRect();
     const h1 = document.querySelector('.hero h1').getBoundingClientRect();
+    const ph = document.querySelector('.hero-ph').getBoundingClientRect();
+    const ft = document.querySelector('footer').getBoundingClientRect();
     return {
       gaps: li.slice(1).map((r, i) => Math.round(r.left - li[i].right)),
       radius: parseFloat(getComputedStyle(a).borderTopLeftRadius),
       ulW: ul.width, ulL: ul.left, vw: innerWidth,
-      photo: li[0].width, logo: logo.left, h1: h1.left
+      photo: li[0].width, logo: logo.left, h1: h1.left,
+      /* 한 장씩 또렷한 테두리 — 두께와, 카드 바탕과 다른 색인지 */
+      bw: parseFloat(as.borderTopWidth), bc: as.borderTopColor, bg: as.backgroundColor,
+      /* 사진이 카드 자리를 지나 꼬리 앞까지 내려오는가 */
+      phTop: ph.top, phBottom: ph.bottom, cardsBottom: li[2].bottom, footTop: ft.top
     };
   });
-  chk(strip.gaps.every(g => g <= 2),
-    `${w}px — 카드 사이가 벌어지지 않는다 (틈 ${strip.gaps.join('/')}px)`);
-  chk(strip.radius <= 2, `${w}px — 카드마다 둥근 모서리를 주지 않는다 (${strip.radius}px)`);
+  chk(strip.gaps.every(g => g >= 8 && g <= 28) &&
+      Math.abs(strip.gaps[0] - strip.gaps[1]) <= 1,
+    `${w}px — 카드가 한 장씩 떨어져 있다 (틈 ${strip.gaps.join('/')}px)`);
+  chk(strip.radius >= 6, `${w}px — 카드마다 둥근 모서리가 있다 (${strip.radius}px)`);
+  chk(strip.bw >= 2 && strip.bc !== strip.bg,
+    `${w}px — 카드마다 테두리가 있다 (${strip.bw}px ${strip.bc})`);
+  /* 사진이 화면을 가득 채우는가 — 카드 아래까지 내려오고 꼬리에 닿는다 */
+  chk(strip.phBottom >= strip.cardsBottom + 20,
+    `${w}px — 사진이 카드 아래까지 내려온다 (사진 ${Math.round(strip.phBottom)} ↔ 카드 ${Math.round(strip.cardsBottom)})`);
+  chk(Math.abs(strip.phBottom - strip.footTop) <= 2,
+    `${w}px — 사진이 꼬리 바로 위까지 채운다 (${Math.round(strip.footTop - strip.phBottom)}px)`);
   /* 상자 폭(120rem = 1200px)을 넘지 않는가 — 넘으면 한 칸이 너무 넓어져
      사진이 커지고 글자가 흩어집니다(사용자 지적). */
   chk(strip.ulW <= 1160,

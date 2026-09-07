@@ -102,6 +102,10 @@ html{font-size:62.5%}   /* KRDS 토큰이 rem 이라 뿌리를 10px 로 (1.7rem 
   --band:rgba(10,26,58,.70);
   --band-on:rgba(10,26,58,.86);
   --band-line:rgba(255,255,255,.20);
+  /* 넓은 화면에서 카드가 사진 위에 뜰 때 두르는 테두리.
+     띠 안쪽 칸막이(--line)보다 한 단 진합니다 — 사진 위에서는 옅은 선이
+     사진 무늬에 묻혀 "박스가 셋"이라는 것이 보이지 않습니다. */
+  --pn-line:var(--krds-color-light-gray-30);
   --focus:0 0 0 .4rem var(--krds-light-color-border-primary);
   --ease:cubic-bezier(.22,.61,.36,1);
   /* 상자 안쪽 여백 — **한 값으로 페이지 전체를 맞춥니다.** 로고 · 머리띠
@@ -151,6 +155,9 @@ html[data-krds-mode="high-contrast"]{
   --band:rgba(0,0,0,.86);
   --band-on:rgba(0,0,0,.94);
   --band-line:rgba(255,255,255,.32);
+  /* 고대비에서는 카드 바탕이 검정이라, 테두리는 **밝은** 쪽으로 잡아야
+     사진 위에서 박스 경계가 보입니다(어두운 선은 카드에 묻힙니다). */
+  --pn-line:var(--krds-color-high-contrast-gray-40);
   --focus:0 0 0 .4rem var(--krds-high-contrast-color-border-primary);
   --focus-in:inset 0 0 0 .4rem var(--krds-high-contrast-color-border-primary);
 }
@@ -222,9 +229,32 @@ html[data-krds-mode="high-contrast"] .logo-full{
 
    좁은 화면에서는 글자가 폭을 다 쓰므로 막의 방향을 위→아래로 바꿉니다.
    사진은 아래쪽에 남습니다. */
-.hero{position:relative; background:var(--deep);
-  border-bottom:.1rem solid var(--line); overflow:hidden}
-.hero-ph{position:absolute; inset:0; z-index:0; pointer-events:none}
+/* ── 첫 화면 한 칸 — 사진이 화면을 가득 채웁니다 ────────────────
+   사용자 요청(2026-09-07) — "이 사진이 화면을 가득 채우고 우리의 3가지 도구
+   버튼은 지금 자리 그대로 가득 찬 화면 위에 있으면 좋겠어."
+
+   **왜 격자(grid)로 했나 — 사진 칸 높이를 px 로 못 박지 않기 위해서입니다.**
+   .cover 는 두 줄입니다: ① 머리띠(글) ② 도구 띠. 사진(.hero-ph)은 격자
+   칸을 골라 덮습니다 — 좁은 화면은 첫째 줄만, 넓은 화면은 두 줄 전부.
+   "머리띠 높이만큼 아래로 늘린다"를 숫자로 적으면 글자 길이·글꼴·화면 폭이
+   조금만 달라져도 사진이 어긋나 잘리거나 회색 띠가 드러납니다.
+
+   .cover 가 flex 로 늘어나므로(body 가 세로 flex) 사진은 **위 상단 바 아래
+   부터 아래 꼬리 위까지** 저절로 채웁니다. 화면 높이를 계산하지 않습니다.
+   둘째 줄이 1fr 이라 카드가 적어도 남는 자리는 사진이 그대로 채웁니다. */
+.cover{position:relative; flex:1 0 auto; overflow:hidden;
+  background:var(--deep);
+  display:grid; grid-template-columns:100%; grid-template-rows:auto 1fr}
+/* 사진 · 머리띠 · 도구 띠 — 같은 칸에 겹치는 것은 사진과 머리띠뿐입니다 */
+.cover > .hero-ph{grid-area:1/1; z-index:0}
+.cover > .hero{grid-area:1/1; z-index:1}
+.cover > main{grid-area:2/1; z-index:2}
+
+.hero{position:relative; border-bottom:.1rem solid var(--line)}
+/* 사진 칸 — 격자가 크기를 정하므로 흐름 안에 둡니다(예전에는 .hero 안의
+   absolute 였습니다). 안의 사진 다섯 장만 absolute 로 겹쳐 둡니다.
+   제 차례에 1.04배가 되므로 여기서 잘라 냅니다(overflow). */
+.hero-ph{position:relative; overflow:hidden; pointer-events:none}
 /* 다섯 장이 **같은 자리에 겹쳐** 있고, 보이는 것만 opacity 로 드러납니다.
    자리를 나란히 두면 띠가 다섯 배로 길어집니다. */
 .hero-img{position:absolute; inset:0;
@@ -379,13 +409,41 @@ html[data-hero="stop"] .hero-dots b{animation-play-state:paused}
 /* 머리띠와 카드 사이에 틈을 두지 않습니다 — '업무도구 3종' 글자가 만들던
    틈을 사용자가 "그 갭 없이 딱 붙어 있으면 좋겠다"고 해서 없앴습니다.
    머리띠 사진 → 카드 띠가 **한 덩어리로 세로로 이어집니다.** */
-main{flex:1; padding:0 0 3.2rem}
+main{padding:0 0 3.2rem}
 .tools{list-style:none; margin:0; padding:0; display:grid;
   grid-template-columns:1fr; gap:.1rem;
   background:var(--line); border:.1rem solid var(--line);
   /* 위쪽은 머리띠에 붙으므로 각을 살리고, 아래만 둥글립니다 */
   border-top:0; border-radius:0 0 1rem 1rem; overflow:hidden}
-@media (min-width:800px){ .tools{grid-template-columns:repeat(3,1fr)} }
+
+/* ── 넓은 화면 — 카드가 사진 위에 뜹니다 ────────────────────────
+   사용자 요청(2026-09-07) — "가운데 세가지 박스는 전체화면 위에 위치하는
+   만큼 각 박스별로 확실한 태두리를 가져야 해."
+
+   ⚠ 예전 결정을 **사용자가 이 요청으로 바꾼 것**입니다. 전에는 셋을 붙여
+   한 덩어리로 두었습니다("박스 사이의 공백이 오히려 전문성을 줄인다").
+   그때는 밑바탕이 회색이라 붙여야 한 묶음으로 읽혔는데, 이제 사진 위에
+   떠 있어 붙여 두면 **흰 판 하나**로 보여 셋인 줄 모릅니다.
+   좁은 화면은 예전 그대로 붙여 둡니다 — 세 칸이 한 화면에 들어와야 합니다.
+
+   자리는 그대로입니다 — 머리띠 글 바로 아래, 가운데 상자(120rem) 안. */
+@media (min-width:800px){
+  .tools{grid-template-columns:repeat(3,1fr);
+    gap:1.6rem; background:none; border:0; border-radius:0; overflow:visible}
+  .pn a{border:.2rem solid var(--pn-line); border-radius:1rem; overflow:hidden;
+    box-shadow:0 .2rem .4rem rgba(0,0,0,.10), 0 1.6rem 3.2rem -1.2rem rgba(0,0,0,.42);
+    transition:background-color .18s var(--ease), border-color .18s var(--ease),
+               transform .18s var(--ease), box-shadow .18s var(--ease)}
+  /* 올리면 한 장만 떠오릅니다. :hover 와 :focus-visible 을 한 줄에 묶지
+     않습니다 — :focus-visible 을 모르는 브라우저가 줄 전체를 버립니다. */
+  .pn a:hover{border-color:var(--brand); transform:translateY(-.3rem);
+    box-shadow:0 .2rem .4rem rgba(0,0,0,.12), 0 2.4rem 4rem -1.2rem rgba(0,0,0,.48)}
+  .pn a:focus-visible{border-color:var(--brand)}
+  /* 머리띠와 카드 사이에 선을 그으면 사진 위에 가로줄 하나가 남습니다 */
+  .hero{border-bottom:0}
+  /* 사진이 카드 자리까지 내려옵니다 — 첫째 줄부터 마지막 줄까지 */
+  .cover > .hero-ph{grid-row:1 / -1}
+}
 
 /* 카드 세 장이 차례로 올라옵니다 — 열 때 한 번만. 화면이 통째로 나타나는
    것보다 '무엇이 몇 장 있는지'가 눈에 들어옵니다. 멈춘 상태가 곧 다 보이는
