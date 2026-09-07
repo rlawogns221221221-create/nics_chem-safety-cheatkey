@@ -162,7 +162,7 @@ python3 build/hwp읽기.py 파일.hwp  # hwp·hwpx 에서 글자 뽑기 (한 번
 | 무엇 | 올리는 파일 | URL |
 |---|---|---|
 | 진행 상황 쪽지 (사용자가 여는 링크) | `preview/index.html` | https://claude.ai/code/artifact/f2a94114-3606-4a66-a75c-655f049fecd8 |
-| **실제 진입 화면** | `preview/진입화면_한파일.html` | https://claude.ai/code/artifact/df4be102-cc11-4bbe-b160-7270e50d9826 |
+| **실제 진입 화면** | `preview/진입화면_한파일.html` | https://claude.ai/code/artifact/cc07ce9f-7b35-4f1f-a93a-f4035ec0952b |
 | ① 문자생성기 | `dist/화학사고_주민대피문자_생성기.html` | https://claude.ai/code/artifact/a42de0d3-9c73-4d67-b048-b4bf9c9c2c53 |
 | ② 주민 대피장소 찾기 | `dist/화학사고_주민대피장소_찾기.html` | https://claude.ai/code/artifact/c10d00e5-8ad9-454e-9caf-b4f010f00ef8 |
 | ③ 방제 물품·장비 찾기 | `dist/화학사고_방제물품장비_찾기.html` | https://claude.ai/code/artifact/26c97527-e8ce-4629-8c12-0790afdceb87 |
