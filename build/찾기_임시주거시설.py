@@ -46,7 +46,13 @@ import make_tempshelters as MT                                  # noqa: E402
 ]
 
 
-def 받기(url: str, 초=25) -> str:
+# ⚠ 2026-09-07 깃허브 액션에서 돌려 본 결과 — `www.data.go.kr` 은 러너에서
+#   **아예 시간초과**였습니다(세 후보 모두). 러너가 미국(Azure)에 있어 막히는
+#   것으로 보입니다(그날 러너 IP 172.215.210.49). `safetydata.go.kr` 은 닿지만
+#   인증키가 IP 제한이라 `32 UNREGISTERED IP ERROR` 였습니다.
+#   → **국내 IP 에서 한 번 받는 것**이 유일한 길입니다. docs/임시주거시설_받는법.md
+#   그래서 기다리는 시간을 짧게 둡니다 — 어차피 안 될 때 오래 붙잡을 이유가 없습니다.
+def 받기(url: str, 초=12) -> str:
     req = urllib.request.Request(url, headers={
         "User-Agent": ("Mozilla/5.0 (compatible; nics-chem-safety/1.0; "
                        "+github actions)"),
