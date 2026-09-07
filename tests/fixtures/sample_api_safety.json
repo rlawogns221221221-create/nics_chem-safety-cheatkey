@@ -1,0 +1,5 @@
+{"header":{"resultCode":"00","resultMsg":"정상 처리되었습니다.","errorMsg":null},"numOfRows":"100","pageNo":"1","totalCount":"3","body":[
+{"FCLT_SN":"1001","SIG_CD":"41135","CTPV_NM":"경기","SGG_NM":"성남시 분당구","FCLT_NM":"판교초등학교 체육관","FCLT_SE_NM":"이재민임시주거시설","RONA_DADDR":"경기도 성남시 분당구 판교로 1","LNM_ADDR":"경기도 성남시 분당구 삼평동 1","LAT":"37.3900","LOT":"127.1100","ACPT_PSN_CPCTY":"250","TOT_AR":"1,200","MNG_INST_NM":"성남시청 안전정책과","MNG_INST_TELNO":"031-000-0000"},
+{"FCLT_SN":"1002","SIG_CD":"31710","CTPV_NM":"울산광역시","SGG_NM":"울주군","FCLT_NM":"온산체육관","FCLT_SE_NM":"이재민임시주거시설","RONA_DADDR":"울산광역시 울주군 온산읍 온산로 1","LNM_ADDR":"","LAT":"35.4300","LOT":"129.3400","ACPT_PSN_CPCTY":"600","TOT_AR":"2,500","MNG_INST_NM":"울주군청","MNG_INST_TELNO":"052-000-0000"},
+{"FCLT_SN":"1003","SIG_CD":"44770","CTPV_NM":"충청남도","SGG_NM":"서천군","FCLT_NM":"좌표없는 시설","FCLT_SE_NM":"마을회관","RONA_DADDR":"충청남도 서천군 장항읍 장항로 1","LNM_ADDR":"","LAT":"","LOT":"","ACPT_PSN_CPCTY":"30","TOT_AR":"","MNG_INST_NM":"","MNG_INST_TELNO":""}
+]}

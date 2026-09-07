@@ -67,6 +67,49 @@ chk(why.includes('시·도별 집계표'), '집계표를 받았다고 짚어 준
 chk(why.includes('시설명') && why.includes('위도'), '어떤 칸이 있어야 하는지 알려 준다');
 chk(why.includes('개소') && why.includes('수용능력'), '받은 자료의 칸 이름을 그대로 보여 준다');
 
+/* ── safetydata.go.kr 모양 — 줄이 body 에 담기고 칸 이름이 영문 약어다 ──────
+   사용자가 이 자료의 인증키를 받아 왔는데, 개발 자리에서는 그 서버로 나갈 수
+   없어 실제 칸 이름을 확인하지 못했다. 여기서 재는 것은 "내 짐작이 맞다"가
+   아니라 **모양이 달라도 페이지가 버티는지** 다 — 줄이 data 가 아니라 body 에
+   담겨 와도 읽고, 코드 칸(SIG_CD)을 이름 자리에 넣지 않고, 서버가 200 으로
+   답하면서 몸통에 담아 보낸 오류를 "0건" 으로 넘기지 않는지. */
+await P.goto(ROOT + 'build/fetch_tempshelter.html');
+await P.waitForTimeout(400);
+chk(await P.inputValue('#url') === 'https://www.safetydata.go.kr/V2/api/DSSP-IF-10945',
+    '기본 자료 주소가 새 오픈API 다');
+await P.setInputFiles('#file', RPATH + '/tests/fixtures/sample_api_safety.json');
+await P.waitForTimeout(700);
+const log2 = await P.textContent('#log');
+chk(log2.includes('파일에서 읽음 — 3건'), `줄이 body 에 담겨 와도 읽는다 — ${log2.trim().split('\n')[0]}`);
+const cols2 = await P.textContent('#cols');
+[['시설명','FCLT_NM'],['위도','LAT'],['경도','LOT'],['수용인원','ACPT_PSN_CPCTY'],
+ ['면적','TOT_AR'],['관리기관','MNG_INST_NM'],['전화','MNG_INST_TELNO'],
+ ['도로명','RONA_DADDR'],['지번','LNM_ADDR']].forEach(([k, v]) =>
+  chk(cols2.includes(k) && cols2.includes(v), `영문 약어 짝짓기: ${k} ← ${v}`));
+/* #cols 는 줄바꿈 없이 이어진 글이라 통째로 견주면 '안 쓴 칸' 에 적힌 것까지
+   걸린다(처음에 그렇게 짰다가 헛되게 실패했다). 줄마다 따로 본다. */
+const pair2 = await P.$$eval('#cols div', ds => ds.map(d => d.textContent));
+chk(pair2.some(t => /안 쓴 칸/.test(t) && t.includes('SIG_CD')),
+    '코드 칸(SIG_CD)을 이름 자리에 넣지 않는다');
+chk((await P.textContent('#rawBox')).includes('FCLT_NM'),
+    '원자료 첫 줄을 그대로 보여 준다 — 짝이 틀리면 이것을 보내면 된다');
+const [dl2] = await Promise.all([P.waitForEvent('download'), P.click('#dl')]);
+const ctx2 = {};
+new Function('w', fs.readFileSync(await dl2.path(), 'utf-8').replace(/^var /gm, 'w.'))(ctx2);
+chk(!!(ctx2.TEMPSHELTERS['경기도'] && ctx2.TEMPSHELTERS['경기도']['성남시']),
+    '영문 약어 자료도 대피장소 자료와 같은 지역 이름으로 묶인다');
+chk(!ctx2.TEMPSHELTERS['충청남도'], '좌표 없는 줄은 여기서도 안 들어간다');
+
+/* 서버가 200 으로 답하면서 몸통에 오류를 담아 보낸 경우 */
+await P.goto(ROOT + 'build/fetch_tempshelter.html');
+await P.waitForTimeout(400);
+await P.setInputFiles('#file', RPATH + '/tests/fixtures/sample_api_err.json');
+await P.waitForTimeout(600);
+const log3 = await P.textContent('#log');
+chk(log3.includes('서버 오류') && log3.includes('인증키'),
+    `몸통에 담긴 오류를 0건으로 넘기지 않는다 — ${log3.trim().split('\n').pop()}`);
+chk(await P.isHidden('#dlCard'), '오류 응답으로는 파일을 만들지 않는다');
+
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length);
 bad.forEach(m => console.log('  FAIL ' + m));
 if (errs.length) { console.log('오류:'); errs.forEach(e => console.log('  ' + e)); }

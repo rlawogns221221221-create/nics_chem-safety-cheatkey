@@ -50,8 +50,8 @@ let cnt = await P.$$eval('#mLayers .ms-lyr b', bs => bs.map(b => b.textContent))
 chk(cnt[0] === String(nChem) && cnt[1] === '4', `딱지 개수 ${cnt.join(' / ')}`);
 
 // 마커도 두 색으로 찍혔는가
-chk(await P.$$eval('#map circle.mk.tmp', c => c.length) === 4, '보라 마커 4개');
-chk(await P.$$eval('#map circle.mk:not(.tmp)', c => c.length) === nChem, `초록 마커 ${nChem}개`);
+chk(await P.$$eval('#map g.pin.mk.tmp', c => c.length) === 4, '보라 마커 4개');
+chk(await P.$$eval('#map g.pin.mk:not(.tmp)', c => c.length) === nChem, `초록 마커 ${nChem}개`);
 
 // 목록 줄에 어느 자료인지 딱지가 붙는가
 chk(await P.$$eval('#shList .ms-kd.temp', e => e.length) === 4, '이재민 딱지 4줄');
@@ -65,7 +65,7 @@ chk(leg.includes('화학사고 대피장소') && leg.includes('이재민 임시�
 await P.click('#mLayers .ms-lyr.temp'); await P.waitForTimeout(350);
 rows = await P.$$eval('#shList .ms-it', r => r.length);
 chk(rows === nChem, `이재민 끄면 ${nChem}줄 (실제 ${rows})`);
-chk(await P.$$eval('#map circle.mk.tmp', c => c.length) === 0, '보라 마커 사라짐');
+chk(await P.$$eval('#map g.pin.mk.tmp', c => c.length) === 0, '보라 마커 사라짐');
 chk(await P.$$eval('#shList .ms-kd', e => e.length) === 0, '한 종류만이면 줄 딱지 안 붙음');
 chk(!(await P.textContent('#mLeg')).includes('이재민'), '범례에서도 빠짐');
 chk(await P.getAttribute('#mLayers .ms-lyr.temp', 'aria-pressed') === 'false', 'aria-pressed=false');
@@ -80,8 +80,8 @@ await P.click('#mLayers .ms-lyr.temp'); await P.waitForTimeout(300);
 await P.click('#mLayers .ms-lyr.chem'); await P.waitForTimeout(350);
 rows = await P.$$eval('#shList .ms-it', r => r.length);
 chk(rows === 4, `이재민만 4줄 (실제 ${rows})`);
-chk(await P.$$eval('#map circle.mk.tmp', c => c.length) === 4, '보라 마커만 4개');
-chk(await P.$$eval('#map circle.mk:not(.tmp)', c => c.length) === 0, '초록 마커 없음');
+chk(await P.$$eval('#map g.pin.mk.tmp', c => c.length) === 4, '보라 마커만 4개');
+chk(await P.$$eval('#map g.pin.mk:not(.tmp)', c => c.length) === 0, '초록 마커 없음');
 await P.click('#mLayers .ms-lyr.chem'); await P.waitForTimeout(350);
 
 // ══ E. 사고지점 · 반경 ══
@@ -100,7 +100,7 @@ chk(rows === nChem + 4, `목록 ${rows}줄`);
 // 가까운 3곳 카드에서 이재민 시설을 골라도 동작하나
 await P.click('#mNear .mnear-it'); await P.waitForTimeout(400);
 chk(await P.$$eval('#shList .ms-it.on', e => e.length) === 1, '고르면 목록에서도 선택된다');
-chk(await P.$$eval('#map circle.mk.tmp.on', c => c.length) === 1, '고른 보라 마커가 커진다');
+chk(await P.$$eval('#map g.pin.mk.tmp.on', c => c.length) === 1, '고른 보라 마커가 커진다');
 chk((await P.textContent('#mAddr')).includes('시험용'), '지도 위 주소칸에 이름이 나온다');
 
 // ① 문자로 넘기기 — 이재민 시설을 고른 상태에서도 대피장소로 넘어가야 한다

@@ -121,6 +121,23 @@ function sourceList() {
    data/tempshelters.js 가 없으면(자료를 아직 안 받아 왔으면) 이 줄은 아예
    나오지 않고 화면은 예전 그대로입니다. */
 var SRC_LABEL = { chem: "화학사고 대피장소", temp: "이재민 임시주거시설" };
+
+/* ── 두 층의 아이콘 (24×24 선 그림) ───────────────────────────
+   지도 마커·범례·목록에서 **같은 그림**을 씁니다. 그림만으로 뜻을
+   전하지 않습니다 — 옆에는 늘 이름이 붙고 그림은 aria-hidden 입니다.
+
+   chem 비상구 — 문틀 + 안으로 들어가는 화살표. 국제 대피 표지의 구성
+        그대로라 설명 없이 "여기로 피하라"로 읽힙니다.
+   temp 집 — 지붕 + 벽 + 문. "며칠 머무는 곳"이라는 뜻이 바로 옵니다.
+   두 그림은 **모양이 확연히 다릅니다**(가로 화살표 ↔ 삼각 지붕).
+   작게 줄여도 서로 헷갈리지 않아야 합니다. */
+var SH_ICON = {
+  chem: '<path d="M13.6 3.8h4.8a1.2 1.2 0 0 1 1.2 1.2v14a1.2 1.2 0 0 1-1.2 1.2h-4.8"/>'
+      + '<path d="M4.4 12h8.4"/><path d="M9.4 8.6 12.8 12l-3.4 3.4"/>',
+  temp: '<path d="M3.4 10.9 12 4.1l8.6 6.8"/>'
+      + '<path d="M5.6 9.5V20h12.8V9.5"/>'
+      + '<path d="M10.1 20v-5.5h3.8V20"/>'
+};
 var SRC_SHORT = { chem: "화학사고", temp: "이재민" };
 
 function renderSrcBar() {
@@ -377,14 +394,22 @@ function draw() {
       + '" font-size="12.5">' + esc(txt) + "</text>");
   }
 
-  /* 대피장소 — 두 자료를 섞어 찍으므로 색으로 구분한다(tmp = 이재민 임시주거시설) */
+  /* 대피장소 — 두 자료를 섞어 찍으므로 **아이콘으로도** 구분한다.
+     색만으로 나누면 색을 못 가리는 담당자가 두 층을 구별할 수 없고,
+     범례의 그림과도 이어지지 않는다(2026-09-07 사용자 요청).
+       화학사고 대피장소 → 비상구(문 + 나가는 화살표) = "잠깐 피하는 곳"
+       이재민 임시주거시설 → 집(지붕 + 문)            = "머무는 곳"
+     ⚠ 어느 쪽이 진짜 대피처라는 뜻이 아니다 — 두 자료는 별개의 층이고
+       판단은 담당자가 한다(CLAUDE.md 7절). 그림도 '무엇을 하는 곳'만
+       가리키고 우열을 매기지 않는다. */
   st.show.forEach(function (s, i) {
     var on = i === st.sel, hv = i === st.hover;
-    g.push('<circle class="mk' + (s.src === "temp" ? " tmp" : "")
+    var 반지름 = on ? R * 1.9 : R * 1.55;
+    var cls = "mk" + (s.src === "temp" ? " tmp" : "")
       + (s.inRing ? " in" : "") + (s.lee ? " lee" : "")
-      + (on ? " on" : "") + (hv ? " hv" : "") + '" cx="' + pX(s.lon).toFixed(1)
-      + '" cy="' + pY(s.lat).toFixed(1) + '" r="' + (on ? R * 1.6 : R).toFixed(1)
-      + '" data-i="' + i + '"/>');
+      + (on ? " on" : "") + (hv ? " hv" : "");
+    g.push(MC.pinIcon(pX(s.lon), pY(s.lat), cls,
+      s.src === "temp" ? SH_ICON.temp : SH_ICON.chem, 반지름, i));
   });
   /* 이름 — 고른 곳·가리킨 곳은 항상, 그 외에는 개수가 적을 때만 */
   var cap = vb.sw < 560 ? 10 : (vb.sw < 900 ? 18 : 26);
@@ -682,7 +707,8 @@ function renderList() {
     return '<div class="ms-it' + (on ? " on" : "") + (s.inRing ? " ring" : "")
       + '" data-i="' + i + '" role="button" tabindex="0" aria-pressed="' + (on ? "true" : "false") + '">'
       + '<div class="l1"><b>' + esc(s.name) + "</b>"
-      + (mixed ? '<span class="ms-kd ' + s.src + '">' + SRC_SHORT[s.src] + "</span>" : "")
+      + (mixed ? '<span class="ms-kd ' + s.src + '">' + shIcon(s.src)
+                 + SRC_SHORT[s.src] + "</span>" : "")
       + (s.detail ? '<span class="dt">' + esc(s.detail) + "</span>" : "")
       + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
       + "</div>" + bar
@@ -783,12 +809,24 @@ function showAddr() {
         : (st.routeBusy && st.sel >= 0 && st.show[st.sel] === s ? "<em>길 찾는 중…</em>" : ""));
 }
 
+/* 범례·목록에 쓰는 작은 아이콘. 그림은 화면낭독기에서 뺍니다 —
+   옆에 늘 이름이 있어 두 번 읽히면 안 됩니다. */
+function shIcon(src) {
+  return '<svg class="sh-ic sh-' + src + '" viewBox="0 0 24 24" fill="none"'
+    + ' stroke="currentColor" stroke-width="1.9" stroke-linecap="round"'
+    + ' stroke-linejoin="round" aria-hidden="true" focusable="false">'
+    + SH_ICON[src] + "</svg>";
+}
+
 function renderLegend() {
   var it = [];
   var has = { chem: false, temp: false };
   st.show.forEach(function (s) { has[s.src] = true; });
-  if (has.chem || !has.temp) it.push('<span><i class="dot sh"></i>화학사고 대피장소</span>');
-  if (has.temp) it.push('<span><i class="dot tmp"></i>이재민 임시주거시설</span>');
+  /* 범례의 그림은 **지도 마커와 같은 모양·같은 색**이어야 합니다 —
+     다르면 "이 표시가 저 종류"가 이어지지 않습니다. */
+  if (has.chem || !has.temp)
+    it.push('<span>' + shIcon("chem") + '화학사고 대피장소</span>');
+  if (has.temp) it.push('<span>' + shIcon("temp") + '이재민 임시주거시설</span>');
   if (st.acc) it.push('<span><i class="dot ac"></i>사고지점</span>');
   if (st.me) it.push('<span><i class="dot me"></i>내 위치</span>');
   if (st.radius > 0) it.push('<span><i class="dot in"></i>영향 참고 반경 안</span>');

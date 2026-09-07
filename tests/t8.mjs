@@ -42,7 +42,7 @@ await P.selectOption('#mSgg', '서산시'); await P.waitForTimeout(1500);
 const nImg = (await P.$$('#map image')).length;
 chk(nImg > 0, `배경지도 타일 렌더 (<image> ${nImg}장)`);
 chk(await P.$eval('#map', s => s.classList.contains('hasbg')), '배경 있을 때 hasbg 대비 전환');
-chk((await P.$$('#map circle.mk')).length === 8, `마커 렌더 (${(await P.$$('#map circle.mk')).length}곳)`);
+chk((await P.$$('#map g.pin.mk')).length === 8, `마커 렌더 (${(await P.$$('#map g.pin.mk')).length}곳)`);
 chk((await P.$$('#map path.bd')).length > 0, '행정경계선 렌더');
 chk((await P.textContent('#scaleTxt')).length > 0, `축척 막대: ${await P.textContent('#scaleTxt')}`);
 
@@ -181,7 +181,7 @@ M.on('pageerror', e => errs.push('MOBILE: ' + e.message));
 await M.goto(URL); await M.waitForTimeout(400);
 await M.selectOption('#mSido', '충청남도'); await M.waitForTimeout(150);
 await M.selectOption('#mSgg', '서산시'); await M.waitForTimeout(800);
-chk((await M.$$('#map circle.mk')).length === 8, '모바일 마커 렌더');
+chk((await M.$$('#map g.pin.mk')).length === 8, '모바일 마커 렌더');
 await M.click('#btnAcc'); await M.waitForTimeout(200);
 bb = await (await M.$('#map')).boundingBox();          // 단추 누르며 스크롤되므로 다시 잰다
 await M.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2);
@@ -201,7 +201,7 @@ await D.goto(ROOT + 'dist/'
 await D.waitForTimeout(600);
 await D.selectOption('#mSido', '충청남도'); await D.waitForTimeout(150);
 await D.selectOption('#mSgg', '서산시'); await D.waitForTimeout(1200);
-chk((await D.$$('#map circle.mk')).length === 8, '단일 파일: 마커 렌더');
+chk((await D.$$('#map g.pin.mk')).length === 8, '단일 파일: 마커 렌더');
 chk((await D.$$('#map image')).length > 0, '단일 파일: 배경지도 렌더');
 await D.fill('#acLat', '36.78'); await D.fill('#acLon', '126.45'); await D.waitForTimeout(800);
 chk((await D.$$('#map circle.grid')).length > 0, '단일 파일: 거리 눈금 동작');

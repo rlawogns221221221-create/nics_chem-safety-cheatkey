@@ -137,6 +137,56 @@ for (const [code, want, label] of [[1, /권한/, '권한 거부'],
   await c.close();
 }
 
+/* ══ 지도 마커에 아이콘이 들어갔는가 ═══════════════════════════
+   ‼ 자원·시설마다 아이콘을 만들어 두었는데 지도에는 **색 동그라미만**
+     찍혀 있었습니다(2026-09-07 사용자 지적). 색만으로 종류를 나누면
+     색을 못 가리는 담당자가 구별할 수 없고, 범례의 그림과도 이어지지
+     않습니다. 되돌아가지 않도록 여기서 못 박아 둡니다.
+
+   ── 지키는 것 ──
+   ① 마커가 `<circle>` 하나가 아니라 **원 + 그림** 묶음이어야 한다
+   ② 그림은 **화면낭독기에 읽히지 않아야** 한다(옆에 이름이 있음)
+   ③ 그림이 **이벤트를 먹지 않아야** 한다 — 누르는 판정은 좌표로 한다
+   ④ **범례의 그림이 지도 마커와 같은 색**이어야 한다
+   ⑤ 화학사고 대피장소와 이재민 임시주거시설은 **모양이 달라야** 한다 */
+const MK = await ctx.newPage();
+MK.on('pageerror', e => errs.push('MK: ' + e.message));
+await MK.goto(`file://${RPATH}/map/index.html`); await MK.waitForTimeout(700);
+await MK.selectOption('#mSido', '전라남도'); await MK.waitForTimeout(300);
+await MK.selectOption('#mSgg', '여수시'); await MK.waitForTimeout(900);
+const mk = await MK.evaluate(() => {
+  const pins = [...document.querySelectorAll('#map g.pin')];
+  const ic = pins[0] && pins[0].querySelector('.pin-ic');
+  const cs = ic ? getComputedStyle(ic) : null;
+  const 범례 = document.querySelector('#mLeg .sh-ic');
+  return {
+    n: pins.length,
+    옛동그라미: document.querySelectorAll('#map circle.mk').length,
+    bg: !!(pins[0] && pins[0].querySelector('.pin-bg')),
+    그림선: ic ? ic.querySelectorAll('path,circle,rect').length : 0,
+    이벤트: cs ? cs.pointerEvents : '',
+    범례있음: !!범례,
+    범례색: 범례 ? getComputedStyle(범례).color : '',
+    마커색: pins[0]
+      ? getComputedStyle(pins[0].querySelector('.pin-bg')).fill : '',
+    /* 두 층의 그림이 서로 다른가 — 같은 그림이면 구별이 안 된다 */
+    다른모양: (function () {
+      const d = (window.SH_ICON || null);
+      return d ? d.chem !== d.temp : true;
+    })(),
+  };
+});
+chk(mk.n > 0, `지도에 마커가 찍힌다 (${mk.n}개)`);
+chk(mk.옛동그라미 === 0, '옛 색 동그라미(circle.mk)가 남아 있지 않다');
+chk(mk.bg, '마커가 원 + 그림 묶음이다 (.pin-bg 가 있다)');
+chk(mk.그림선 >= 2, `마커 안에 그림이 실제로 그려진다 (선 ${mk.그림선}개)`);
+chk(mk.이벤트 === 'none',
+  `그림이 누르는 판정을 가로막지 않는다 (pointer-events:${mk.이벤트})`);
+chk(mk.범례있음, '범례도 같은 그림을 쓴다');
+chk(mk.범례색 === mk.마커색,
+  `범례 그림 색이 지도 마커 색과 같다 (${mk.범례색} ↔ ${mk.마커색})`);
+await MK.close();
+
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');
 ok.forEach(m => console.log('  ok  ' + m));
 bad.forEach(m => console.log('  FAIL ' + m));

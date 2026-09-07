@@ -3,6 +3,7 @@
 
     python3 build/make_tempshelters.py source/대피장소/이재민임시주거시설.csv
     python3 build/make_tempshelters.py 어떤파일.xlsx --sheet 1
+    python3 build/make_tempshelters.py 오픈API로받은것.json
 
 ── 이것은 무엇인가 ──────────────────────────────────────────
 공공데이터포털에서 자료를 **파일로 내려받았을 때** 쓰는 길입니다.
@@ -36,20 +37,29 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "data" / "tempshelters.js"
 
 # (넣을 자리, 칸 이름을 찾는 규칙) — 위에서부터 먼저 맞는 칸을 가져갑니다
+#
+# safetydata.go.kr 의 오픈API 는 칸 이름이 영문 약어(FCLT_NM · RONA_DADDR · LAT · LOT
+# …)입니다. 개발 자리에서 그 서버로 나갈 수 없어 실제 칸 이름을 확인하지 못했으므로,
+# 흔한 약어까지 규칙에 넣어 두고 무엇을 무엇으로 읽었는지 화면에 그대로 찍습니다.
 RULES = [
-    ("시설명", r"시설명|명칭|장소명|건물명"),
-    ("시도", r"^(시도|시도명|광역시도|시\.도)$"),
-    ("시군구", r"^(시군구|시군구명|시\.군\.구)$"),
-    ("도로명", r"도로명"),
-    ("지번", r"지번|소재지지번|^주소$|소재지주소"),
-    ("위도", r"위도|^lat"),
-    ("경도", r"경도|^(lon|lng)"),
-    ("수용인원", r"수용|수용가능|최대수용"),
-    ("시설구분", r"시설구분|시설유형|시설종류|^구분$|^유형$"),
-    ("면적", r"면적"),
-    ("관리기관", r"관리기관|관리주체|기관명|담당기관|운영기관"),
-    ("전화", r"전화|연락처|번호"),
+    ("시설명", r"시설명|명칭|장소명|건물명|(FCLT|SHLT|SHUNT|BLDG|PLC|FCLTY).*(NM|NAME)|^(NM|NAME)$"),
+    ("시도", r"^(시도|시도명|광역시도|시\.도)$|^(CTPV|CTPRVN|SIDO|CTPV_NM|SIDO_NM)$"),
+    ("시군구", r"^(시군구|시군구명|시\.군\.구)$|^(SGG|SGG_NM|SIGNGU|SIGNGU_NM|SIG_NM)$"),
+    ("도로명", r"도로명|RONA|ROAD_?N?M?_?ADDR|RN_ADDR"),
+    ("지번", r"지번|소재지지번|^주소$|소재지주소|LNM_ADDR|ADDR|ADRES|DADDR"),
+    ("위도", r"위도|^lat|^(la|y|ycord|y_?crd)$|LATITUDE"),
+    ("경도", r"경도|^(lon|lng)|^(lot|lo|x|xcord|x_?crd)$|LONGITUDE"),
+    ("수용인원", r"수용|수용가능|최대수용|CPCTY|CAPA|ACPT_?PSN"),
+    ("시설구분", r"시설구분|시설유형|시설종류|^구분$|^유형$|(FCLT|SHLT).*(SE|TY|KND|GBN|CD_NM)"),
+    ("면적", r"면적|(^|_)AR(_|$)|AREA|TOT_?AR"),
+    ("관리기관", r"관리기관|관리주체|기관명|담당기관|운영기관|(MNG|MNGT|OPER|INST|DEPT|CHRG).*(NM|NAME)"),
+    ("전화", r"전화|연락처|번호|TELNO|^TEL|PHONE"),
 ]
+
+# 코드 칸(SIG_CD 처럼 숫자만 든 칸)을 이름 자리에 넣으면 화면에 "41135" 가 찍힙니다.
+# 이름을 찾는 자리에서는 처음부터 뺍니다.
+CODE_COL = re.compile(r"(^|_)(CD|CODE|SN|ID|SEQ)$", re.I)
+NO_CODE = {"시설명", "시도", "시군구", "시설구분", "관리기관"}
 
 SIDO_FIX = {
     "서울": "서울특별시", "서울시": "서울특별시",
@@ -79,7 +89,49 @@ def shelters() -> dict:
 
 
 # ── 파일 읽기 ────────────────────────────────────────────────
+def rows_of_json(d):
+    """오픈API 응답에서 줄이 담긴 자리를 찾는다 — 기관마다 다르다.
+    safetydata.go.kr 는 body, 공공데이터포털은 data 에 담아 보낸다."""
+    if isinstance(d, list):
+        return d
+    if not isinstance(d, dict):
+        return []
+    for key in ("body", "data"):
+        v = d.get(key)
+        if isinstance(v, list):
+            return v
+        if isinstance(v, dict) and isinstance(v.get("items"), list):
+            return v["items"]
+    body = (d.get("response") or {}).get("body") or {}
+    items = body.get("items")
+    if isinstance(items, list):
+        return items
+    if isinstance(items, dict):
+        it = items.get("item")
+        if isinstance(it, list):
+            return it
+        if isinstance(it, dict):
+            return [it]
+    return []
+
+
 def read_rows(path: pathlib.Path, sheet: int) -> list:
+    if path.suffix.lower() == ".json":
+        d = json.loads(path.read_text(encoding="utf-8"))
+        # 서버가 200 으로 답하면서 몸통에 오류를 담아 보내는 경우가 많다
+        # (인증키 미승인·한도 초과). 그것을 "0줄"로 넘기면 왜 빈지 알 수 없다.
+        head = (d.get("header") if isinstance(d, dict) else None) \
+            or ((d.get("response") or {}).get("header") if isinstance(d, dict) else None) or {}
+        code = str(head.get("resultCode", "")).strip()
+        msg = str(head.get("resultMsg") or head.get("errorMsg") or "").strip()
+        if code and code not in ("00", "0") and not re.match(r"^정상|NORMAL", msg, re.I):
+            fail(f"서버가 오류를 돌려준 응답입니다 — {code} {msg}")
+        rows = rows_of_json(d)
+        if not rows:
+            fail("줄이 담긴 자리를 찾지 못했습니다.\n"
+                 f"      파일 첫머리: {json.dumps(d, ensure_ascii=False)[:300]}")
+        return [r for r in rows if isinstance(r, dict)]
+
     if path.suffix.lower() in (".xlsx", ".xlsm"):
         try:
             import openpyxl
@@ -108,7 +160,11 @@ def map_cols(cols: list) -> dict:
     for name, pat in RULES:
         rx = re.compile(pat, re.I)
         for c in cols:
-            if c and c not in used and rx.search(c):
+            if not c or c in used:
+                continue
+            if name in NO_CODE and CODE_COL.search(c):
+                continue
+            if rx.search(c):
                 got[name] = c
                 used.add(c)
                 break
@@ -154,7 +210,7 @@ def fix_sgg(sido: str, cand: str, addr: str, S: dict) -> str:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("파일", help="내려받은 목록 파일 (csv · xlsx)")
+    ap.add_argument("파일", help="내려받은 목록 파일 (csv · xlsx · 오픈API json)")
     ap.add_argument("--sheet", type=int, default=0, help="xlsx 시트 번호 (0부터)")
     args = ap.parse_args()
 
@@ -225,13 +281,13 @@ def main() -> None:
     today = date.today().isoformat()
     meta = {
         "받은날": today, "총건수": n, "원자료건수": len(rows),
-        "출처": "행정안전부 이재민임시주거시설정보 (공공데이터포털)",
+        "출처": "행정안전부 이재민 임시주거시설",
         "원본파일": path.name,
         "필드": ["시설명", "면적", "주소", "최대수용인원", "시설구분",
                  "위도", "경도", "관리기관", "전화"],
     }
     head = (
-        "/* 이재민 임시주거시설 — 원자료: 행정안전부 이재민임시주거시설정보 (공공데이터포털)\n"
+        "/* 이재민 임시주거시설 — 원자료: 행정안전부 이재민 임시주거시설\n"
         f"     내려받은 파일: {path.name}\n"
         "   구조: TEMPSHELTERS[시도][시군구] =\n"
         "     [[시설명, 면적, 주소, 최대수용인원, 시설구분, 위도, 경도, 관리기관, 전화], ...]\n"

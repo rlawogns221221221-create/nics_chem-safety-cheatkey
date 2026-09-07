@@ -432,6 +432,43 @@ function routePath(x1, y1, x2, y2) {
        + '<path class="route" d="' + d + '"/>';
 }
 
+/* ── 지도 마커에 아이콘을 넣습니다 ────────────────────────────
+   ‼ 왜 만들었나 — 자원 종류·시설 종류마다 아이콘을 만들어 두고
+     범례·목록·칩에는 다 쓰는데 **지도에는 색 동그라미만** 찍혀 있었습니다.
+     그러면 "이 색이 저 종류"를 색으로만 외워야 합니다(2026-09-07 사용자
+     지적 — "각각 아이콘을 실컷 설정해놨는데 왜 지도에는 반영이 안되고
+     색깔 점으로 나오는거야?"). 같은 그림을 마커에도 씁니다.
+
+   ── 지키는 것 ─────────────────────────────────────────────
+   ① **색만으로 구분하지 않습니다.** 색을 못 가리는 담당자도 모양으로
+      읽습니다(범례·목록의 그림과 같은 모양이라 이어집니다).
+   ② 아이콘은 채운 동그라미 **위에 밝은 선**으로 그립니다(`--on-deep`).
+      흰색을 직접 적지 않습니다 — 고대비 화면에서도 같은 대비가 나오는
+      토큰이 이미 있습니다(CLAUDE.md 3절: 색을 하드코딩하지 마세요).
+   ③ **`pointer-events` 를 아이콘에서 뺍니다.** 누를 곳을 찾는 판정은
+      좌표로 합니다(가장 가까운 마커) — 아이콘이 이벤트를 먹으면 안 됩니다.
+   ④ 그림이 **작으면 아예 그리지 않습니다.** 지름이 14px 아래로 내려가면
+      선이 뭉개져 점과 구별이 안 되는데, 그리는 값은 그대로 듭니다.
+      마커가 수백 개인 화면에서 헛일이 됩니다.
+   ⑤ 선 굵기는 **키운 비율로 나눠 되돌립니다.** `transform:scale` 안에서는
+      stroke 도 같이 줄어들어, 그냥 두면 실선이 머리카락처럼 됩니다.
+      `vector-effect:non-scaling-stroke` 는 낡은 브라우저에서 안 먹습니다.
+
+   px  마커 반지름, path  24×24 로 그린 아이콘 선분(res/app.js 의 ICONS) */
+function pinIcon(px, py, cls, path, r, dataI) {
+  var s = '<g class="pin ' + (cls || "") + '"'
+        + (dataI === undefined ? "" : ' data-i="' + dataI + '"')
+        + ' transform="translate(' + px.toFixed(1) + " " + py.toFixed(1) + ')">'
+        + '<circle class="pin-bg" r="' + r.toFixed(1) + '"/>';
+  if (path && r >= 7) {
+    var k = (r * 1.42) / 24;            /* 그림을 지름의 71% 로 */
+    s += '<g class="pin-ic" transform="translate(' + (-12 * k).toFixed(2) + " "
+       + (-12 * k).toFixed(2) + ') scale(' + k.toFixed(4) + ')"'
+       + ' stroke-width="' + (2.1 / k).toFixed(2) + '">' + path + "</g>";
+  }
+  return s + "</g>";
+}
+
 /* 2018년 경계 데이터와 현재 행정구역명이 다른 곳 */
 var ALIAS = { "미추홀구": "남구" };
 function matchSgg(bName, sgg) {
@@ -777,6 +814,7 @@ window.MAPCORE = {
   trip: trip, tripPair: tripPair, fmtMin: fmtMin, walkable: WALKABLE, locate: locate,
   /* 그리기 */
   boundaryPaths: boundaryPaths, matchSgg: matchSgg, sggAt: sggAt, routePath: routePath,
+  pinIcon: pinIcon,
   /* 카메라 · 조작 */
   camera: makeCamera, panzoom: panzoom, foldBar: foldBar,
   /* 데이터 */

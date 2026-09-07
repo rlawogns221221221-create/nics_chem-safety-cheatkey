@@ -57,8 +57,17 @@
     <li>받은 파일을 저장소의 <code>data/</code> 폴더에 <b>넣습니다.</b>
         그러면 ② 주민 대피장소 찾기에 <b>이재민 임시주거시설</b> 층이 생깁니다.</li>
   </ol>
-  <b>인터넷이 되는 PC</b>에서 열어야 합니다(개발 환경에서는 공공데이터포털 서버에 닿지
+  <b>인터넷이 되는 PC</b>에서 열어야 합니다(개발 환경에서는 행안부 서버에 닿지
   않습니다). 자료가 갱신되면 — 보통 1년에 한 번입니다 — 이 파일을 다시 열면 됩니다.
+</div>
+
+<div class="note" style="background:#fff6e5;border-color:#f0dcb4;color:#6b4708">
+  <b>받은 자료가 예상과 다르면 그대로 알려 주세요.</b>
+  이 자료의 <b>칸 이름을 개발 자리에서 확인할 수 없었습니다</b> —
+  <code>safetydata.go.kr</code> 로 나가는 길이 막혀 있어 한 줄도 받아 보지 못했습니다.
+  그래서 칸을 <b>이름 규칙으로 짐작해</b> 짝지었습니다. 아래 <b>2. 제대로 읽었는지 확인</b>
+  에서 짝이 틀렸거나 빠진 것이 보이면 <b>‘원자료 첫 줄 복사’</b> 를 눌러 붙여 주세요.
+  그 한 줄만 보면 규칙을 정확히 고칠 수 있습니다.
 </div>
 
 <div class="card">
@@ -75,16 +84,16 @@
   <details style="margin-top:16px">
     <summary style="cursor:pointer;font-size:13px;color:#4a5563;font-weight:700">
       인증키·자료 주소 바꾸기 — 평소에는 건드릴 필요 없습니다</summary>
-    <label for="url">자료 주소 — 공공데이터포털 &gt; 행정안전부_이재민임시주거시설정보 &gt; 상세기능 URL</label>
+    <label for="url">자료 주소 — 재난안전데이터공유플랫폼(safetydata.go.kr) &gt; 이재민 임시주거시설 &gt; 오픈API URL</label>
     <input type="text" id="url" spellcheck="false"
-           value="https://api.odcloud.kr/api/15124965/v1/uddi:78c724b6-8ee3-4998-946b-802f1f091336">
-    <label for="key">일반 인증키 (Decoding) — 포털 &gt; 마이페이지 &gt; 인증키 발급현황</label>
+           value="https://www.safetydata.go.kr/V2/api/DSSP-IF-10945">
+    <label for="key">인증키 — safetydata.go.kr &gt; 마이페이지 &gt; 인증키 발급현황 (또는 공공데이터포털 Decoding 키)</label>
     <input type="text" id="key" spellcheck="false" autocomplete="off"
-           value="b1650a7c4b0938477047108ae1381583aa49940f730a4d6c086767287d73b775">
+           value="NL53ZYOESQGKJCM9">
     <p class="sub" style="margin:8px 0 0">
       <span class="warn">이 파일에는 인증키가 적혀 있습니다.</span>
       저장소를 공개로 두면 키도 함께 공개됩니다. 키가 새면
-      공공데이터포털 &gt; 마이페이지에서 <b>인증키를 다시 발급</b>받고 위 칸을 고치면 됩니다.
+      발급받은 곳 &gt; 마이페이지에서 <b>인증키를 다시 발급</b>받고 위 칸을 고치면 됩니다.
       (이 키로 할 수 있는 일은 공개된 자료를 내려받는 것뿐이며,
       너무 자주 부르면 하루 한도에 걸립니다.)<br>
       여기서 고친 값은 이 브라우저에도 기억되어, 다음에 열면 고친 값으로 시작합니다.
@@ -98,6 +107,16 @@
     <b>빠진 항목</b>이나 엉뚱하게 짝지어진 것이 있으면 그대로 알려 주세요 — 규칙을 고치면 됩니다.</p>
   <div class="cols" id="cols"></div>
   <div id="prev"></div>
+
+  <details style="margin-top:16px">
+    <summary style="cursor:pointer;font-size:13px;color:#4a5563;font-weight:700">
+      원자료 첫 줄 그대로 보기 — 짝이 틀렸으면 이것을 복사해 보내 주세요</summary>
+    <div class="row" style="margin:10px 0 0">
+      <button id="copyRaw" class="g">원자료 첫 줄 복사</button>
+      <span class="st" id="copyMsg"></span>
+    </div>
+    <div class="log" id="rawBox" style="max-height:240px;margin-top:10px"></div>
+  </details>
 </div>
 
 <div class="card" id="dlCard" hidden>
@@ -113,12 +132,17 @@
   <h2>서버에 닿지 않을 때</h2>
   <ol>
     <li>브라우저 주소창에 아래를 붙여넣어 JSON 이 나오는지 먼저 봅니다.<br>
-      <code>자료주소?page=1&amp;perPage=10&amp;serviceKey=인증키</code></li>
+      <code>https://www.safetydata.go.kr/V2/api/DSSP-IF-10945?serviceKey=인증키&amp;pageNo=1&amp;numOfRows=10&amp;returnType=json</code>
+      <br>(공공데이터포털 자료라면 <code>자료주소?page=1&amp;perPage=10&amp;serviceKey=인증키</code>)</li>
     <li>JSON 은 나오는데 이 페이지에서만 실패하면 브라우저 보안(CORS) 때문입니다.
-      주소창에서 <code>perPage=99999</code> 로 열어 <b>Ctrl+S</b> 로 저장한 뒤,
-      위의 <b>내려받아 둔 JSON 파일로 하기</b> 로 그 파일을 고르세요. 결과는 같습니다.</li>
-    <li><code>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</code> 가 나오면 포털에서 그 활용신청이
-      승인됐는지, <b>Decoding 키</b>를 넣었는지 확인하세요.</li>
+      주소창에서 <code>numOfRows=99999</code> 로 열어 <b>Ctrl+S</b> 로 저장한 뒤,
+      위의 <b>내려받아 둔 JSON 파일로 하기</b> 로 그 파일을 고르세요. 결과는 같습니다.
+      <br>그 <code>.json</code> 파일을 저에게 붙여 주셔도 됩니다 —
+      <code>python3 build/make_tempshelters.py 받은파일.json</code> 으로 같은 결과를 만듭니다.
+      그 길이면 <b>칸 이름을 제가 직접 보고</b> 맞출 수 있어 더 확실합니다.</li>
+    <li><code>SERVICE_KEY_IS_NOT_REGISTERED_ERROR</code>·<code>인증키가 유효하지 않습니다</code>
+      가 나오면 그 자료의 활용신청이 <b>승인</b>됐는지(신청 직후에는 한 시간쯤 걸립니다),
+      <b>Decoding 키</b>를 넣었는지 확인하세요.</li>
   </ol>
 </div>
 
@@ -135,8 +159,12 @@ function setBar(p, t) { $("#pb").style.width = Math.round(p) + "%"; $("#st").tex
 
 /* 인증키·자료 주소는 파일에 적어 두었습니다(그냥 열면 바로 돌아가게).
    여기서 고친 적이 있으면 그 값을 우선합니다 — 자료 주소가 해마다 바뀌는데
-   그때마다 파일을 고치라고 하면 안 되기 때문입니다. */
-var KEYLS = "nics.odcloud.key", URLLS = "nics.odcloud.url";
+   그때마다 파일을 고치라고 하면 안 되기 때문입니다.
+
+   ⚠ 기억하는 이름을 예전(nics.odcloud.*)과 다르게 두었습니다 — 예전에 이 페이지를
+   열어 본 브라우저에는 쓸 수 없는 집계표 주소가 저장되어 있어서, 같은 이름을 쓰면
+   새 주소를 적어 두고도 옛 주소로 받아 옵니다. */
+var KEYLS = "nics.temp.key2", URLLS = "nics.temp.url2";
 try {
   var savedKey = localStorage.getItem(KEYLS);
   var savedUrl = localStorage.getItem(URLLS);
@@ -147,21 +175,30 @@ try {
 /* ── 칸 이름 짝짓기 ──────────────────────────────────────────
    원자료의 칸 이름이 해마다 조금씩 달라집니다("시설명"/"명칭",
    "도로명주소"/"소재지도로명주소" …). 이름을 정확히 맞추는 대신 규칙으로
-   찾습니다. 무엇을 무엇으로 읽었는지는 화면에 그대로 보여 줍니다. */
+   찾습니다. 무엇을 무엇으로 읽었는지는 화면에 그대로 보여 줍니다.
+
+   safetydata.go.kr 의 오픈API 는 칸 이름이 **영문 약어**(FCLT_NM · RONA_DADDR ·
+   LAT · LOT …)입니다. 개발 자리에서 그 서버로 나갈 수 없어 **실제 칸 이름을
+   확인하지 못했습니다** — 그래서 흔한 약어까지 규칙에 넣어 두었고, 짝이 틀리면
+   화면에서 눈에 보이도록 했습니다. 짐작을 자료처럼 보이게 두지 않습니다. */
 var RULES = [
-  ["시설명",   /시설명|명칭|장소명|건물명/],
-  ["시도",     /^(시도|시도명|광역시도|시\.도)$/],
-  ["시군구",   /^(시군구|시군구명|시\.군\.구)$/],
-  ["도로명",   /도로명/],
-  ["지번",     /지번|소재지지번|^주소$|소재지주소/],
-  ["위도",     /위도|^lat/i],
-  ["경도",     /경도|^(lon|lng)/i],
-  ["수용인원", /수용|수용가능|최대수용/],
-  ["시설구분", /시설구분|시설유형|시설종류|^구분$|^유형$/],
-  ["면적",     /면적/],
-  ["관리기관", /관리기관|관리주체|기관명|담당기관|운영기관/],
-  ["전화",     /전화|연락처|번호/]
+  ["시설명",   /시설명|명칭|장소명|건물명|(FCLT|SHLT|SHUNT|BLDG|PLC|FCLTY).*(NM|NAME)|^(NM|NAME)$/i],
+  ["시도",     /^(시도|시도명|광역시도|시\.도)$|^(CTPV|CTPRVN|SIDO|CTPV_NM|SIDO_NM)$/i],
+  ["시군구",   /^(시군구|시군구명|시\.군\.구)$|^(SGG|SGG_NM|SIGNGU|SIGNGU_NM|SIG_NM)$/i],
+  ["도로명",   /도로명|RONA|ROAD_?N?M?_?ADDR|RN_ADDR/i],
+  ["지번",     /지번|소재지지번|^주소$|소재지주소|LNM_ADDR|ADDR|ADRES|DADDR/i],
+  ["위도",     /위도|^lat|^(la|y|ycord|y_?crd)$|LATITUDE/i],
+  ["경도",     /경도|^(lon|lng)|^(lot|lo|x|xcord|x_?crd)$|LONGITUDE/i],
+  ["수용인원", /수용|수용가능|최대수용|CPCTY|CAPA|ACPT_?PSN/i],
+  ["시설구분", /시설구분|시설유형|시설종류|^구분$|^유형$|(FCLT|SHLT).*(SE|TY|KND|GBN|CD_NM)/i],
+  ["면적",     /면적|(^|_)AR(_|$)|AREA|TOT_?AR/i],
+  ["관리기관", /관리기관|관리주체|기관명|담당기관|운영기관|(MNG|MNGT|OPER|INST|DEPT|CHRG).*(NM|NAME)/i],
+  ["전화",     /전화|연락처|번호|TELNO|^TEL|PHONE/i]
 ];
+/* 코드 칸(SIG_CD 처럼 숫자만 든 칸)은 이름 자리에 넣으면 화면에 "41135" 가
+   찍힙니다. 이름을 찾는 자리에서는 처음부터 뺍니다. */
+function isCodeCol(c) { return /(^|_)(CD|CODE|SN|ID|SEQ)$/i.test(c); }
+var 코드금지 = { "시설명": 1, "시도": 1, "시군구": 1, "시설구분": 1, "관리기관": 1 };
 var MAP = {}, COLS = [];
 
 function mapCols(row) {
@@ -171,7 +208,9 @@ function mapCols(row) {
       /* 이미 다른 항목이 가져간 칸은 건너뛴다 (전화가 '전화번호'를 먼저 가져가는 식) */
       var used = false;
       for (var k in MAP) if (MAP[k] === COLS[i]) used = true;
-      if (!used && r[1].test(COLS[i])) { MAP[r[0]] = COLS[i]; return; }
+      if (used) continue;
+      if (코드금지[r[0]] && isCodeCol(COLS[i])) continue;
+      if (r[1].test(COLS[i])) { MAP[r[0]] = COLS[i]; return; }
     }
   });
 }
@@ -317,6 +356,9 @@ function badData(sample) {
 
 function showPreview(rows) {
   $("#prevCard").hidden = false;
+  /* 짐작으로 짝지은 것이라, 원자료 한 줄을 늘 그대로 보여 둡니다 —
+     짝이 틀렸을 때 이 한 줄만 있으면 규칙을 정확히 고칠 수 있습니다. */
+  $("#rawBox").textContent = JSON.stringify(rows[0], null, 1);
   var used = {};
   for (var k in MAP) used[MAP[k]] = k;
   $("#cols").innerHTML = RULES.map(function (r) {
@@ -356,8 +398,53 @@ function showPreview(rows) {
       }).join(" · ") + "</p>";
 }
 
-/* ── 받아오기 ─────────────────────────────────────────────── */
-var PER = 1000;
+/* ── 받아오기 ───────────────────────────────────────────────
+   두 곳을 다 받습니다. 쪽 넘기는 이름과 줄이 담긴 자리가 서로 달라서, 주소를 보고
+   가릅니다 — 자료 주소가 바뀌어도 이 페이지를 다시 고치지 않게 하려는 것입니다.
+     safetydata.go.kr : serviceKey · pageNo · numOfRows  → 줄은 body 에
+     공공데이터포털   : serviceKey · page   · perPage    → 줄은 data 에 */
+function isSafety(base) { return /safetydata\.go\.kr/i.test(base); }
+function perPage(base) { return isSafety(base) ? 100 : 1000; }
+function pageUrl(base, key, p) {
+  var sep = base.indexOf("?") >= 0 ? "&" : "?";
+  if (isSafety(base))
+    return base + sep + "serviceKey=" + encodeURIComponent(key)
+      + "&pageNo=" + p + "&numOfRows=" + perPage(base) + "&returnType=json";
+  return base + sep + "page=" + p + "&perPage=" + perPage(base)
+    + "&returnType=JSON&serviceKey=" + encodeURIComponent(key);
+}
+/* 줄이 어디 담겨 오는지 — 기관마다 다릅니다. 아는 자리를 차례로 봅니다. */
+function rowsOf(d) {
+  if (!d) return [];
+  if (Array.isArray(d)) return d;
+  if (Array.isArray(d.body)) return d.body;
+  if (Array.isArray(d.data)) return d.data;
+  if (d.body && Array.isArray(d.body.items)) return d.body.items;
+  var b = d.response && d.response.body;
+  if (b) {
+    if (Array.isArray(b.items)) return b.items;
+    if (b.items && Array.isArray(b.items.item)) return b.items.item;
+    if (b.items && b.items.item) return [b.items.item];
+  }
+  return [];
+}
+function totalOf(d, fallback) {
+  var b = (d && d.response && d.response.body) || {};
+  var t = parseInt(d && (d.totalCount || d.matchCount) || b.totalCount, 10);
+  return isFinite(t) && t > 0 ? t : fallback;
+}
+/* 서버가 200 으로 답하면서 몸통에 오류를 담아 보내는 경우가 많습니다
+   (인증키 미승인·한도 초과). 그것을 "0건"으로 넘기면 왜 빈지 알 수 없습니다. */
+function headMsg(d) {
+  var h = (d && (d.header || (d.response && d.response.header))) || null;
+  if (!h) return "";
+  var code = String(h.resultCode == null ? "" : h.resultCode).trim();
+  var msg = String(h.resultMsg || h.errorMsg || "").trim();
+  if (!code) return "";
+  if (code === "00" || code === "0" || /^정상|NORMAL/i.test(msg)) return "";
+  return code + (msg ? " " + msg : "");
+}
+
 /* 돌고 있는 받아오기가 몇 번째인가 — 파일로 불러오거나 다시 받기를 누르면
    앞의 것이 나중에 도착해도 결과를 덮어쓰지 않게 한다. */
 var runSeq = 0;
@@ -370,25 +457,32 @@ function fetchAll() {
   RAW = [];
   var page = 1, total = 0;
 
-  var url = function (p) {
-    return base + (base.indexOf("?") >= 0 ? "&" : "?")
-      + "page=" + p + "&perPage=" + PER + "&returnType=JSON"
-      + "&serviceKey=" + encodeURIComponent(key);
-  };
-
   var step = function () {
     if (seq !== runSeq) return;                 // 그새 다른 것으로 갈아탔다
-    fetch(url(page)).then(function (res) {
+    fetch(pageUrl(base, key, page)).then(function (res) {
       if (!res.ok) throw new Error("서버가 " + res.status + " 응답");
-      return res.json();
-    }).then(function (d) {
+      return res.text();
+    }).then(function (txt) {
       if (seq !== runSeq) return;
-      var rows = d.data || [];
-      total = d.totalCount || d.matchCount || total;
+      var d;
+      try { d = JSON.parse(txt); }
+      catch (e) {
+        /* XML 로 오는 경우가 있습니다 — returnType 을 안 받는 자료거나 오류쪽입니다 */
+        throw new Error("JSON 이 아닌 것이 왔습니다: " + txt.slice(0, 160));
+      }
+      var bad = headMsg(d);
+      if (bad) throw new Error("서버가 오류를 돌려주었습니다 — " + bad);
+      var rows = rowsOf(d);
+      if (!rows.length && page === 1)
+        throw new Error("줄이 담긴 자리를 찾지 못했습니다. 받은 것: "
+          + JSON.stringify(d).slice(0, 200));
+      total = totalOf(d, total);
       RAW = RAW.concat(rows);
       setBar(total ? RAW.length / total * 100 : 0,
              RAW.length.toLocaleString() + " / " + (total || "?").toLocaleString() + "건");
-      if (rows.length && RAW.length < total && page < 200) { page++; setTimeout(step, 120); }
+      /* 총건수를 안 주는 자료도 있어, 한 쪽이 꽉 차면 계속 넘깁니다 */
+      var more = rows.length >= perPage(base) || (total && RAW.length < total);
+      if (rows.length && more && page < 400) { page++; setTimeout(step, 120); }
       else { log("받기 끝 — " + RAW.length + "건"); build(RAW); $("#go").disabled = false; }
     }).catch(function (e) {
       if (seq !== runSeq) return;
@@ -414,7 +508,14 @@ $("#file").onchange = function () {
   rd.onload = function () {
     try {
       var d = JSON.parse(rd.result);
-      var rows = d.data || (Array.isArray(d) ? d : []);
+      var bad = headMsg(d);
+      if (bad) { log("이 파일에는 서버 오류가 담겨 있습니다 — " + bad); return; }
+      var rows = rowsOf(d);
+      if (!rows.length) {
+        log("줄이 담긴 자리를 찾지 못했습니다. 파일 첫머리: "
+            + JSON.stringify(d).slice(0, 200));
+        return;
+      }
       log("파일에서 읽음 — " + rows.length + "건");
       setBar(100, rows.length.toLocaleString() + "건");
       build(rows);
@@ -423,11 +524,36 @@ $("#file").onchange = function () {
   rd.readAsText(f, "utf-8");
 };
 
+$("#copyRaw").onclick = function () {
+  var t = $("#rawBox").textContent;
+  if (!t) return;
+  var done = function () { $("#copyMsg").textContent = "복사했습니다 — 그대로 붙여 주세요"; };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(t).then(done, function () {
+      $("#copyMsg").textContent = "복사가 막혔습니다 — 아래 글을 직접 골라 복사하세요";
+    });
+  } else {
+    /* 낡은 브라우저 — 화면의 글을 골라 두면 Ctrl+C 로 복사됩니다 */
+    var r = document.createRange();
+    r.selectNodeContents($("#rawBox"));
+    var sel = window.getSelection();
+    sel.removeAllRanges();
+    sel.addRange(r);
+    $("#copyMsg").textContent = "글을 골라 두었습니다 — Ctrl+C 로 복사하세요";
+  }
+};
+
 $("#dl").onclick = function () {
   if (!OUT) return;
   var today = new Date().toISOString().slice(0, 10);
-  var head = "/* 이재민 임시주거시설 — 원자료: 행정안전부 이재민임시주거시설정보\n"
-    + "     (공공데이터포털 오픈API · " + $("#url").value.trim() + ")\n"
+  var base = $("#url").value.trim();
+  /* 어디서 받았는지 파일에 남깁니다 — 두 곳의 자료가 범위·기준일이 달라서,
+     화면에 기준일을 적을 때 무엇을 적는지가 분명해야 합니다. */
+  var 출처 = isSafety(base)
+    ? "행정안전부 이재민 임시주거시설 (재난안전데이터공유플랫폼 safetydata.go.kr)"
+    : "행정안전부 이재민임시주거시설정보 (공공데이터포털)";
+  var head = "/* 이재민 임시주거시설 — 원자료: " + 출처 + "\n"
+    + "     (오픈API · " + base + ")\n"
     + "   구조: TEMPSHELTERS[시도][시군구] =\n"
     + "     [[시설명, 면적, 주소, 최대수용인원, 시설구분, 위도, 경도, 관리기관, 전화], ...]\n"
     + "   화학사고 대피장소(data/shelters.js)와 같은 줄 구조라 같은 화면에서 함께 씁니다.\n"

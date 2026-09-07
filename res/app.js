@@ -393,14 +393,18 @@ function draw() {
       + '" font-size="12.5">' + esc(txt) + "</text>");
   }
 
-  /* 방제자원 */
+  /* 방제자원 — **범례·목록과 같은 아이콘**을 마커에 넣습니다.
+     예전에는 색 동그라미뿐이라 "이 색이 저 종류"를 색으로만 외워야
+     했습니다(2026-09-07 사용자 지적). 그림은 MC.pinIcon 이 그립니다. */
   st.show.forEach(function (s, i) {
     var on = i === st.sel, hv = i === st.hover;
-    g.push('<circle class="rk rk-' + s.t + (s.ap === "sgg" || s.ap === "sido" ? " approx" : "")
+    var 반지름 = on ? R * 1.9 : R * 1.55;   /* 그림이 들어가려면 점보다 커야 함 */
+    var cls = "rk rk-" + s.t
+      + (s.ap === "sgg" || s.ap === "sido" ? " approx" : "")
       + (s.inRing ? " in" : "") + (s.lee ? " lee" : "")
-      + (on ? " on" : "") + (hv ? " hv" : "") + '" cx="' + pX(s.lon).toFixed(1)
-      + '" cy="' + pY(s.lat).toFixed(1) + '" r="' + (on ? R * 1.6 : R).toFixed(1)
-      + '" data-i="' + i + '"/>');
+      + (on ? " on" : "") + (hv ? " hv" : "");
+    g.push(MC.pinIcon(pX(s.lon), pY(s.lat), cls,
+      ICONS[ICON_OF[s.t] || s.t] || "", 반지름, i));
   });
   /* 이름 — 고른 곳·가리킨 곳은 항상, 그 외에는 개수가 적을 때만 */
   var cap = vb.sw < 560 ? 10 : (vb.sw < 900 ? 18 : 26);

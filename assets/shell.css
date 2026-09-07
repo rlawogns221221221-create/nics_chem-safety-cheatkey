@@ -950,20 +950,23 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
   stroke:var(--card);stroke-width:.42em;stroke-linejoin:round;pointer-events:none}
 
 /* 대피장소 */
-#map circle.mk{fill:var(--card);stroke:var(--ok);stroke-width:1.8px;cursor:pointer}
-#map circle.mk.hv{fill:var(--ok-l)}
-#map circle.mk.lee{stroke:var(--warn)}
-#map circle.mk.in{fill:var(--err-l);stroke:var(--err)}
-#map circle.mk.on{fill:var(--brand);stroke:var(--card);stroke-width:2.4px}
-#map circle.mk.on.in{fill:var(--err);stroke:var(--card)}
+/* ── ② 대피장소 마커 — 두 층을 **아이콘으로도** 구분 ──────────────
+   화학사고 대피장소는 비상구(문+화살표), 이재민 임시주거시설은 집.
+   색(초록 ↔ 보라)에 모양까지 더해 색을 못 가려도 구별됩니다.
+   ⚠ 어느 쪽이 진짜 대피처라는 뜻이 아닙니다 — 별개의 층입니다. */
+#map g.mk{cursor:pointer}
+#map g.mk .pin-bg{fill:var(--ok);stroke:var(--card);stroke-width:1.8px}
+#map g.mk .pin-ic{fill:none;stroke:var(--on-deep);
+  stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+#map g.mk.hv .pin-bg{stroke:var(--ink);stroke-width:2.4px}
+#map g.mk.lee .pin-bg{stroke:var(--warn);stroke-width:2.6px}
+#map g.mk.in .pin-bg{fill:var(--err)}
+#map g.mk.on .pin-bg{stroke:var(--brand-d);stroke-width:3.2px}
 /* 이재민 임시주거시설 — 화학사고 대피장소(초록)와 한눈에 갈리게 보라로 둡니다.
    빨강(사고지점·영향반경)·파랑(내 위치)과도 겹치지 않는 색입니다.
    단, 영향 참고 반경 안에 든 곳은 자료 종류보다 위험 표시가 먼저입니다. */
-#map circle.mk.tmp{stroke:var(--tmp)}
-#map circle.mk.tmp.hv{fill:var(--tmp-l)}
-#map circle.mk.tmp.on{fill:var(--tmp);stroke:var(--card)}
-#map circle.mk.tmp.in{fill:var(--err-l);stroke:var(--err)}
-#map circle.mk.tmp.on.in{fill:var(--err);stroke:var(--card)}
+#map g.mk.tmp .pin-bg{fill:var(--tmp)}
+#map g.mk.tmp.in .pin-bg{fill:var(--err)}
 #map text.mkl{fill:var(--ink);text-anchor:middle;font-weight:600;paint-order:stroke;
   stroke:var(--card);stroke-width:.28em;stroke-linejoin:round;pointer-events:none}
 #map text.mkl.on{fill:var(--brand-d)}
@@ -996,7 +999,7 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
 #map.hasbg .bg{fill:var(--line)}
 #map.hasbg .bds .bd{stroke:rgba(11,87,164,.28);stroke-width:.7px}
 #map.hasbg .bds .bd.on{stroke:var(--err);stroke-width:2px;stroke-dasharray:7 4;stroke-linejoin:round}
-#map.hasbg circle.mk{stroke-width:2.2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+#map.hasbg g.mk .pin-bg{stroke-width:2.2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 #map.hasbg text.mkl{stroke-width:.34em}
 #map.hasbg circle.grid{stroke-width:1.4px;opacity:.75}
 
@@ -1012,6 +1015,15 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
 .maplegend .dot{display:inline-block;width:9px;height:9px;border-radius:50%;
   margin-right:4px;vertical-align:-1px;border:1.5px solid var(--ok);background:var(--card)}
 .maplegend .dot.tmp{border-color:var(--tmp)}
+/* ② 두 층의 아이콘 — 지도 마커와 같은 모양·같은 색.
+   색만으로 나누지 않으려고 넣은 그림이므로, 범례에서도 그림이 보여야
+   "이 표시가 저 종류" 가 이어집니다. */
+.sh-ic{display:inline-block;width:1.7rem;height:1.7rem;flex:none;
+  vertical-align:-.35rem;margin-right:2px}
+.sh-ic.sh-chem{color:var(--ok)}
+.sh-ic.sh-temp{color:var(--tmp)}
+.ms-kd .sh-ic{width:1.4rem;height:1.4rem;vertical-align:-.25rem;margin-right:1px}
+.ms-kd.chem .sh-ic,.ms-kd.temp .sh-ic{color:inherit}
 .maplegend .dot.ac{background:var(--err);border-color:var(--err)}
 .maplegend .dot.in{background:var(--err-l);border-color:var(--err)}
 .maplegend .dot.lee{background:rgba(138,79,6,.2);border-color:var(--warn)}
@@ -1413,7 +1425,7 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
   .resapp .rbar{padding:0 12px}
   .resapp .rbar-toggle{padding:6px 0}
   .maplegend .lg-t{display:none}
-  .maplegend .dot,.maplegend .rk-ic{margin-right:3px}
+  .maplegend .dot,.maplegend .rk-ic,.maplegend .sh-ic{margin-right:3px}
   .maplegend .rk-ic{width:1.5rem;height:1.5rem;vertical-align:-.3rem}
 }
 /* 태블릿·휴대전화 가로 — 폭이 넉넉하면 사고지점 줄을 한 줄로 폅니다.
@@ -1717,24 +1729,40 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 
 /* ── 지도 마커 ──────────────────────────────────────────────
    좌표를 주소로만 잡은 곳(시·군·구 단위)은 속을 비워 "대략 위치"임을 보인다 */
-#map circle.rk{stroke:var(--card);stroke-width:1.6px;cursor:pointer}
-#map circle.rk-local{fill:var(--rk-local)}
-#map circle.rk-capsule{fill:var(--rk-capsule)}
-#map circle.rk-toxgas{fill:var(--rk-toxgas)}
-#map circle.rk-waste{fill:var(--rk-waste)}
-#map circle.rk-marine{fill:var(--rk-marine)}
-#map circle.rk-water{fill:var(--rk-water)}
-#map circle.rk.hv{stroke:var(--ink);stroke-width:2.2px}
-#map circle.rk.on{stroke:var(--brand-d);stroke-width:3.2px}
-#map circle.rk.in{stroke:var(--err);stroke-width:2.6px}
-#map circle.rk.approx{fill:var(--card);stroke-width:2.6px}
-#map circle.rk.approx.rk-local{stroke:var(--rk-local)}
-#map circle.rk.approx.rk-capsule{stroke:var(--rk-capsule)}
-#map circle.rk.approx.rk-toxgas{stroke:var(--rk-toxgas)}
-#map circle.rk.approx.rk-waste{stroke:var(--rk-waste)}
-#map circle.rk.approx.rk-marine{stroke:var(--rk-marine)}
-#map circle.rk.approx.rk-water{stroke:var(--rk-water)}
-#map.hasbg circle.rk{stroke-width:2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
+/* ── ③ 방제자원 마커 — 색 동그라미 **안에 아이콘** ───────────────
+   범례·목록·칩에 쓰는 그림을 마커에도 씁니다(2026-09-07 사용자 요청).
+   색만으로 종류를 나누면 색을 못 가리는 담당자가 구별할 수 없습니다.
+   그림은 채운 원 위에 **밝은 선**(--on-deep)으로 얹습니다 — 흰색을
+   직접 적지 않습니다(고대비 화면에서도 같은 대비가 나오는 토큰). */
+#map g.rk{cursor:pointer}
+#map g.rk .pin-bg{stroke:var(--card);stroke-width:1.6px}
+#map g.rk .pin-ic{fill:none;stroke:var(--on-deep);
+  stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+#map g.rk-local .pin-bg{fill:var(--rk-local)}
+#map g.rk-capsule .pin-bg{fill:var(--rk-capsule)}
+#map g.rk-toxgas .pin-bg{fill:var(--rk-toxgas)}
+#map g.rk-waste .pin-bg{fill:var(--rk-waste)}
+#map g.rk-marine .pin-bg{fill:var(--rk-marine)}
+#map g.rk-water .pin-bg{fill:var(--rk-water)}
+#map g.rk.hv .pin-bg{stroke:var(--ink);stroke-width:2.2px}
+#map g.rk.on .pin-bg{stroke:var(--brand-d);stroke-width:3.2px}
+#map g.rk.in .pin-bg{stroke:var(--err);stroke-width:2.6px}
+/* 어림잡은 좌표 — 속을 비워 "정확한 자리가 아니다"를 눈으로 보여 줍니다.
+   빈 원 위에서는 밝은 선이 안 보이므로 그림도 **종류 색**으로 바꿉니다. */
+#map g.rk.approx .pin-bg{fill:var(--card);stroke-width:2.6px}
+#map g.rk.approx.rk-local .pin-bg{stroke:var(--rk-local)}
+#map g.rk.approx.rk-capsule .pin-bg{stroke:var(--rk-capsule)}
+#map g.rk.approx.rk-toxgas .pin-bg{stroke:var(--rk-toxgas)}
+#map g.rk.approx.rk-waste .pin-bg{stroke:var(--rk-waste)}
+#map g.rk.approx.rk-marine .pin-bg{stroke:var(--rk-marine)}
+#map g.rk.approx.rk-water .pin-bg{stroke:var(--rk-water)}
+#map g.rk.approx.rk-local .pin-ic{stroke:var(--rk-local)}
+#map g.rk.approx.rk-capsule .pin-ic{stroke:var(--rk-capsule)}
+#map g.rk.approx.rk-toxgas .pin-ic{stroke:var(--rk-toxgas)}
+#map g.rk.approx.rk-waste .pin-ic{stroke:var(--rk-waste)}
+#map g.rk.approx.rk-marine .pin-ic{stroke:var(--rk-marine)}
+#map g.rk.approx.rk-water .pin-ic{stroke:var(--rk-water)}
+#map.hasbg g.rk .pin-bg{stroke-width:2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 
 @media (max-width:860px){
   /* ① 문자 도구의 첫 화면과 같은 이유로 세로 가운데 정렬을 풉니다 —

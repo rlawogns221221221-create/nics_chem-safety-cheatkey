@@ -116,7 +116,44 @@ await P.fill('#acLat','36.1400'); await P.fill('#acLon','128.1137');
 await P.dispatchEvent('#acLat','input'); await P.waitForTimeout(1600);
 let n = await P.$$eval('#shList .ms-it', e=>e.length);
 chk(n>0, `사고지점을 넣으면 목록이 나온다 (${n}곳)`);
-chk((await P.$$eval('#map circle.rk', e=>e.length))>0, '지도에 자원 마커가 찍힌다');
+chk((await P.$$eval('#map g.pin', e=>e.length))>0, '지도에 자원 마커가 찍힌다');
+
+/* ══ 마커에 아이콘이 들어갔는가 ═══════════════════════════════
+   범례·목록·칩에 쓰는 그림을 **마커에도** 씁니다(2026-09-07 사용자 —
+   "각각 아이콘을 실컷 설정해놨는데 왜 지도에는 반영이 안되고 색깔 점으로
+   나오는거야?"). 색만으로 여섯 종류를 나누면 색을 못 가리는 담당자가
+   구별할 수 없고, 범례의 그림과도 이어지지 않습니다.
+   ⚠ 어림잡은 좌표는 속을 비우므로(정확한 자리가 아님을 눈으로 알림)
+     그 마커의 **그림은 종류 색**이어야 합니다 — 빈 원 위에서 밝은 선은
+     보이지 않습니다. */
+const mkIc = await P.evaluate(() => {
+  const pins = [...document.querySelectorAll('#map g.pin')];
+  if (!pins.length) return { n: 0 };
+  const p0 = pins[0], ic = p0.querySelector('.pin-ic');
+  return {
+    n: pins.length,
+    옛동그라미: document.querySelectorAll('#map circle.rk').length,
+    bg: !!p0.querySelector('.pin-bg'),
+    그림선: ic ? ic.querySelectorAll('path,circle,rect').length : 0,
+    이벤트: ic ? getComputedStyle(ic).pointerEvents : '',
+    어림: (function () {
+      const a = pins.filter(e => e.getAttribute('class').indexOf('approx') >= 0)[0];
+      if (!a) return null;
+      const b = getComputedStyle(a.querySelector('.pin-bg'));
+      const i = a.querySelector('.pin-ic');
+      return { fill: b.fill, stroke: b.stroke,
+               그림색: i ? getComputedStyle(i).stroke : '' };
+    })(),
+  };
+});
+chk(mkIc.옛동그라미 === 0, '옛 색 동그라미(circle.rk)가 남아 있지 않다');
+chk(mkIc.bg, '마커가 원 + 그림 묶음이다 (.pin-bg 가 있다)');
+chk(mkIc.그림선 >= 2, `마커 안에 그림이 실제로 그려진다 (선 ${mkIc.그림선}개)`);
+chk(mkIc.이벤트 === 'none',
+  `그림이 누르는 판정을 가로막지 않는다 (pointer-events:${mkIc.이벤트})`);
+if (mkIc.어림)
+  chk(mkIc.어림.그림색 === mkIc.어림.stroke,
+    `어림값 마커는 속이 비고 그림도 종류 색이다 (${mkIc.어림.그림색})`);
 chk(/사고지점/.test(await P.textContent('#mSum')), '요약 줄에 사고지점 주소');
 chk(!!(await P.$('#mSum #rhAgain')), '요약 줄에서 처음 화면으로 돌아갈 수 있다');
 chk((await P.inputValue('#mScope'))==='20000', '기본 범위 20km (관내에 없을 수 있어서)');
