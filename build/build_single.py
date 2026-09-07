@@ -36,18 +36,23 @@ PAGES = [
     (ROOT / "map" / "index.html", "화학사고_주민대피장소_찾기.html", None),
     (ROOT / "res" / "index.html", "화학사고_방제물품장비_찾기.html", None),
 ]
-INTERNAL_PAGE = (ROOT / "res" / "index.html", "화학사고_방제물품장비_찾기_내부용.html",
-                 ("../data/resources.js", "../data/resources.internal.js"))
+# ⚠ 방제자원 '내부판' 단일 파일은 더 만들지 않습니다(2026-09-07).
+# ③ 이 읽는 자료가 data/resources2.js(두 갈래)로 바뀌었고, 그 자료에는
+# **담당자 개인 연락처를 처음부터 넣지 않았습니다** — 사용자가 보내 준
+# 연락처 엑셀에서 업체명·직장전화·주소만 썼고 성명·휴대폰·이메일은 저장소에
+# 넣지 않았습니다. 그래서 "내부용" 으로 더 담을 것이 없습니다.
+# (예전 자료 data/resources.internal.js 는 make_resources.py 가 그대로
+#  만들지만 화면이 부르지 않습니다.)
 
 # 있으면 넣고 없으면 넘어가는 자료 파일
-OPTIONAL = ["resources.geo.js", "tempshelters.js"]
+OPTIONAL = ["resources.geo.js", "resources2.geo.js", "tempshelters.js"]
 
 BANNER = """<!-- ────────────────────────────────────────────────────────────
      화학사고 지자체 대응 지원도구 — 오프라인 단일 파일
      · 이 파일 하나만 있으면 인터넷 연결 없이 동작합니다.
      · 외부 서버로 어떤 정보도 전송하지 않습니다.
      · 자료 갱신은 소스 저장소에서 재빌드하세요.
-       (build/make_data.py · build/make_resources.py → build/build_single.py)
+       (build/make_data.py · build/make_resources2.py → build/build_single.py)
      ──────────────────────────────────────────────────────────── -->
 """
 
@@ -244,21 +249,19 @@ def build_portal(out: pathlib.Path) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--internal", action="store_true",
-                    help="방제자원 내부판(담당자 직통 포함)도 함께 만듭니다")
+                    help="(더 이상 쓰지 않습니다 — 아래 설명 참고)")
     args = ap.parse_args()
+
+    if args.internal:
+        sys.exit("\n내부판은 더 만들지 않습니다.\n"
+                 "      ③ 이 읽는 자료(data/resources2.js)에는 담당자 개인\n"
+                 "      연락처가 처음부터 들어 있지 않아 '내부용'으로 더 담을\n"
+                 "      것이 없습니다. 옵션 없이 다시 돌리세요.\n")
 
     for page, name, swap in PAGES:
         build(page, ROOT / "dist" / name, swap)
     build_portal(ROOT / "preview" / "진입화면_한파일.html")
 
-    if args.internal:
-        page, name, swap = INTERNAL_PAGE
-        if not (ROOT / "data" / "resources.internal.js").exists():
-            sys.exit("data/resources.internal.js 가 없습니다. "
-                     "먼저 python3 build/make_resources.py 를 돌리세요.")
-        build(page, ROOT / "dist" / name, swap)
-        print("\n⚠ 내부판은 담당자 개인 연락처를 담고 있습니다. "
-              "내부망 공유폴더로만 전달하고 메일·외부 저장소로 내보내지 마세요.")
 
     print("→ 각 파일 하나씩 내부망 PC로 옮겨 브라우저에서 열면 됩니다.")
 

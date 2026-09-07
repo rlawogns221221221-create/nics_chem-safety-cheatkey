@@ -44,48 +44,208 @@ var LEE_DEG = 60;                  // 풍하방향으로 볼 각도 (풍향 반�
    있습니다. 방제자원 자료를 같은 칸 이름으로 바꿔 주면, 사고지점·거리·
    범위·경로선 같은 공통 동작을 한 줄도 고치지 않고 그대로 씁니다.
    ③ 에만 있는 것(종류·보유내용·정확도·번호)은 칸을 더해 싣습니다. */
-var KINDS = window.RESOURCE_KINDS || [];
-var NEEDS = window.RESOURCE_NEEDS || [];
 var ACCNOTE = window.RESOURCE_ACC || {};
+
+/* ══ 두 갈래 — 업체 섭외 / 방제물품 찾기 ══════════════════════
+   2026-09-07 사용자 분류안(PPT). "방제자원은 맨처음 2가지 큰 틀로
+   나뉘어질거야. 업체 섭외와 방제물품 찾기 두가지로."
+
+     업체 섭외   폐기물·폐수를 맡기고 중장비·독성가스 회수를 부르는 곳.
+                 고르는 것은 **갈래 7가지**(수집·운반 · 중간처분 …).
+     방제물품    흡착포·보호복·굴착기처럼 **물건**. 고르는 것은
+                 **물품 이름 27가지**이고, 고른 물품만 보여야 합니다.
+
+   두 갈래는 묻는 것이 다릅니다("어디에 맡길까" ↔ "무엇이 어디 있나").
+   한 화면에 섞으면 어느 쪽을 고르는 중인지 알 수 없어, 맨 처음에 갈라
+   묻습니다. */
+var R2 = {
+  meta: window.RES2_META || null,
+  cats: window.RES2_CATS || [],        /* 업체 갈래 7 */
+  cls: window.RES2_CLASSES || [],      /* 물품 분류 7 (칩을 묶는 데 씀) */
+  holders: window.RES2_HOLDERS || [],  /* 물품을 가진 곳의 종류 5 */
+  names: window.RES2_NAMES || [],      /* 물품 이름 27 */
+  regions: window.RES2_REGIONS || [],
+  place: window.RES2_PLACE || [],
+  biz: window.RES2_BIZ || [],
+  item: window.RES2_ITEM || []
+};
+var BRANCHES = [
+  { id: "biz", 이름: "업체 섭외", ic: "phone",
+    할일: "폐기물·폐수를 맡길 곳, 중장비·독성가스 회수를 부를 곳",
+    설명: "허가 갈래로 고릅니다 — 수집·운반 · 중간처분 · 종합재활용 · 최종처분(매립) · 중장비 · 독성가스 · 폐수 수탁처리" },
+  { id: "item", 이름: "방제물품 찾기", ic: "chem",
+    할일: "흡착포·보호복·굴착기처럼 지금 필요한 물건",
+    설명: "물품 이름으로 고릅니다 — 고른 물품을 가진 곳만 나옵니다" }
+];
+function branch() { return st.br === "item" ? "item" : "biz"; }
+function isItem() { return branch() === "item"; }
+
+/* 지도 마커의 종류 — 갈래에 따라 달라집니다.
+     업체  갈래 7가지          (무엇을 맡길 수 있는 곳인가)
+     물품  보유처 종류 5가지   (누가 가지고 있는가)
+   물품에서 종류를 '물품 이름'으로 두면 한 곳이 여러 색이 됩니다(한 시청이
+   흡착포도 보호복도 가짐). 지도는 "누가"를, 목록은 "무엇을" 말합니다. */
+var KINDS = [];
 var KIND_NAME = {};
-KINDS.forEach(function (k) { KIND_NAME[k.id] = k.이름; });
-
-/* 정확 좌표 파일(data/resources.geo.js)이 있으면 그쪽을 먼저 씁니다.
-   build/geocode.html 을 인터넷 되는 PC 에서 한 번 돌려 만드는 파일이며,
-   없으면 주소로 잡은 어림 좌표를 그대로 씁니다. */
-var GEO = window.RESOURCE_GEO || null;
-function exact(r) {
-  if (!GEO) return null;
-  return GEO[r.t + "|" + r.n + "|" + r.sd + "|" + r.sg] || null;
+function kindTable() { return isItem() ? R2.holders : R2.cats; }
+function relinkKinds() {
+  KINDS = kindTable();
+  KIND_NAME = {};
+  KINDS.forEach(function (k) { KIND_NAME[k.id] = k.이름; });
 }
 
-var RES_CACHE = null;
-function allRes() {
-  if (RES_CACHE) return RES_CACHE;
-  RES_CACHE = (window.RESOURCES || []).map(function (r) {
-    var g = exact(r);
-    return {
-      key: r.t + "|" + r.sd + "|" + r.sg + "|" + r.n + "|" + r.la + "," + r.lo,
-      sido: r.sd, sgg: r.sg,
-      name: r.n, detail: r.dept || "", addr: r.a,
-      lat: g ? g.la : r.la, lon: g ? g.lo : r.lo,
-      kind: KIND_NAME[r.t] || "",
-      cap: 0,
-      /* ③ 고유 */
-      t: r.t, c: r.c || "", g: r.g || [], ap: g ? "exact" : (r.ap || ""),
-      tel: r.tel || "", agency: r.agency || "", src: r.src || "",
-      keep: r.keep || "", note: r.note || ""
-    };
+/* 정확 좌표 파일(data/resources2.geo.js)이 있으면 그쪽을 먼저 씁니다.
+   열쇠는 자리 번호가 아니라 **주소 한 줄**입니다 — 자료를 다시 만들어
+   번호가 바뀌어도 그 파일을 그대로 쓸 수 있어야 합니다.
+   build/geocode.html 을 인터넷 되는 PC 에서 한 번 돌려 만듭니다. */
+var GEO2 = window.RES2_GEO || null;
+function geoKey(p) {
+  return [p.sd, p.sg === p.sd ? "" : p.sg, p.a]
+    .filter(function (x) { return x; }).join(" ").replace(/\s+/g, " ");
+}
+function exact2(p) {
+  if (!GEO2 || !p.a) return null;
+  var g = GEO2[geoKey(p)];
+  return g ? { la: g[0], lo: g[1] } : null;
+}
+
+/* 업체 한 줄의 '보유·처리 내용' — 목록에 적고 검색에도 견줍니다.
+   처리가능폐기물이 가장 쓸모 있는 값이라 앞에 둡니다("폐산을 받는 곳인가"). */
+function bizContent(b) {
+  return [b.wst, b.lic, b.eq].filter(function (x) { return x; }).join(" · ");
+}
+function itemQty(x) {
+  return x.q != null && x.q !== "" ? Number(x.q).toLocaleString() + (x.u || "") : "";
+}
+/* 한 곳의 물품 줄. 표준 이름 하나에 원자료 표기가 여럿 붙는 일이 흔해
+   (흡착포·흡착재 ← "흡착포" + "흡착재"), 그대로 이어 붙이면 같은 이름이
+   두 번 나옵니다. 여럿이면 **원래 표기**를 함께 적습니다 — 무엇을 묶은
+   것인지 담당자가 확인할 수 있어야 합니다. */
+function itemTxt(list) {
+  if (!list.length) return "";
+  var nm = (R2.names[list[0].i] || {}).이름 || "";
+  if (list.length === 1) {
+    var q = itemQty(list[0]);
+    return nm + (q ? " " + q : "");
+  }
+  return nm + " — " + list.map(function (x) {
+    var q = itemQty(x);
+    return (x.o || nm) + (q ? " " + q : "");
+  }).join(" · ");
+}
+/* 표준 이름끼리 묶습니다 — 줄에 적을 때도, 검색에 견줄 때도 같은 묶음을 씁니다 */
+function groupItems(list) {
+  var by = {}, order = [];
+  list.forEach(function (x) {
+    if (!by[x.i]) { by[x.i] = []; order.push(x.i); }
+    by[x.i].push(x);
   });
-  return RES_CACHE;
+  return order.map(function (i) { return by[i]; });
+}
+function itemsText(list, cap) {
+  var g = groupItems(list);
+  var head = cap && g.length > cap ? g.slice(0, cap) : g;
+  return head.map(itemTxt).join(" · ")
+    + (head.length < g.length ? " (그 밖에 " + (g.length - head.length) + "가지 더 있음)" : "");
 }
 
-/* 종류·필요한 것 거르개를 통과한 것만 */
+var RES_CACHE = {};
+function allRes() {
+  var br = branch();
+  if (RES_CACHE[br]) return RES_CACHE[br];
+  var rows = [];
+
+  if (br === "biz") {
+    /* 업체는 **허가 갈래마다 한 줄**입니다. 한 업체가 허가를 여럿 가지면
+       여러 줄이 됩니다((주)엔아이티는 네 갈래) — 업체 이름으로 합치면
+       한 갈래만 남아 "폐산을 중화할 곳"을 찾는 사람에게 그 업체가
+       보이지 않습니다. */
+    R2.biz.forEach(function (b, i) {
+      var p = R2.place[b.p];
+      if (!p || p.la == null) return;        /* 좌표 없는 곳은 지도에 못 찍는다 */
+      var g = exact2(p);
+      rows.push({
+        key: "b" + i, sido: p.sd, sgg: p.sg,
+        name: p.n, detail: KIND_NAME[b.k] || "", addr: p.a,
+        lat: g ? g.la : p.la, lon: g ? g.lo : p.lo,
+        kind: KIND_NAME[b.k] || "", cap: 0,
+        t: b.k, c: bizContent(b), g: [],
+        ap: g ? "exact" : (p.ap || ""),
+        tel: p.tel || "", agency: "", src: "",
+        rg: p.rg || [],
+        first: b.f ? 1 : 0, fg: b.fg || [],
+        lic: b.lic || "", wst: b.wst || "", eq: b.eq || "", nc: b.nc || ""
+      });
+    });
+  } else {
+    /* 물품은 **한 자리에 한 줄**로 묶습니다. 한 시청이 흡착포·보호복·
+       굴착기를 다 가지고 있는데 줄을 물품마다 만들면, 같은 자리에 마커가
+       여러 개 겹치고 목록에 같은 이름이 되풀이됩니다. 무엇을 가졌는지는
+       한 줄 안에 적습니다. */
+    var byPlace = {};
+    R2.item.forEach(function (x) {
+      (byPlace[x.p] = byPlace[x.p] || []).push(x);
+    });
+    Object.keys(byPlace).forEach(function (pi) {
+      var p = R2.place[pi];
+      if (!p || p.la == null) return;
+      var list = byPlace[pi];
+      var g = exact2(p);
+      var ht = p.ht || "etc";
+      rows.push({
+        key: "i" + pi, sido: p.sd, sgg: p.sg,
+        name: p.n, detail: KIND_NAME[ht] || "", addr: p.a,
+        lat: g ? g.la : p.la, lon: g ? g.lo : p.lo,
+        kind: KIND_NAME[ht] || "", cap: 0,
+        t: ht,
+        /* c 는 검색에 견주는 글자라 **가진 것 전부**를 담습니다.
+           화면에 적는 줄은 고른 물품만 보이게 따로 만듭니다(contentLine). */
+        c: itemsText(list, 6),
+        g: [],
+        ap: g ? "exact" : (p.ap || ""),
+        tel: p.tel || "", agency: "", src: "",
+        rg: p.rg || [],
+        first: 0,
+        items: list,
+        /* 검색은 가진 것 **전부**에 견주어야 합니다. 화면 줄(c)은 여섯 가지로
+           줄여 두었으므로, 견줄 글자는 따로 담습니다. */
+        find: list.map(function (x) {
+          return ((R2.names[x.i] || {}).이름 || "") + " " + (x.o || "");
+        }).join(" "),
+        ii: list.map(function (x) { return x.i; })
+      });
+    });
+  }
+  RES_CACHE[br] = rows;
+  return rows;
+}
+
+/* 목록에 적는 '무엇을 가졌나' 한 줄.
+   물품을 골랐으면 **고른 것만** 적습니다 — 사용자 요구입니다("사용자가 딱
+   원하는 물품만 확인 할 수 있도록"). 그 자리에 다른 것도 있다는 사실은
+   숨기지 않고 뒤에 몇 가지 더 있다고 적습니다. */
+function contentLine(s) {
+  if (!isItem() || !s.items) return s.c;
+  if (!anyItm()) return s.c;
+  var sel = s.items.filter(function (x) { return st.itm[x.i]; });
+  if (!sel.length) return s.c;
+  var 남은 = groupItems(s.items).length - groupItems(sel).length;
+  return itemsText(sel, 6).replace(/ \(그 밖에[^)]*\)$/, "")
+    + (남은 > 0 ? " (그 밖에 " + 남은 + "가지 더 있음)" : "");
+}
+
+/* 거르개를 통과한 것만.
+     ① 지도 범례에서 켜 둔 종류인가
+     ② 고른 권역 안인가 (안 고르면 전부)
+     ③ 물품 갈래라면 고른 물품을 가지고 있는가 (안 고르면 전부) */
+function anyRg() { return R2.meta && Object.keys(st.rg).length > 0; }
+function anyItm() { return Object.keys(st.itm).length > 0; }
 function passFilter(s) {
   if (!st.kinds[s.t]) return false;
-  var need = NEEDS.filter(function (n) { return st.needs[n.id]; });
-  if (!need.length) return true;
-  return need.some(function (n) { return s.g.indexOf(n.id) >= 0; });
+  if (anyRg() && !(s.rg || []).some(function (g) { return st.rg[g]; })) return false;
+  if (isItem() && anyItm()
+      && !(s.ii || []).some(function (i) { return st.itm[i]; })) return false;
+  return true;
 }
 
 function resIn(sido, sgg) {
@@ -94,15 +254,17 @@ function resIn(sido, sgg) {
   });
 }
 
-/* 시·도 → 시·군·구 고르개를 채우기 위한 나무 */
-var TREE_CACHE = null;
+/* 시·도 → 시·군·구 고르개를 채우기 위한 나무 (갈래마다 다릅니다) */
+var TREE_CACHE = {};
 function resTree() {
-  if (TREE_CACHE) return TREE_CACHE;
-  TREE_CACHE = {};
+  var br = branch();
+  if (TREE_CACHE[br]) return TREE_CACHE[br];
+  var t = {};
   allRes().forEach(function (s) {
-    (TREE_CACHE[s.sido] = TREE_CACHE[s.sido] || {})[s.sgg] = 1;
+    (t[s.sido] = t[s.sido] || {})[s.sgg] = 1;
   });
-  return TREE_CACHE;
+  TREE_CACHE[br] = t;
+  return t;
 }
 
 var st = {
@@ -121,11 +283,14 @@ var st = {
      남기고 접은 채로 시작하고, 필요할 때 눌러 폅니다. 가장 가까운 한 곳은
      지도 위쪽 요약 띠(.msum)에 늘 적혀 있으므로 접혀 있어도 놓치지 않습니다. */
   nearFold: matchMedia("(max-width: 860px)").matches,
-  kinds: {},                       // 켜 둔 자원 종류
-  needs: {},                       // 켜 둔 '필요한 것' (빈 값 = 전부)
-  /* 걸음 1 에서 "무엇이 필요한지 모르겠어요 — 전부 보기"를 골랐는가.
-     needs 가 비어 있는 것과 화면상 뜻이 같지만, "아직 안 골랐다"와
-     "전부를 고른 것이다"를 갈라 두어야 걸음 2 로 넘어가도 되는지 압니다. */
+  kinds: {},                       // 켜 둔 자원 종류 (지도 범례)
+  /* 두 갈래 가운데 무엇을 하는 중인가 — "" 면 아직 안 골랐습니다(걸음 1) */
+  br: "",
+  itm: {},                         // 고른 물품 이름번호 (빈 값 = 전부)
+  rg: {},                          // 고른 권역 (빈 값 = 전부)
+  /* 걸음 2 에서 "무엇이 필요한지 모르겠어요 — 전부 보기"를 골랐는가.
+     아무것도 안 고른 것과 화면상 뜻이 같지만, "아직 안 골랐다"와
+     "전부를 고른 것이다"를 갈라 두어야 걸음 3 으로 넘어가도 되는지 압니다. */
   needAll: false,
   mob: {},                         // 동원 목록에 담은 것 (key → 자원)
   begun: false,                    // 시작 화면을 벗어났는가
@@ -136,6 +301,21 @@ var st = {
   sel: -1, hover: -1,
   view: null
 };
+
+/* 갈래를 바꾸면 자료·색인·거르개가 통째로 달라집니다. 한 곳에서 함께
+   갈아 끼웁니다 — 하나라도 빠뜨리면 이전 갈래의 목록이 남습니다. */
+function setBranch(id) {
+  st.br = id === "item" ? "item" : "biz";
+  relinkKinds();
+  st.kinds = {};
+  KINDS.forEach(function (k) { st.kinds[k.id] = true; });
+  st.itm = {}; st.needAll = false;
+  st.sido = ""; st.sgg = ""; st.scope = "";
+  st.q = ""; st.sel = -1; st.hover = -1;
+  st.mob = {};                       /* 담아 둔 것도 갈래가 다르면 뜻이 다르다 */
+  PLACE_IDX = null;                  /* 도구 안 검색 색인 */
+}
+relinkKinds();
 KINDS.forEach(function (k) { st.kinds[k.id] = true; });
 
 var SVG = null, VB = null;
@@ -185,7 +365,9 @@ function recompute() {
   st.show = st.all.filter(function (s) {
     if (!q) return true;
     return (s.name + " " + (s.detail || "") + " " + (s.addr || "") + " "
-            + (s.kind || "") + " " + s.sgg + " " + s.c + " " + s.tel)
+            + (s.kind || "") + " " + s.sgg + " " + s.c + " " + s.tel + " "
+            + (s.lic || "") + " " + (s.wst || "") + " " + (s.eq || "") + " "
+            + (s.find || ""))
            .toLowerCase().indexOf(q) >= 0;
   });
   if (st.sort === "dist" && acc) st.show.sort(function (a, b) { return a.d - b.d; });
@@ -194,6 +376,13 @@ function recompute() {
         || a.name.localeCompare(b.name, "ko");
   });
   else st.show.sort(function (a, b) { return a.name.localeCompare(b.name, "ko"); });
+
+  /* 미리 협의된 곳을 맨 위로 — 사용자 지시입니다("협의가 완료된 자료이니까
+     그 자료로 맨위로 제일 눈에 잘 띄도록"). 고른 정렬 안에서 자리만 올립니다
+     (거리순으로 보는 중이면 협의된 곳끼리도 가까운 순으로 남습니다). */
+  var 협의 = [], 나머지 = [];
+  st.show.forEach(function (s) { (s.first ? 협의 : 나머지).push(s); });
+  st.show = 협의.concat(나머지);
 
   st.sel = -1; st.hover = -1;
   /* 사고지점이나 조건이 바뀌면 받아 둔 경로는 더 이상 맞지 않는다.
@@ -621,7 +810,7 @@ function renderNear() {
   /* 머리표는 접기·펴기 단추 자체입니다 — 닫아 놓고 되돌릴 방법이 없으면 안 됩니다 */
   var head = '<button type="button" class="mnear-h" id="mNearH" aria-expanded="'
     + (st.nearFold ? "false" : "true") + '">'
-    + '<b>가까운 방제자원</b> ' + top.length + "곳"
+    + '<b>가까운 ' + (isItem() ? "곳" : "업체") + "</b> " + top.length + "곳"
     + '<svg class="mnear-c" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
     + ' stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
     + '<path d="M6 9l6 6 6-6"/></svg></button>';
@@ -769,6 +958,37 @@ var ICONS = {
   chem: '<path d="M7.4 8.2h9.2l1.3 10.9A1.7 1.7 0 0 1 16.2 21H7.8a1.7 1.7 0 0 1-1.7-1.9z"/>'
       + '<path d="M8.7 8.2 9.8 4.6h4.4l1.1 3.6"/>'
       + '<path d="M10 13.4h4"/>',
+  /* 업체 섭외(갈래) — 전화를 걸어 부르는 일이라 수화기 */
+  phone: '<path d="M6.4 3.6h3.2l1.6 4-2 1.4a10.4 10.4 0 0 0 5.8 5.8l1.4-2 4 1.6v3.2'
+       + 'a1.6 1.6 0 0 1-1.8 1.6C11.5 19.7 4.3 12.5 3.4 5.4A1.6 1.6 0 0 1 5 3.6z"/>',
+  /* 중간처분 — 굴뚝에서 오르는 연기(소각·중화 시설) */
+  burn: '<path d="M5.6 21V9.4l4.6-2.2V21"/><path d="M10.2 12.4h6.2V21"/>'
+      + '<path d="M4 21h16.4"/>'
+      + '<path d="M8 4.6c0-1 .8-1.6 1.2-2.2.5 1.4 1.8 1.6 1.8 3a1.5 1.5 0 0 1-3 0z"/>',
+  /* 종합재활용 — 재활용 삼각 화살표 */
+  recycle: '<path d="M8.2 5.4 12 3.2l3.8 2.2"/>'
+         + '<path d="M18.4 9.2l1.8 3.8-2.4 3.2"/>'
+         + '<path d="M6.2 16.2 3.8 13l1.8-3.8"/>'
+         + '<path d="M6.6 19.4h10.8"/>'
+         + '<path d="M9 17.6l-2.4 1.8 2.4 1.8"/>',
+  /* 최종처분(매립) — 땅에 묻기(아래로 향한 화살표 + 땅) */
+  bury: '<path d="M12 3.4v9.2"/><path d="M8.4 9.4 12 13l3.6-3.6"/>'
+      + '<path d="M3.4 16.4h17.2"/><path d="M5 20.4h14"/>',
+  /* 중장비 — 굴착기 팔과 버킷 */
+  dig: '<path d="M3.4 18.6h9.2"/><circle cx="6" cy="20.2" r="1.6"/>'
+     + '<circle cx="11" cy="20.2" r="1.6"/>'
+     + '<path d="M4.4 18.6v-3.2h6.6v3.2"/>'
+     + '<path d="M9.4 15.4 14 7.4l2.6 1.2-3 5.4"/>'
+     + '<path d="M15.4 14.6h5.2l-1 4.4h-5.6z"/>',
+  /* 작업도구 — 스패너와 삽 */
+  tool: '<path d="M14.6 3.6a3.6 3.6 0 0 0 4.6 4.8L21 10.2 18.6 12.6 16.8 10.8'
+      + 'a3.6 3.6 0 0 1-4.6-4.8z"/>'
+      + '<path d="M11 12.4 3.6 19.8l1.6 1.6L12.6 14"/>',
+  /* 인력 — 사람 둘(방재인원) */
+  people: '<circle cx="9" cy="7.4" r="2.8"/>'
+        + '<path d="M3.8 20.4c0-3 2.3-5.2 5.2-5.2s5.2 2.2 5.2 5.2"/>'
+        + '<circle cx="17" cy="8.6" r="2.2"/>'
+        + '<path d="M14.6 20.4c0-2.4 1.2-4.2 3.4-4.2 1.4 0 2.4.8 2.4.8"/>',
   /* 대량 비축 — 창고에 쌓인 상자 */
   stock: '<rect x="8.5" y="3.6" width="7" height="7" rx="1"/>'
        + '<rect x="3.2" y="13.4" width="7" height="7" rx="1"/>'
@@ -779,7 +999,15 @@ var ICONS = {
 var ICON_OF = {
   local: "local", capsule: "capsule", toxgas: "gas", waste: "waste",
   marine: "marine", water: "water",
-  car: "car", gear: "gear", chem: "chem", gas: "gas", stock: "stock"
+  car: "car", gear: "gear", chem: "chem", gas: "gas", stock: "stock",
+  /* 업체 섭외의 갈래 7 — 자료의 ic 값과 같습니다(RES2_CATS) */
+  carry: "car", mid: "burn", recy: "recycle", land: "bury", heavy: "dig",
+  /* 물품을 가진 곳 5 + 못 가린 것 */
+  gov: "local", plant: "burn", envbox: "stock", nat: "marine", shop: "car",
+  etc: "stock",
+  /* 두 갈래 카드·물품 분류 */
+  phone: "phone", burn: "burn", recycle: "recycle", bury: "bury", dig: "dig",
+  tool: "tool", people: "people", caps: "capsule"
 };
 
 /* cls 로 색을 입힙니다(.rk-local … — 지도 마커와 같은 색).
@@ -794,24 +1022,25 @@ function icon(id, cls) {
 
 function anyFilterOff() {
   return KINDS.some(function (k) { return !st.kinds[k.id]; })
-      || NEEDS.some(function (n) { return st.needs[n.id]; });
+      || anyItm() || anyRg();
 }
 
-/* ══ 시작 — 두 걸음 ══════════════════════════════════════════
-   걸음 1 "지금 무엇이 필요하세요?" → 걸음 2 "사고지점이 어디인가요?" → 결과.
+/* ══ 시작 — 세 걸음 ══════════════════════════════════════════
+   걸음 1 "무엇을 하려고 하십니까?"  → 두 갈래 가운데 하나
+   걸음 2 "무엇이 필요하세요?"       → 갈래 7 (업체) / 물품 27 (물품)
+   걸음 3 "사고지점이 어디인가요?"   → 결과
 
-   ── 왜 이렇게 바뀌었나 (사용자 요구) ─────────────────────────
-   "사용자가 자기가 지금 필요한 걸 누르고, 사고지점의 주소 또는 사고가 발생한
-   사업장을 입력하면, 그 지점 주변의 본인이 선택한 방제자원을 알려 주는" 모습.
+   ── 왜 이렇게 바뀌었나 (사용자 분류안 PPT · 2026-09-07) ──────
+   "결국 방제자원은 맨처음 2가지 큰 틀로 나뉘어질거야. 업체 섭외와
+   방제물품 찾기 두가지로."
 
-   예전에는 사고지점만 묻고 자원 470건을 전부 뿌린 뒤 "좁히고 싶으면 조건을
-   펴 보라"고 했습니다. 그런데 현장에서 담당자가 아는 것은 **지금 무엇이
-   필요한가**(굴착기가 필요하다 · 보호복이 모자란다)이지 자원 종류가 아닙니다.
-   필요한 것을 먼저 물으면 다음 화면에 나올 것이 이미 정해지고, 결과도 훑을 수
-   있는 양으로 줄어듭니다.
+   두 갈래는 묻는 것이 다릅니다 — 업체는 "어디에 맡길까"(허가 갈래),
+   물품은 "무엇이 어디 있나"(물건 이름). 한 화면에 섞으면 지금 무엇을
+   고르는 중인지 알 수 없습니다. 그래서 맨 처음에 갈라 묻고, 그다음에야
+   그 갈래에 맞는 것을 묻습니다.
 
-   걸음 1의 일곱 가지는 자료의 RESOURCE_NEEDS 를 그대로 씁니다 — 자원마다
-   g:[...] 로 달려 있는 값이라 우리가 지어낸 분류가 아닙니다. */
+   걸음 2의 값은 자료에서 그대로 옵니다 — 업체는 RES2_CATS(허가 갈래),
+   물품은 RES2_NAMES(표준 이름 27가지). 우리가 지어낸 분류가 아닙니다. */
 
 /* 시작 화면을 벗어났는가. 사고지점이 정해졌거나, 지역을 골랐거나,
    "지도에서 찍기"처럼 사용자가 이미 결과 화면으로 넘어간 경우. */
@@ -819,36 +1048,43 @@ function started() {
   return !!(st.begun || st.acc || st.sido || st.sgg);
 }
 
-/* 지금 몇 번째 걸음인가 (1 · 2). 결과 화면에서는 쓰지 않습니다. */
+/* 지금 몇 번째 걸음인가 (1 · 2 · 3). 결과 화면에서는 쓰지 않습니다. */
 var rzStep = 1;
 
 function rzGo(n) {
-  /* 필요한 것을 고르지 않고 2걸음으로 건너뛸 수는 없습니다 — 건너뛰면
-     "고른 자원" 이라는 말이 거짓이 됩니다. '전부 보기'로는 갈 수 있습니다. */
-  if (n === 2 && !rzChosen() && !st.needAll) return;
+  /* 갈래를 고르지 않고 건너뛸 수 없습니다 — 다음 화면이 무엇을 묻는지가
+     갈래로 정해지기 때문입니다. */
+  if (n >= 2 && !st.br) return;
+  /* 필요한 것을 고르지 않고 3걸음으로 건너뛸 수는 없습니다 — 건너뛰면
+     "고른 것" 이라는 말이 거짓이 됩니다. '전부 보기'로는 갈 수 있습니다. */
+  if (n === 3 && !rzChosen() && !st.needAll) return;
   rzStep = n;
   renderStart();
   /* 걸음이 바뀌면 그 걸음의 제목으로 초점을 옮깁니다 — 화면낭독기 사용자가
      무엇이 바뀌었는지 알아야 합니다. */
-  var h = $(n === 1 ? "#rzH1" : "#rzH2");
+  var h = $(["#rzH0", "#rzH1", "#rzH2"][n - 1]);
   if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: true }); }
   window.scrollTo(0, 0);
 }
 
+/* 걸음 2에서 무엇을 고른 상태인가 */
 function rzChosen() {
-  return NEEDS.some(function (n) { return st.needs[n.id]; });
+  if (isItem()) return anyItm();
+  /* 업체는 갈래가 곧 지도 종류입니다 — 하나라도 꺼져 있으면 고른 것입니다 */
+  return KINDS.some(function (k) { return !st.kinds[k.id]; });
+}
+function rzPicked() {
+  if (isItem())
+    return R2.names.filter(function (x, i) { return st.itm[i]; })
+                   .map(function (x) { return x.이름; });
+  return KINDS.filter(function (k) { return st.kinds[k.id]; })
+              .map(function (k) { return k.이름; });
 }
 
-/* 고른 것으로 몇 곳이 나오는가 — 걸음 2의 안내에 그대로 적습니다.
-   "고른 자원 470건 중 62곳" 처럼 지어내지 않고 실제로 세어 적습니다. */
+/* 고른 것으로 몇 곳이 나오는가 — 걸음 3의 안내에 그대로 적습니다.
+   "고른 것으로 62곳" 처럼 지어내지 않고 실제로 세어 적습니다. */
 function rzHitCount() {
-  var need = NEEDS.filter(function (n) { return st.needs[n.id]; });
-  if (!need.length) return allRes().length;
-  return allRes().filter(function (s) {
-    return need.some(function (n) {
-      return (s.g || []).indexOf(n.id) >= 0;
-    });
-  }).length;
+  return allRes().filter(passFilter).length;
 }
 
 function renderStart() {
@@ -858,76 +1094,163 @@ function renderStart() {
   /* 걸음 표시 */
   var bs = $$("#rzBar .rz-b");
   bs.forEach(function (li, i) {
-    li.classList.toggle("on", i + 1 === rzStep);
-    li.classList.toggle("done", i + 1 < rzStep && (rzChosen() || st.needAll));
+    var n = i + 1;
+    li.classList.toggle("on", n === rzStep);
+    li.classList.toggle("done", n < rzStep);
     var b = li.querySelector("button");
-    if (b) b.setAttribute("aria-current", i + 1 === rzStep ? "step" : "false");
+    if (b) {
+      b.setAttribute("aria-current", n === rzStep ? "step" : "false");
+      /* 갈래를 고르기 전에는 2·3걸음으로 갈 수 없습니다 — 누를 수 없다고
+         눈에 보여야 눌러 보고 아무 일도 안 일어나는 일이 없습니다. */
+      b.disabled = (n >= 2 && !st.br) || (n === 3 && !rzChosen() && !st.needAll);
+    }
+    /* 걸음 2의 이름은 갈래에 따라 달라집니다 */
+    if (n === 2) {
+      var lb = li.querySelector("b");
+      if (lb) lb.textContent = st.br ? (isItem() ? "필요한 물품" : "맡길 갈래") : "필요한 것";
+    }
   });
-  var p1 = $("#rzP1"), p2 = $("#rzP2");
-  if (p1) p1.hidden = rzStep !== 1;
-  if (p2) p2.hidden = rzStep !== 2;
+  ["#rzP0", "#rzP1", "#rzP2"].forEach(function (sel, i) {
+    var el = $(sel);
+    if (el) el.hidden = rzStep !== i + 1;
+  });
 
-  /* 걸음 1 — 필요한 것 칸 */
-  renderRzNeeds();
+  renderRzBranch();
+  renderRzPick();
 
-  /* 다음 단추 — 하나도 안 골랐으면 누를 수 없습니다.
-     막다른 길은 아닙니다. 옆에 '전부 보기'가 있습니다. */
-  var next = $("#rzNext");
-  if (next) {
-    var n = NEEDS.filter(function (x) { return st.needs[x.id]; }).length;
-    next.disabled = !n;
-    next.textContent = n ? "다음 — 사고지점 넣기 (" + rzHitCount() + "곳)"
-                         : "다음 — 사고지점 넣기";
-  }
-
-  /* 걸음 2 — 무엇을 고른 상태인지 다시 적어 줍니다. 한 화면 넘어와서
+  /* 걸음 3 — 무엇을 고른 상태인지 다시 적어 줍니다. 한 화면 넘어와서
      "내가 무엇을 골랐더라" 를 되짚게 하면 안 됩니다. */
   var lead = $("#rzP2Lead");
   if (lead) {
-    var picked = NEEDS.filter(function (x) { return st.needs[x.id]; })
-                      .map(function (x) { return x.이름; });
-    lead.innerHTML = picked.length
-      ? "<b>" + picked.map(esc).join(" · ") + "</b> 을(를) 가진 "
-        + rzHitCount() + "곳을 <b>사고지점에서 가까운 순</b>으로 찾습니다."
-      : "방제자원 " + allRes().length
-        + "곳 전부를 <b>사고지점에서 가까운 순</b>으로 찾습니다.";
+    var picked = rzPicked();
+    var all = isItem() ? !anyItm() : !rzChosen();
+    lead.innerHTML = all
+      ? (isItem() ? "방제물품을 가진 " : "업체 ")
+        + rzHitCount() + "곳 전부를 <b>사고지점에서 가까운 순</b>으로 찾습니다."
+      : "<b>" + picked.slice(0, 6).map(esc).join(" · ")
+        + (picked.length > 6 ? " 외 " + (picked.length - 6) + "가지" : "")
+        + "</b> — " + rzHitCount() + "곳을 <b>사고지점에서 가까운 순</b>으로 찾습니다.";
   }
 }
 
-/* ── 걸음 1의 칸 만들기 ──────────────────────────────────────
+/* ── 걸음 1 — 두 갈래 ────────────────────────────────────────
+   큰 카드 두 장. 어느 쪽이 무슨 일인지 카드에 그대로 적습니다 —
+   '업체 섭외'·'방제물품' 이라는 말만으로는 무엇을 하는 자리인지
+   담당자가 알 수 없습니다. */
+function renderRzBranch() {
+  var box = $("#rzBr");
+  if (!box) return;
+  box.innerHTML = BRANCHES.map(function (b) {
+    var n = b.id === "item" ? R2.item.length : R2.biz.length;
+    return '<button type="button" class="rz-br" data-b="' + esc(b.id) + '"'
+      + ' aria-pressed="' + (st.br === b.id ? "true" : "false") + '">'
+      + '<span class="rz-br-ic" aria-hidden="true">' + icon(b.ic) + "</span>"
+      + '<span class="rz-br-t">' + esc(b.이름) + "</span>"
+      + '<span class="rz-br-d">' + esc(b.할일) + "</span>"
+      + '<span class="rz-br-s">' + esc(b.설명) + "</span>"
+      + '<span class="rz-br-n">' + n.toLocaleString() + "줄</span>"
+      + "</button>";
+  }).join("");
+  $$("#rzBr .rz-br").forEach(function (b) {
+    b.onclick = function () {
+      setBranch(b.dataset.b);
+      refresh(true);
+      rzGo(2);
+    };
+  });
+}
+
+/* ── 걸음 2 — 갈래(업체) 또는 물품 고르기 ────────────────────
    건수는 실제로 세어 적습니다. "0곳" 인 것도 감추지 않고 그대로 둡니다 —
    없다는 것도 알아야 하는 정보이고, 감추면 자료가 빠진 것처럼 보입니다. */
 var TICK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"'
   + ' stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"'
   + ' aria-hidden="true"><path d="M5 12.5 10 17.5 19 7"/></svg>';
 
-function renderRzNeeds() {
-  var box = $("#rzNeeds");
+function renderRzPick() {
+  var h = $("#rzH1"), lead = $("#rzP1Lead"), box = $("#rzNeeds");
   if (!box) return;
-  var pool = allRes();
-  box.innerHTML = NEEDS.map(function (n) {
-    var cnt = pool.filter(function (s) {
-      return (s.g || []).indexOf(n.id) >= 0;
-    }).length;
-    /* 그림 → 이름 → 건수 → 고름표시 차례. 그림이 맨 앞이라 훑을 때
-       글자를 읽기 전에 무엇인지 짐작할 수 있습니다(사용자 요구).
-       그림만으로 뜻을 전하지는 않습니다 — 이름이 늘 옆에 있습니다. */
-    return '<button type="button" class="rz-need" data-n="' + esc(n.id) + '"'
-      + ' aria-pressed="' + (st.needs[n.id] ? "true" : "false") + '">'
-      + '<span class="rz-need-ic" aria-hidden="true">' + icon(n.id) + "</span>"
+  if (h) h.textContent = isItem() ? "어떤 물품이 필요하세요?" : "무엇을 맡기려 하십니까?";
+  if (lead) {
+    lead.innerHTML = isItem()
+      ? "고른 물품을 <b>가진 곳만</b> 나옵니다. 여러 개 골라도 됩니다."
+      : "맡길 갈래를 고르면 <b>그 허가를 가진 업체만</b> 나옵니다. 여러 개 골라도 됩니다.";
+  }
+  box.className = isItem() ? "rz-items" : "rz-needs";
+  box.innerHTML = isItem() ? itemChips() : catCards();
+  bindRzPick();
+
+  /* 다음 단추 — 하나도 안 골랐으면 누를 수 없습니다.
+     막다른 길은 아닙니다. 옆에 '전부 보기'가 있습니다. */
+  var next = $("#rzNext");
+  if (next) {
+    var on = rzChosen();
+    next.disabled = !on;
+    next.textContent = on ? "다음 — 사고지점 넣기 (" + rzHitCount() + "곳)"
+                          : "다음 — 사고지점 넣기";
+  }
+}
+
+/* 업체 — 갈래 7가지. 갈래마다 '무엇을 하는 곳인가'를 한 줄로 적습니다. */
+function catCards() {
+  return R2.cats.map(function (k) {
+    return '<button type="button" class="rz-need" data-k="' + esc(k.id) + '"'
+      + ' aria-pressed="' + (st.kinds[k.id] && rzChosen() ? "true" : "false") + '">'
+      + '<span class="rz-need-ic" aria-hidden="true">' + icon(k.ic) + "</span>"
       + '<span class="rz-need-b">'
-      + '<span class="rz-need-t">' + esc(n.이름) + "</span>"
-      + '<span class="rz-need-d">' + esc(n.설명) + "</span>"
-      + '<span class="rz-need-n">' + cnt + "곳</span>"
+      + '<span class="rz-need-t">' + esc(k.이름) + "</span>"
+      + '<span class="rz-need-d">' + esc(k.쓰임) + "</span>"
+      + '<span class="rz-need-n">' + Number(k.n).toLocaleString() + "곳</span>"
       + "</span>"
       + '<span class="rz-need-x" aria-hidden="true">' + TICK + "</span>"
       + "</button>";
   }).join("");
+}
+
+/* 물품 — 표준 이름 27가지를 분류로 묶어 칩으로. 27개를 한 줄로 늘어놓으면
+   훑을 수 없어, 분류(보호구·흡착·중화 …)마다 줄을 나눕니다. */
+function itemChips() {
+  return R2.cls.map(function (c) {
+    var mine = R2.names.map(function (x, i) { return { x: x, i: i }; })
+                       .filter(function (o) { return o.x.cl === c.id; });
+    if (!mine.length) return "";
+    return '<div class="rz-igrp"><span class="rz-igrp-t">'
+      + icon(c.ic) + esc(c.이름) + "</span>"
+      + mine.map(function (o) {
+          return '<button type="button" class="rz-item" data-i="' + o.i + '"'
+            + ' aria-pressed="' + (st.itm[o.i] ? "true" : "false") + '">'
+            + esc(o.x.이름)
+            + '<span class="rz-item-n">' + Number(o.x.n).toLocaleString() + "</span>"
+            + "</button>";
+        }).join("")
+      + "</div>";
+  }).join("");
+}
+
+function bindRzPick() {
   $$("#rzNeeds .rz-need").forEach(function (b) {
     b.onclick = function () {
-      var id = b.dataset.n;
-      st.needs[id] = !st.needs[id];
-      if (!st.needs[id]) delete st.needs[id];
+      var id = b.dataset.k;
+      /* 처음 누르면 "그 갈래만" 고른 것으로 봅니다 — 일곱 개를 하나씩
+         끄게 하면 고르는 일이 여섯 번이 됩니다. */
+      if (!rzChosen()) {
+        st.kinds = {};
+        st.kinds[id] = true;
+      } else {
+        st.kinds[id] = !st.kinds[id];
+        /* 전부 끄면 결과가 텅 빕니다 — 마지막 하나는 다시 켭니다 */
+        if (!KINDS.some(function (k) { return st.kinds[k.id]; })) st.kinds[id] = true;
+      }
+      st.needAll = false;
+      renderStart();
+      refresh();
+    };
+  });
+  $$("#rzNeeds .rz-item").forEach(function (b) {
+    b.onclick = function () {
+      var i = +b.dataset.i;
+      if (st.itm[i]) delete st.itm[i];
+      else st.itm[i] = true;
       st.needAll = false;
       renderStart();
       refresh();
@@ -950,10 +1273,10 @@ function backToStart() {
   setMode("pick");
   refresh(true);
   var q = $("#startQ"); if (q) { q.value = ""; }
-  /* 고른 '필요한 것'은 그대로 둡니다 — 사고지점만 잘못 찍어 되돌아오는
-     경우가 대부분인데 고른 것까지 지우면 처음부터 다시 해야 합니다.
-     걸음 표시를 눌러 1걸음으로 가면 바꿀 수 있습니다. */
-  rzGo(rzChosen() || st.needAll ? 2 : 1);
+  /* 고른 것은 그대로 둡니다 — 사고지점만 잘못 찍어 되돌아오는 경우가
+     대부분인데 고른 것까지 지우면 처음부터 다시 해야 합니다.
+     걸음 표시를 눌러 앞 걸음으로 가면 바꿀 수 있습니다. */
+  rzGo(rzChosen() || st.needAll ? 3 : (st.br ? 2 : 1));
 }
 
 function initStart() {
@@ -962,29 +1285,34 @@ function initStart() {
     b.onclick = function () { rzGo(+b.dataset.go); };
   });
 
-  /* 걸음 1 → 2 */
+  /* 걸음 2 → 3 */
   var next = $("#rzNext");
-  if (next) next.onclick = function () { rzGo(2); };
+  if (next) next.onclick = function () { rzGo(3); };
 
   /* "무엇이 필요한지 모르겠어요 — 전부 보기"
      모르는 사람을 막다른 길에 세우지 않습니다. 고른 것 없이 넘어가면
-     자원 전부가 가까운 순으로 나옵니다(예전 화면과 같은 결과). */
+     그 갈래 전부가 가까운 순으로 나옵니다. */
   var all = $("#rzAll");
   if (all) all.onclick = function () {
-    st.needs = {}; st.needAll = true;
+    st.itm = {};
+    st.kinds = {};
+    KINDS.forEach(function (k) { st.kinds[k.id] = true; });
+    st.needAll = true;
     renderStart(); refresh();
-    rzGo(2);
+    rzGo(3);
   };
 
-  /* 걸음 2 → 1 */
-  var back = $("#rzBack");
+  /* 걸음 2 → 1 · 걸음 3 → 2 */
+  var back = $("#rzBack0");
   if (back) back.onclick = function () { rzGo(1); };
+  var back2 = $("#rzBack");
+  if (back2) back2.onclick = function () { rzGo(2); };
 
-  /* 걸음 2 ① 주소·사업장 이름 — 시작 화면의 검색칸은 bindAddrSearch 가
+  /* 걸음 3 ① 주소·사업장 이름 — 시작 화면의 검색칸은 bindAddrSearch 가
      조건 줄 칸과 똑같이 붙여 둡니다. 결과 목록이 **이 칸 바로 아래**에
      뜨므로 몇 글자만 쳐도 눌러서 고를 수 있습니다. */
 
-  /* 걸음 2 ② 지도에서 찍기 — 지도를 보여 주고 바로 '찍기' 모드로 */
+  /* 걸음 3 ② 지도에서 찍기 — 지도를 보여 주고 바로 '찍기' 모드로 */
   var pick = $("#startPick");
   if (pick) pick.onclick = function () {
     st.sido = ""; st.sgg = ""; st.begun = true;
@@ -993,7 +1321,7 @@ function initStart() {
     toast("<b>지도를 눌러 사고지점을 표시하세요.</b> 누른 자리에서 가까운 순으로 찾습니다.");
     var m = $(".mmap"); if (m) m.scrollIntoView({ block: "center", behavior: "smooth" });
   };
-  /* 걸음 2 ③ 내 위치 */
+  /* 걸음 3 ③ 내 위치 */
   var me = $("#startMe");
   if (me) me.onclick = function () { locateMe(); };
   /* 사고지점 없이 지역으로 둘러보기 */
@@ -1023,57 +1351,92 @@ function initRbar() {
   };
 }
 
-/* 접혀 있어도 무엇으로 좁혀 놨는지는 알려 준다 */
+/* 접혀 있어도 무엇으로 좁혀 놨는지는 알려 준다.
+   맨 앞에 지금 어느 갈래인지 적습니다 — 결과 화면만 보고 있으면 업체를
+   찾는 중인지 물품을 찾는 중인지 알 수 없습니다. */
 function renderRbarLabel() {
   var t = $("#rbTxt");
   if (!t) return;
-  var need = NEEDS.filter(function (n) { return st.needs[n.id]; });
-  var off = KINDS.filter(function (k) { return !st.kinds[k.id]; });
-  /* 걸음 1 에서 이미 물었으므로 여기서는 "바꾸는 자리"라고 적습니다 —
-     같은 질문이 두 번 나오면 어느 쪽이 진짜인지 헷갈립니다. */
-  if (!need.length && !off.length) { t.textContent = "찾는 조건 바꾸기 — 전부 보는 중"; return; }
+  var head = isItem() ? "방제물품" : "업체 섭외";
   var bits = [];
-  if (need.length) bits.push(need.map(function (n) { return n.이름; }).join("·"));
-  if (off.length) bits.push("종류 " + (KINDS.length - off.length) + "/" + KINDS.length);
-  t.textContent = "찾는 조건 바꾸기 — " + bits.join(" · ");
+  if (isItem() && anyItm()) {
+    var nm = rzPicked();
+    bits.push(nm.slice(0, 2).join("·") + (nm.length > 2 ? " 외 " + (nm.length - 2) : ""));
+  }
+  if (!isItem() && rzChosen())
+    bits.push(KINDS.filter(function (k) { return st.kinds[k.id]; })
+                   .map(function (k) { return k.이름; }).slice(0, 2).join("·"));
+  if (anyRg())
+    bits.push(Object.keys(st.rg).join("·"));
+  /* 걸음 2 에서 이미 물었으므로 여기서는 "바꾸는 자리"라고 적습니다 —
+     같은 질문이 두 번 나오면 어느 쪽이 진짜인지 헷갈립니다. */
+  t.textContent = head + " — " + (bits.length ? bits.join(" · ") + " · 조건 바꾸기"
+                                              : "전부 보는 중 · 조건 바꾸기");
 }
 
-/* ── 자원 종류 · 필요한 것 거르개 ─────────────────────────────
-   종류는 "무엇을 가진 곳인가", 필요한 것은 "지금 나에게 무엇이 필요한가"
-   입니다. 담당자는 보통 종류를 모르고 필요한 물건만 압니다("굴착기가
-   필요한데 어디 있지"). 그래서 둘 다 둡니다. */
+/* ── 결과 화면의 거르개 ───────────────────────────────────────
+   위 칸은 걸음 2에서 고른 것(업체는 갈래 · 물품은 물품 이름)을 **결과를
+   보면서 바꾸는** 자리이고, 아래 칸은 **권역**입니다.
+
+   권역을 여기 둔 이유 — 사고지점을 찍으면 거리로 이미 좁혀지지만, 미리
+   협의된 업체는 "그 권역을 맡기로 한 곳"이라 거리와 별개입니다. 권역으로
+   보면 그 약속대로 누구에게 먼저 전화할지가 드러납니다. */
 function renderFilters() {
+  var t1 = $("#rbT1");
+  if (t1) t1.textContent = isItem() ? "필요한 물품" : "맡길 갈래";
   var kb = $("#rKinds");
   if (kb) {
-    kb.innerHTML = KINDS.map(function (k) {
-      var n = allRes().filter(function (s) { return s.t === k.id; }).length;
-      return '<button type="button" class="rk-chip" data-k="' + esc(k.id) + '"'
-        + ' aria-pressed="' + (st.kinds[k.id] ? "true" : "false") + '"'
-        + ' title="' + esc(k.쓰임) + '">'
-        + icon(k.id, "rk-" + esc(k.id)) + esc(k.이름)
-        + '<span class="rk-n">' + n + "</span></button>";
+    kb.innerHTML = R2.regions.map(function (g) {
+      var n = allRes().filter(function (s) {
+        return (s.rg || []).indexOf(g) >= 0;
+      }).length;
+      return '<button type="button" class="rk-chip" data-g="' + esc(g) + '"'
+        + ' aria-pressed="' + (st.rg[g] ? "true" : "false") + '">'
+        + esc(g) + '<span class="rk-n">' + n + "</span></button>";
     }).join("");
     $$("#rKinds .rk-chip").forEach(function (b) {
       b.onclick = function () {
-        st.kinds[b.dataset.k] = !st.kinds[b.dataset.k];
-        /* 전부 끄면 지도가 텅 빈다 — 마지막 하나는 다시 켠다 */
-        if (!KINDS.some(function (k) { return st.kinds[k.id]; }))
-          st.kinds[b.dataset.k] = true;
+        var g = b.dataset.g;
+        if (st.rg[g]) delete st.rg[g];
+        else st.rg[g] = true;
         refresh();
       };
     });
   }
 
   var nb = $("#rNeeds");
-  if (nb) {
-    nb.innerHTML = NEEDS.map(function (n) {
-      return '<button type="button" class="rk-chip need" data-n="' + esc(n.id) + '"'
-        + ' aria-pressed="' + (st.needs[n.id] ? "true" : "false") + '"'
-        + ' title="' + esc(n.설명) + '">' + icon(n.id) + esc(n.이름) + "</button>";
+  if (!nb) return;
+  if (isItem()) {
+    nb.innerHTML = R2.names.map(function (x, i) {
+      return '<button type="button" class="rk-chip need" data-i="' + i + '"'
+        + ' aria-pressed="' + (st.itm[i] ? "true" : "false") + '">'
+        + esc(x.이름) + '<span class="rk-n">' + x.n + "</span></button>";
     }).join("");
     $$("#rNeeds .rk-chip").forEach(function (b) {
       b.onclick = function () {
-        st.needs[b.dataset.n] = !st.needs[b.dataset.n];
+        var i = +b.dataset.i;
+        if (st.itm[i]) delete st.itm[i];
+        else st.itm[i] = true;
+        st.needAll = false;
+        refresh();
+      };
+    });
+  } else {
+    nb.innerHTML = KINDS.map(function (k) {
+      var n = allRes().filter(function (s) { return s.t === k.id; }).length;
+      return '<button type="button" class="rk-chip need" data-k="' + esc(k.id) + '"'
+        + ' aria-pressed="' + (st.kinds[k.id] ? "true" : "false") + '"'
+        + ' title="' + esc(k.쓰임 || "") + '">'
+        + icon(k.ic || k.id, "rk-" + esc(k.id)) + esc(k.이름)
+        + '<span class="rk-n">' + n + "</span></button>";
+    }).join("");
+    $$("#rNeeds .rk-chip").forEach(function (b) {
+      b.onclick = function () {
+        st.kinds[b.dataset.k] = !st.kinds[b.dataset.k];
+        /* 전부 끄면 지도가 텅 빈다 — 마지막 하나는 다시 켠다 */
+        if (!KINDS.some(function (k) { return st.kinds[k.id]; }))
+          st.kinds[b.dataset.k] = true;
+        st.needAll = false;
         refresh();
       };
     });
@@ -1144,6 +1507,11 @@ function mobText() {
 /* ── 목록 ─────────────────────────────────────────────────── */
 function renderList() {
   var acc = st.acc;
+  /* 목록 머리 — 지금 무엇을 보고 있는지 적습니다. "방제자원" 이라고만
+     적으면 업체를 보는 중인지 물품을 보는 중인지 알 수 없습니다. */
+  var hd = $(".ms-hd");
+  if (hd) hd.innerHTML = (isItem() ? "물품 가진 곳 " : "업체 ")
+    + '<span id="listCnt"></span>';
   $("#listCnt").textContent = st.all.length
     ? (st.q ? st.show.length + " / " + st.all.length + "곳" : st.all.length + "곳") : "";
 
@@ -1154,7 +1522,9 @@ function renderList() {
          : st.q ? "‘" + esc(st.q) + "’ 과(와) 맞는 곳이 없습니다."
          : anyFilterOff()
            ? "고른 조건에 맞는 방제자원이 없습니다.<br>위의 <b>자원 종류</b>나 <b>필요한 것</b>을 넓혀 보세요."
-           : "선택한 범위에 등록된 방제자원이 없습니다.") + "</p>";
+           : "선택한 범위에 " + (isItem() ? "그 물품을 가진 곳이" : "해당 갈래의 업체가")
+             + " 없습니다.<br>위의 <b>찾는 범위</b>를 넓혀 보세요 — 관내에 아예 "
+             + "없는 것이 드물지 않습니다.") + "</p>";
     return;
   }
 
@@ -1168,14 +1538,23 @@ function renderList() {
       ? '<div class="ms-bar"><i style="width:' + Math.max(2, Math.round(s.d / maxD * 100)) + '%"></i></div>'
       : "";
     return '<div class="ms-it' + (on ? " on" : "") + (s.inRing ? " ring" : "")
+      + (s.first ? " first" : "")
       + '" data-i="' + i + '" role="button" tabindex="0" aria-pressed="' + (on ? "true" : "false") + '">'
+      /* 미리 협의된 곳은 갈래마다 맨 위에 오고 여기에 딱지가 붙습니다.
+         '협의 완료' 라고 적지 않습니다 — 담당자가 그 말의 뜻을 모릅니다
+         (2026-09-07 사용자). 무엇을 하라는 것인지를 딱지에 그대로 씁니다. */
+      + (s.first ? '<div class="l0"><span class="tag first">먼저 연락 · 미리 협의된 곳</span>'
+          + (s.fg && s.fg.length
+              ? '<span class="l0-g">맡기로 한 권역 ' + esc(s.fg.join(" · ")) + "</span>" : "")
+          + "</div>" : "")
       + '<div class="l1">' + icon(s.t, "rk-" + esc(s.t)) + '<b>' + esc(s.name) + "</b>"
       + (s.detail ? '<span class="dt">' + esc(s.detail) + "</span>" : "")
       + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
       + "</div>" + bar
       + (acc ? '<div class="l6">' + tripLine(s) + "</div>" : "")
       + '<div class="l2">' + esc(placeOf(s)) + accTag(s) + "</div>"
-      + '<div class="l7">' + esc(s.c) + "</div>"
+      + (s.c ? '<div class="l7">' + esc(contentLine(s)) + "</div>" : "")
+      + (s.nc ? '<div class="l8">확인 못 한 것 — ' + esc(s.nc) + "</div>" : "")
       + (s.inRing || s.lee
           ? '<div class="l5">'
             + (s.inRing ? '<span class="tag danger">영향 참고 반경 안</span>' : "")
@@ -1283,8 +1662,10 @@ function renderLegend() {
        그림도 같은 색이어야 "이 색이 저 종류" 가 이어집니다.
        예전에는 여기에 마름모·세모 같은 모양을 썼는데, 그 모양은 지도에
        없는 것이라 오히려 잘못 이어졌습니다. */
-    return '<span>' + icon(k.id, "rk-" + k.id)
-      + esc(k.이름.replace(/\(ERCV\)|업체|센터$/g, "").trim() || k.이름) + "</span>";
+    /* 이름을 줄이지 않습니다 — 예전 여섯 종류에 맞춰 "업체"·"센터" 를
+       떼어 냈는데, 두 갈래 자료에서는 "판매업체" 가 "판매" 가 되어 뜻이
+       달라집니다. 자료에 적힌 이름을 그대로 씁니다. */
+    return '<span>' + icon(k.id, "rk-" + k.id) + esc(k.이름) + "</span>";
   });
   if (st.acc) it.push('<span><i class="dot acc"></i>사고지점</span>');
   if (st.rings && st.acc) it.push('<span><i class="dot grid"></i>거리 눈금</span>');
@@ -2005,10 +2386,25 @@ function initSelects() {
 }
 
 function initSrcModal() {
+  var m2 = R2.meta || {};
   $("#ver").innerHTML =
-    "<p><b>방제자원</b> — " + esc(VERSION.방제자원_출처) + " · 기준일 "
-      + esc(VERSION.방제자원_기준일) + " ("
-      + SHELTER_META.총건수.toLocaleString() + "곳 · 좌표 포함)</p>"
+    /* 두 갈래 자료의 속을 그대로 적습니다 — 몇 줄인지, 좌표를 어떻게 잡았는지,
+       무엇이 비어 있는지. 담당자가 "이 값을 어디까지 믿을지" 를 스스로
+       판단할 수 있어야 합니다. */
+    "<p><b>업체 섭외</b> — " + Number(m2.업체건수 || 0).toLocaleString()
+      + "줄 (허가 갈래마다 한 줄 · 한 업체가 허가를 여럿 가지면 여러 줄). "
+      + "원자료는 유역·지방환경청 취합자료와 사용자가 보내 준 허가증입니다. "
+      + "<b>미리 협의된 곳 " + Number(m2.협의된곳 || 0)
+      + "곳</b>은 갈래마다 맨 위에 옵니다.</p>"
+    + "<p><b>방제물품</b> — " + Number(m2.물품건수 || 0).toLocaleString()
+      + "줄 · 물품 이름 " + R2.names.length + "가지. "
+      + "원자료의 표기가 표마다 달라(한 표에서만 484가지) <b>급할 때 한 번에 "
+      + "요청하는 단위</b>로 묶은 표준 이름입니다. 원래 표기는 각 줄에 함께 "
+      + "적습니다.</p>"
+    + "<p><b>좌표</b> — 원자료에 좌표가 없어 <b>주소로 잡은 어림값</b>입니다"
+      + (m2.기준일 ? " (만든 날 " + esc(m2.기준일) + ")" : "")
+      + ". 줄마다 어느 단위까지 좁혔는지 적습니다(읍·면·동 · 시·군·구 · 시·도). "
+      + "정확한 좌표는 주소검색으로 따로 받아 넣습니다.</p>"
     + "<p><b>배경지도</b> — " + esc(VERSION.배경지도) + ". 인터넷이 되는 환경에서만 표시되며, "
       + "안 되면 행정경계선만 그립니다.</p>"
     + "<p><b>행정경계</b> — " + esc(VERSION.경계_출처) + ". "
@@ -2106,8 +2502,10 @@ function init() {
     st.route = null; st.routeErr = null; st.routeBusy = false;
     st.accAddr = null; accSeq++;
     pickedPlace = null;
-    st.needs = {}; st.mob = {}; st.needAll = false;
-    KINDS.forEach(function (k) { st.kinds[k.id] = true; });
+    st.mob = {}; st.needAll = false;
+    st.rg = {};
+    setBranch("");                    /* 갈래도 처음으로 — 걸음 1 로 돌아갑니다 */
+    st.br = "";
     st.begun = false;
     rzStep = 1;                       // 초기화는 첫 걸음으로 되돌립니다
     document.body.classList.remove("has-acc");

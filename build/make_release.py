@@ -66,6 +66,15 @@ def check_source() -> None:
     if '"p":{' in pub:
         fail("data/resources.js 에 담당자(p) 항목이 있습니다.\n"
              "      python3 build/make_resources.py 로 공개판을 다시 만드세요.")
+    # ③ 이 실제로 읽는 자료 — 두 갈래(업체 섭외 · 방제물품)
+    two = ROOT / "data" / "resources2.js"
+    if not two.exists():
+        fail("data/resources2.js 가 없습니다 — ③ 이 읽는 자료입니다.\n"
+             "      python3 build/make_resources2.py 를 먼저 돌리세요.")
+    txt = two.read_text(encoding="utf-8")
+    if re.search(r"01[016-9][-\s]?\d{3,4}[-\s]?\d{4}", txt):
+        fail("data/resources2.js 에 개인 휴대전화 꼴의 번호가 있습니다.\n"
+             "      python3 build/make_resources2.py 로 다시 만드세요.")
 
 
 def check_output(out: pathlib.Path) -> None:
@@ -94,7 +103,7 @@ def check_output(out: pathlib.Path) -> None:
 # 있으면 쓰고 없으면 화면이 그냥 넘어가는 파일
 #   resources.geo.js  — build/geocode.html 로 만듭니다 (방제자원 정확 좌표)
 #   tempshelters.js   — build/fetch_tempshelter.html 로 만듭니다 (이재민 임시주거시설)
-OPTIONAL = {"resources.geo.js", "tempshelters.js"}
+OPTIONAL = {"resources.geo.js", "resources2.geo.js", "tempshelters.js"}
 
 
 def check_links(site: pathlib.Path) -> None:

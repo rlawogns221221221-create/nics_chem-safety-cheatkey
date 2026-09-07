@@ -1487,6 +1487,27 @@ a.btnlink:hover{border-color:var(--brand)}
   --rk-waste:#6b4c9a;    /* 폐기물 처리     — 보라 ● */
   --rk-marine:#0b6b41;   /* 해경 비축기지   — 초록 ■ */
   --rk-water:#0e7c9e;    /* 수질방제센터    — 청록 ■ */
+
+  /* ── 두 갈래 자료(업체 섭외 · 방제물품)의 종류 ──────────────
+     두 갈래는 한 화면에 함께 나오지 않으므로 색을 나눠 씁니다 —
+     같은 갈래 **안에서** 서로 달라야 하고, 갈래끼리는 겹쳐도 됩니다.
+       업체  carry 파랑 · mid 빨강 · recy 초록 · land 보라 ·
+             heavy 진회색 · toxgas 갈색 · water 청록
+       물품  local 파랑 · plant 갈색 · envbox 청록 · marine 초록 ·
+             shop 보라 · etc 진회색
+     색만으로 가르지 않습니다 — 마커·범례·목록에 종류마다 다른 그림이
+     함께 들어갑니다(res/app.js 의 ICONS). */
+  --rk-carry:var(--rk-local);
+  --rk-mid:var(--rk-capsule);
+  --rk-recy:var(--rk-marine);
+  --rk-land:var(--rk-waste);
+  --rk-heavy:#464c53;      /* 중장비 — 기계. 위 여섯 색과 겹치지 않게 */
+  --rk-plant:var(--rk-toxgas);
+  --rk-envbox:var(--rk-water);
+  --rk-shop:var(--rk-waste);
+  --rk-etc:#464c53;
+  --rk-gov:var(--rk-local);   /* 물품 — 지자체 */
+  --rk-nat:var(--rk-marine);  /* 물품 — 국가기관 비축 */
 }
 
 /* ── 자원 아이콘 ──────────────────────────────────────────────
@@ -1509,6 +1530,17 @@ a.btnlink:hover{border-color:var(--brand)}
 .rk-ic.rk-waste{color:var(--rk-waste)}
 .rk-ic.rk-marine{color:var(--rk-marine)}
 .rk-ic.rk-water{color:var(--rk-water)}
+.rk-ic.rk-carry{color:var(--rk-carry)}
+.rk-ic.rk-mid{color:var(--rk-mid)}
+.rk-ic.rk-recy{color:var(--rk-recy)}
+.rk-ic.rk-land{color:var(--rk-land)}
+.rk-ic.rk-heavy{color:var(--rk-heavy)}
+.rk-ic.rk-plant{color:var(--rk-plant)}
+.rk-ic.rk-envbox{color:var(--rk-envbox)}
+.rk-ic.rk-shop{color:var(--rk-shop)}
+.rk-ic.rk-etc{color:var(--rk-etc)}
+.rk-ic.rk-gov{color:var(--rk-gov)}
+.rk-ic.rk-nat{color:var(--rk-nat)}
 
 /* ══ 시작 — 두 걸음 ══════════════════════════════════════════
    걸음 1 "무엇이 필요하세요?" → 걸음 2 "사고지점이 어디인가요?" → 결과.
@@ -1558,9 +1590,63 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 .rz-b.on button b{font-weight:700}
 .rz-b.done button i{background:var(--ok);color:var(--on-brand)}
 
-/* ── 걸음 1 — 필요한 것 고르기 ────────────────────────────────
-   자료(RESOURCE_NEEDS)에 있는 일곱 가지를 그대로 씁니다. 우리가 지어낸
-   분류가 아니라 자원마다 g:[...] 로 달려 있는 값입니다. */
+/* ── 걸음 1 — 두 갈래 고르기 ──────────────────────────────────
+   업체 섭외 / 방제물품 찾기. 카드 두 장뿐이라 크게 두고, **무슨 일을 하는
+   자리인지**를 카드에 적습니다 — 이름만으로는 담당자가 알 수 없습니다. */
+.rz-brs{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:720px){ .rz-brs{grid-template-columns:repeat(2,1fr)} }
+.rz-br{display:flex;flex-direction:column;align-items:flex-start;gap:6px;
+  padding:20px 20px 18px;background:var(--card);
+  border:1.5px solid var(--line);border-radius:14px;
+  font:inherit;color:inherit;text-align:left;cursor:pointer;
+  transition:border-color .16s,box-shadow .16s,background .16s}
+.rz-br:hover{border-color:var(--brand);box-shadow:0 3px 14px rgba(11,87,164,.14)}
+.rz-br[aria-pressed=true]{border-color:var(--brand);background:var(--brand-l)}
+.rz-br-ic{display:grid;place-items:center;width:5.2rem;height:5.2rem;margin-bottom:4px;
+  border-radius:13px;background:var(--panel);color:var(--brand-d)}
+.rz-br-ic .rk-ic{width:3rem;height:3rem;margin:0;vertical-align:0;color:inherit}
+.rz-br-t{font-size:2.2rem;font-weight:800;letter-spacing:-.01em;line-height:1.3}
+.rz-br-d{font-size:1.6rem;color:var(--ink2);line-height:1.6}
+.rz-br-s{font-size:1.4rem;color:var(--ink3);line-height:1.55}
+.rz-br-n{margin-top:4px;font-size:1.3rem;font-weight:700;color:var(--ink3);
+  font-variant-numeric:tabular-nums}
+
+/* 좁은 화면 — 갈래마다 어떤 것이 있는지 늘어놓은 줄(.rz-br-s)은 카드를
+   700px 까지 늘려 **둘째 카드가 화면 밖으로 밀려납니다.** 그 줄은 걸음 2 에서
+   어차피 다 보여 주므로, 화면에서만 비켜 둡니다 — 지우지 않고 자리만 뺐으므로
+   화면낭독기는 그대로 읽습니다. */
+@media (max-width:620px){
+  .rz-br{padding:16px 16px 14px}
+  .rz-br-t{font-size:2rem}
+  .rz-br-s{position:absolute;width:1px;height:1px;margin:-1px;
+    padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+}
+
+/* ── 걸음 2 — 갈래(업체) 또는 물품 고르기 ─────────────────────
+   업체는 허가 갈래 7가지(자료의 RES2_CATS), 물품은 표준 이름 27가지
+   (RES2_NAMES)입니다. 우리가 지어낸 분류가 아닙니다.
+
+   물품은 27가지라 카드로 두면 화면이 다섯 배로 길어집니다 — 분류마다
+   줄을 나눈 **칩**으로 두어 한눈에 훑게 합니다. */
+.rz-items{display:flex;flex-direction:column;gap:14px}
+.rz-igrp{display:flex;flex-wrap:wrap;align-items:center;gap:7px}
+.rz-igrp-t{display:flex;align-items:center;width:100%;gap:4px;
+  font-size:1.4rem;font-weight:700;color:var(--ink2)}
+.rz-igrp-t .rk-ic{width:1.8rem;height:1.8rem;margin:0;vertical-align:0}
+.rz-item{display:inline-flex;align-items:center;gap:5px;
+  min-height:3.6rem;padding:6px 11px;background:var(--card);
+  border:1.5px solid var(--line);border-radius:999px;
+  font:inherit;font-size:1.5rem;color:inherit;cursor:pointer;
+  transition:border-color .14s,background .14s}
+.rz-item:hover{border-color:var(--brand)}
+.rz-item[aria-pressed=true]{border-color:var(--brand);background:var(--brand-l);
+  color:var(--brand-d);font-weight:700}
+.rz-item-n{font-size:1.2rem;color:var(--ink3);font-variant-numeric:tabular-nums}
+.rz-item[aria-pressed=true] .rz-item-n{color:var(--brand-d)}
+@media (pointer: coarse){ .rz-item{min-height:4rem;padding:8px 13px} }
+
+/* ── 걸음 2 (업체) — 갈래 카드 ────────────────────────────────
+   자료(RES2_CATS)에 있는 일곱 갈래를 그대로 씁니다. */
 .rz-needs{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 /* ‼ justify-content 를 못 박습니다 — 브라우저가 <button> 안의 내용을 가운데로
    모으는 바람에, 글이 짧은 칸("가스 회수")만 체크상자가 안쪽으로 밀려 들어가
@@ -1594,7 +1680,19 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
   font-variant-numeric:tabular-nums}
 .rz-need[aria-pressed=true] .rz-need-n{color:var(--brand-d)}
 
-/* ── 걸음 2 — 사고지점 ────────────────────────────────────────
+/* ── 목록에서 '미리 협의된 곳' ────────────────────────────────
+   갈래마다 맨 위에 오고, 초록 띠와 왼쪽 굵은 선으로 드러냅니다.
+   ‼ 화면에 '협의 완료' 라고 적지 않습니다 — 담당자가 그 말의 뜻을
+   모릅니다(2026-09-07 사용자). 딱지에 **무엇을 하라는 것인지**를
+   그대로 씁니다 — 「먼저 연락 · 미리 협의된 곳」. */
+.ms-it.first{background:var(--ok-l);border-left:4px solid var(--ok)}
+.ms-it .l0{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:5px}
+.ms-it .l0-g{font-size:1.3rem;color:var(--ink2)}
+.tag.first{background:var(--ok);color:var(--on-brand);font-weight:700}
+/* 원자료에서 확인하지 못한 것 — 지어내지 않고 무엇을 못 채웠는지 적습니다 */
+.ms-it .l8{margin-top:4px;font-size:1.3rem;color:var(--warn);line-height:1.5}
+
+/* ── 걸음 3 — 사고지점 ────────────────────────────────────────
    주소·사업장 이름이 첫째 자리입니다(사용자 요구). 상황실에서 실제로 먼저
    아는 것도 주소나 사업장 이름입니다. */
 .rz-way{position:relative;display:block;width:100%;background:var(--card);
@@ -1630,19 +1728,23 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
   text-decoration:underline;text-underline-offset:3px;cursor:pointer;padding:6px 0}
 .rz-skip:hover{color:var(--brand-d)}
 
+/* 걸음 2의 '다음'은 넓은 화면에서도 아래에 붙여 둡니다 — 물품 칩이 27개라
+   세로로 1,000px 을 넘어가고, 그러면 고른 뒤에 한참을 내려야 '다음'이
+   나옵니다(업체 갈래 카드 일곱도 화면을 넘깁니다). */
+#rzP1 .rz-nav{position:sticky;bottom:0;z-index:3;
+  margin:16px -8px 0;padding:12px 8px;
+  padding-bottom:calc(12px + env(safe-area-inset-bottom, 0px));
+  background:var(--bg);border-top:1px solid var(--line)}
+
 /* 좁은 화면 — 칸이 한 줄에 하나씩. 두 줄로 두면 한 칸이 150px 로 좁아져
    '중화제·흡착재' 같은 이름이 석 줄로 쪼개집니다. */
 @media (max-width:620px){
   .rz-needs{grid-template-columns:1fr;gap:8px}
   .rz-need{padding:12px}
   .rz-need-d{font-size:1.35rem}
-  /* 칸이 일곱이라 세로로 쌓으면 800px 가까이 됩니다 — '다음'이 화면 밖으로
-     밀려나 고른 뒤에 한참을 내려야 했습니다. 아래에 붙여 둡니다.
-     (걸음 2 는 길이 셋뿐이라 그냥 둡니다) */
-  #rzP1 .rz-nav{position:sticky;bottom:0;z-index:3;
-    margin:14px -14px 0;padding:11px 14px;
-    padding-bottom:calc(11px + env(safe-area-inset-bottom, 0px));
-    background:var(--bg);border-top:1px solid var(--line)}
+  /* 좁은 화면에서는 여백을 화면 끝까지 밀어 띠처럼 보이게 합니다
+     (걸음 3 은 길이 셋뿐이라 그냥 둡니다) */
+  #rzP1 .rz-nav{margin:14px -14px 0;padding:11px 14px}
 }
 @media (pointer:coarse){
   .rz-need{min-height:4.4rem}
@@ -1744,6 +1846,17 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 #map g.rk-waste .pin-bg{fill:var(--rk-waste)}
 #map g.rk-marine .pin-bg{fill:var(--rk-marine)}
 #map g.rk-water .pin-bg{fill:var(--rk-water)}
+#map g.rk-carry .pin-bg{fill:var(--rk-carry)}
+#map g.rk-mid .pin-bg{fill:var(--rk-mid)}
+#map g.rk-recy .pin-bg{fill:var(--rk-recy)}
+#map g.rk-land .pin-bg{fill:var(--rk-land)}
+#map g.rk-heavy .pin-bg{fill:var(--rk-heavy)}
+#map g.rk-plant .pin-bg{fill:var(--rk-plant)}
+#map g.rk-envbox .pin-bg{fill:var(--rk-envbox)}
+#map g.rk-shop .pin-bg{fill:var(--rk-shop)}
+#map g.rk-etc .pin-bg{fill:var(--rk-etc)}
+#map g.rk-gov .pin-bg{fill:var(--rk-gov)}
+#map g.rk-nat .pin-bg{fill:var(--rk-nat)}
 #map g.rk.hv .pin-bg{stroke:var(--ink);stroke-width:2.2px}
 #map g.rk.on .pin-bg{stroke:var(--brand-d);stroke-width:3.2px}
 #map g.rk.in .pin-bg{stroke:var(--err);stroke-width:2.6px}
@@ -1756,12 +1869,34 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 #map g.rk.approx.rk-waste .pin-bg{stroke:var(--rk-waste)}
 #map g.rk.approx.rk-marine .pin-bg{stroke:var(--rk-marine)}
 #map g.rk.approx.rk-water .pin-bg{stroke:var(--rk-water)}
+#map g.rk.approx.rk-carry .pin-bg{stroke:var(--rk-carry)}
+#map g.rk.approx.rk-mid .pin-bg{stroke:var(--rk-mid)}
+#map g.rk.approx.rk-recy .pin-bg{stroke:var(--rk-recy)}
+#map g.rk.approx.rk-land .pin-bg{stroke:var(--rk-land)}
+#map g.rk.approx.rk-heavy .pin-bg{stroke:var(--rk-heavy)}
+#map g.rk.approx.rk-plant .pin-bg{stroke:var(--rk-plant)}
+#map g.rk.approx.rk-envbox .pin-bg{stroke:var(--rk-envbox)}
+#map g.rk.approx.rk-shop .pin-bg{stroke:var(--rk-shop)}
+#map g.rk.approx.rk-etc .pin-bg{stroke:var(--rk-etc)}
+#map g.rk.approx.rk-gov .pin-bg{stroke:var(--rk-gov)}
+#map g.rk.approx.rk-nat .pin-bg{stroke:var(--rk-nat)}
 #map g.rk.approx.rk-local .pin-ic{stroke:var(--rk-local)}
 #map g.rk.approx.rk-capsule .pin-ic{stroke:var(--rk-capsule)}
 #map g.rk.approx.rk-toxgas .pin-ic{stroke:var(--rk-toxgas)}
 #map g.rk.approx.rk-waste .pin-ic{stroke:var(--rk-waste)}
 #map g.rk.approx.rk-marine .pin-ic{stroke:var(--rk-marine)}
 #map g.rk.approx.rk-water .pin-ic{stroke:var(--rk-water)}
+#map g.rk.approx.rk-carry .pin-ic{stroke:var(--rk-carry)}
+#map g.rk.approx.rk-mid .pin-ic{stroke:var(--rk-mid)}
+#map g.rk.approx.rk-recy .pin-ic{stroke:var(--rk-recy)}
+#map g.rk.approx.rk-land .pin-ic{stroke:var(--rk-land)}
+#map g.rk.approx.rk-heavy .pin-ic{stroke:var(--rk-heavy)}
+#map g.rk.approx.rk-plant .pin-ic{stroke:var(--rk-plant)}
+#map g.rk.approx.rk-envbox .pin-ic{stroke:var(--rk-envbox)}
+#map g.rk.approx.rk-shop .pin-ic{stroke:var(--rk-shop)}
+#map g.rk.approx.rk-etc .pin-ic{stroke:var(--rk-etc)}
+#map g.rk.approx.rk-gov .pin-ic{stroke:var(--rk-gov)}
+#map g.rk.approx.rk-nat .pin-ic{stroke:var(--rk-nat)}
 #map.hasbg g.rk .pin-bg{stroke-width:2px;filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 
 @media (max-width:860px){

@@ -44,23 +44,20 @@
   </div>
 </div>
 
-<!-- ══ 시작 — 두 걸음 ═════════════════════════════════════
-     처음 들어오면 이것 하나만 보입니다. 지도·조건·목록은 두 걸음을 마친
+<!-- ══ 시작 — 세 걸음 ═════════════════════════════════════
+     처음 들어오면 이것 하나만 보입니다. 지도·조건·목록은 세 걸음을 마친
      뒤에 나옵니다(body.has-acc).
 
-     ── 왜 두 걸음인가 ────────────────────────────────────────
-     사용자 요구입니다 — "사용자가 자기가 지금 필요한 걸 누르고, 사고지점의
-     주소 또는 사고가 발생한 사업장을 입력하면, 그 지점 주변의 본인이 선택한
-     방제자원을 알려 주는" 모습.
+     ── 왜 세 걸음인가 (사용자 분류안 PPT · 2026-09-07) ──────────
+     "결국 방제자원은 맨처음 2가지 큰 틀로 나뉘어질거야. 업체 섭외와
+     방제물품 찾기 두가지로."
 
-     예전에는 사고지점만 묻고 자원 470건을 전부 지도에 뿌린 뒤 "좁히고 싶으면
-     조건을 펴 보라"고 했습니다. 그런데 현장에서 담당자가 아는 것은 **지금
-     무엇이 필요한가**(굴착기가 필요하다 · 보호복이 모자란다)이지 자원 종류가
-     아닙니다. 필요한 것을 먼저 물으면 그 다음 화면에 나올 것이 이미 정해지고,
-     결과도 열 배쯤 줄어 훑을 수 있는 양이 됩니다.
+     두 갈래는 묻는 것이 다릅니다 — 업체는 "어디에 맡길까"(허가 갈래 7가지),
+     물품은 "무엇이 어디 있나"(표준 이름 27가지). 한 화면에 섞으면 지금
+     무엇을 고르는 중인지 알 수 없어, 맨 처음에 갈라 묻습니다.
 
-     걸음 1은 자료의 RESOURCE_NEEDS 를 그대로 씁니다(자원마다 g:[...] 로
-     달려 있는 값) — 우리가 지어낸 분류가 아닙니다.
+     걸음 2의 칸은 자료에서 그대로 만듭니다(RES2_CATS · RES2_NAMES) —
+     우리가 지어낸 분류가 아닙니다.
      ══════════════════════════════════════════════════════ -->
 <div class="rz" id="rz">
   <div class="rz-in">
@@ -68,20 +65,32 @@
     <!-- 어디까지 왔는지. 걸음을 눌러 되돌아갈 수 있습니다(①의 진행 표시와
          같은 방식) — 급할 때 아는 것부터 채우는 사람이 있습니다. -->
     <ol class="rz-bar" id="rzBar">
-      <li class="rz-b on"><button type="button" data-go="1"><i>1</i><b>필요한 것</b></button></li>
-      <li class="rz-b"><button type="button" data-go="2"><i>2</i><b>사고지점</b></button></li>
+      <li class="rz-b on"><button type="button" data-go="1"><i>1</i><b>무엇을</b></button></li>
+      <li class="rz-b"><button type="button" data-go="2" disabled><i>2</i><b>필요한 것</b></button></li>
+      <li class="rz-b"><button type="button" data-go="3" disabled><i>3</i><b>사고지점</b></button></li>
     </ol>
 
-    <!-- ── 걸음 1 — 무엇이 필요한가 ───────────────────────── -->
-    <section class="rz-pane" id="rzP1" aria-labelledby="rzH1">
-      <h2 id="rzH1">지금 무엇이 필요하세요?</h2>
-      <p class="rz-lead">필요한 것을 고르면 <b>그것을 가진 곳만</b> 찾습니다.
+    <!-- ── 걸음 1 — 두 갈래 ───────────────────────────────── -->
+    <section class="rz-pane" id="rzP0" aria-labelledby="rzH0">
+      <h2 id="rzH0">무엇을 하려고 하십니까?</h2>
+      <p class="rz-lead">방제자원은 <b>두 갈래</b>입니다. 하려는 일을 고르면
+        그에 맞는 것만 묻습니다.</p>
+
+      <!-- 카드는 자료에서 만들어 넣습니다 — res/app.js 의 renderRzBranch -->
+      <div class="rz-brs" id="rzBr" role="group" aria-label="무엇을 하려는지 고르기"></div>
+    </section>
+
+    <!-- ── 걸음 2 — 갈래(업체) 또는 물품 ──────────────────── -->
+    <section class="rz-pane" id="rzP1" hidden aria-labelledby="rzH1">
+      <h2 id="rzH1">무엇이 필요하세요?</h2>
+      <p class="rz-lead" id="rzP1Lead">고른 것을 <b>가진 곳만</b> 찾습니다.
         여러 개 골라도 됩니다.</p>
 
-      <!-- 칸은 자료(RESOURCE_NEEDS)에서 만들어 넣습니다 — res/app.js -->
+      <!-- 칸은 자료에서 만들어 넣습니다 — res/app.js 의 renderRzPick -->
       <div class="rz-needs" id="rzNeeds" role="group" aria-label="필요한 것 고르기"></div>
 
       <div class="rz-nav">
+        <button type="button" class="rz-back" id="rzBack0">← 이전 — 무엇을</button>
         <button type="button" class="rz-skip" id="rzAll">
           무엇이 필요한지 모르겠어요 — 전부 보기
         </button>
@@ -91,10 +100,10 @@
       </div>
     </section>
 
-    <!-- ── 걸음 2 — 사고지점 ──────────────────────────────── -->
+    <!-- ── 걸음 3 — 사고지점 ──────────────────────────────── -->
     <section class="rz-pane" id="rzP2" hidden aria-labelledby="rzH2">
       <h2 id="rzH2">사고지점이 어디인가요?</h2>
-      <p class="rz-lead" id="rzP2Lead">고른 자원을 <b>사고지점에서 가까운 순</b>으로 찾습니다.</p>
+      <p class="rz-lead" id="rzP2Lead">고른 것을 <b>사고지점에서 가까운 순</b>으로 찾습니다.</p>
 
       <!-- 주소·사업장 이름이 첫째 자리입니다 — 사용자가 그렇게 요구했고,
            상황실에서 실제로 먼저 아는 것도 주소나 사업장 이름입니다.
@@ -176,8 +185,9 @@
       <div class="mb-lyr" id="mLyr" role="group" aria-label="배경지도 선택"></div>
     </div>
   </div>
-  <!-- 자원 종류(무엇을 가진 곳인가) · 필요한 것(지금 나에게 필요한 물건).
-       담당자는 보통 종류를 모르고 필요한 물건만 압니다 — 둘 다 둡니다. -->
+  <!-- 결과를 보면서 조건을 바꾸는 자리 — 위 칸은 걸음 2에서 고른 것
+       (업체는 갈래 · 물품은 물품 이름), 아래 칸은 권역입니다.
+       이름표는 갈래에 따라 res/app.js 가 바꿔 적습니다. -->
   <div class="rbar noprint">
     <!-- 평소엔 접혀 있습니다. 고르지 않아도 전부 나오므로, 꼭 봐야 하는
          것이 아니라 "좁히고 싶을 때" 여는 것입니다. -->
@@ -190,12 +200,12 @@
     </button>
     <div class="rbar-more" id="rbMore" hidden>
     <div class="rbar-row">
-      <span class="rbar-t">필요한 것</span>
+      <span class="rbar-t" id="rbT1">필요한 것</span>
       <div class="rk-chips" id="rNeeds" role="group" aria-label="필요한 것으로 찾기"></div>
     </div>
     <div class="rbar-row">
-      <span class="rbar-t">자원 종류</span>
-      <div class="rk-chips" id="rKinds" role="group" aria-label="자원 종류 고르기"></div>
+      <span class="rbar-t">권역</span>
+      <div class="rk-chips" id="rKinds" role="group" aria-label="권역 고르기"></div>
     </div>
     </div>
   </div>
@@ -280,7 +290,7 @@
       <select id="mSort" aria-label="정렬">
         <option value="name">이름순</option>
         <option value="dist">사고지점 가까운 순</option>
-        <option value="kind">자원 종류순</option>
+        <option value="kind">갈래·보유처순</option>
       </select>
     </div>
     <div class="ms-list" id="shList"></div>
@@ -305,11 +315,13 @@
 <script src="../data/basemap.js"></script>
 <script src="../data/materials.js"></script>
 <script src="../data/shelters.js"></script>
-<script src="../data/resources.js"></script>
+<!-- 두 갈래 자료(업체 섭외 1,717줄 · 방제물품 4,075줄) — 이 화면이 읽는 것.
+     build/make_resources2.py 가 docs/방제자원_정리/통합 에서 만듭니다. -->
+<script src="../data/resources2.js"></script>
 <!-- 정확 좌표 — build/geocode.html 로 만들면 생기는 파일입니다. 없으면 그냥
      넘어갑니다(주소로 잡은 어림 좌표를 씁니다). 단일 파일판을 만들 때는
      있으면 넣고 없으면 이 줄을 뺍니다(build/build_single.py). -->
-<script src="../data/resources.geo.js"></script>
+<script src="../data/resources2.geo.js"></script>
 <script src="../data/boundaries.js"></script>
 <script src="../assets/matpicker.js"></script>
 <script src="../assets/mapcore.js"></script>
