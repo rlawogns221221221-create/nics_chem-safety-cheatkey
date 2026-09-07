@@ -468,12 +468,19 @@ for (const w of [1440, 1863]) {
     `${w}px — 사진이 카드 아래까지 내려온다 (사진 ${Math.round(strip.phBottom)} ↔ 카드 ${Math.round(strip.cardsBottom)})`);
   chk(Math.abs(strip.phBottom - strip.footTop) <= 2,
     `${w}px — 사진이 꼬리 바로 위까지 채운다 (${Math.round(strip.footTop - strip.phBottom)}px)`);
-  /* 상자 폭(120rem = 1200px)을 넘지 않는가 — 넘으면 한 칸이 너무 넓어져
-     사진이 커지고 글자가 흩어집니다(사용자 지적). */
-  chk(strip.ulW <= 1160,
-    `${w}px — 띠가 가운데 상자 안에 있다 (폭 ${Math.round(strip.ulW)}px · 화면 ${strip.vw}px)`);
-  chk(strip.photo < 420,
-    `${w}px — 한 칸이 지나치게 넓어지지 않는다 (${Math.round(strip.photo)}px)`);
+  /* 상자 폭 — `clamp(120rem, 88vw, 160rem)` 이라 **1600px 에서 멈춥니다.**
+     예전에는 1200px 로 못 박혀 있었는데, 사용자의 2330px 화면에서 띠가 49%
+     밖에 안 되고 양쪽에 589px 씩 공백이 생겨(2026-09-07) 1600px 안을
+     골랐습니다. 두 가지를 함께 봅니다 —
+       ① 1600px 을 넘지 않는가(넘으면 한 칸이 620px 로 커져 사진이 커지고
+          글자가 흩어집니다 — 그것이 원래의 지적이었습니다)
+       ② 화면 끝에 닿지 않는가(닿으면 같은 문제로 돌아갑니다). */
+  chk(strip.ulW <= 1560,
+    `${w}px — 띠가 1600px 상자 안에 있다 (폭 ${Math.round(strip.ulW)}px · 화면 ${strip.vw}px)`);
+  chk(strip.ulL >= 40,
+    `${w}px — 띠가 화면 끝에 닿지 않는다 (여백 ${Math.round(strip.ulL)}px)`);
+  chk(strip.photo < 620,
+    `${w}px — 한 칸이 지나치게 넓어지지 않는다 (${Math.round(strip.photo)}px · 한계 620px)`);
   /* 로고 · 머리띠 제목 · 카드 띠의 왼쪽 끝이 한 줄에 선다 */
   chk(Math.abs(strip.ulL - strip.logo) < 2 && Math.abs(strip.ulL - strip.h1) < 2,
     `${w}px — 로고·제목·카드 띠가 같은 줄에서 시작한다 (${Math.round(strip.logo)}/${Math.round(strip.h1)}/${Math.round(strip.ulL)}px)`);
