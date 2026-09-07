@@ -96,6 +96,12 @@ html{font-size:62.5%}   /* KRDS 토큰이 rem 이라 뿌리를 10px 로 (1.7rem 
      같은 값을 씁니다(그래도 양쪽에 적어 둡니다 — 한쪽만 두면 그 줄이
      조용히 버려집니다). */
   --art-w:rgba(255,255,255,.55);
+  /* 좁은 화면에서 사진 위에 까는 '유리 띠' — 도구 이름이 앉는 자리만
+     흐려 밝기를 고정합니다. 사진 전체를 덮지 않아 사진이 살고, 어느
+     사진 위에서도 큰 글자가 또렷합니다. */
+  --band:rgba(10,26,58,.70);
+  --band-on:rgba(10,26,58,.86);
+  --band-line:rgba(255,255,255,.20);
   --focus:0 0 0 .4rem var(--krds-light-color-border-primary);
   --ease:cubic-bezier(.22,.61,.36,1);
   /* 상자 안쪽 여백 — **한 값으로 페이지 전체를 맞춥니다.** 로고 · 머리띠
@@ -142,6 +148,9 @@ html[data-krds-mode="high-contrast"]{
   --ov:rgba(0,0,0,.94);
   --ov-0:rgba(0,0,0,0);
   --art-w:rgba(255,255,255,.5);
+  --band:rgba(0,0,0,.86);
+  --band-on:rgba(0,0,0,.94);
+  --band-line:rgba(255,255,255,.32);
   --focus:0 0 0 .4rem var(--krds-high-contrast-color-border-primary);
   --focus-in:inset 0 0 0 .4rem var(--krds-high-contrast-color-border-primary);
 }
@@ -512,23 +521,13 @@ main{flex:1; padding:0 0 3.2rem}
 .pn a:focus-visible .pn-go{background:var(--brand); border-color:var(--brand);
   color:var(--on-brand); transform:translateX(.2rem)}
 
-/* ── 알림 — 이 도구가 하지 않는 것 ───────────────────────────
-   예전에는 노란 띠 + 왼쪽 굵은 선이었습니다. 사용자가 **"너무 크게 눈에 잘
-   띈다. 명시는 하되 눈에 잘 안 띄도록"** 이라고 해서 띠를 걷어내고 작은
-   회색 글줄로 두었습니다.
-
-   **지우지는 않습니다.** 판단의 책임이 어디 있는지는 도구를 열기 전에
-   읽혀야 합니다. 색만 눌렀고 크기·대비는 읽을 수 있는 선(--ink2 · 14px)을
-   지켰습니다 — 흐릿한 회색으로 더 낮추면 '있으나 마나'가 됩니다.
-   KRDS 도 실제 위험·오류가 아니면 Warning 색을 쓰지 말라고 합니다. */
-.notice{display:block; max-width:100ch; margin:2.4rem 0 0;
-  padding-top:1.6rem; border-top:.1rem solid var(--line2);
-  font-size:1.4rem; line-height:1.7; color:var(--ink2)}
-.notice b{font-weight:700; color:var(--ink)}
+/* ⚠ 여기 있던 `.notice`('업무 참고도구입니다 …')는 **2026-09-04 사용자
+   결정으로 화면에서 뺐습니다.** 같은 내용은 도구 안(② ③ 의 참고도구
+   알림)에 그대로 있습니다. 되살리려면 사용자에게 먼저 물어야 합니다. */
 
 /* ── 바탕화면에 놓고 쓰기 안내 (assets/pwa.js 가 넣습니다) ────
-   참고도구 안내와 같은 크기·같은 회색입니다. 설치는 **도구를 쓰는 일이
-   아니라 편의**라서, 도구 고르는 카드보다 눈에 띄면 안 됩니다.
+   작은 회색 글줄입니다. 설치는 **도구를 쓰는 일이 아니라 편의**라서,
+   도구 고르는 카드보다 눈에 띄면 안 됩니다.
    서버에 올리지 않았거나 이미 설치했으면 이 줄 자체가 없습니다. */
 .inst{max-width:100ch; margin:1.2rem 0 0;
   font-size:1.4rem; line-height:1.7; color:var(--ink2)}
@@ -580,21 +579,39 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
   .pn a{position:relative; display:block; padding:0; background:none;
     -webkit-tap-highlight-color:transparent}
   .pn-ph{aspect-ratio:7/3; border-bottom:0}
-  /* 사진 아래쪽 짙은 판 — 제목이 앉는 자리의 밝기를 고정합니다 */
+  /* 사진 아래쪽을 부드럽게 어둡게 — 아래 유리 띠의 위 경계가 사진과
+     끊기지 않게 이어 줍니다. 글자를 읽히게 하는 일은 띠가 합니다. */
   .pn-ph::after{content:""; position:absolute; inset:0; z-index:1;
     pointer-events:none;
-    background:linear-gradient(to top, var(--ov) 0, var(--ov) 22%, var(--ov-0) 62%);
-    transition:background .14s var(--ease)}
+    background:linear-gradient(to top, var(--ov) 0, var(--ov-0) 58%);
+    opacity:.55; transition:opacity .14s var(--ease)}
+
+  /* ── 도구 이름 띠 ─────────────────────────────────────────
+     ‼ 이름이 19px 라 **"글씨가 너무 작다"** 는 지적을 받았습니다
+     (2026-09-04). 사진 위에 그냥 키우면 사진 밝기에 따라 오히려 읽기
+     어려워지므로, 글자가 앉는 자리만 흐리는 **유리 띠**를 깔고 그 위에
+     24px 로 얹었습니다.
+     · 띠는 사진 **안쪽**에 있어 카드 높이는 그대로입니다 —
+       셋째 칸이 화면 밖으로 밀리지 않습니다(tests/t9 16).
+     · 흐리기(backdrop-filter)를 모르는 브라우저에서는 반투명 배경만
+       남습니다. 그 상태로도 흰 글자가 읽히도록 --band 를 짙게 잡았습니다. */
   .pn-hd{position:absolute; left:0; right:0; bottom:0; z-index:2;
-    padding:1.2rem var(--pad); gap:.8rem;
-    transition:transform .14s var(--ease)}
-  .pn-hd h3{font-size:1.9rem; color:var(--on-deep)}
-  /* 짙은 판 위이므로 번호 배지를 뒤집습니다 */
-  .pn-no{min-width:2.6rem; height:2.4rem; font-size:1.4rem;
-    background:var(--on-deep); color:var(--brand-d)}
-  .pn-go{width:3rem; height:3rem; background:none; color:var(--on-deep);
+    align-items:center; padding:1.1rem var(--pad) 1.2rem; gap:1.1rem;
+    background:var(--band);
+    -webkit-backdrop-filter:saturate(150%) blur(1.2rem);
+    backdrop-filter:saturate(150%) blur(1.2rem);
+    border-top:.1rem solid var(--band-line);
+    transition:transform .14s var(--ease), background .14s var(--ease)}
+  .pn-hd h3{font-size:2.4rem; line-height:1.25; letter-spacing:-.035em;
+    color:var(--on-deep)}
+  /* 번호는 이름보다 작고 조용하게 — 이름이 커진 만큼 채운 배지는
+     무거워 보입니다. 테두리만 남긴 알약으로 바꿉니다. */
+  .pn-no{min-width:0; height:2.4rem; padding:0 .9rem; font-size:1.3rem;
+    letter-spacing:.06em; background:none; color:var(--on-deep);
+    border:.15rem solid var(--art-w); border-radius:999px}
+  .pn-go{width:3.4rem; height:3.4rem; background:none; color:var(--on-deep);
     border-color:var(--art-w)}
-  .pn-go svg{width:1.7rem; height:1.7rem}
+  .pn-go svg{width:1.9rem; height:1.9rem}
   /* 설명·자료 건수·딱지는 화면에서만 비켜 둡니다 */
   .pn-ov{position:absolute; width:1px; height:1px; margin:-1px; padding:0;
     overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;
@@ -602,9 +619,8 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
   .pn-lbs{display:none}
   /* 눌렀다는 느낌 */
   .pn a:active .pn-art img{transform:scale(1.05)}
-  .pn a:active .pn-hd{transform:translateX(.8rem)}
-  .pn a:active .pn-ph::after{
-    background:linear-gradient(to top, var(--ov) 0, var(--ov) 40%, var(--ov-0) 84%)}
+  .pn a:active .pn-hd{transform:translateX(.8rem); background:var(--band-on)}
+  .pn a:active .pn-ph::after{opacity:.85}
   .pn a:active .pn-go{background:var(--brand); border-color:var(--brand);
     color:var(--on-brand)}
   /* 제목이 판 아래쪽에 앉으므로 사진의 **주인공은 위쪽**에 옵니다 */
@@ -613,7 +629,6 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
   .pn.t3 .pn-art img{object-position:50% 44%}   /* 방제 — 차체와 인력 */
 
   main{padding-bottom:3.2rem}
-  .notice{margin-top:2rem; font-size:1.35rem}
 }
 
 
@@ -656,5 +671,4 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
   .pn-ov{position:static; opacity:1; transform:none; padding:1.2rem 0 0}
   .pn a{padding-top:1.6rem; box-shadow:none; border:1px solid #000}
   .tools{gap:1.2rem; background:none; border:0; border-radius:0}
-  .notice{border-top:1px solid #000}
 }

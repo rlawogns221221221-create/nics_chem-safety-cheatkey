@@ -464,22 +464,45 @@ await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(20
    카드가 사진 한 장이 되면서 한 칸이 153px 로 줄었습니다. 실제 휴대전화
    크기(390×750)에서 **세 칸이 온전히** 들어오고, 그보다 작은 화면에서도
    셋째 칸이 사진째로 보입니다. 다시 흰 글자 칸이 붙어 칸이 높아지면
-   여기서 걸립니다. */
+   여기서 걸립니다.
+
+   여기에 **도구 이름 크기**도 함께 잽니다 — 19px 이던 것이 "글씨가 너무
+   작다"는 지적을 받아 24px 로 키웠습니다(2026-09-04). 이름을 키우면서
+   칸이 높아지면 셋째 칸이 밀리므로 두 가지를 **같은 자리에서** 봐야
+   합니다. 이름 띠는 사진 **안쪽**에 얹혀 있어 높이를 먹지 않습니다. */
 for (const [w, h, 이름] of [[390, 664, '작은 화면'], [390, 750, '실제 휴대전화']]) {
   const M2 = await B.newPage({ viewport: { width: w, height: h }, isMobile: true, hasTouch: true });
   await M2.goto(PAGE); await M2.waitForTimeout(700);
   const m = await M2.evaluate(() => {
     const li = [...document.querySelectorAll('.tools > li')].map(e => e.getBoundingClientRect());
+    const h3 = document.querySelector('.pn h3');
+    const hd = document.querySelector('.pn-hd');
+    const ph = document.querySelector('.pn-ph').getBoundingClientRect();
+    const hr = hd.getBoundingClientRect(), hs = getComputedStyle(hd);
     return { card: li[0].height,
              seen3: Math.min(li[2].bottom, innerHeight) - li[2].top,
              full3: li[2].bottom <= innerHeight,
-             spread: Math.max(...li.map(r => r.height)) - Math.min(...li.map(r => r.height)) };
+             spread: Math.max(...li.map(r => r.height)) - Math.min(...li.map(r => r.height)),
+             /* 이름 — 크기 · 한 줄로 들어오는가 · 사진 안에 앉았는가 */
+             titleSize: parseFloat(getComputedStyle(h3).fontSize),
+             titleLines: Math.round(h3.getBoundingClientRect().height
+                                    / parseFloat(getComputedStyle(h3).lineHeight)),
+             titleInk: getComputedStyle(h3).color,
+             /* 사진 위 글자는 **막을 깔고** 얹습니다(사진 밝기에 기대지 않기) */
+             bandBg: hs.backgroundColor,
+             inPhoto: hr.bottom <= ph.bottom + 1 && hr.top >= ph.top - 1 };
   });
   chk(m.card <= 175, `${이름} — 한 칸 높이가 175px 이하 (${Math.round(m.card)}px)`);
   chk(m.card >= 120, `${이름} — 한 칸이 지나치게 얇은 띠가 되지 않았다 (${Math.round(m.card)}px)`);
   chk(m.spread < 2, `${이름} — 세 칸 높이가 같다 (차이 ${Math.round(m.spread)}px)`);
   chk(m.seen3 >= 110, `${이름} — 셋째 칸도 보인다 (보이는 높이 ${Math.round(m.seen3)}px)`);
   if (h >= 750) chk(m.full3, `${이름} — 세 칸이 온전히 한 화면에 들어온다`);
+  chk(m.titleSize >= 22, `${이름} — 도구 이름이 충분히 크다 (${m.titleSize}px)`);
+  chk(m.titleLines === 1, `${이름} — 도구 이름이 한 줄에 들어온다 (${m.titleLines}줄)`);
+  chk(m.inPhoto, `${이름} — 이름 띠가 사진 안에 앉아 칸을 높이지 않는다`);
+  chk(!/rgba\(0, 0, 0, 0\)|transparent/.test(m.bandBg),
+    `${이름} — 이름 뒤에 막이 깔려 있다 (${m.bandBg})`);
+  chk(lum(m.titleInk) > 200, `${이름} — 이름이 밝은 글자다 (밝기 ${Math.round(lum(m.titleInk))})`);
   await M2.close();
 }
 
@@ -487,23 +510,24 @@ for (const [w, h, 이름] of [[390, 664, '작은 화면'], [390, 750, '실제 �
    세 가지 지적이 여기 모입니다.
      ① "업무도구 3종 글씨가 배경화면과의 갭을 만들었다. 그 갭 없이 딱 붙어
         있으면 좋겠다" → 제목을 화면에서 빼고 카드 띠를 머리띠에 붙였습니다.
-     ② "업무참고 도구입니다 박스가 너무 크게 눈에 잘 띈다. 명시는 하되 눈에
-        잘 안 띄도록" → 노란 띠를 걷고 작은 회색 글줄로. **지우지는 않습니다.**
+     ② "업무참고 도구입니다 … 이 멘트 싹 지우기로 결정이 되었어. 다 지워버리고
+        우리가 필요한 화면만 남기자"(2026-09-04) → 진입 화면에서 걷어냈습니다.
+        **되살리려면 사용자에게 먼저 물어야 합니다** — 여기서 없음을 못 박아
+        둡니다(전에는 반대로 '지우지 말 것'을 검사했습니다).
+        같은 내용은 도구 안(② ③)에 그대로 있습니다.
      ③ "제목 문구가 너무 정적이다" → 이름을 낱말로 나눠 하나씩 올라오게 하고,
         사진·문구가 5초마다 바뀌게 했습니다(넘김 자체는 아래 18 에서 봅니다). */
 await P.setViewportSize({ width: 1440, height: 900 }); await P.waitForTimeout(600);
 const first = await P.evaluate(() => {
   const g = s => document.querySelector(s).getBoundingClientRect();
-  const nt = document.querySelector('.notice'), ns = getComputedStyle(nt);
   const words = [...document.querySelectorAll('.hero h1 span')];
   return {
     gap: Math.round(g('.tools').top - g('.hero').bottom),
     hdVisible: [...document.querySelectorAll('main h2')]
       .some(h => h.getBoundingClientRect().height > 4),
-    /* 알림 — 색 띠 없이, 작게. 다만 읽을 수 있어야 합니다(지우면 안 됨) */
-    noticeBg: ns.backgroundColor, noticeSize: parseFloat(ns.fontSize),
-    noticeLen: nt.textContent.trim().length,
-    noticeInk: ns.color, noticeH: nt.getBoundingClientRect().height,
+    /* 걷어낸 알림이 되살아나지 않았는가 — 요소도, 글자도 */
+    notice: !!document.querySelector('.notice'),
+    참고도구: /업무\s*참고도구/.test(document.body.innerText),
     /* 제목이 낱말로 나뉘어 차례로 올라오는가 */
     words: words.length, wordAnim: words.map(w => getComputedStyle(w).animationName),
     wordDelay: words.map(w => getComputedStyle(w).animationDelay)
@@ -511,12 +535,8 @@ const first = await P.evaluate(() => {
 });
 chk(first.gap <= 1, `카드 띠가 머리띠에 딱 붙어 있다 (틈 ${first.gap}px)`);
 chk(!first.hdVisible, "'업무도구 3종' 글자가 틈을 만들지 않는다 (문서에는 남아 있음)");
-chk(/rgba\(0, 0, 0, 0\)|transparent/.test(first.noticeBg),
-  `알림에 색 띠가 없다 (${first.noticeBg})`);
-chk(first.noticeSize <= 15, `알림 글자가 본문보다 작다 (${first.noticeSize}px)`);
-chk(first.noticeLen > 120 && first.noticeH > 20,
-  `알림 내용은 그대로 있다 (${first.noticeLen}자 · ${Math.round(first.noticeH)}px)`);
-chk(lum(first.noticeInk) < 140, `알림 글자가 읽을 만큼 진하다 (밝기 ${Math.round(lum(first.noticeInk))})`);
+chk(!first.notice, "걷어낸 '업무 참고도구' 알림이 되살아나지 않았다 (요소 없음)");
+chk(!first.참고도구, "진입 화면 어디에도 '업무 참고도구' 문구가 없다");
 chk(first.words === 4 && first.wordAnim.every(n => n !== 'none'),
   `제목이 낱말 ${first.words}개로 나뉘어 차례로 올라온다 (${first.wordDelay.join('/')})`);
 
