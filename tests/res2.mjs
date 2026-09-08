@@ -42,6 +42,24 @@ chk(brs[0].n === real.biz.toLocaleString() + '줄'
     && brs[1].n === real.item.toLocaleString() + '줄',
   `카드의 건수가 자료와 같다 (${brs.map(b => b.n).join(' / ')})`);
 
+/* ── 같은 곳이 두 자리로 실려 있지 않은가 ──────────────────────
+   2026-09-08 사용자 지적 — "똑같은 장소가 여러 개 나옴". 표마다 주소
+   앞머리를 적는 방식이 달라(경상북도 김천시 … / 김천시 …) 같은 기관이
+   두 자리가 되고 보유 물품까지 갈라졌습니다. 번호만 다른 곳은 자리를
+   합치고 번호를 `t2` 에 모읍니다 — 번호는 하나도 버리지 않습니다. */
+const 겹침 = await P.evaluate(() => {
+  const c = {};
+  RES2_PLACE.forEach(p => {
+    const k = [p.n || '', p.sd || '', p.sg || '', p.a || ''].join('|');
+    c[k] = (c[k] || 0) + 1;
+  });
+  const d = Object.entries(c).filter(([, n]) => n > 1);
+  return { 곳: d.length, 보기: d.slice(0, 3).map(([k]) => k),
+    번호여럿: RES2_PLACE.filter(p => p.t2 && p.t2.length).length };
+});
+chk(겹침.곳 === 0, `같은 이름·주소가 두 자리로 실려 있지 않다 (${겹침.보기.join(' / ') || '없음'})`);
+chk(겹침.번호여럿 > 0, `번호가 여럿이던 곳은 번호를 모아 둔다 (${겹침.번호여럿}곳)`);
+
 /* 갈래를 고르기 전에는 다음 걸음으로 갈 수 없습니다 — 다음 화면이 무엇을
    묻는지가 갈래로 정해지기 때문입니다. */
 chk(await P.$eval('#rzBar button[data-go="2"]', b => b.disabled),
@@ -360,6 +378,137 @@ await P.click('#rzAll'); await P.waitForTimeout(700);
 chk(!(await P.isHidden('#rzP2')), "'전부 보기'로도 걸음 3 으로 갈 수 있다");
 
 await P.screenshot({ path: 'res_2.png' });
+/* ══ 고른 곳의 세부사항 창 ═════════════════════════════════════
+   2026-09-08 사용자 지시 — "클릭 시 지도의 거리가 나오는것보단, 연락처
+   보유 방제장비가 작은 새창으로 세부적인 사항이 보여야함 … 메인 기능은
+   결국 방제자원의 종류, 수량, 담당 연락처".
+   그래서 재는 것은 ① 창이 열리는가 ② 전화번호가 가장 큰 글자인가
+   ③ 물품과 **수량**이 있는가 ④ 고른 물품이 맨 위에 오는가
+   ⑤ 업체 갈래에서는 허가·처리가능 폐기물이 나오는가 ⑥ 지도 마커로도 열리는가. */
+{
+  const P = await B.newPage({ viewport: { width: 1440, height: 900 } });
+  P.on('pageerror', e => errs.push('RKD: ' + e.message));
+  await P.goto(ROOT + 'res/index.html'); await P.waitForTimeout(800);
+  // 물품 갈래 — 한 물품을 골라 두고
+  await P.click('.rz-br >> nth=1'); await P.waitForTimeout(600);
+  /* 칩의 글자는 "흡착포·흡착재10,800" 처럼 이름과 건수가 붙어 나옵니다 —
+     건수 칸을 뺀 이름만 가져옵니다(붙은 채로 견주면 늘 어긋납니다). */
+  const 고른이름 = await P.$eval('.rz-item >> nth=5', b => {
+    const c = b.cloneNode(true); const n = c.querySelector('.rz-item-n');
+    if (n) n.remove(); return c.textContent.replace(/\s+/g, ' ').trim();
+  });
+  await P.click('.rz-item >> nth=5'); await P.waitForTimeout(300);
+  await P.click('#rzNext'); await P.waitForTimeout(500);
+  await P.click('#startSkip'); await P.waitForTimeout(800);
+  await P.fill('#acLat', '36.1195'); await P.fill('#acLon', '128.1135');
+  await P.dispatchEvent('#acLat', 'input'); await P.waitForTimeout(1500);
+  await P.selectOption('#mScope', '50000'); await P.waitForTimeout(1400);
+
+  chk(await P.isHidden('#rkDet'), '고르기 전에는 세부사항 창이 없다');
+  await P.click('#shList .ms-it >> nth=0'); await P.waitForTimeout(800);
+  chk(!(await P.isHidden('#rkDet')), '목록 줄을 누르면 세부사항 창이 열린다');
+
+  const d = await P.evaluate(() => {
+    const b = document.querySelector('#rkDet');
+    const px = s => {
+      const e = b.querySelector(s);
+      return e ? parseFloat(getComputedStyle(e).fontSize) : 0;
+    };
+    const t = s => { const e = b.querySelector(s); return e ? e.textContent.replace(/\s+/g, ' ').trim() : ''; };
+    return {
+      전화글자: px('.rkd-tel'), 주소글자: px('.rkd-addr'), 거리글자: px('.rkd-dist'),
+      /* "가장 큰 글자" 는 숫자를 못 박는 것이 아니라 **창 안의 다른
+         글자보다 큰가** 로 잽니다 — 창 크기가 달라지면 값도 달라집니다. */
+      남은글자최대: Math.max.apply(null, [].slice
+        .call(b.querySelectorAll('.rkd *'))
+        .filter(e => !e.closest('.rkd-tel') && e.textContent.trim())
+        .map(e => parseFloat(getComputedStyle(e).fontSize))),
+      전화: t('.rkd-tel'), 물품수: b.querySelectorAll('.rkd-items li').length,
+      수량있는줄: b.querySelectorAll('.rkd-items .q:not(.none)').length,
+      첫줄: t('.rkd-items li'), 첫줄강조: !!b.querySelector('.rkd-items li:first-child.pick'),
+      거리: t('.rkd-dist'), 주의: t('.rkd-note'),
+    };
+  });
+  chk(d.전화글자 >= 24 && d.전화글자 > d.남은글자최대,
+    `전화번호가 이 창에서 가장 큰 글자다 (${d.전화글자}px · 다음 ${d.남은글자최대}px)`);
+  chk(d.전화글자 > d.주소글자 && d.주소글자 > d.거리글자,
+    `전화 > 주소 > 거리 차례로 크다 (${d.전화글자}/${d.주소글자}/${d.거리글자}px)`);
+  chk(/^0\d/.test(d.전화) || /확인 필요|대표번호 없음/.test(d.전화),
+    `전화번호가 있으면 그 값을, 없으면 없다고 적는다 — ${d.전화.slice(0, 30)}`);
+  chk(d.물품수 > 0, `보유 물품이 줄마다 나온다 (${d.물품수}가지)`);
+  chk(d.수량있는줄 > 0, `수량이 함께 나온다 (${d.수량있는줄}줄)`);
+  chk(d.첫줄강조, '고른 물품이 맨 위에 오고 눈에 띈다');
+  chk(d.첫줄.indexOf(고른이름.trim().split(' ')[0]) === 0,
+    `맨 위가 고른 그 물품이다 (${d.첫줄.slice(0, 24)})`);
+  chk(/원자료를 낸 시점/.test(d.주의), '수량이 언제 것인지 밝힌다');
+  chk(/사고지점에서/.test(d.거리), '거리는 맨 아래 작게 적힌다');
+
+  /* Esc 로 닫히고, 다시 누르면 닫힌다 */
+  await P.keyboard.press('Escape'); await P.waitForTimeout(400);
+  chk(await P.isHidden('#rkDet'), 'Esc 로 닫힌다');
+
+  /* 지도 마커를 눌러도 같은 창이 열린다 — 지도에서 찾는 사람도 있다 */
+  const 마커 = await P.evaluate(() => {
+    const g = document.querySelector('#map g.pin');
+    if (!g) return null;
+    const r = g.getBoundingClientRect();
+    return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
+  });
+  if (마커) {
+    await P.mouse.click(마커.x, 마커.y); await P.waitForTimeout(900);
+    chk(!(await P.isHidden('#rkDet')), '지도 마커를 눌러도 세부사항 창이 열린다');
+    await P.click('.rkd-close'); await P.waitForTimeout(300);
+    chk(await P.isHidden('#rkDet'), '닫기 단추로 닫힌다');
+    /* 창을 닫아도 고른 것(도로 경로)은 남습니다 — 그 상태에서 같은 곳을
+       다시 누르면 **창이 다시 열려야** 합니다. 예전에는 고른 것이 풀리기만
+       해서 "눌러도 아무 일이 없다"로 보였습니다. */
+    await P.mouse.click(마커.x, 마커.y); await P.waitForTimeout(700);
+    chk(!(await P.isHidden('#rkDet')), '닫은 뒤 같은 곳을 누르면 창이 다시 열린다');
+    await P.click('.rkd-close'); await P.waitForTimeout(300);
+  } else chk(false, '지도에 마커가 있어야 한다');
+
+  /* 업체 갈래 — 허가·처리가능 폐기물이 나온다 */
+  await P.goto(ROOT + 'res/index.html'); await P.waitForTimeout(800);
+  await P.click('.rz-br >> nth=0'); await P.waitForTimeout(600);
+  await P.click('.rz-need >> nth=0'); await P.waitForTimeout(300);
+  await P.click('#rzNext'); await P.waitForTimeout(500);
+  await P.click('#startSkip'); await P.waitForTimeout(800);
+  await P.fill('#acLat', '36.1195'); await P.fill('#acLon', '128.1135');
+  await P.dispatchEvent('#acLat', 'input'); await P.waitForTimeout(1500);
+  await P.selectOption('#mScope', '50000'); await P.waitForTimeout(1400);
+  await P.click('#shList .ms-it >> nth=0'); await P.waitForTimeout(800);
+  const 항목 = await P.$$eval('#rkDet .rkd-dl dt', e => e.map(x => x.textContent));
+  chk(항목.indexOf('허가현황') >= 0, `업체 갈래에는 허가현황이 나온다 (${항목.join(' · ')})`);
+  chk((await P.$$('#rkDet .rkd-items li')).length === 0,
+    '업체 갈래에는 물품 목록 자리를 두지 않는다 (그 자료가 없다)');
+
+  /* ── 번호가 여럿이던 곳 ────────────────────────────────────
+     같은 이름·주소에 번호만 다른 줄이 여럿이던 곳입니다. 자리는 하나로
+     합쳤으니 **번호는 하나도 없어지지 않아야** 합니다 — 안 받으면 다음
+     번호로 겁니다. 걸러 두면 그 곳이 안 나올 수 있어 '전부 보기'로 봅니다. */
+  const 여럿 = await P.evaluate(() => {
+    const i = RES2_PLACE.findIndex(p => p.t2 && p.t2.length && p.la != null);
+    return i < 0 ? null
+      : { n: RES2_PLACE[i].n, la: RES2_PLACE[i].la, lo: RES2_PLACE[i].lo, t2: RES2_PLACE[i].t2 };
+  });
+  if (여럿) {
+    await P.goto(ROOT + 'res/index.html'); await P.waitForTimeout(800);
+    await P.click('.rz-br >> nth=1'); await P.waitForTimeout(500);
+    await P.click('#rzAll'); await P.waitForTimeout(700);
+    await P.click('#startSkip'); await P.waitForTimeout(700);
+    await P.fill('#acLat', String(여럿.la)); await P.fill('#acLon', String(여럿.lo));
+    await P.dispatchEvent('#acLat', 'input'); await P.waitForTimeout(1500);
+    await P.click('#shList .ms-it >> nth=0'); await P.waitForTimeout(800);
+    chk((await P.textContent('.rkd > header b')).trim() === 여럿.n,
+      `사고지점 자리의 그 곳이 맨 위에 온다 (${여럿.n})`);
+    const 다른 = await P.$$eval('#rkDet .rkd-tel2 a',
+      a => a.map(x => x.textContent.trim() + '→' + x.getAttribute('href')));
+    chk(다른.length === 여럿.t2.length && 다른.every(x => /→tel:0\d/.test(x)),
+      `같은 자리의 다른 번호도 눌러 걸 수 있다 (${다른.join(' · ') || '없음'})`);
+  } else chk(false, '번호가 여럿인 자리가 자료에 있어야 한다');
+  await P.close();
+}
+
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');
 ok.forEach(m => console.log('  ok  ' + m)); bad.forEach(m => console.log('  FAIL ' + m));
 if (errs.length) { console.log('\nJS 오류:'); [...new Set(errs)].forEach(e => console.log('  ' + e)); }

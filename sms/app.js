@@ -703,14 +703,9 @@ function renderFields() {
   /* 구분을 고르면 위의 정사각형 버튼 3개를 작은 띠로 접어, 문자 생성칸이
      화면을 더 넓게 쓸 수 있게 한다 (assets/shell.css body.has-stage 규칙) */
   document.body.classList.toggle("has-stage", on);
-  /* 고르기 전에는 안내 띠 자체를 감춘다 — 바로 위 큰 단추 3개가 이미
-     "무엇을 고르라"는 말을 하고 있어 같은 말이 두 번 나온다. */
-  $("#noteWrap").hidden = !on;
-  if (!on) { $("#noteBar").textContent = ""; return; }
-
-  var stage = curStage();
-  $("#noteBar").innerHTML = "<b>" + esc(stage.이름) + "</b> — " + esc(stage.안내)
-    + " 필요한 것만 골라 복사하세요.";
+  /* ⚠ 안내 띠는 걷어냈습니다(2026-09-08 사용자 지시) — sms/index.html 참고.
+     구분 이름은 위의 단추가 눌린 상태로 이미 말하고 있습니다. */
+  if (!on) return;
 
   $("#fCommon").innerHTML = FIELD_GROUPS.map(fieldGroupHtml).join("");
   bindFields($("#fCommon"));

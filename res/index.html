@@ -217,6 +217,7 @@
 <!-- 풍향 고르기 — 나침반 -->
 <div class="windpop noprint" id="windPop" hidden role="dialog" aria-label="풍향 고르기"></div>
 
+
 <div class="mbar-warn" id="mWarn" hidden></div>
 <div class="mrad noprint" id="mRad" hidden></div>
 
@@ -250,6 +251,20 @@
     <div class="mapscale"><i id="scaleBar"></i><b id="scaleTxt"></b></div>
     <div class="mapaddr" id="mAddr" hidden></div>
     <div class="mtoast noprint" id="mToast" hidden></div>
+
+    <!-- ── 고른 곳의 세부사항 (작은 창) ────────────────────────────
+         2026-09-08 사용자 지시 — "클릭 시 지도의 거리가 나오는것보단, 연락처·
+         보유 방제장비가 **작은 새창**으로 세부적인 사항이 보여야함. 지도는
+         참고사항일 뿐 … 메인 기능은 결국 방제자원의 종류, 수량, 담당 연락처".
+         전화번호와 보유 물품(이름·수량)을 크게 앞세우고 거리는 뒤에 작게 적습니다.
+
+         ⚠ **화면을 막는 창(모달)이 아닙니다.** 처음에 모달로 만들었더니
+           고른 줄의 '동원 목록에 담기' 단추가 눌리지 않았습니다 — 창을 닫아야
+           다음 일을 할 수 있으면 여러 곳에 연달아 전화하는 일이 막힙니다.
+           그래서 **지도 칸 안**에 두어 목록과 조건 줄은 그대로 쓸 수 있게 했습니다
+           (지도는 참고사항이라는 것이 사용자의 말입니다).
+         ⚠ 이 창은 판단하지 않습니다 — 자료를 모아 보여 줄 뿐입니다(CLAUDE.md 2절). -->
+    <div class="rkd-back noprint" id="rkDet" hidden></div>
 
     <!-- 지도에 무엇을 겹쳐 그릴지 — 사고지점 정하기는 위 조건 줄로 옮겼습니다
          (② 주민 대피장소 찾기와 같은 자리). 이 두 개는 '지금 보고 있는 그림'을

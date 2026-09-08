@@ -174,6 +174,44 @@ const pickEvac = async (P) => {
   await P.close();
 }
 
+/* ══ 검색 목록에 같은 곳이 여러 번 나오지 않는가 ══════════════
+   2026-09-08 사용자 지적 — '천안시청' 을 치면 이름·주소가 똑같은 줄이
+   여섯 번 나왔습니다. 브이월드가 한 건물을 여러 항목으로 돌려주기 때문입니다.
+   ②③ 검색창 두 곳에서, 겹친 줄을 걸러내는지 봅니다. */
+for (const [곳, 파일] of [['② 대피장소', 'map'], ['③ 방제자원', 'res']]) {
+  const P = await B.newPage({ viewport: { width: 1400, height: 900 } });
+  P.on('pageerror', e => errs.push('DUP: ' + e.message));
+  await P.goto(`${R}/${파일}/index.html`); await P.waitForTimeout(900);
+  /* 브이월드가 실제로 돌려준 모양 — 같은 이름·같은 주소가 여섯 번,
+     이름은 같지만 주소·좌표가 다른 것 하나, 이름이 다른 것 하나. */
+  await P.evaluate(() => {
+    const 같은곳 = { kind: 'poi', label: '천안시청',
+      sub: '충청남도 천안시 서북구 번영로 156', lat: 36.81498, lon: 127.11401, exact: true };
+    window.ONLINE.hasKey = () => true;
+    window.ONLINE.search = (q, done) => setTimeout(() => done([
+      같은곳, 같은곳, 같은곳, 같은곳, 같은곳, 같은곳,
+      { kind: 'poi', label: '천안시청', sub: '충청남도 천안시 서북구 번영로 208',
+        lat: 36.8201, lon: 127.1188, exact: true },
+      { kind: 'poi', label: '천안인적자원개발센터(천안시청)',
+        sub: '충청남도 천안시 서북구 봉정로 345', lat: 36.8155, lon: 127.1252, exact: true }
+    ], null), 40);
+  });
+  /* ③ 은 시작이 세 걸음이라, 조건 줄의 검색칸은 그 걸음을 지나야 보입니다. */
+  if (파일 === 'res') {
+    await P.click('.rz-br >> nth=0'); await P.waitForTimeout(300);
+    await P.click('#rzAll'); await P.waitForTimeout(400);
+    await P.click('#startSkip'); await P.waitForTimeout(800);
+  }
+  await P.fill('#mAddrQ', '천안시청'); await P.waitForTimeout(700);
+  const 줄 = await P.$$eval('#addrPop .mpk-row .nm', e => e.map(x => x.textContent.replace(/\s+/g, ' ').trim()));
+  const 같은것 = 줄.filter(t => /^천안시청 충청남도 천안시 서북구 번영로 156/.test(t));
+  chk(같은것.length === 1, `${곳}: 똑같은 곳이 한 번만 나온다 (${같은것.length}줄)`);
+  chk(줄.some(t => /번영로 208/.test(t)),
+    `${곳}: 이름이 같아도 다른 자리면 남는다 (같은 이름의 다른 지점)`);
+  chk(줄.some(t => /천안인적자원개발센터/.test(t)), `${곳}: 다른 곳은 그대로 나온다`);
+  await P.close();
+}
+
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');
 ok.forEach(m => console.log('  ok  ' + m));
 bad.forEach(m => console.log('  FAIL ' + m));

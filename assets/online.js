@@ -113,6 +113,34 @@ function parse(data, kind) {
   return out;
 }
 
+/* ── 같은 곳이 여러 번 오는 것을 걸러낸다 ──────────────────────
+   브이월드는 한 건물을 **여러 항목으로** 돌려줍니다(층·업종·출입구가 달라도
+   이름과 주소가 같은 것들). 2026-09-08 사용자 지적 —
+   "검색시 똑같은 장소가 여러 개 나옴. 이 외 다른 검색창도 다 마찬가지".
+   실제로 '천안시청'을 치면 「천안시청 · 번영로 156」이 **여섯 번** 나왔습니다.
+   급할 때 여섯 줄을 훑어 보고 어느 것이 다른지 찾게 만들면 안 됩니다.
+
+   두 가지로 봅니다 — ① 이름과 주소가 똑같으면 한 번만.
+   ② 이름이 같고 좌표가 **25m 안**이면 같은 건물(주소 표기만 다른 경우).
+   ⚠ 이름이 같아도 좌표가 멀면 **다른 곳**입니다(같은 이름의 다른 지점).
+     그것까지 지우면 담당자가 찾는 곳이 목록에서 사라집니다 — 지우지 않습니다. */
+function 가까운가(a, b) {
+  /* 위도 0.00025° ≈ 28m, 경도 0.0003° ≈ 27m(우리 위도에서) */
+  return Math.abs(a.lat - b.lat) < 0.00025 && Math.abs(a.lon - b.lon) < 0.0003;
+}
+function 겹침없이(rows) {
+  var out = [], 본것 = {};
+  rows.forEach(function (r) {
+    var k = r.kind + "|" + r.label + "|" + r.sub;
+    if (본것[k]) return;
+    for (var i = 0; i < out.length; i++)
+      if (out[i].label === r.label && 가까운가(out[i], r)) return;
+    본것[k] = 1;
+    out.push(r);
+  });
+  return out;
+}
+
 /* 장소와 주소를 함께 찾아 한 목록으로 돌려준다.
    둘 중 하나만 되어도 그것만 돌려준다 — 하나가 막혔다고 검색 전체가
    실패한 것처럼 보이면 안 된다. */
@@ -130,6 +158,10 @@ function search(q, done) {
     rows.sort(function (a, b) {
       return (a.kind === "poi" ? 0 : 1) - (b.kind === "poi" ? 0 : 1);
     });
+    /* 걸러내기는 **정렬한 뒤**에 합니다 — 장소(poi)를 먼저 두었으므로,
+       같은 곳이 장소와 주소로 둘 다 왔을 때 장소 쪽이 남습니다(이름이 있는
+       쪽이 담당자에게 쓸모 있습니다). */
+    rows = 겹침없이(rows);
     done(rows, rows.length ? null : (errs[0] || null));
   };
   jsonp(url("place", q), function (d, e) { back(d ? parse(d, "poi") : null, e); });

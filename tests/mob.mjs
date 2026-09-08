@@ -311,6 +311,36 @@ for (const [dev, cfg] of DEVICES) {
          들어올 수는 없습니다 — 60px 도 안 보이면 지도가 있는 줄 모릅니다. */
       if (!wide && m.top > m.vh - 60)
         note(dev, pname, `지도가 첫 화면에 거의 안 보임 (지도 시작 ${m.top}px / 화면 ${m.vh}px)`);
+
+      /* ③ 세부사항 창 — 목록까지 내려가서 줄을 누르는 것이 실제 차례입니다.
+         창은 지도 칸 안에 열리므로 그대로 두면 **화면 밖**에 열립니다
+         ("눌렀는데 아무 일도 안 생긴다"). 열린 창이 화면에 보이는지,
+         그리고 목록을 덮어 버리지는 않는지 함께 잽니다. */
+      if (isRes) {
+        const row = await P.$('#shList .ms-it');
+        if (row) {
+          await P.evaluate(() => document.querySelector('#shList')
+            .scrollIntoView({ block: 'start' }));
+          await P.waitForTimeout(300);
+          await row.click(); await P.waitForTimeout(1100);
+          const d = await P.evaluate(() => {
+            const e = document.querySelector('.rkd');
+            if (!e) return '세부사항 창이 열리지 않음';
+            const r = e.getBoundingClientRect();
+            const 보임 = Math.max(0, Math.min(r.bottom, innerHeight) - Math.max(r.top, 0));
+            if (보임 < 120) return `세부사항 창이 화면 밖에 열림 (보이는 높이 ${Math.round(보임)}px)`;
+            const tel = e.querySelector('.rkd-tel');
+            if (tel && tel.getBoundingClientRect().bottom > innerHeight)
+              return '세부사항 창의 전화번호가 화면 아래로 밀려남';
+            return '';
+          });
+          if (d) note(dev, pname + '(세부사항 창)', d);
+          report(dev, pname + '(세부사항 창)', await P.evaluate(PROBE));
+          checks += 2;
+          const c = await P.$('.rkd-close');
+          if (c) await c.click();
+        }
+      }
     }
     checks++;
 

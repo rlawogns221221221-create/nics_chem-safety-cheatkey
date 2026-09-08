@@ -85,11 +85,28 @@ function build() {
   });
 }
 
+/* ── 목록 높이 ────────────────────────────────────────────────
+   ⚠ 휴대전화에서 **자판이 올라오면** 실제로 보이는 높이는 절반으로 줄어드는데
+   `window.innerHeight` 는 그대로입니다(iOS 는 자판이 떠도 안 줄어듭니다).
+   그래서 예전에는 목록이 340px 까지 자라 **보이는 자리의 7할**을 덮었습니다
+   (2026-09-08 사용자 지적 — "물질 클릭시 화면이 꽉차서 불편함이 느껴짐").
+   보이는 높이는 `visualViewport` 가 알려 줍니다 — 그 높이의 45% 를 넘지
+   않게 하고, 없는 브라우저에서는 예전처럼 innerHeight 로 셉니다. */
+function 보이는높이() {
+  var vv = window.visualViewport;
+  return vv && vv.height ? vv.height : window.innerHeight;
+}
 function place() {
   if (!input || pop.hidden) return;
   var r = input.getBoundingClientRect();
-  var below = window.innerHeight - r.bottom, above = r.top;
-  var maxH = Math.max(180, Math.min(340, (below > 220 ? below : above) - 16));
+  var vv = window.visualViewport;
+  var vTop = vv ? vv.offsetTop : 0, vH = 보이는높이();
+  var below = (vTop + vH) - r.bottom, above = r.top - vTop;
+  /* 바닥값(예전 180px)도 **보이는 자리 안에서만** 지킵니다 — 자리가 120px
+     뿐인데 180px 을 고집하면 목록이 화면 밖으로 삐져나갑니다. */
+  var 한계 = Math.min(340, Math.round(vH * 0.45));
+  var 칸 = (below > 220 ? below : above) - 16;
+  var maxH = Math.max(Math.min(120, 칸), Math.min(한계, 칸));
   var w = Math.max(r.width, Math.min(360, window.innerWidth - 24));
   pop.style.left = Math.round(Math.max(8, Math.min(r.left, window.innerWidth - w - 8))) + "px";
   pop.style.width = Math.round(Math.max(r.width, Math.min(360, window.innerWidth - 24))) + "px";
@@ -223,6 +240,12 @@ document.addEventListener("mousedown", function (e) {
 
 window.addEventListener("resize", place);
 window.addEventListener("scroll", function () { if (input) place(); }, true);
+/* 자판이 올라오거나 내려가면 보이는 높이가 바뀝니다 — `resize` 로는 안 옵니다.
+   (없는 브라우저에서는 그냥 아무 일도 하지 않습니다) */
+if (window.visualViewport) {
+  window.visualViewport.addEventListener("resize", function () { if (input) place(); });
+  window.visualViewport.addEventListener("scroll", function () { if (input) place(); });
+}
 
 window.MatPicker = { close: close, refresh: function () { READY = false; ALL = []; } };
 })();

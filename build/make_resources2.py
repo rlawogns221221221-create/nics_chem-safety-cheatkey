@@ -145,19 +145,46 @@ class 자리표:
         # 떨어집니다(처음에 그렇게 만들었다가 1,374곳이 그리 되었습니다).
         시군구 = self.a.sgg_name(시도, (시군구칸 or "").strip(), 주소) if 시도 else ""
         la, lo, ap = self.a.find(시도, 시군구, 주소) if 시도 else (None, None, "")
-        키 = (이름, 시도, 시군구, re.sub(r"\s+", "", str(주소 or "")), 전화)
-        if 키 in self.idx:
-            i = self.idx[키]
+        짧은주소 = 주소줄이기(주소, 시도, 시군구)
+        전화 = (전화 or "").strip()
+        # ⚠ 열쇠는 **줄인 주소**로 잡습니다. 원문 그대로 쓰면 같은 곳이
+        # "경상북도 김천시 시청1길 1" 과 "김천시 시청1길 1" 로 두 자리가 되어
+        # 목록에 같은 기관이 두 번 나오고 보유 물품도 갈라집니다
+        # (2026-09-08 사용자 지적 — "똑같은 장소가 여러 개 나옴").
+        # 표마다 앞머리를 적는 방식이 달라 실제로 19곳 42줄이 그랬습니다.
+        바탕 = (이름, 시도, 시군구, re.sub(r"\s+", "", str(짧은주소 or "")))
+        정확 = 바탕 + (전화,)
+        i = self.idx.get(정확)
+        if i is None:
+            j = self.idx.get(바탕)
+            # 같은 이름·같은 주소인데 **번호만 다른** 줄이 18곳 있습니다
+            # (한 부서의 여러 자리 — 예: 군위군 환경과 세 번호).
+            # 자리는 하나로 합치고 **번호는 하나도 버리지 않습니다** —
+            # 어느 번호가 맞는지 우리가 정할 수 없고, 목록에 같은 기관이
+            # 두 번 나오는 것이 사용자 지적이었습니다. 남은 번호는 `t2` 에
+            # 담아 세부사항 창에서 '다른 번호' 로 함께 보여 줍니다.
+            if j is not None:
+                i = j
+                있 = self.rows[i]
+                if 전화:
+                    if not 있["tel"]:
+                        있["tel"] = 전화
+                    elif 전화 != 있["tel"] and 전화 not in 있.setdefault("t2", []):
+                        있["t2"].append(전화)
+        if i is not None:
             # 권역은 자료마다 한쪽만 적혀 있을 수 있어 합칩니다
             있는것 = self.rows[i]["rg"]
             for g in 권역:
                 if g not in 있는것:
                     있는것.append(g)
+            if 종류 and not self.rows[i].get("ht"):
+                self.rows[i]["ht"] = 종류
+            self.idx[정확] = i
             return i
         row = {
             "n": 이름, "sd": 시도, "sg": 시군구,
-            "a": 주소줄이기(주소, 시도, 시군구),
-            "tel": (전화 or "").strip(),
+            "a": 짧은주소,
+            "tel": 전화,
             "rg": list(권역),
         }
         if 종류:
@@ -165,7 +192,10 @@ class 자리표:
         if la is not None:
             row["la"], row["lo"], row["ap"] = la, lo, ap
         self.rows.append(row)
-        self.idx[키] = len(self.rows) - 1
+        self.idx[정확] = len(self.rows) - 1
+        # 번호까지 같은 열쇠와 별도로 **번호 없는 열쇠**도 남겨 둡니다 —
+        # 뒤에 번호가 빈 줄이 오면 이 자리에 붙습니다.
+        self.idx.setdefault(바탕, len(self.rows) - 1)
         return len(self.rows) - 1
 
 
@@ -285,6 +315,7 @@ def main():
         "\n"
         "   구조\n"
         "     RES2_PLACE  자리 = [{n 이름, sd 시도, sg 시군구, a 주소, tel 대표번호,\n"
+        "                          t2 [같은 자리의 다른 번호…],\n"
         "                          rg [권역…], ht 보유처종류, la, lo, ap 좌표정확도}, …]\n"
         "     RES2_BIZ    업체 = [{p 자리번호, k 갈래, f 1이면 미리 협의된 곳,\n"
         "                          fg [협의권역…], lic 허가현황, wst 처리가능폐기물,\n"

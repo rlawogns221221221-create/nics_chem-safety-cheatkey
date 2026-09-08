@@ -299,6 +299,39 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   });
   if (협의) await 찍기(p, '15-방제-협의된곳', null, 협의);
   else console.error('⚠ 협의된 곳(.ms-it.first)을 못 찾아 사진을 건너뜁니다');
+
+  /* 목록 줄(또는 지도 동그라미)을 누르면 뜨는 **세부사항 창** — 이 도구에서
+     정작 필요한 것이 전화번호·물품·수량이라는 사용자 지시(2026-09-08)로
+     만든 자리입니다. 설명서에 지도만 실으면 담당자가 이 창을 모르고
+     지나갑니다. 창만 잘라 싣습니다(화면 전체를 실으면 글자가 3pt).
+     ⚠ **물품 갈래에서** 찍습니다 — 업체 갈래에는 물품·수량이 없어서, 그쪽
+       화면을 실으면 "보유 물품·수량" 이라고 적어 놓고 빈 창을 보여 줍니다.
+       김천 시내 좌표에서 첫 줄이 번호와 물품 여덟 가지를 가진 곳입니다. */
+  await p.goto(`${ROOT}res/index.html`);
+  await p.waitForTimeout(900);
+  await p.click('.rz-br >> nth=1');
+  await p.waitForTimeout(400);
+  await p.click('.rz-item >> nth=5');
+  await p.waitForTimeout(200);
+  await p.click('#rzNext');
+  await p.waitForTimeout(400);
+  await p.click('#startSkip');
+  await p.waitForTimeout(700);
+  await p.fill('#acLat', '36.1195');
+  await p.fill('#acLon', '128.1135');
+  await p.keyboard.press('Enter');
+  await p.waitForTimeout(1500);
+  await p.click('#shList .ms-it >> nth=0');
+  await p.waitForTimeout(900);
+  const 창 = await p.evaluate(() => {
+    const e = document.querySelector('.rkd');
+    if (!e) return null;
+    const r = e.getBoundingClientRect();
+    return { x: Math.floor(r.left) - 4, y: Math.floor(r.top) - 4,
+             width: Math.ceil(r.width) + 8, height: Math.ceil(r.height) + 8 };
+  });
+  if (창) await 찍기(p, '16-방제-세부창', null, 창);
+  else console.error('⚠ 세부사항 창(.rkd)을 못 찾아 사진을 건너뜁니다');
   await ctx.close();
 }
 

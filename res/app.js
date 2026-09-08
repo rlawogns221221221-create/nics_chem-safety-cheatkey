@@ -171,7 +171,10 @@ function allRes() {
         kind: KIND_NAME[b.k] || "", cap: 0,
         t: b.k, c: bizContent(b), g: [],
         ap: g ? "exact" : (p.ap || ""),
-        tel: p.tel || "", agency: "", src: "",
+        /* t2 — 같은 자리(같은 이름·주소)에 번호가 여럿 적혀 있던 것.
+           자리는 하나로 합쳤지만 번호는 버리지 않고 세부사항 창에서
+           '다른 번호'로 함께 보여 줍니다. */
+        tel: p.tel || "", tel2: p.t2 || [], agency: "", src: "",
         rg: p.rg || [],
         first: b.f ? 1 : 0, fg: b.fg || [],
         lic: b.lic || "", wst: b.wst || "", eq: b.eq || "", nc: b.nc || ""
@@ -203,7 +206,10 @@ function allRes() {
         c: itemsText(list, 6),
         g: [],
         ap: g ? "exact" : (p.ap || ""),
-        tel: p.tel || "", agency: "", src: "",
+        /* t2 — 같은 자리(같은 이름·주소)에 번호가 여럿 적혀 있던 것.
+           자리는 하나로 합쳤지만 번호는 버리지 않고 세부사항 창에서
+           '다른 번호'로 함께 보여 줍니다. */
+        tel: p.tel || "", tel2: p.t2 || [], agency: "", src: "",
         rg: p.rg || [],
         first: 0,
         items: list,
@@ -1177,6 +1183,14 @@ function renderRzPick() {
       : "맡길 갈래를 고르면 <b>그 허가를 가진 업체만</b> 나옵니다. 여러 개 골라도 됩니다.";
   }
   box.className = isItem() ? "rz-items" : "rz-needs";
+  /* 물품 걸음에서만 상자를 넓힙니다 — 칩이 묶음마다 한 줄에 들어가야
+     어디까지가 그 묶음인지 눈으로 끊깁니다(shell.css 의 .wide-items). */
+  var 상자 = box.parentNode;
+  while (상자 && 상자.className.indexOf("rz-in") < 0) 상자 = 상자.parentNode;
+  if (상자) {
+    var c = 상자.className.replace(/\s*wide-items/g, "");
+    상자.className = isItem() ? c + " wide-items" : c;
+  }
   box.innerHTML = isItem() ? itemChips() : catCards();
   bindRzPick();
 
@@ -1628,7 +1642,148 @@ function requestRoute() {
   });
 }
 
+
+/* ══ 고른 곳의 세부사항 (작은 창) ═══════════════════════════════
+   2026-09-08 사용자 지시입니다 — "클릭 시 지도의 거리가 나오는것보단,
+   연락처 보유 방제장비가 작은 새창으로 세부적인 사항이 보여야함. …
+   방제물품 장비 찾기의 메인 기능은 결국 방제자원의 종류, 수량, 담당 연락처".
+
+   그래서 이 창의 차례는 **전화번호 → 보유 물품(이름·수량) → 주소 → 거리**
+   입니다. 거리는 맨 아래 작게 적습니다 — 지도는 참고사항이라는 것이
+   사용자의 말이고, 급할 때 손이 가는 것은 전화번호입니다.
+
+   ⚠ 이 창은 아무것도 판단하지 않습니다. 자료에 있는 것만 옮겨 적고,
+     없는 것은 "원자료에 없습니다" 라고 적습니다(CLAUDE.md 2절 3항).
+   ⚠ 목록 줄을 없애지 않았습니다 — 줄은 여럿을 견주는 자리, 이 창은 하나를
+     붙잡고 읽는 자리입니다. 지도 마커를 눌러도 같은 창이 열립니다. */
+function rkDetClose() {
+  var b = $("#rkDet");
+  if (b) { b.hidden = true; b.innerHTML = ""; }
+}
+function rkDetOpen(i) {
+  var s = st.show[i];
+  var back = $("#rkDet");
+  if (!s || !back) return;
+
+  /* 보유 물품 — 물품 갈래에서는 **고른 것을 먼저** 놓습니다(사용자 요구
+     "사용자가 딱 원하는 물품만"). 나머지도 감추지 않고 뒤에 둡니다 —
+     그 자리에 무엇이 더 있는지가 전화할 때 쓸모 있습니다. */
+  var 물품 = "";
+  if (s.items && s.items.length) {
+    var 고른 = anyItm() ? s.items.filter(function (x) { return st.itm[x.i]; }) : [];
+    var 나머지 = s.items.filter(function (x) { return 고른.indexOf(x) < 0; });
+    var 줄 = function (list, 표시) {
+      return groupItems(list).map(function (g) {
+        var nm = (R2.names[g[0].i] || {}).이름 || "";
+        var q = g.map(itemQty).filter(function (x) { return x; }).join(" · ");
+        /* 원래 표기는 **같은 것을 두 번 적지 않습니다** — 한 곳에 같은
+           표기의 줄이 둘 있으면(자리를 합친 곳에서 흔합니다) "흡착포 ·
+           흡착포" 가 되어 읽는 사람에게 아무 뜻이 없습니다. 수량은
+           위 칸에 둘 다 적혀 있습니다. */
+        var 본것 = {}, 표기 = [];
+        if (g.length > 1) {
+          g.forEach(function (x) {
+            var o = x.o || nm;
+            if (!본것[o]) { 본것[o] = 1; 표기.push(o); }
+          });
+        }
+        var 원래 = 표기.length > 1 ? 표기.join(" · ") : "";
+        return '<li' + (표시 ? ' class="pick"' : "") + '><b>' + esc(nm) + "</b>"
+          + (q ? '<span class="q">' + esc(q) + "</span>"
+               : '<span class="q none">수량 없음</span>')
+          + (원래 ? '<i>' + esc(원래) + "</i>" : "") + "</li>";
+      }).join("");
+    };
+    물품 = '<div class="rkd-sec"><h4>보유 물품 · 수량</h4><ul class="rkd-items">'
+      + 줄(고른, true) + 줄(나머지, false) + "</ul>"
+      + '<p class="rkd-note">수량은 <b>원자료를 낸 시점</b>의 것입니다 —'
+      + " 지금 쓸 수 있는지는 전화로 확인하세요.</p></div>";
+  }
+
+  /* 업체 갈래 — 허가현황·처리가능 폐기물은 원문 그대로 옮깁니다. 줄여 쓰면
+     "이 업체가 무엇을 받는가" 가 달라집니다. */
+  var 허가 = "";
+  if (s.lic || s.wst || s.eq) {
+    허가 = '<div class="rkd-sec"><h4>맡길 수 있는 것</h4><dl class="rkd-dl">'
+      + (s.wst ? "<dt>처리가능 지정폐기물</dt><dd>" + esc(s.wst) + "</dd>" : "")
+      + (s.lic ? "<dt>허가현황</dt><dd>" + esc(s.lic) + "</dd>" : "")
+      + (s.eq ? "<dt>보유 장비</dt><dd>" + esc(s.eq) + "</dd>" : "")
+      + "</dl></div>";
+  }
+
+  var 전화 = s.tel
+    ? '<a class="rkd-tel" href="tel:' + esc(s.tel.replace(/[^0-9+]/g, "")) + '">'
+      + esc(s.tel) + "</a>"
+    : '<div class="rkd-tel none">' + (s.agency
+        ? "대표번호 없음 — " + esc(s.agency) + " 문의"
+        : "번호 확인 필요 — 원자료에 사업장 번호가 없습니다") + "</div>";
+
+  /* 같은 이름·주소에 번호가 여럿 적혀 있던 곳(한 부서의 여러 자리)입니다.
+     자리는 하나로 합쳤지만 번호는 버리지 않습니다 — 어느 번호가 맞는지
+     우리가 정하지 않고, 안 받으면 다음 번호로 걸 수 있어야 합니다. */
+  if (s.tel2 && s.tel2.length) {
+    전화 += '<p class="rkd-tel2">다른 번호 '
+      + s.tel2.map(function (t) {
+          return '<a href="tel:' + esc(String(t).replace(/[^0-9+]/g, "")) + '">'
+            + esc(t) + "</a>";
+        }).join(" · ") + "</p>";
+  }
+
+  /* aria-modal 을 두지 않습니다 — 이 창은 화면을 막지 않습니다. */
+  back.innerHTML = '<div class="rkd" role="dialog"'
+    + ' aria-label="' + esc(s.name) + ' 세부사항">'
+    + "<header>" + icon(s.t, "rk-" + esc(s.t))
+    + "<b>" + esc(s.name) + "</b>"
+    + (s.detail ? '<span class="rkd-kind">' + esc(s.detail) + "</span>" : "")
+    + '<button type="button" class="rkd-x" aria-label="닫기">✕</button></header>'
+    + '<div class="rkd-body">'
+    + (s.first ? '<div class="rkd-first"><span class="tag first">먼저 연락 · 미리 협의된 곳</span>'
+        + (s.fg && s.fg.length ? " 맡기로 한 권역 " + esc(s.fg.join(" · ")) : "") + "</div>" : "")
+    + 전화
+    + 물품 + 허가
+    + '<div class="rkd-sec"><h4>주소</h4><p class="rkd-addr">' + esc(placeOf(s))
+    + accTag(s) + "</p></div>"
+    + (s.nc ? '<div class="rkd-sec"><h4>확인 못 한 것</h4><p class="rkd-nc">'
+        + esc(s.nc) + "</p></div>" : "")
+    + (s.d != null
+        ? '<p class="rkd-dist">사고지점에서 <b>' + fmtDist(s.d) + " " + dirName(s.b)
+          + "쪽</b> · " + tripLine(s) + "</p>" : "")
+    + "</div>"
+    + '<footer><span class="rkd-ext">' + MC.extLinks(s) + "</span>"
+    + '<button class="sm" type="button" data-rkcp="1">이름+주소 복사</button>'
+    + '<button class="sm' + (st.mob[s.key] ? " p" : "") + '" type="button" data-rkmob="1">'
+    + (st.mob[s.key] ? "동원 목록에서 빼기" : "동원 목록에 담기") + "</button>"
+    + '<button class="sm rkd-close" type="button">닫기</button></footer>'
+    + "</div>";
+  back.hidden = false;
+
+  $$(".rkd-x, .rkd-close", back).forEach(function (b) { b.onclick = rkDetClose; });
+  var cp = $("[data-rkcp]", back);
+  if (cp) cp.onclick = function () { copyText(s.name + " " + placeOf(s), cp); };
+  var mb = $("[data-rkmob]", back);
+  if (mb) mb.onclick = function () { toggleMob(s); rkDetOpen(i); };
+
+  /* ⚠ 휴대전화에서는 창이 **화면 밖**에 열릴 수 있습니다 — 좁은 화면은
+     조건 줄 → 지도 → 목록 순으로 세로로 쌓여, 목록을 보며 줄을 누르면
+     창이 열리는 지도 칸은 위로 올라가 있습니다. 그대로 두면 "눌렀는데
+     아무 일도 안 생긴다" 로 보입니다. 화면에 안 보일 때만 끌어옵니다
+     (PC 는 지도와 목록이 나란히 있어 아무 일도 일어나지 않습니다). */
+  var card = $(".rkd", back);
+  if (card && card.getBoundingClientRect) {
+    var r = card.getBoundingClientRect();
+    var h = window.innerHeight || 0;
+    if (r.bottom < 40 || r.top > h - 40) card.scrollIntoView({ block: "center" });
+  }
+}
+
 function select(i, fromMap) {
+  /* 이미 고른 곳을 다시 누른 때 — **창이 닫혀 있으면 다시 엽니다.**
+     닫기 단추로 창만 닫으면 고른 것(도로 경로·강조)은 그대로 남는데,
+     그 상태에서 같은 곳을 누르면 예전에는 고른 것이 풀리기만 해서
+     "눌러도 아무 일이 없다"로 보였습니다. 창을 닫고 지도를 보다가
+     다시 연락처를 보려는 것이 흔한 차례입니다. */
+  var det = $("#rkDet");
+  if (st.sel === i && det && det.hidden) { rkDetOpen(i); return; }
   st.sel = (st.sel === i ? -1 : i);
   requestRoute();
   renderList(); renderNear(); renderToSms(); draw(); showAddr();
@@ -1637,6 +1792,10 @@ function select(i, fromMap) {
     var el = $('#shList .ms-it[data-i="' + st.sel + '"]');
     if (el) el.scrollIntoView({ block: "nearest" });
   }
+  /* 고르면 세부사항 창이 함께 열립니다 — 이 도구에서 정작 필요한 것은
+     연락처와 보유 물품이고 지도는 참고사항이라는 사용자 지시입니다.
+     다시 누르면 고른 것이 풀리므로 창도 닫습니다. */
+  if (st.sel >= 0) rkDetOpen(st.sel); else rkDetClose();
 }
 
 /* 지도 위 주소 표시 — 지금 보고 있는 곳이 어딘지 확인용 */
@@ -2040,13 +2199,36 @@ function renderAddrPop(q, anchor) {
   drawAddrPop();
 }
 
+/* ── 목록에 같은 곳이 두 번 들어가지 않게 ─────────────────────
+   ① 바깥 검색이 한 건물을 여러 항목으로 돌려줍니다(assets/online.js 에서도
+      한 번 걸러내지만, 그 파일이 없는 망분리 단일 파일에서도 지켜야 합니다).
+   ② 우리 자료(searchPlaces)와 바깥 검색이 같은 곳을 각각 내놓기도 합니다.
+   이름+주소가 같거나, 이름이 같고 좌표가 25m 안이면 한 번만 둡니다.
+   ⚠ 이름이 같아도 좌표가 멀면 다른 지점이므로 지우지 않습니다.
+   (2026-09-08 사용자 지적 — "검색시 똑같은 장소가 여러 개 나옴") */
+function 겹침없는줄(rows) {
+  var out = [], 본것 = {};
+  rows.forEach(function (r) {
+    var k = String(r.label) + "|" + String(r.sub || "");
+    if (본것[k]) return;
+    for (var i = 0; i < out.length; i++) {
+      var o = out[i];
+      if (o.label === r.label && isFinite(o.lat) && isFinite(r.lat)
+          && Math.abs(o.lat - r.lat) < 0.00025 && Math.abs(o.lon - r.lon) < 0.0003) return;
+    }
+    본것[k] = 1;
+    out.push(r);
+  });
+  return out;
+}
+
 function drawAddrPop() {
   var pop = $("#addrPop");
   var t = addrQ.trim();
   var mine = searchPlaces(addrQ);
   var net = addrOn.q === t ? addrOn.rows : [];
   var busy = addrOn.q === t && addrOn.busy;
-  addrRows = mine.concat(net);
+  addrRows = 겹침없는줄(mine.concat(net));
   addrSel = -1;
 
   var row = function (p, i) {
@@ -2365,6 +2547,25 @@ function bindMap() {
   $("#zOut").onclick = function () { zoomBtn(1.42); };
   $("#zFit").onclick = function () { fit(); };
   window.addEventListener("resize", function () { if (st.view) draw(); });
+  /* ── 지도 칸이 커졌는데 그림이 작게 남아 있던 것 ────────────────
+     ‼ `window.resize` 만 듣고 있었습니다. 그런데 **아이폰 사파리는 주소창이
+     접혀 화면이 커질 때 그 이벤트를 주지 않습니다.** 그래서 처음 그린 크기
+     (주소창이 나와 있던 작은 높이)에 머물러, 지도 칸은 커졌는데 그림만
+     가운데 작게 남았습니다 — 2026-09-08 사용자 지적
+     "첫 진입 화면에서 지도가 꽉차게 나오지를 않음".
+     칸 자체를 지켜보면 무엇 때문에 커졌는지와 무관하게 다시 그립니다.
+     (ResizeObserver 를 모르는 낡은 브라우저는 예전처럼 resize 만 씁니다) */
+  if (window.ResizeObserver) {
+    var 칸 = $("#map").parentNode;
+    var 지난 = 0;
+    new ResizeObserver(function () {
+      var h = Math.round(칸.getBoundingClientRect().height);
+      if (h && Math.abs(h - 지난) > 2) { 지난 = h; if (st.view) draw(); }
+    }).observe(칸);
+  }
+  /* 자판이 오르내릴 때도 보이는 높이가 바뀝니다 — resize 로는 안 옵니다. */
+  if (window.visualViewport)
+    window.visualViewport.addEventListener("resize", function () { if (st.view) draw(); });
 }
 
 /* ── 초기화 ───────────────────────────────────────────────── */
@@ -2426,6 +2627,8 @@ function initSrcModal() {
   $("#srcModal").onclick = function (e) { if (e.target.id === "srcModal") close(); };
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
+    /* 세부사항 창이 가장 위에 있으므로 먼저 닫습니다 */
+    if (!$("#rkDet").hidden) { rkDetClose(); return; }
     if (!$("#srcModal").hidden) { close(); return; }
     if (!$("#windPop").hidden) { closeWindPop(); return; }
     if (!$("#addrPop").hidden) { closeAddrPop(); return; }

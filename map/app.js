@@ -1185,13 +1185,36 @@ function renderAddrPop(q) {
   drawAddrPop();
 }
 
+/* ── 목록에 같은 곳이 두 번 들어가지 않게 ─────────────────────
+   ① 바깥 검색이 한 건물을 여러 항목으로 돌려줍니다(assets/online.js 에서도
+      한 번 걸러내지만, 그 파일이 없는 망분리 단일 파일에서도 지켜야 합니다).
+   ② 우리 자료(searchPlaces)와 바깥 검색이 같은 곳을 각각 내놓기도 합니다.
+   이름+주소가 같거나, 이름이 같고 좌표가 25m 안이면 한 번만 둡니다.
+   ⚠ 이름이 같아도 좌표가 멀면 다른 지점이므로 지우지 않습니다.
+   (2026-09-08 사용자 지적 — "검색시 똑같은 장소가 여러 개 나옴") */
+function 겹침없는줄(rows) {
+  var out = [], 본것 = {};
+  rows.forEach(function (r) {
+    var k = String(r.label) + "|" + String(r.sub || "");
+    if (본것[k]) return;
+    for (var i = 0; i < out.length; i++) {
+      var o = out[i];
+      if (o.label === r.label && isFinite(o.lat) && isFinite(r.lat)
+          && Math.abs(o.lat - r.lat) < 0.00025 && Math.abs(o.lon - r.lon) < 0.0003) return;
+    }
+    본것[k] = 1;
+    out.push(r);
+  });
+  return out;
+}
+
 function drawAddrPop() {
   var pop = $("#addrPop");
   var t = addrQ.trim();
   var mine = searchPlaces(addrQ);
   var net = addrOn.q === t ? addrOn.rows : [];
   var busy = addrOn.q === t && addrOn.busy;
-  addrRows = mine.concat(net);
+  addrRows = 겹침없는줄(mine.concat(net));
   addrSel = -1;
 
   var row = function (p, i) {
@@ -1557,6 +1580,25 @@ function bindMap() {
   $("#zOut").onclick = function () { zoomBtn(1.42); };
   $("#zFit").onclick = function () { fit(); };
   window.addEventListener("resize", function () { if (st.view) draw(); });
+  /* ── 지도 칸이 커졌는데 그림이 작게 남아 있던 것 ────────────────
+     ‼ `window.resize` 만 듣고 있었습니다. 그런데 **아이폰 사파리는 주소창이
+     접혀 화면이 커질 때 그 이벤트를 주지 않습니다.** 그래서 처음 그린 크기
+     (주소창이 나와 있던 작은 높이)에 머물러, 지도 칸은 커졌는데 그림만
+     가운데 작게 남았습니다 — 2026-09-08 사용자 지적
+     "첫 진입 화면에서 지도가 꽉차게 나오지를 않음".
+     칸 자체를 지켜보면 무엇 때문에 커졌는지와 무관하게 다시 그립니다.
+     (ResizeObserver 를 모르는 낡은 브라우저는 예전처럼 resize 만 씁니다) */
+  if (window.ResizeObserver) {
+    var 칸 = $("#map").parentNode;
+    var 지난 = 0;
+    new ResizeObserver(function () {
+      var h = Math.round(칸.getBoundingClientRect().height);
+      if (h && Math.abs(h - 지난) > 2) { 지난 = h; if (st.view) draw(); }
+    }).observe(칸);
+  }
+  /* 자판이 오르내릴 때도 보이는 높이가 바뀝니다 — resize 로는 안 옵니다. */
+  if (window.visualViewport)
+    window.visualViewport.addEventListener("resize", function () { if (st.view) draw(); });
 }
 
 /* ── 초기화 ───────────────────────────────────────────────── */

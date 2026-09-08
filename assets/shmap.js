@@ -465,9 +465,14 @@ function renderGuess() {
   if (!el) return;
   el.hidden = !st.accGuess;
   if (!st.accGuess) return;
+  /* 뒷문장은 `.gd` 로 묶습니다 — 좁은 화면에서는 감춥니다(shell.css).
+     휴대전화에서 이 띠가 네 줄(91px)까지 늘어나 정작 눌러야 하는 지도와
+     목록을 밀어냈습니다. 첫 문장과 "다시 찍기" 두 마디면 할 일이 전해집니다
+     — 경고 띠(.shmap-warn .wd)를 감추는 것과 같은 방식입니다. */
   el.innerHTML = "<b>사고지점은 입력한 주소로 어림잡은 자리입니다</b> — "
-    + esc(st.accGuess) + "로 잡았습니다. 읍·면·동 경계 자료가 없어 몇백 미터 틀릴 수 "
-    + "있습니다. 자리가 다르면 <b>사고지점 다시 찍기</b>로 지도를 눌러 고치세요.";
+    + esc(st.accGuess) + "로 잡았습니다. 자리가 다르면 <b>사고지점 다시 찍기</b>로 "
+    + "지도를 눌러 고치세요."
+    + '<span class="gd"> 읍·면·동 경계 자료가 없어 몇백 미터 틀릴 수 있습니다.</span>';
 }
 
 function syncSort() {

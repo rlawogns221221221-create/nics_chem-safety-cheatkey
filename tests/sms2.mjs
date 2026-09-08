@@ -71,20 +71,40 @@ const setF = async (P, k, v) => {
   await P.close();
 }
 
-// ══ 안내문구 ══
+/* ══ 걷어낸 안내 문구 ══
+   2026-09-08 사용자 지시로 **발송 구분 위의 안내 띠를 통째로 없앴습니다**
+   ("위에 설명은 필요 없으니 제거. 다른 창에서도 마찬가지로 제거").
+   예전에는 그 띠가 나오는지를 검사했는데, 이제 **없는지**를 검사합니다 —
+   임의로 되살리면 여기서 걸립니다. 집결지 옆 설명도 같은 지시로 없앴습니다. */
 {
   const P = await B.newPage({ viewport: { width: 1500, height: 900 } });
   P.on('pageerror', e => errs.push('SMS: ' + e.message));
   await P.goto(`${R}/sms/index.html`); await P.waitForTimeout(700);
-  chk(await P.isHidden('#noteWrap'), '고르기 전에는 안내 띠가 없다');
+  chk((await P.$$('#noteWrap')).length === 0, '안내 띠 요소가 아예 없다');
   const body = await P.textContent('body');
   chk(!/고르세요/.test(body) || !/지시받은 문자/.test(body), '"지시받은 문자를 고르세요" 문구 사라짐');
 
-  // 구분을 고르면 안내가 나온다
-  await P.click('#stages button >> nth=0');
-  await P.waitForTimeout(700);
-  chk(!(await P.isHidden('#noteWrap')), '구분을 고르면 안내 띠가 나온다');
-  chk((await P.textContent('#noteBar')).length > 10, '그 구분의 설명이 들어 있다');
+  // 세 구분 어느 것을 골라도 안내 띠가 다시 생기지 않는다
+  for (const i of [0, 1, 2]) {
+    await P.click(`#stages button >> nth=${i}`);
+    await P.waitForTimeout(500);
+    chk((await P.$$('#noteWrap')).length === 0
+        && !/필요한 것만 골라 복사하세요/.test(await P.textContent('body')),
+      `${i + 1}번째 구분을 골라도 안내 띠가 없다`);
+  }
+  // 대피 구분에서 집결지 옆 설명도 없다
+  await P.click('#stages button[data-s=evac]'); await P.waitForTimeout(600);
+  chk(!/두지 않는 경우 비워 두세요/.test(await P.textContent('body')),
+    '집결지 옆 설명도 없다');
+  // 「지도 도구 열기」 단추도 없다 — '지도에서 찾기' 창이 그 일을 한다
+  chk(!/지도 도구 열기/.test(await P.textContent('body')),
+    '「지도 도구 열기(거리·반경)」 단추가 없다');
+  // 7-1번 괄호 설명은 아랫줄로 내려갔다
+  chk((await P.$$('#use71 + span i')).length === 1
+      && /차량 이용/.test(await P.textContent('#use71 + span i')),
+    '7-1번 설명이 아랫줄에 있다');
+  chk(!/작성 \(차량/.test(await P.textContent('body')),
+    '괄호로 매달려 있지 않다');
   await P.close();
 }
 
