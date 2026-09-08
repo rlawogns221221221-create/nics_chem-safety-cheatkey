@@ -353,10 +353,14 @@ console.log(`docs/AI프렌즈_시연영상.webm   ${(readFileSync(낼webm).lengt
 /* mp4 는 한글·파워포인트에 그대로 붙습니다. ffmpeg 이 있으면 함께 만듭니다 —
    `FFMPEG` 환경변수로 정적 빌드 경로를 넘길 수 있습니다. */
 const ff = process.env.FFMPEG || 'ffmpeg';
+/* 러너는 코어가 둘뿐이라 `slow` 로 굽는 데 십수 분이 걸립니다 —
+   `FFPRESET` 로 낮춰 잡을 수 있게 둡니다(crf 가 같으면 화질 차이는 작습니다) */
+const 프리셋 = process.env.FFPRESET || 'slow';
 const 낼mp4 = `${RPATH}/docs/AI프렌즈_시연영상.mp4`;
 try {
+  console.log(`mp4 로 굽는 중 (preset ${프리셋}) …`);
   execFileSync(ff, ['-y', '-hide_banner', '-loglevel', 'error',
-    '-i', 낼webm, '-c:v', 'libx264', '-preset', 'slow', '-crf', '24',
+    '-i', 낼webm, '-c:v', 'libx264', '-preset', 프리셋, '-crf', '24',
     '-pix_fmt', 'yuv420p', '-movflags', '+faststart', '-an', 낼mp4],
     { stdio: ['ignore', 'inherit', 'inherit'] });
   console.log(`docs/AI프렌즈_시연영상.mp4    ${(readFileSync(낼mp4).length / 1024 / 1024).toFixed(1)}MB`);

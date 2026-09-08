@@ -220,6 +220,21 @@ nominatim · kakao · 그 밖의 지오코딩 서비스 전부.
 | `build/fetch_tempshelter.html` | `data/tempshelters.js` | 이재민 임시주거시설 (행안부 오픈API · `safetydata.go.kr`) |
 | `build/geocode.html` | `data/resources.geo.js` · `data/resources2.geo.js` | 방제자원 정확 좌표 (브이월드) |
 
+**★ 배경지도 타일도 여기서는 못 받습니다 — 시연 영상은 액션에서 굽습니다
+(2026-09-08).** `api.vworld.kr` · `tile.openstreetmap.org` ·
+`basemaps.cartocdn.com` 이 모두 CONNECT 403 입니다(다시 확인함).
+그래서 `build/make_demo.mjs` 를 여기서 돌리면 지도에 **행정경계선만** 찍힙니다.
+배경지도까지 나오는 영상은 **`.github/workflows/시연영상_녹화.yml`**
+(Actions → "시연 영상 녹화" → Run workflow)로 굽습니다 — 러너에서 같은
+스크립트를 돌리고 영상 파일 하나를 이 가지에 커밋합니다.
+- 러너에서 확인한 것 — 브이월드는 **502**(인증키의 활용 도메인 때문),
+  **OpenStreetMap 은 200 · image/png**. 화면이 스스로 넘어갑니다
+  (`data/basemap.js` 의 `대체순서`) — 도구에 원래 있는 기능입니다.
+- **자막을 손으로 박지 마세요.** 스크립트가 화면에 실제로 그려진 타일
+  (`<image data-t>`)을 세어 자막을 고릅니다. 손으로 박아 두면 환경이 바뀐
+  날 그 자막이 그대로 거짓말이 됩니다.
+- `peek` 를 true 로 두면 타일이 받아지는지만 20초에 확인합니다.
+
 **★ 깃허브 액션으로 받는 길도 있습니다(2026-09-07).** 액션 러너는 인터넷이
 되므로 `build/fetch_tempshelter.py` 를
 `.github/workflows/임시주거시설_받기.yml` 이 돌립니다(Actions → Run workflow).

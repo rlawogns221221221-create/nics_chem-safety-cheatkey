@@ -51,7 +51,9 @@ jobs:
   record:
     name: 화면 녹화
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # 녹화 3분 + mp4 굽기. 러너는 코어가 둘뿐이라 넉넉히 둡니다
+    # (`slow` 로 구웠더니 30분을 넘겼습니다 — 아래 FFPRESET 참고).
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
 
@@ -86,18 +88,22 @@ jobs:
 
       - name: 녹화
         if: ${{ inputs.peek != true }}
+        # mp4 굽기가 러너에서 너무 오래 걸리면 `FFPRESET: veryfast` 를 여기
+        # env 로 넣으세요(crf 는 24 그대로라 화질 차이는 작습니다).
         run: node build/make_demo.mjs 2>&1 | tee 녹화기록.txt
 
       # 커밋이 막히거나 다시 손보고 싶을 때를 대비해 내려받을 수 있게 둡니다.
+      # 실패해도 올립니다 — 3분짜리 녹화를 통째로 잃지 않기 위해서입니다.
       - name: 영상 올려 두기 (내려받기용)
-        if: ${{ inputs.peek != true }}
+        if: ${{ always() && inputs.peek != true }}
         uses: actions/upload-artifact@v4
         with:
           name: 시연영상
           path: |
             docs/AI프렌즈_시연영상.mp4
+            docs/AI프렌즈_시연영상.webm
             녹화기록.txt
-          if-no-files-found: error
+          if-no-files-found: warn
 
       - name: 저장소에 넣기
         if: ${{ inputs.peek != true }}
