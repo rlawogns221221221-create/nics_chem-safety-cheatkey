@@ -82,8 +82,13 @@ const 딱지 = async (page, 목록) => {
             딱지가 반쯤 잘려 나갑니다(실제로 그랬습니다). 끝에서 붙잡습니다. */
       const 자리 = it['자리'] || '좌상';
       let bx, by;
-      if (r.height < 58) {
-        /* 단추·입력칸·띠처럼 낮은 것 — 안쪽에 달면 글자를 덮습니다
+      if (자리 === '위') {
+        /* 화면을 가로지르는 띠(요약 줄) 전용 — 왼쪽 밖은 화면 밖이라 안으로
+           밀려 들어와 첫 낱말('사고지점')을 덮었습니다. 띠 **위**에 답니다. */
+        bx = r.left + X + 4;
+        by = r.top + Y - 36;
+      } else if (r.height < 58) {
+        /* 단추·입력칸처럼 낮고 좁은 것 — 안쪽에 달면 글자를 덮습니다
            (실제로 '지도에서 ② 찍기' 처럼 갈라졌습니다). 왼쪽 밖에 세웁니다. */
         bx = r.left + X - 38;
         by = r.top + Y + r.height / 2 - 16;
@@ -132,7 +137,10 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   await 딱지(p, [
     { n: 1, sel: '.pn', i: 0 }, { n: 2, sel: '.pn', i: 1 }, { n: 3, sel: '.pn', i: 2 },
   ]);
-  await 찍기(p, '01-첫화면-pc', 'main .wrap');
+  /* 카드 줄만 잘라 찍었었는데, 진입 화면이 **사진이 첫 화면을 가득 채우는**
+     모양으로 바뀌었습니다. 카드만 실으면 담당자가 실제로 보는 화면과 달라
+     "이 화면이 맞나" 싶어집니다. 화면 그대로 찍습니다. */
+  await 찍기(p, '01-첫화면-pc');
   await ctx.close();
 
   const c2 = await browser.newContext({ viewport: 폰, deviceScaleFactor: 1.6,
@@ -152,31 +160,99 @@ const 찍기 = async (page, 이름, sel, 자름) => {
 }
 
 /* ── 01 방제 물품·장비 찾기 ──────────────────────────────────── */
+/* ⚠ 이 도구는 2026-09-07 에 **세 걸음**이 되었습니다(사용자 분류안 PPT) —
+     걸음 1 두 갈래(업체 섭외 / 방제물품 찾기) → 걸음 2 고르기 → 걸음 3 사고지점.
+     두 갈래는 **묻는 것이 다릅니다**("어디에 맡길까" ↔ "무엇이 어디 있나").
+     그래서 걸음 2 사진을 **두 장** 찍습니다 — 한 장만 실으면 다른 갈래를
+     고른 사람은 자기 화면이 설명서와 다르다고 봅니다. */
 {
   const ctx = await browser.newContext({ viewport: PC, deviceScaleFactor: 2 });
   const p = await ctx.newPage();
   await p.goto(`${ROOT}res/index.html`);
   await p.waitForTimeout(900);
+  /* 이 화면의 '다음' 줄은 **늘 화면 아래에 붙어 있습니다**(sticky). 요소를
+     통째로 찍으면 그 줄이 사진 **한가운데** 떠서 목록을 가로지릅니다 —
+     실제로 그렇게 찍혔습니다. 사진을 찍는 동안만 제자리에 세웁니다. */
+  await p.addStyleTag({ content: '.rz-nav{position:static !important}' });
+
+  /* 아래가 빈 사진은 A4 에서 자리만 먹습니다 — 마지막 칸 밑에서 자릅니다. */
+  const 끝까지 = async (sel, 더 = 24) => ({
+    x: 0, y: 0, width: PC.width,
+    height: Math.min(PC.height, Math.ceil(await p.evaluate(([s, m]) => {
+      const e = document.querySelectorAll(s);
+      return e.length ? e[e.length - 1].getBoundingClientRect().bottom + m : 0;
+    }, [sel, 더]))),
+  });
+
+  /* ── 왜 옆의 빈 자리까지 잘라내나 ────────────────────────────
+     설명서에서 이 두 장은 **나란히** 놓입니다(A4 폭의 절반씩). 화면 전체를
+     찍어 절반으로 줄이면 글자가 3pt 가 되어 읽을 수 없습니다. 글이 든
+     칸만 남기면 같은 자리에서 글자가 두 배로 커집니다.
+     `위sel` 부터 `아래sel` 까지, 가로는 `기둥sel` 의 폭에 맞춥니다. */
+  const 칸만 = (위sel, 아래sel, 기둥sel) => p.evaluate(([a, b, c]) => {
+    const t = document.querySelector(a), d = document.querySelector(b);
+    const col = document.querySelectorAll(c);
+    if (!t || !d || !col.length) return null;
+    let L = Infinity, R = -Infinity;
+    col.forEach((e) => { const r = e.getBoundingClientRect();
+      L = Math.min(L, r.left); R = Math.max(R, r.right); });
+    const y = Math.max(0, Math.floor(t.getBoundingClientRect().top) - 10);
+    /* 왼쪽을 46px 더 잡습니다 — 낮은 요소의 번호 딱지가 **요소 왼쪽 밖**에
+       서기 때문입니다. 딱 맞춰 자르면 그 번호가 반쯤 잘립니다(그랬습니다). */
+    return { x: Math.max(0, Math.floor(L) - 46), y,
+             width: Math.ceil(R - L) + 62,
+             height: Math.ceil(d.getBoundingClientRect().bottom - y) + 10 };
+  }, [위sel, 아래sel, 기둥sel]);
+
+  await 딱지(p, [
+    { n: 1, sel: '.rz-br', i: 0 },
+    { n: 2, sel: '.rz-br', i: 1 },
+  ]);
+  await 찍기(p, '10-방제-갈래', null, await 끝까지('.rz-br'));
+
+  /* 걸음 2 ㉮ — 업체 섭외(허가 갈래).
+     딱지는 둘만 답니다 — '전부 보기' 에 달면 번호가 왼쪽 밖으로 나가
+     옆의 '이전' 글자를 덮습니다(실제로 그랬습니다). 그 단추는 글로 적습니다. */
+  await 딱지(p, []);
+  await p.click('.rz-br >> nth=0');
+  await p.waitForTimeout(400);
   await 딱지(p, [
     { n: 1, sel: '.rz-need', i: 0 },
-    { n: 2, sel: '.rz-skip', 자리: '좌하' },
-    { n: 3, sel: '#rzNext', 자리: '우상' },
+    { n: 2, sel: '#rzNext', 자리: '우상' },
   ]);
-  await 찍기(p, '10-방제-걸음1', '.rz');
+  /* `.rz-nav` 는 걸음 2·3 에 하나씩 있습니다. 걸음 3 것은 숨어 있어 바닥이
+     0 이라, 그냥 마지막 것을 재면 사진이 24px 짜리가 됩니다(그렇게 됐습니다). */
+  await 찍기(p, '11-방제-업체', null,
+    (await 칸만('#rzH1', '#rzP1 .rz-nav', '.rz-need')) || await 끝까지('#rzP1 .rz-nav'));
 
+  /* 걸음 2 ㉯ — 방제물품(물품 이름). 되돌아가도 고른 것은 남습니다.
+     칩이 27개라 아래로 깁니다 — 위 네 묶음까지만 자릅니다(설명서에서
+     두 장을 나란히 놓는데, 한 장만 세로로 길면 줄이 어긋납니다). */
+  await 딱지(p, []);
+  await p.click('#rzBack0');
+  await p.waitForTimeout(300);
+  await p.click('.rz-br >> nth=1');
+  await p.waitForTimeout(400);
+  await 딱지(p, [
+    { n: 1, sel: '.rz-item', i: 0 },
+  ]);
+  await 찍기(p, '12-방제-물품', null,
+    (await 칸만('#rzH1', '.rz-igrp:nth-of-type(3)', '.rz-igrp')) || {
+      x: 0, y: 0, width: PC.width, height: 700 });
+
+  /* 결과까지 — 업체 갈래로 되돌아가 두 갈래를 고르고 사고지점을 넣습니다.
+     사고지점은 좌표로 넣습니다(주소검색은 인터넷이 필요해 이 환경에서
+     못 씁니다). 화면 모양은 어느 길로 넣든 같습니다. */
+  await 딱지(p, []);
+  await p.click('#rzBack0');
+  await p.waitForTimeout(300);
+  await p.click('.rz-br >> nth=0');
+  await p.waitForTimeout(400);
   await p.click('.rz-need >> nth=0');
   await p.click('.rz-need >> nth=1');
   await p.waitForTimeout(200);
   await p.click('#rzNext');
   await p.waitForTimeout(400);
-  await 딱지(p, [
-    { n: 1, sel: '.rz input[type=text]', i: 0 },
-    { n: 2, sel: '#startPick', 자리: '좌하' },
-  ]);
-  await 찍기(p, '11-방제-걸음2', '.rz');
-
-  /* 사고지점을 좌표로 넣어 결과 화면까지 — 주소검색은 인터넷이 필요해
-     이 환경에서 못 씁니다. 화면 모양은 어느 길로 넣든 같습니다. */
   await p.click('#startSkip');
   await p.waitForTimeout(700);
   await p.fill('#acLat', '36.1195');
@@ -185,11 +261,44 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   await p.waitForTimeout(1200);
   await 띠가리기(p);
   await 딱지(p, [
-    { n: 1, sel: '.msum' },
+    { n: 1, sel: '.msum', 자리: '위' },
     { n: 2, sel: '.ms-it', i: 0, 자리: '우상' },
     { n: 3, sel: '.maplegend', 자리: '좌하' },
   ]);
-  await 찍기(p, '12-방제-결과');
+  await 찍기(p, '13-방제-결과');
+
+  /* 범례만 따로 — 마커가 **색 동그라미 + 그림**이 된 것을 보여 줍니다.
+     설명서에 "색이 종류" 라고만 적어 두면 그림이 왜 있는지 모릅니다. */
+  await 딱지(p, []);
+  await 찍기(p, '14-방제-범례', '.maplegend');
+
+  /* 미리 협의된 곳 — 갈래마다 **맨 위**에 초록 띠로 옵니다. 사용자가
+     "제일 눈에 잘 띄도록" 이라고 한 자리라 설명서에도 그림으로 넣습니다.
+     23곳이 전국에 흩어져 있어 김천 반경 20km 안에는 없습니다. 그래서
+     처음부터 다시 열어 **전부 보기 → 경기도**(협의된 곳 6곳)로 봅니다.
+     ⚠ '전부 보기' 는 걸음 3 으로 갈 뿐이라 `#startSkip` 까지 눌러야
+        목록이 나옵니다 — 안 누르면 시작 화면이 목록을 덮고 있습니다. */
+  await p.goto(`${ROOT}res/index.html`);
+  await p.waitForTimeout(900);
+  await p.click('.rz-br >> nth=0');
+  await p.waitForTimeout(300);
+  await p.click('#rzAll');
+  await p.waitForTimeout(500);
+  await p.click('#startSkip');
+  await p.waitForTimeout(900);
+  await p.selectOption('#mSido', { label: '경기도' }).catch(() => {});
+  await p.waitForTimeout(1000);
+  const 협의 = await p.evaluate(() => {
+    const f = document.querySelector('.ms-it.first');
+    if (!f) return null;
+    /* 한 줄만 자릅니다 — 둘째 줄까지 넣었더니 글 한가운데서 잘려
+       설명서가 고장 난 것처럼 보였습니다. */
+    const a = f.getBoundingClientRect();
+    return { x: Math.floor(a.left) - 4, y: Math.floor(a.top) - 4,
+             width: Math.ceil(a.width) + 8, height: Math.ceil(a.height) + 8 };
+  });
+  if (협의) await 찍기(p, '15-방제-협의된곳', null, 협의);
+  else console.error('⚠ 협의된 곳(.ms-it.first)을 못 찾아 사진을 건너뜁니다');
   await ctx.close();
 }
 
@@ -212,11 +321,16 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   await p.waitForTimeout(1400);
   await 띠가리기(p);
   await 딱지(p, [
-    { n: 1, sel: '.msum' },
+    { n: 1, sel: '.msum', 자리: '위' },
     { n: 2, sel: '.mnear', 자리: '우상' },
     { n: 3, sel: '.ms-it', i: 0, 자리: '우상' },
   ]);
   await 찍기(p, '21-대피장소-결과');
+
+  /* ② 의 범례도 따로 — 대피장소 마커가 **비상구 그림**이라는 것을 보여 줍니다.
+     ③ 범례와 나란히 실어 "그림은 종류" 라는 규칙이 두 도구에 같음을 알립니다. */
+  await 딱지(p, []);
+  await 찍기(p, '22-대피장소-범례', '.maplegend');
   await ctx.close();
 }
 
@@ -269,7 +383,9 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   });
   await p.waitForTimeout(150);
   await 딱지(p, [
-    { n: 1, sel: '.out .msg', i: 0 },
+    /* 문안 상자는 **오른쪽 아래**에 답니다 — 왼쪽 위에 달면 기관명
+       ([서천군])을 덮습니다. 문안이 두 줄이라 오른쪽 아래가 비어 있습니다. */
+    { n: 1, sel: '.out .msg', i: 0, 자리: '우하' },
     { n: 2, sel: '.out .cnt', i: 0, 자리: '우상' },
     { n: 3, sel: '.out footer button', i: 0, 자리: '우하' },
   ]);

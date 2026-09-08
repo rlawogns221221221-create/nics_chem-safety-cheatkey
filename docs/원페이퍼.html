@@ -73,6 +73,11 @@
   kbd{font-family:inherit; font-weight:700; background:var(--blue-l);
     color:var(--blue-d); border-radius:2.5pt; padding:0 2.5pt}
 
+  /* 범례 사진 줄 — 높이만 정하고 폭은 사진이 정합니다(비율 유지). */
+  .legs{display:flex; align-items:center; gap:11pt; flex-wrap:wrap}
+  .legs img{height:15pt; width:auto; display:block}
+  .legs span{font-size:10pt; color:var(--ink2)}
+
   ul.k{margin:0; padding:0; list-style:none}
   ul.k li{position:relative; padding-left:18pt; margin-bottom:6pt; font-size:10.5pt; line-height:1.4}
   ul.k li:last-child{margin-bottom:0}
@@ -107,10 +112,10 @@
 <div class="tools">
   <div class="tool">
     <div class="hd"><span class="no">01</span><b>방제 물품·장비 찾기</b></div>
-    <img src="guide-img/12-방제-결과.png" alt="방제 물품·장비 결과 화면">
+    <img src="guide-img/13-방제-결과.png" alt="방제 물품·장비 결과 화면">
     <ol>
-      <li><b>필요한 것</b> 고르기</li>
-      <li><b>사고지점</b> 넣기</li>
+      <li><b>업체 섭외 / 방제물품</b></li>
+      <li><b>필요한 것</b> · <b>사고지점</b></li>
       <li>거리 · 전화번호 확인</li>
     </ol>
   </div>
@@ -133,6 +138,18 @@
       <li>걸음마다 칸 채우기</li>
       <li><b>복사</b> → 발송시스템</li>
     </ol>
+  </div>
+</div>
+
+<!-- 지도에서 무엇이 무엇인지는 **그림 한 줄**이면 끝납니다. 글로 "초록은
+     대피장소, 파랑은 수집·운반" 이라고 적으면 아무도 안 읽습니다. 범례
+     사진을 그대로 잘라 붙여, 화면에 보이는 것과 **같은 그림**을 둡니다. -->
+<div class="box" style="margin-bottom:8pt">
+  <div class="t">지도 그림 — 색과 그림이 곧 종류입니다</div>
+  <div class="legs">
+    <img src="guide-img/22-대피장소-범례.png" alt="② 범례 — 초록 비상구가 대피장소">
+    <img src="guide-img/14-방제-범례.png" alt="③ 범례 — 갈래마다 다른 그림">
+    <span>속이 빈 동그라미 = <b>주소로 어림잡은 자리</b></span>
   </div>
 </div>
 
@@ -196,6 +213,14 @@
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <path d="M6.5 4h11v16l-5.5-3-5.5 3z"/></svg>
         전화 전 <b>가동 여부 확인</b>
+      </li>
+      <!-- 미리 협의된 곳은 23곳뿐이라 **늘 나오지는 않습니다.** "있으면"
+           이라고 적는 이유입니다 — 없는데 찾게 만들면 안 됩니다. -->
+      <li>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 12.5l4.5 4.5L19 7.5"/></svg>
+        초록 띠 = <b>미리 협의된 곳</b> (있으면 맨 위)
       </li>
     </ul>
   </div>
