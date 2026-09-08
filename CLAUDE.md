@@ -142,6 +142,8 @@ python3 build/build_single.py    # dist/ 단일 파일 3개
 python3 build/make_release.py    # release/ 배포 폴더 + zip
 node   build/make_icons.mjs      # build/icon.svg → 바탕화면 아이콘 PNG 3종
 node   build/make_guide.mjs      # 설명서 PDF 두 가지 (4쪽 + 한장요약) · 사진도 다시 찍음
+python3 build/make_hwpx.py       # AI프렌즈 결과보고서 **한글파일**(주최 측 양식을 채웁니다)
+node   build/make_report.mjs     # 같은 보고서의 PDF 판(그림이 들어간 것)
 
 python3 build/방제자원_정리.py    # 드라이브 원자료 → docs/방제자원_정리/표/*.csv
 python3 build/방제자원_통계.py    # 표 → 통계.json (보고서 수치는 여기서 나옵니다)
