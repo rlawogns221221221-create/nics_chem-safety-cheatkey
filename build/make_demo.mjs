@@ -48,6 +48,13 @@ const 크기 = { width: 1280, height: 800 };
 const 덧그리기 = `
 (() => {
   if (window.__demo) return; window.__demo = 1;
+  /* 배경지도 경고 띠는 **녹화 자리에서만** 뜨는 것입니다(개발 자리는 타일이
+     아예 막히고, 액션 러너는 브이월드가 502 라 OpenStreetMap 으로 넘어갑니다).
+     실제 배포 주소에서는 뜨지 않으므로 영상에서 가립니다 — 자바스크립트로
+     그때그때 감추면 지도가 다시 그려질 때마다 **깜빡입니다.** */
+  const 띠숨김 = document.createElement('style');
+  띠숨김.textContent = '#mWarn{display:none!important}';
+  (document.head || document.documentElement).appendChild(띠숨김);
   const add = () => {
     if (!document.body) return setTimeout(add, 20);
     const dot = document.createElement('div');
