@@ -48,15 +48,19 @@ const 크기 = { width: 1280, height: 800 };
 const 덧그리기 = `
 (() => {
   if (window.__demo) return; window.__demo = 1;
-  /* 배경지도 경고 띠는 **녹화 자리에서만** 뜨는 것입니다(개발 자리는 타일이
-     아예 막히고, 액션 러너는 브이월드가 502 라 OpenStreetMap 으로 넘어갑니다).
-     실제 배포 주소에서는 뜨지 않으므로 영상에서 가립니다 — 자바스크립트로
-     그때그때 감추면 지도가 다시 그려질 때마다 **깜빡입니다.** */
-  const 띠숨김 = document.createElement('style');
-  띠숨김.textContent = '#mWarn{display:none!important}';
-  (document.head || document.documentElement).appendChild(띠숨김);
   const add = () => {
     if (!document.body) return setTimeout(add, 20);
+    /* 배경지도 경고 띠는 **녹화 자리에서만** 뜨는 것입니다(개발 자리는 타일이
+       아예 막히고, 액션 러너는 브이월드가 502 라 OpenStreetMap 으로 넘어갑니다).
+       실제 배포 주소에서는 뜨지 않으므로 영상에서 가립니다 — 자바스크립트로
+       그때그때 감추면 지도가 다시 그려질 때마다 **깜빡입니다.**
+       ⚠ 이 줄을 함수 **밖**(초기 스크립트 맨 앞)에 두지 마세요. 그때는
+       document.head 도 documentElement 도 아직 없어 예외가 나고, 그러면
+       **덧그리기 전체가 죽습니다** — 실제로 커서·자막·제목이 통째로 사라진
+       영상이 나왔습니다(2026-09-08). 여기는 body 가 생긴 뒤입니다. */
+    const 띠숨김 = document.createElement('style');
+    띠숨김.textContent = '#mWarn{display:none!important}';
+    (document.head || document.body).appendChild(띠숨김);
     const dot = document.createElement('div');
     dot.id = '__cur';
     /* 붉은 고리는 '금지' 표지처럼 읽혀서 남색으로 둡니다 */
@@ -209,6 +213,16 @@ const 타일기다리기 = async (최대 = 15000) => {
 /* ══ 0. 표지 ═══════════════════════════════════════════════ */
 await p.goto(`${ROOT}index.html`);
 await 잠깐(1600);
+/* 덧그리기가 살아 있는지 먼저 봅니다. 초기 스크립트가 조용히 죽으면 커서도
+   자막도 제목도 없는 3분짜리 영상이 그대로 나옵니다 — 실제로 한 번
+   그렇게 나왔습니다(2026-09-08). 그럴 바에는 여기서 멈춥니다. */
+const 덧있나 = await p.evaluate(() =>
+  !!(window.__say && window.__title && document.getElementById('__cur')));
+if (!덧있나) {
+  console.error('⚠ 커서·자막 덧그리기가 살아나지 않았습니다 — 녹화를 멈춥니다.');
+  await browser.close();
+  process.exit(1);
+}
 await 제목('화학사고 초동대응 지원 서비스',
   '사고지점만 넣으면 대피장소 · 재난문자 · 방제자원이<br>가까운 순으로 나옵니다', 3600);
 await 제목(null, null, 300);
