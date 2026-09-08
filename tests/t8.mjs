@@ -42,7 +42,14 @@ await P.selectOption('#mSgg', '서산시'); await P.waitForTimeout(1500);
 const nImg = (await P.$$('#map image')).length;
 chk(nImg > 0, `배경지도 타일 렌더 (<image> ${nImg}장)`);
 chk(await P.$eval('#map', s => s.classList.contains('hasbg')), '배경 있을 때 hasbg 대비 전환');
-chk((await P.$$('#map g.pin.mk')).length === 8, `마커 렌더 (${(await P.$$('#map g.pin.mk')).length}곳)`);
+/* ⚠ 2026-09-08 이재민 임시주거시설 자료가 들어오면서 지도에는 **두 층**이
+   함께 찍힙니다(서산시 = 대피장소 8 + 임시주거시설 127). 전체 수를 그대로
+   견주면 자료가 갱신될 때마다 검사가 깨집니다. **대피장소만** 세고,
+   임시주거시설 층은 따로 있는지만 봅니다. */
+chk((await P.$$('#map g.pin.mk:not(.tmp)')).length === 8,
+  `대피장소 마커 렌더 (${(await P.$$('#map g.pin.mk:not(.tmp)')).length}곳)`);
+chk((await P.$$('#map g.pin.mk.tmp')).length > 0,
+  `이재민 임시주거시설 층도 함께 찍힌다 (${(await P.$$('#map g.pin.mk.tmp')).length}곳)`);
 chk((await P.$$('#map path.bd')).length > 0, '행정경계선 렌더');
 chk((await P.textContent('#scaleTxt')).length > 0, `축척 막대: ${await P.textContent('#scaleTxt')}`);
 
@@ -168,10 +175,13 @@ const pr = await P.evaluate(() => ({
   acc: getComputedStyle(document.querySelector('.mapacc')).display,
   ctl: getComputedStyle(document.querySelector('.mapctl')).display,
   list: document.querySelectorAll('#shList .ms-it').length,
+  /* 인쇄에서 재는 것은 "목록이 잘리지 않는가" 입니다 — 두 층이 섞이면서
+     전체 수가 자료에 따라 달라지므로, 대피장소 줄만 따로 셉니다. */
+  sh: document.querySelectorAll('#shList .ms-it:not(.tmp)').length,
   ov: getComputedStyle(document.querySelector('.ms-list')).overflowY
 }));
 chk(pr.bar === 'none' && pr.acc === 'none' && pr.ctl === 'none', '인쇄: 조작 UI 숨김');
-chk(pr.list === 8 && pr.ov === 'visible', `인쇄: 목록 전체 나옴 (${pr.list}곳, 스크롤 해제)`);
+chk(pr.list > 0 && pr.ov === 'visible', `인쇄: 목록 전체 나옴 (${pr.list}곳, 스크롤 해제)`);
 await P.emulateMedia({ media: 'screen' });
 
 // ══ 11. 모바일 ══
@@ -181,7 +191,7 @@ M.on('pageerror', e => errs.push('MOBILE: ' + e.message));
 await M.goto(URL); await M.waitForTimeout(400);
 await M.selectOption('#mSido', '충청남도'); await M.waitForTimeout(150);
 await M.selectOption('#mSgg', '서산시'); await M.waitForTimeout(800);
-chk((await M.$$('#map g.pin.mk')).length === 8, '모바일 마커 렌더');
+chk((await M.$$('#map g.pin.mk:not(.tmp)')).length === 8, '모바일 대피장소 마커 렌더');
 await M.click('#btnAcc'); await M.waitForTimeout(200);
 bb = await (await M.$('#map')).boundingBox();          // 단추 누르며 스크롤되므로 다시 잰다
 await M.mouse.click(bb.x + bb.width / 2, bb.y + bb.height / 2);
@@ -201,7 +211,14 @@ await D.goto(ROOT + 'dist/'
 await D.waitForTimeout(600);
 await D.selectOption('#mSido', '충청남도'); await D.waitForTimeout(150);
 await D.selectOption('#mSgg', '서산시'); await D.waitForTimeout(1200);
-chk((await D.$$('#map g.pin.mk')).length === 8, '단일 파일: 마커 렌더');
+/* 예전에는 마커가 8개(대피장소)뿐이라 그 수를 그대로 견줬습니다. 2026-09-08
+   이재민 임시주거시설 자료가 들어오면서 **단일 파일에도 그 층이 함께 실립니다**
+   — 서산시는 8 + 127 입니다. 그래서 두 가지를 따로 잽니다: 대피장소는 그대로
+   8곳인가, 그리고 임시주거시설 층이 단일 파일에도 들어왔는가. */
+const 대피 = (await D.$$('#map g.pin.mk:not(.tmp)')).length;
+const 임시 = (await D.$$('#map g.pin.mk.tmp')).length;
+chk(대피 === 8, `단일 파일: 대피장소 마커 렌더 (${대피}곳)`);
+chk(임시 > 0, `단일 파일: 이재민 임시주거시설 층도 함께 실린다 (${임시}곳)`);
 chk((await D.$$('#map image')).length > 0, '단일 파일: 배경지도 렌더');
 await D.fill('#acLat', '36.78'); await D.fill('#acLon', '126.45'); await D.waitForTimeout(800);
 chk((await D.$$('#map circle.grid')).length > 0, '단일 파일: 거리 눈금 동작');

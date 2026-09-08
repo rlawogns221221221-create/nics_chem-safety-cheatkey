@@ -206,6 +206,33 @@ def fix_sido(x: str, S: dict) -> str:
     return head if head in S else SIDO_FIX.get(head, head)
 
 
+# ── 통합해서 부르는 시·도 이름 ─────────────────────────────────────────
+# 2026-09-08 이 오픈API 가 전남·광주를 **`전남광주통합특별시`** 한 이름으로
+# 내려보냅니다(오픈API 명세의 주관기관 목록에도 그 이름이 있습니다).
+# 화학사고 대피장소 자료(2026-05 기준)는 **전라남도 / 광주광역시**로 나뉘어
+# 있어서, 그대로 두면 ② 의 시·도 고르기에 세 개가 따로 서고 두 층이 같은
+# 지역에서 맞물리지 않습니다. 그래서 **시·군·구 이름으로 갈라** 넣습니다.
+# 지어낸 것이 아니라 주소에 적힌 시·군·구를 대피장소 자료의 이름표에서
+# 찾는 것입니다 — 1,831줄·27가지가 전부(전남 22 · 광주 5) 갈렸고
+# 애매한 것은 하나도 없었습니다.
+# ⚠ 대피장소 자료가 통합 이름으로 갱신되면 이 줄을 지워야 합니다.
+MERGED = {"전남광주통합특별시": ["광주광역시", "전라남도"]}
+
+
+def 통합쪼개기(sido: str, addr: str, S: dict) -> str:
+    """통합 이름으로 온 시·도를 주소의 시·군·구로 갈라 준다."""
+    cands = MERGED.get(sido)
+    if not cands:
+        return sido
+    toks = (addr or "").split()
+    for c in cands:
+        pool = S.get(c) or {}
+        for t in toks[1:4]:
+            if t in pool:
+                return c
+    return sido            # 못 가르면 원래 이름을 그대로 둔다(지어내지 않는다)
+
+
 def fix_sgg(sido: str, cand: str, addr: str, S: dict) -> str:
     pool = S.get(sido, {})
     toks = (addr or "").split()
@@ -220,7 +247,14 @@ def fix_sgg(sido: str, cand: str, addr: str, S: dict) -> str:
     # 세종은 대피장소 자료의 시·군·구 칸이 비어 있어 열쇠가 "null" 이다
     if sido == "세종특별자치시":
         return "null" if "null" in pool else sido
+    # 대피장소 자료에 없는 시·군·구여도 버리지 않는다 — 그 지역에 화학사고
+    # 대피장소가 한 곳도 없거나(옹진군 등), 행정구역이 새로 바뀐 것이다.
+    # ⚠ "인천광역시 제물포구" 처럼 **시·도가 붙은 두 토막**을 그대로 열쇠로
+    #    쓰면 안 된다 — 화면의 시·군·구 칸에 그렇게 찍힌다(실제로 그랬다).
+    #    한 토막부터 본다.
     for t in tries:
+        if " " in t or t.startswith(sido):
+            continue
         if t and t != sido and t not in SIDO_FIX and t not in S \
            and len(t) >= 2 and t[-1] in "시군구":
             return t
@@ -271,7 +305,7 @@ def 만들기(rows: list, 원본이름: str, 출처: str = "행정안전부 이�
         if not (32 < la < 40 and 123 < lo < 133):
             no_xy += 1
             continue
-        sido = fix_sido(val(r, mapping, "시도") or addr, S)
+        sido = 통합쪼개기(fix_sido(val(r, mapping, "시도") or addr, S), addr, S)
         if not sido:
             no_xy += 1
             continue
@@ -292,6 +326,24 @@ def 만들기(rows: list, 원본이름: str, 출처: str = "행정안전부 이�
 
     if not n:
         fail("지도에 찍을 수 있는 줄이 하나도 없습니다 (좌표가 모두 비어 있습니다).")
+
+    # 줄이 통째로 똑같은 것은 원자료의 중복입니다 — 급할 때 같은 건물이
+    # 목록에 두 번 나오면 고를 자리를 한 칸 버리는 셈이라 하나만 남깁니다.
+    # (이름·좌표만 같고 면적·수용인원이 다른 줄은 **다른 방**이므로 남깁니다.)
+    겹침 = 0
+    for sd in out:
+        for sg in out[sd]:
+            본것, 남길것 = set(), []
+            for row in out[sd][sg]:
+                k = json.dumps(row, ensure_ascii=False)
+                if k in 본것:
+                    겹침 += 1
+                    continue
+                본것.add(k)
+                남길것.append(row)
+            out[sd][sg] = 남길것
+    if 겹침:
+        print(f"  줄이 통째로 겹친 것 {겹침}줄을 뺐습니다")
 
     for sd in out:
         for sg in out[sd]:

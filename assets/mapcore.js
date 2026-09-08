@@ -494,9 +494,14 @@ function rowsOf(S, sido, sgg, src) {
   sds.forEach(function (sd) {
     var sgs = sgg ? [sgg] : Object.keys(S[sd] || {});
     sgs.forEach(function (sg) {
-      ((S[sd] || {})[sg] || []).forEach(function (r) {
+      ((S[sd] || {})[sg] || []).forEach(function (r, i) {
         if (r[5] == null || r[6] == null) return;
-        out.push({ key: src + "|" + sd + "|" + sg + "|" + r[0] + "|" + r[5] + "," + r[6],
+        /* ⚠ 열쇠는 **장소가 아니라 줄**을 가리켜야 합니다. 이름·좌표만으로
+           만들었더니, 한 건물에 여러 줄이 있는 곳(같은 학교의 체육관·강당 등
+           21곳)에서 열쇠가 겹쳐 **고르지 않은 줄에도 '실제 도로 1.2km' 가
+           붙었습니다.** 재지 않은 값이 잰 값처럼 보이는 것이라 그냥 둘 수
+           없습니다. 자료 안 자리(i)를 붙여 줄마다 다르게 만듭니다. */
+        out.push({ key: src + "|" + sd + "|" + sg + "|" + i + "|" + r[0],
                    src: src, sido: sd, sgg: sg, name: r[0], detail: r[1], addr: r[2],
                    cap: r[3], kind: r[4], lat: r[5], lon: r[6], dept: r[7], tel: r[8] });
       });

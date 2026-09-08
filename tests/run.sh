@@ -62,20 +62,34 @@ BROWSER=/opt/pw-browsers/chromium
 # 스크린샷·임시파일이 저장소를 어지럽히지 않게 여기서 돌립니다
 mkdir -p .out
 
-# ── 이재민 임시주거시설 자료가 필요한 묶음 ────────────────────
-# 진짜 자료가 있으면 잠시 치워 두었다가 끝나고 그대로 되돌립니다.
+# ── 이재민 임시주거시설 자료 ──────────────────────────────────
+# `tmp2` 는 값을 하나하나 대조하므로 **작은 fixture** 로 돌려야 합니다.
+# 나머지 묶음은 **실제로 배포되는 상태**, 즉 진짜 자료가 있는 채로 돌립니다.
+#
+# ⚠ 예전에는 tmp2 를 뺀 모든 묶음에서 이 파일을 **지웠습니다**(자료가 없던
+#   때의 기본 상태를 재현하려고). 자료가 들어온 뒤로는 그것이
+#   **진짜 자료를 지워 버리는** 동작이 됩니다 — 되돌릴 백업이 아직 없는
+#   첫 묶음에서 `rm` 만 돌기 때문입니다. 그래서 **시작할 때 한 번 백업**하고,
+#   묶음마다 fixture 나 진짜 자료를 **복사해 넣는** 방식으로 바꿨습니다.
+#
+# ⚠⚠ **되돌리는 함수는 몇 번을 불러도 같아야 합니다.** 한 번은 마지막 묶음
+#    뒤에서, 한 번은 EXIT 트랩에서 불립니다. 처음에 "백업이 없으면 지운다"로
+#    적었더니, 첫 번째 호출이 백업을 치우고 두 번째 호출이 **진짜 자료를
+#    지웠습니다**(실제로 그랬습니다 — 통과해 놓고 자료가 사라졌습니다).
+#    그래서 **처음에 진짜 자료가 있었는지**를 따로 표시해 두고 그것만 봅니다.
 DATA=../data/tempshelters.js
-BAK=.out/tempshelters.real.bak
-put_fixture() {
-  [ -e "$DATA" ] && [ ! -L "$DATA" ] && cp "$DATA" "$BAK"
-  cp fixtures/tempshelters.js "$DATA"
-}
-drop_fixture() {
-  rm -f "$DATA"
-  [ -e "$BAK" ] && mv "$BAK" "$DATA"
+REAL=.out/tempshelters.real.bak
+HAD=.out/tempshelters.had
+rm -f "$REAL" "$HAD"
+if [ -e "$DATA" ]; then cp "$DATA" "$REAL"; : > "$HAD"; fi
+use_fixture() { cp fixtures/tempshelters.js "$DATA"; }
+use_real() {
+  if [ -e "$HAD" ]; then cp "$REAL" "$DATA"; else rm -f "$DATA"; fi
   return 0
 }
-trap drop_fixture EXIT
+restore_real() { use_real; }              # 몇 번을 불러도 같습니다
+cleanup() { use_real; rm -f "$REAL" "$HAD"; return 0; }
+trap cleanup EXIT
 
 TARGETS="${*:-$ALL}"
 FAILED=""
@@ -85,8 +99,8 @@ for n in $TARGETS; do
   [ -f "$n.mjs" ] || { echo "그런 묶음이 없습니다: $n"; FAILED="$FAILED $n"; continue; }
 
   case "$n" in
-    tmp2) put_fixture ;;                 # 자료가 있어야 층이 나온다
-    *)    drop_fixture ;;                # 나머지는 자료 없는 상태(기본)에서
+    tmp2) use_fixture ;;                 # 값을 대조하므로 작은 fixture 로
+    *)    use_real ;;                    # 나머지는 실제 배포 상태(진짜 자료)로
   esac
 
   OUT=$(cd .out && timeout 300 node "$HERE/$n.mjs" 2>&1 \
@@ -100,7 +114,7 @@ for n in $TARGETS; do
   fi
 done
 
-drop_fixture
+restore_real
 echo
 if [ -n "$FAILED" ]; then
   echo "실패:$FAILED"

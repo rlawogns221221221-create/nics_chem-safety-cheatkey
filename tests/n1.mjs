@@ -166,9 +166,24 @@ const mk = await MK.evaluate(() => {
     그림선: ic ? ic.querySelectorAll('path,circle,rect').length : 0,
     이벤트: cs ? cs.pointerEvents : '',
     범례있음: !!범례,
-    범례색: 범례 ? getComputedStyle(범례).color : '',
-    마커색: pins[0]
-      ? getComputedStyle(pins[0].querySelector('.pin-bg')).fill : '',
+    /* ⚠ 예전에는 **첫 마커**와 **첫 범례**를 짝지어 견줬습니다. 이재민
+       임시주거시설 층이 들어온 뒤로는 먼저 그려지는 것이 그 층일 수 있어
+       초록(대피장소) ↔ 보라(임시주거시설)로 어긋났습니다. 색이 틀린 게
+       아니라 짝짓기가 틀린 것이었습니다 — **층마다 제 범례와** 견줍니다. */
+    짝: (function () {
+      const legs = [...document.querySelectorAll('#mLeg .sh-ic')];
+      const 재기 = function (sel, i) {
+        const pin = document.querySelector(sel), leg = legs[i];
+        if (!pin || !leg) return null;
+        return {
+          이름: leg.parentElement.textContent.trim(),
+          마커: getComputedStyle(pin.querySelector('.pin-bg')).fill,
+          범례: getComputedStyle(leg).color,
+        };
+      };
+      return [재기('#map g.pin.mk:not(.tmp)', 0), 재기('#map g.pin.mk.tmp', 1)]
+        .filter(Boolean);
+    })(),
     /* 두 층의 그림이 서로 다른가 — 같은 그림이면 구별이 안 된다 */
     다른모양: (function () {
       const d = (window.SH_ICON || null);
@@ -183,8 +198,10 @@ chk(mk.그림선 >= 2, `마커 안에 그림이 실제로 그려진다 (선 ${mk
 chk(mk.이벤트 === 'none',
   `그림이 누르는 판정을 가로막지 않는다 (pointer-events:${mk.이벤트})`);
 chk(mk.범례있음, '범례도 같은 그림을 쓴다');
-chk(mk.범례색 === mk.마커색,
-  `범례 그림 색이 지도 마커 색과 같다 (${mk.범례색} ↔ ${mk.마커색})`);
+chk(mk.짝.length > 0, `범례와 마커를 층마다 견준다 (${mk.짝.length}층)`);
+mk.짝.forEach(function (p) {
+  chk(p.마커 === p.범례, `범례 그림 색이 지도 마커 색과 같다 — ${p.이름} (${p.범례} ↔ ${p.마커})`);
+});
 await MK.close();
 
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');

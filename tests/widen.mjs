@@ -14,8 +14,13 @@ const ctx = await B.newContext({ ...devices['iPhone 13'] });
 const P = await ctx.newPage();
 P.on('pageerror', e => errs.push(e.message));
 await P.goto(ROOT + 'map/index.html'); await P.waitForTimeout(700);
-// 강원 산간 — 가장 가까운 대피장소가 6.1km 밖이라 기본 5km 안에는 아무것도 없다
-await P.fill('#acLat','37.45'); await P.fill('#acLon','128.80');
+/* 강원 산간 — 두 층(화학사고 대피장소 · 이재민 임시주거시설)을 통틀어
+   가장 가까운 곳이 **11.0km** 밖이라, 기본 5km 안에는 아무것도 없다.
+   ⚠ 예전에는 (37.45, 128.80)이었다. 대피장소만 있을 때는 6.1km 밖이었는데,
+     2026-09-08 임시주거시설 15,905곳이 들어오면서 그 자리 5km 안에 결과가
+     생겨 '범위 넓히기' 가 아예 안 나왔다 — 화면이 틀린 게 아니라 **검사가
+     기대던 전제가 사라진 것**이다. 두 층 모두 비어 있는 자리로 옮겼다. */
+await P.fill('#acLat','37.85'); await P.fill('#acLon','128.47');
 await P.dispatchEvent('#acLat','input'); await P.waitForTimeout(1000);
 chk((await P.$$('#mSum .ms-more')).length===1, '대피장소가 없으면 범위 넓히기 단추가 나온다');
 chk(/10km/.test(await P.textContent('#mSum .ms-more')), '지금(5km)보다 한 칸 넓은 범위를 권한다');
@@ -47,7 +52,10 @@ chk((await P.$$('#mNear .mnear-it')).length>0, '누르면 가까운 3곳이 펴�
   const Q = await ctx.newPage();
   Q.on('pageerror', e => errs.push(e.message));
   await Q.goto(ROOT + 'map/index.html'); await Q.waitForTimeout(700);
-  await Q.fill('#acLat','37.90'); await Q.fill('#acLon','128.30');   // 가장 가까운 곳이 21km 밖
+  /* 강원 최북단 산간 — 두 층을 통틀어 가장 가까운 곳이 **20.7km** 밖이다.
+     ⚠ 예전에는 (37.90, 128.30)이었다(대피장소만 있을 때 21km). 임시주거시설이
+       들어오면서 그 자리는 20km 안에 결과가 생겼다. */
+  await Q.fill('#acLat','38.16'); await Q.fill('#acLon','128.88');
   await Q.dispatchEvent('#acLat','input'); await Q.waitForTimeout(1000);
   for (let i = 0; i < 3; i++) {
     const b = await Q.$('#mSum .ms-more');

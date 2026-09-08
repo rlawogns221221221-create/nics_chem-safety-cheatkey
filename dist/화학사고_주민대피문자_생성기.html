@@ -2058,8 +2058,14 @@ input[type=text].mr-in{width:92px;padding:4px 8px;font-size:1.5rem;flex:none}
 .ms-it.ring{background:var(--err-l)}
 .ms-it.ring:hover{background:var(--err-l)}
 .ms-it.ring.on{background:var(--err-b2);box-shadow:inset 3px 0 0 var(--err)}
-.ms-it .l1{display:flex;align-items:baseline;gap:6px}
-.ms-it .l1 b{font-weight:700}
+/* 이름 · 자료 딱지 · 상세 · 거리가 한 줄에 섭니다. 이재민 임시주거시설 층이
+   들어오면서 **자료 딱지(72px)가 늘어** 320px 화면에서 거리가 4px 밀려
+   화면 밖으로 나갔습니다. 잘라 낼 수 있는 것이 하나도 없습니다 —
+   이름을 줄이면 어느 시설인지 모르고, 거리는 이 화면에서 가장 중요한 값이며
+   (예전에 그 값이 잘려 문제가 됐습니다), 딱지를 그림만 남기면 "그림만으로
+   뜻을 전하지 않는다"는 규칙을 어깁니다. 그래서 **접어 내립니다.** */
+.ms-it .l1{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.ms-it .l1 b{font-weight:700;min-width:0}
 .ms-it .l1 .dt{font-weight:400;font-size:1.3rem;color:var(--ink3)}
 .ms-it .l1 .d{margin-left:auto;flex:none;font-size:1.3rem;font-weight:700;
   color:var(--brand-d);font-variant-numeric:tabular-nums;white-space:nowrap}
@@ -4760,9 +4766,14 @@ function rowsOf(S, sido, sgg, src) {
   sds.forEach(function (sd) {
     var sgs = sgg ? [sgg] : Object.keys(S[sd] || {});
     sgs.forEach(function (sg) {
-      ((S[sd] || {})[sg] || []).forEach(function (r) {
+      ((S[sd] || {})[sg] || []).forEach(function (r, i) {
         if (r[5] == null || r[6] == null) return;
-        out.push({ key: src + "|" + sd + "|" + sg + "|" + r[0] + "|" + r[5] + "," + r[6],
+        /* ⚠ 열쇠는 **장소가 아니라 줄**을 가리켜야 합니다. 이름·좌표만으로
+           만들었더니, 한 건물에 여러 줄이 있는 곳(같은 학교의 체육관·강당 등
+           21곳)에서 열쇠가 겹쳐 **고르지 않은 줄에도 '실제 도로 1.2km' 가
+           붙었습니다.** 재지 않은 값이 잰 값처럼 보이는 것이라 그냥 둘 수
+           없습니다. 자료 안 자리(i)를 붙여 줄마다 다르게 만듭니다. */
+        out.push({ key: src + "|" + sd + "|" + sg + "|" + i + "|" + r[0],
                    src: src, sido: sd, sgg: sg, name: r[0], detail: r[1], addr: r[2],
                    cap: r[3], kind: r[4], lat: r[5], lon: r[6], dept: r[7], tel: r[8] });
       });
