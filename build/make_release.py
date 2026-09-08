@@ -313,6 +313,20 @@ def main() -> None:
             if p.is_file():
                 z.write(p, p.relative_to(OUT))
 
+    # ── 웹에 올릴 zip (뿌리에 index.html) ──
+    # ⚠ 위의 배포용 zip 은 **폴더 두 개와 안내문**이 들어 있어, 그대로
+    #   Cloudflare Pages·Netlify 같은 곳에 올리면 사이트가
+    #   `/화학사고_초동대응_지원_서비스/` 아래로 들어갑니다(뿌리는 빈 화면).
+    #   그런 곳에는 **사이트 파일이 zip 뿌리에 있는** 이 파일을 올립니다.
+    #   `manifest.webmanifest`·`sw.js` 가 뿌리에 있어야 하는 이유와 같습니다.
+    web_zip = ROOT / "웹업로드_사이트만.zip"
+    if web_zip.exists():
+        web_zip.unlink()
+    with zipfile.ZipFile(web_zip, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in sorted(site.rglob("*")):
+            if p.is_file():
+                z.write(p, p.relative_to(site))
+
     # ── 요약 ──
     n = sum(1 for p in site.rglob("*") if p.is_file())
     mb = sum(p.stat().st_size for p in site.rglob("*") if p.is_file()) / 1024 / 1024
@@ -323,7 +337,9 @@ def main() -> None:
               + f"  {p.stat().st_size / 1024:.0f}KB")
     print(f"    전달안내.md")
     print(f"\n  {zip_path.name}  {zip_path.stat().st_size / 1024 / 1024:.1f}MB"
-          "   ← 이 파일 하나만 보내면 됩니다")
+          "   ← 다른 기관에 넘길 때 이 파일 하나만 보내면 됩니다")
+    print(f"  {web_zip.name}  {web_zip.stat().st_size / 1024 / 1024:.1f}MB"
+          "   ← 웹(Cloudflare Pages 등)에 올릴 때 (뿌리에 index.html)")
     print("\n  뺀 것: source(원자료) · build(생성도구) · docs(개발기록) · .github(배포설정)")
 
 
