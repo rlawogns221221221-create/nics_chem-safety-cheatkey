@@ -1,0 +1,80 @@
+{
+ "header": {
+  "resultMsg": "NORMAL SERVICE",
+  "resultCode": "00",
+  "errorMsg": null
+ },
+ "numOfRows": 1000,
+ "pageNo": 1,
+ "totalCount": 15911,
+ "body": [
+  {
+   "DTL_ADRES": "강원특별자치도 원주시 살구둑길 19-2 (행구동)1300",
+   "ACMDFCLTY_SE_CD": "003",
+   "LO": "127.99312548183634",
+   "SGG_RN": "살구둑길",
+   "VT_ACMDFCLTY_NM": "행구촌경로당",
+   "RN_DTL_ADRES": null,
+   "BDONG_CD": "5113011400",
+   "ARCD": "5113000000",
+   "HDONG_CD": "5113065000",
+   "FCLTY_AR": 164,
+   "LA": "37.345495059661005",
+   "ACMDFCLTY_SN": 125,
+   "KOREAN_CTPRVN_NM": "강원도",
+   "VT_ACMD_PSBL_NMPR": 63,
+   "RDNMADR_CD": "4213011400113000000033763"
+  },
+  {
+   "DTL_ADRES": "강원특별자치도 원주시 행구로 140(행구동, 행구금강아미움아파트)1815-2",
+   "ACMDFCLTY_SE_CD": "003",
+   "LO": "127.97051145701037",
+   "SGG_RN": null,
+   "VT_ACMDFCLTY_NM": "금강아미움경로당",
+   "RN_DTL_ADRES": "경로당",
+   "BDONG_CD": "5113011400",
+   "ARCD": "5113000000",
+   "HDONG_CD": "5113065000",
+   "FCLTY_AR": 155.79,
+   "LA": "37.340222985320146",
+   "ACMDFCLTY_SN": 204,
+   "KOREAN_CTPRVN_NM": null,
+   "VT_ACMD_PSBL_NMPR": 59,
+   "RDNMADR_CD": "4213011400118150001000011"
+  },
+  {
+   "DTL_ADRES": "세종특별자치시  해밀1로 45(해밀동)325-0",
+   "ACMDFCLTY_SE_CD": "018",
+   "LO": "127.26801323739187",
+   "SGG_RN": null,
+   "VT_ACMDFCLTY_NM": "해밀동 복합커뮤니티센터",
+   "RN_DTL_ADRES": null,
+   "BDONG_CD": "3611011600",
+   "ARCD": "3611000000",
+   "HDONG_CD": "3611052500",
+   "FCLTY_AR": 1077,
+   "LA": "36.52712130482723",
+   "ACMDFCLTY_SN": 633,
+   "KOREAN_CTPRVN_NM": null,
+   "VT_ACMD_PSBL_NMPR": 414,
+   "RDNMADR_CD": "3611011600103250000000001"
+  },
+  {
+   "DTL_ADRES": "강원특별자치도 원주시 화실유암길 195(행구동)1218-1",
+   "ACMDFCLTY_SE_CD": "019",
+   "LO": "127.99420883441692",
+   "SGG_RN": null,
+   "VT_ACMDFCLTY_NM": "올리브모텔",
+   "RN_DTL_ADRES": null,
+   "BDONG_CD": "5113011400",
+   "ARCD": "5113000000",
+   "HDONG_CD": "5113065000",
+   "FCLTY_AR": 93.6,
+   "LA": "37.350587419567205",
+   "ACMDFCLTY_SN": 162,
+   "KOREAN_CTPRVN_NM": null,
+   "VT_ACMD_PSBL_NMPR": 36,
+   "RDNMADR_CD": "4213011400112180001032732"
+  }
+ ]
+}

@@ -38,23 +38,40 @@ OUT = ROOT / "data" / "tempshelters.js"
 
 # (넣을 자리, 칸 이름을 찾는 규칙) — 위에서부터 먼저 맞는 칸을 가져갑니다
 #
-# safetydata.go.kr 의 오픈API 는 칸 이름이 영문 약어(FCLT_NM · RONA_DADDR · LAT · LOT
-# …)입니다. 개발 자리에서 그 서버로 나갈 수 없어 실제 칸 이름을 확인하지 못했으므로,
-# 흔한 약어까지 규칙에 넣어 두고 무엇을 무엇으로 읽었는지 화면에 그대로 찍습니다.
+# safetydata.go.kr 의 오픈API 는 칸 이름이 영문 약어입니다.
+# ★ 2026-09-08 사용자가 실제 응답(15,911건)을 보내 주어 **칸 이름을 확인했습니다.**
+#   VT_ACMDFCLTY_NM(시설명) · DTL_ADRES(주소) · LA/LO(좌표) ·
+#   VT_ACMD_PSBL_NMPR(수용인원) · FCLTY_AR(면적) · KOREAN_CTPRVN_NM(시도).
+#   짐작으로 둔 규칙 **두 개가 틀렸습니다** — 수용인원(ACPT_PSN 으로 짐작 → 실제
+#   NMPR)과 시도(^CTPRVN$ 로 못 박음 → 실제 KOREAN_CTPRVN_NM). 둘 다 고쳤습니다.
+# ⚠ 이 자료에는 **관리기관·전화가 아예 없습니다.** 비워 둡니다(지어내지 않습니다).
+# ⚠ 시설구분은 **뜻이 적히지 않은 코드**(001·003·018 …)뿐이라 비워 둡니다 —
+#   "003" 을 화면에 찍으면 담당자에게 아무 뜻이 없습니다.
+# 다른 자료로 갈아탈 수도 있으니 흔한 약어 규칙은 그대로 남겨 둡니다.
 RULES = [
     ("시설명", r"시설명|명칭|장소명|건물명|(FCLT|SHLT|SHUNT|BLDG|PLC|FCLTY).*(NM|NAME)|^(NM|NAME)$"),
-    ("시도", r"^(시도|시도명|광역시도|시\.도)$|^(CTPV|CTPRVN|SIDO|CTPV_NM|SIDO_NM)$"),
+    ("시도", r"^(시도|시도명|광역시도|시\.도)$|CTPRVN|(^|_)(CTPV|SIDO)(_|$)"),
     ("시군구", r"^(시군구|시군구명|시\.군\.구)$|^(SGG|SGG_NM|SIGNGU|SIGNGU_NM|SIG_NM)$"),
     ("도로명", r"도로명|RONA|ROAD_?N?M?_?ADDR|RN_ADDR"),
     ("지번", r"지번|소재지지번|^주소$|소재지주소|LNM_ADDR|ADDR|ADRES|DADDR"),
     ("위도", r"위도|^lat|^(la|y|ycord|y_?crd)$|LATITUDE"),
     ("경도", r"경도|^(lon|lng)|^(lot|lo|x|xcord|x_?crd)$|LONGITUDE"),
-    ("수용인원", r"수용|수용가능|최대수용|CPCTY|CAPA|ACPT_?PSN"),
+    # NMPR = 인원. 이것이 없어 수용인원이 통째로 비어 있었습니다(1,000줄 전부).
+    ("수용인원", r"수용|수용가능|최대수용|CPCTY|CAPA|ACPT_?PSN|NMPR"),
     ("시설구분", r"시설구분|시설유형|시설종류|^구분$|^유형$|(FCLT|SHLT).*(SE|TY|KND|GBN|CD_NM)"),
     ("면적", r"면적|(^|_)AR(_|$)|AREA|TOT_?AR"),
     ("관리기관", r"관리기관|관리주체|기관명|담당기관|운영기관|(MNG|MNGT|OPER|INST|DEPT|CHRG).*(NM|NAME)"),
     ("전화", r"전화|연락처|번호|TELNO|^TEL|PHONE"),
 ]
+
+# 이름은 주소처럼 생겼지만 주소가 아닌 칸 — 확인한 것만 적습니다.
+#   RN_DTL_ADRES : 값이 "경로당"·"주민공동시설-1" 같은 **건물 안 자리 이름**
+#   SGG_RN       : **길 이름만**(살구둑길) 있고 번지가 없음
+# 주소 자리에 들어가면 목록에 "경로당" 이 주소로 찍힙니다.
+NEVER = {
+    "도로명": re.compile(r"^(RN_DTL_ADRES|SGG_RN)$", re.I),
+    "지번": re.compile(r"^(RN_DTL_ADRES|SGG_RN)$", re.I),
+}
 
 # 코드 칸(SIG_CD 처럼 숫자만 든 칸)을 이름 자리에 넣으면 화면에 "41135" 가 찍힙니다.
 # 이름을 찾는 자리에서는 처음부터 뺍니다.
@@ -163,6 +180,8 @@ def map_cols(cols: list) -> dict:
             if not c or c in used:
                 continue
             if name in NO_CODE and CODE_COL.search(c):
+                continue
+            if name in NEVER and NEVER[name].search(c):
                 continue
             if rx.search(c):
                 got[name] = c

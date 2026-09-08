@@ -62,12 +62,13 @@
 </div>
 
 <div class="note" style="background:#fff6e5;border-color:#f0dcb4;color:#6b4708">
-  <b>받은 자료가 예상과 다르면 그대로 알려 주세요.</b>
-  이 자료의 <b>칸 이름을 개발 자리에서 확인할 수 없었습니다</b> —
-  <code>safetydata.go.kr</code> 로 나가는 길이 막혀 있어 한 줄도 받아 보지 못했습니다.
-  그래서 칸을 <b>이름 규칙으로 짐작해</b> 짝지었습니다. 아래 <b>2. 제대로 읽었는지 확인</b>
-  에서 짝이 틀렸거나 빠진 것이 보이면 <b>‘원자료 첫 줄 복사’</b> 를 눌러 붙여 주세요.
-  그 한 줄만 보면 규칙을 정확히 고칠 수 있습니다.
+  <b>이 자료에 없는 것 두 가지 — 비워 둡니다.</b>
+  2026-09-08 실제 응답(15,911건)으로 칸 이름을 확인했습니다. 그 결과
+  <b>관리기관·전화번호가 이 자료에 아예 없고</b>, <b>시설구분</b>은 뜻이 적히지 않은
+  코드(<code>001</code>·<code>003</code>…)만 있습니다. 없는 값을 지어내면 담당자가
+  틀린 곳으로 전화를 걸게 되므로 <b>비워 둡니다.</b>
+  아래 <b>2. 제대로 읽었는지 확인</b>에서 짝이 틀린 것이 보이면
+  <b>‘원자료 첫 줄 복사’</b> 를 눌러 알려 주세요.
 </div>
 
 <div class="card">
@@ -78,7 +79,10 @@
   <div class="row">
     <button id="go">다시 받기</button>
     <button id="pick" class="g">내려받아 둔 JSON 파일로 하기</button>
-    <input type="file" id="file" accept=".json,application/json" hidden>
+    <!-- 여러 개를 한꺼번에 고를 수 있어야 합니다 — 이 자료는 한 번에 1,000줄까지만
+         와서 총 15,911건이면 **16개 쪽**이 됩니다. 한 개씩 넣게 하면 16번을
+         반복해야 하고, 그러면 앞서 넣은 것이 지워집니다. -->
+    <input type="file" id="file" accept=".json,application/json" multiple hidden>
   </div>
 
   <details style="margin-top:16px">
@@ -141,8 +145,12 @@
       <code>https://www.safetydata.go.kr/V2/api/DSSP-IF-10945?serviceKey=인증키&amp;pageNo=1&amp;numOfRows=10&amp;returnType=json</code>
       <br>(공공데이터포털 자료라면 <code>자료주소?page=1&amp;perPage=10&amp;serviceKey=인증키</code>)</li>
     <li>JSON 은 나오는데 이 페이지에서만 실패하면 브라우저 보안(CORS) 때문입니다.
-      주소창에서 <code>numOfRows=99999</code> 로 열어 <b>Ctrl+S</b> 로 저장한 뒤,
-      위의 <b>내려받아 둔 JSON 파일로 하기</b> 로 그 파일을 고르세요. 결과는 같습니다.
+      주소창에서 <code>numOfRows=1000</code> 으로 열어 <b>Ctrl+S</b> 로 저장하고,
+      <code>pageNo=1</code> 부터 <b>끝 쪽까지</b> 되풀이한 뒤(총건수 ÷ 1000, 2026-09
+      기준 <b>16쪽</b>), 위의 <b>내려받아 둔 JSON 파일로 하기</b> 로
+      <b>받은 파일을 한꺼번에 다 고르세요</b>(여러 개 선택됩니다). 결과는 같습니다.
+      <br><span class="warn">더 큰 숫자를 넣어도 소용없습니다</span> —
+      이 서버는 <code>numOfRows</code> 를 <b>1000 으로 깎아서</b> 돌려줍니다(확인함).
       <br>그 <code>.json</code> 파일을 저에게 붙여 주셔도 됩니다 —
       <code>python3 build/make_tempshelters.py 받은파일.json</code> 으로 같은 결과를 만듭니다.
       그 길이면 <b>칸 이름을 제가 직접 보고</b> 맞출 수 있어 더 확실합니다.</li>
@@ -183,24 +191,42 @@ try {
    "도로명주소"/"소재지도로명주소" …). 이름을 정확히 맞추는 대신 규칙으로
    찾습니다. 무엇을 무엇으로 읽었는지는 화면에 그대로 보여 줍니다.
 
-   safetydata.go.kr 의 오픈API 는 칸 이름이 **영문 약어**(FCLT_NM · RONA_DADDR ·
-   LAT · LOT …)입니다. 개발 자리에서 그 서버로 나갈 수 없어 **실제 칸 이름을
-   확인하지 못했습니다** — 그래서 흔한 약어까지 규칙에 넣어 두었고, 짝이 틀리면
-   화면에서 눈에 보이도록 했습니다. 짐작을 자료처럼 보이게 두지 않습니다. */
+   safetydata.go.kr 의 오픈API 는 칸 이름이 **영문 약어**입니다.
+   ★ 2026-09-08 사용자가 실제 응답(15,911건)을 보내 주어 **칸 이름을 확인했습니다.**
+     확인된 것 — VT_ACMDFCLTY_NM(시설명) · DTL_ADRES(주소) · LA/LO(좌표) ·
+     VT_ACMD_PSBL_NMPR(수용인원) · FCLTY_AR(면적) · KOREAN_CTPRVN_NM(시도).
+     짐작으로 두었던 규칙 두 개가 **틀렸습니다** — 수용인원(ACPT_PSN 으로 짐작 →
+     실제 NMPR)과 시도(^CTPRVN$ 로 못 박음 → 실제 KOREAN_CTPRVN_NM)입니다.
+   ⚠ 이 자료에 **관리기관·전화가 아예 없습니다.** 비워 둡니다 — 지어내지 않습니다.
+   ⚠ 시설구분은 **코드(001·003·018 …)만** 있고 뜻을 적은 칸이 없습니다. 코드표를
+     받지 못했으므로 비워 둡니다 — "003" 을 화면에 찍으면 아무 뜻이 없습니다.
+   다른 자료로 갈아탈 수도 있으니 흔한 약어 규칙은 그대로 남겨 둡니다. */
 var RULES = [
   ["시설명",   /시설명|명칭|장소명|건물명|(FCLT|SHLT|SHUNT|BLDG|PLC|FCLTY).*(NM|NAME)|^(NM|NAME)$/i],
-  ["시도",     /^(시도|시도명|광역시도|시\.도)$|^(CTPV|CTPRVN|SIDO|CTPV_NM|SIDO_NM)$/i],
+  ["시도",     /^(시도|시도명|광역시도|시\.도)$|CTPRVN|(^|_)(CTPV|SIDO)(_|$)/i],
   ["시군구",   /^(시군구|시군구명|시\.군\.구)$|^(SGG|SGG_NM|SIGNGU|SIGNGU_NM|SIG_NM)$/i],
   ["도로명",   /도로명|RONA|ROAD_?N?M?_?ADDR|RN_ADDR/i],
   ["지번",     /지번|소재지지번|^주소$|소재지주소|LNM_ADDR|ADDR|ADRES|DADDR/i],
   ["위도",     /위도|^lat|^(la|y|ycord|y_?crd)$|LATITUDE/i],
   ["경도",     /경도|^(lon|lng)|^(lot|lo|x|xcord|x_?crd)$|LONGITUDE/i],
-  ["수용인원", /수용|수용가능|최대수용|CPCTY|CAPA|ACPT_?PSN/i],
+  /* NMPR = 인원. 실제 칸이 VT_ACMD_PSBL_NMPR 이라 ACPT_PSN 짐작으로는 못 잡았고,
+     수용인원이 통째로 비어 있었습니다(1,000줄 전부). */
+  ["수용인원", /수용|수용가능|최대수용|CPCTY|CAPA|ACPT_?PSN|NMPR/i],
   ["시설구분", /시설구분|시설유형|시설종류|^구분$|^유형$|(FCLT|SHLT).*(SE|TY|KND|GBN|CD_NM)/i],
   ["면적",     /면적|(^|_)AR(_|$)|AREA|TOT_?AR/i],
   ["관리기관", /관리기관|관리주체|기관명|담당기관|운영기관|(MNG|MNGT|OPER|INST|DEPT|CHRG).*(NM|NAME)/i],
   ["전화",     /전화|연락처|번호|TELNO|^TEL|PHONE/i]
 ];
+
+/* ── 이름이 주소처럼 생겼지만 주소가 아닌 칸 ──────────────────
+   `RN_DTL_ADRES` 는 이름만 보면 '도로명 상세주소' 같은데, 실제 값은
+   **"경로당"·"주민공동시설-1"** 같은 **건물 안의 자리 이름**입니다(확인함).
+   주소 자리에 들어가면 목록에 "경로당" 이 주소로 찍힙니다.
+   `SGG_RN` 은 **길 이름만**(살구둑길) 있어 번지가 없습니다 — 주소가 아닙니다. */
+var NEVER = {
+  "도로명": /^(RN_DTL_ADRES|SGG_RN)$/i,
+  "지번":   /^(RN_DTL_ADRES|SGG_RN)$/i
+};
 /* 코드 칸(SIG_CD 처럼 숫자만 든 칸)은 이름 자리에 넣으면 화면에 "41135" 가
    찍힙니다. 이름을 찾는 자리에서는 처음부터 뺍니다. */
 function isCodeCol(c) { return /(^|_)(CD|CODE|SN|ID|SEQ)$/i.test(c); }
@@ -216,6 +242,7 @@ function mapCols(row) {
       for (var k in MAP) if (MAP[k] === COLS[i]) used = true;
       if (used) continue;
       if (코드금지[r[0]] && isCodeCol(COLS[i])) continue;
+      if (NEVER[r[0]] && NEVER[r[0]].test(COLS[i])) continue;
       if (r[1].test(COLS[i])) { MAP[r[0]] = COLS[i]; return; }
     }
   });
@@ -242,7 +269,20 @@ var SIDO_FIX = {
   "전남": "전라남도", "경북": "경상북도", "경남": "경상남도",
   "제주": "제주특별자치도", "제주도": "제주특별자치도", "제주특별자치시": "제주특별자치도"
 };
-var S = window.SHELTERS || {};
+/* ── 저장소 밖에서 혼자 열었을 때를 위한 지역 이름표 ──────────
+   이 페이지는 옆의 `../data/shelters.js` 를 읽어 시·도·시·군·구 이름을 화학사고
+   대피장소 자료와 **똑같이** 맞춥니다. 그런데 사용자는 이 HTML 한 장만
+   내려받아 다운로드 폴더에서 여는 경우가 많습니다 — 그러면 그 파일이 없어
+   이름이 어긋납니다(특히 **세종**은 그 자료가 시·군·구 열쇠를 `null` 로 두는데,
+   이름표가 없으면 "세종특별자치시" 로 들어가 두 층이 따로 놀게 됩니다).
+   그래서 **이름만** 여기에 박아 둡니다(1.5KB · 좌표는 안 들어갑니다).
+   build/make_guide.mjs 처럼 자동 생성이 아니라 손으로 갈아 끼우는 값이니,
+   대피장소 자료의 시·군·구가 바뀌면 이 줄도 함께 고치세요. */
+var REGION_FALLBACK = {"강원특별자치도":["강릉시","고성군","동해시","삼척시","속초시","양구군","양양군","영월군","원주시","인제군","정선군","철원군","춘천시","태백시","평창군","홍천군","화천군","횡성군"],"경기도":["가평군","고양시","과천시","광명시","광주시","구리시","군포시","김포시","남양주시","동두천시","부천시","성남시","수원시","시흥시","안산시","안성시","안양시","양주시","양평군","여주시","연천군","오산시","용인시","의왕시","의정부시","이천시","파주시","평택시","포천시","하남시","화성시"],"경상남도":["거제시","거창군","고성군","김해시","남해군","밀양시","사천시","산청군","양산시","의령군","진주시","창녕군","창원시","통영시","하동군","함안군","함양군","합천군"],"경상북도":["경산시","경주시","고령군","구미시","김천시","문경시","봉화군","상주시","성주군","안동시","영덕군","영양군","영주시","영천시","예천군","울릉군","울진군","의성군","청도군","청송군","칠곡군","포항시"],"광주광역시":["광산구","남구","동구","북구","서구"],"대구광역시":["군위군","남구","달서구","달성군","동구","북구","서구","수성구","중구"],"대전광역시":["대덕구","동구","서구","유성구","중구"],"부산광역시":["강서구","금정구","기장군","남구","동구","동래구","부산진구","북구","사상구","사하구","서구","수영구","연제구","영도구","중구","해운대구"],"서울특별시":["강남구","강동구","강북구","강서구","관악구","광진구","구로구","금천구","노원구","도봉구","동대문구","동작구","마포구","서대문구","서초구","성동구","성북구","송파구","양천구","영등포구","용산구","은평구","종로구","중구","중랑구"],"세종특별자치시":["null"],"울산광역시":["남구","동구","북구","울주군","중구"],"인천광역시":["강화군","계양구","남동구","동구","미추홀구","부평구","서구","연수구","옹진군","중구"],"전라남도":["강진군","고흥군","곡성군","광양시","구례군","나주시","담양군","목포시","무안군","보성군","순천시","신안군","여수시","영광군","영암군","완도군","장성군","장흥군","진도군","함평군","해남군","화순군"],"전북특별자치도":["고창군","군산시","김제시","남원시","무주군","부안군","순창군","완주군","익산시","임실군","장수군","전주시","정읍시","진안군"],"제주특별자치도":["서귀포시","제주시"],"충청남도":["계룡시","공주시","금산군","논산시","당진시","보령시","부여군","서산시","서천군","아산시","예산군","천안시","청양군","태안군","홍성군"],"충청북도":["괴산군","단양군","보은군","영동군","옥천군","음성군","제천시","증평군","진천군","청주시","충주시"]};
+var S = window.SHELTERS || REGION_FALLBACK;
+if (!window.SHELTERS)
+  log("옆의 data/shelters.js 를 못 읽어 안에 박아 둔 지역 이름표를 씁니다"
+      + " (결과는 같습니다).");
 function fixSido(x) {
   var s = String(x || "").trim();
   if (S[s]) return s;
@@ -418,7 +458,11 @@ function keyFor(base) {
   if (!isSafety(base) && od && od.value.trim()) return od.value.trim();
   return $("#key").value.trim();
 }
-function perPage(base) { return isSafety(base) ? 100 : 1000; }
+/* 한 쪽에 몇 줄을 받나 — 2026-09-08 실제 응답으로 확인했습니다.
+   safetydata 는 numOfRows 를 **1000 으로 깎아서** 돌려줍니다(99999 를 넣어도
+   1000). 총 15,911건이라 100줄씩이면 160번을 불러야 하는데, 하루 한도가
+   1,000번이라 한 번 실수하면 그날 못 받습니다. 1000줄씩 = 16번입니다. */
+function perPage(base) { return 1000; }
 function pageUrl(base, key, p) {
   var sep = base.indexOf("?") >= 0 ? "&" : "?";
   if (isSafety(base))
@@ -547,33 +591,57 @@ function fetchAll() {
 
 $("#go").onclick = fetchAll;
 $("#pick").onclick = function () { $("#file").click(); };
+/* 고른 파일을 **차례로 다 읽어 이어 붙입니다.** 한 쪽에 1,000줄까지만 오는
+   자료라, 주소창에서 저장하는 길로 가면 파일이 여러 개가 됩니다.
+   같은 줄이 두 번 들어가면 지도에 마커가 겹치므로, 시설명+좌표로 걸러냅니다
+   (쪽을 겹쳐 저장하는 일이 흔합니다). */
 $("#file").onchange = function () {
-  var f = this.files[0];
-  if (!f) return;
+  var fs = [].slice.call(this.files);
+  if (!fs.length) return;
   runSeq++;                       // 돌고 있는 받아오기가 있으면 그 결과는 버린다
   $("#go").disabled = false;
-  var rd = new FileReader();
-  rd.onload = function () {
-    try {
-      var d = JSON.parse(rd.result);
-      var bad = headMsg(d);
-      if (bad) {
-        log("이 파일에는 서버 오류가 담겨 있습니다 — " + bad);
-        오류풀이(bad);              /* 코드만 띄우면 무엇을 할지 알 수 없습니다 */
+  var all = [], 본것 = {}, 겹침 = 0, i = 0, 탈 = false;
+
+  var 다음 = function () {
+    if (탈) return;
+    if (i >= fs.length) {
+      if (!all.length) {
+        log("줄이 담긴 자리를 찾지 못했습니다.");
         return;
       }
-      var rows = rowsOf(d);
-      if (!rows.length) {
-        log("줄이 담긴 자리를 찾지 못했습니다. 파일 첫머리: "
-            + JSON.stringify(d).slice(0, 200));
-        return;
-      }
-      log("파일에서 읽음 — " + rows.length + "건");
-      setBar(100, rows.length.toLocaleString() + "건");
-      build(rows);
-    } catch (e) { log("JSON 을 읽지 못했습니다: " + e.message); }
+      log("파일 " + fs.length + "개에서 읽음 — " + all.length + "건"
+          + (겹침 ? " · 겹쳐서 뺀 줄 " + 겹침 : ""));
+      setBar(100, all.length.toLocaleString() + "건");
+      build(all);
+      return;
+    }
+    var f = fs[i++];
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var d = JSON.parse(rd.result);
+        var bad = headMsg(d);
+        if (bad) {
+          log(f.name + " 에는 서버 오류가 담겨 있습니다 — " + bad);
+          오류풀이(bad);            /* 코드만 띄우면 무엇을 할지 알 수 없습니다 */
+          탈 = true; return;
+        }
+        var rows = rowsOf(d);
+        if (!rows.length) log(f.name + " — 줄이 없습니다");
+        rows.forEach(function (r) {
+          /* 열쇠는 **원자료 그대로**로 만듭니다 — 칸 짝짓기(mapCols)는 아직
+             안 돌았으므로 여기서 MAP 을 쓰면 안 됩니다. */
+          var k = JSON.stringify(r);
+          if (본것[k]) { 겹침++; return; }
+          본것[k] = 1; all.push(r);
+        });
+      } catch (e) { log(f.name + " — JSON 을 읽지 못했습니다: " + e.message); }
+      다음();
+    };
+    rd.onerror = function () { log(f.name + " — 파일을 읽지 못했습니다"); 다음(); };
+    rd.readAsText(f, "utf-8");
   };
-  rd.readAsText(f, "utf-8");
+  다음();
 };
 
 $("#copyRaw").onclick = function () {

@@ -80,7 +80,9 @@ chk(await P.inputValue('#url') === 'https://www.safetydata.go.kr/V2/api/DSSP-IF-
 await P.setInputFiles('#file', RPATH + '/tests/fixtures/sample_api_safety.json');
 await P.waitForTimeout(700);
 const log2 = await P.textContent('#log');
-chk(log2.includes('파일에서 읽음 — 3건'), `줄이 body 에 담겨 와도 읽는다 — ${log2.trim().split('\n')[0]}`);
+/* 여러 쪽을 한꺼번에 고를 수 있게 되면서 문구가 "파일 N개에서 읽음" 이 되었습니다
+   (이 자료는 한 번에 1,000줄까지만 와서 15,911건이면 16쪽입니다). */
+chk(/파일 1개에서 읽음 — 3건/.test(log2), `줄이 body 에 담겨 와도 읽는다 — ${log2.trim().split('\n').pop()}`);
 const cols2 = await P.textContent('#cols');
 [['시설명','FCLT_NM'],['위도','LAT'],['경도','LOT'],['수용인원','ACPT_PSN_CPCTY'],
  ['면적','TOT_AR'],['관리기관','MNG_INST_NM'],['전화','MNG_INST_TELNO'],
@@ -99,6 +101,71 @@ new Function('w', fs.readFileSync(await dl2.path(), 'utf-8').replace(/^var /gm, 
 chk(!!(ctx2.TEMPSHELTERS['경기도'] && ctx2.TEMPSHELTERS['경기도']['성남시']),
     '영문 약어 자료도 대피장소 자료와 같은 지역 이름으로 묶인다');
 chk(!ctx2.TEMPSHELTERS['충청남도'], '좌표 없는 줄은 여기서도 안 들어간다');
+
+/* ── 진짜 자료 — 2026-09-08 사용자가 보내 준 실제 응답에서 뽑은 네 줄 ──────
+   여기까지는 "모양이 달라도 버티는가" 를 재는 것이었고, 이제는 **실제 칸 이름으로
+   제대로 읽는가** 를 잽니다. 짐작으로 둔 규칙 두 개가 틀려 있었습니다 —
+   수용인원(NMPR)이 통째로 비었고, 시도(KOREAN_CTPRVN_NM)를 못 잡았습니다.
+   같은 실수가 되풀이되지 않게 실제 이름을 여기에 박아 둡니다. */
+await P.goto(ROOT + 'build/fetch_tempshelter.html');
+await P.waitForTimeout(400);
+await P.setInputFiles('#file', RPATH + '/tests/fixtures/sample_api_real.json');
+await P.waitForTimeout(700);
+const cols3 = await P.$$eval('#cols div', ds => ds.map(d => d.textContent));
+const 짝 = (k, v) => chk(cols3.some(t => t.indexOf(k) === 0 && t.includes(v)),
+  `진짜 칸 이름: ${k} ← ${v}`);
+짝('시설명', 'VT_ACMDFCLTY_NM');
+짝('시도', 'KOREAN_CTPRVN_NM');
+짝('지번', 'DTL_ADRES');
+짝('위도', 'LA'); 짝('경도', 'LO');
+짝('수용인원', 'VT_ACMD_PSBL_NMPR');
+짝('면적', 'FCLTY_AR');
+/* 이 자료에 없는 것 — 지어내지 않는다 */
+['시설구분', '관리기관', '전화'].forEach(k =>
+  chk(cols3.some(t => t.indexOf(k) === 0 && t.includes('원자료에 없음')),
+      `${k} 는 이 자료에 없으므로 비워 둔다`));
+/* RN_DTL_ADRES 는 값이 "경로당" 인 **건물 안 자리 이름**이다 — 주소로 쓰면
+   목록에 "경로당" 이 주소로 찍힌다. SGG_RN 은 번지 없는 길 이름이다. */
+chk(cols3.some(t => /안 쓴 칸/.test(t) && t.includes('RN_DTL_ADRES')),
+    'RN_DTL_ADRES(건물 안 자리 이름)를 주소로 쓰지 않는다');
+chk(cols3.some(t => /안 쓴 칸/.test(t) && t.includes('SGG_RN')),
+    'SGG_RN(번지 없는 길 이름)을 주소로 쓰지 않는다');
+
+const [dl3] = await Promise.all([P.waitForEvent('download'), P.click('#dl')]);
+const ctx3 = {};
+new Function('w', fs.readFileSync(await dl3.path(), 'utf-8').replace(/^var /gm, 'w.'))(ctx3);
+const T3 = ctx3.TEMPSHELTERS;
+const 원주 = (T3['강원특별자치도'] || {})['원주시'] || [];
+chk(원주.length === 3, `강원 원주시 3곳 — ${원주.length}`);
+const 경로당 = 원주.filter(r => r[0] === '행구촌경로당')[0];
+chk(!!경로당 && 경로당[3] === 63, `수용인원이 들어간다 — ${경로당 && 경로당[3]}`);
+chk(!!경로당 && 경로당[1] === '164㎡', `면적 — ${경로당 && 경로당[1]}`);
+chk(!!경로당 && /원주시 살구둑길/.test(경로당[2]), `주소 — ${경로당 && 경로당[2]}`);
+chk(!!경로당 && 경로당[7] === '' && 경로당[8] === '', '관리기관·전화는 빈칸으로 둔다');
+chk(!!(T3['세종특별자치시'] && T3['세종특별자치시']['null']),
+    '세종은 대피장소 자료와 같은 열쇠(null)로 들어간다');
+chk(!원주.some(r => r[2] === '경로당'), '"경로당" 이 주소 자리에 들어가지 않는다');
+
+/* ── 쪽을 여러 개 한꺼번에 고르기 ────────────────────────────
+   이 자료는 한 번에 **1,000줄까지만** 옵니다(서버가 numOfRows 를 깎습니다).
+   총 15,911건이면 16쪽이라, 주소창에서 저장하는 길로 가면 파일이 16개가 됩니다.
+   한 개씩만 받으면 앞의 것이 지워져 마지막 쪽만 남습니다 — 그 실수를 여기서 잡습니다.
+   2쪽 fixture 의 마지막 줄은 1쪽과 **일부러 겹쳐** 두었습니다(겹쳐 저장하는 일이
+   흔합니다). 겹친 줄이 두 번 들어가면 지도에 마커가 겹칩니다. */
+await P.goto(ROOT + 'build/fetch_tempshelter.html');
+await P.waitForTimeout(400);
+await P.setInputFiles('#file', [RPATH + '/tests/fixtures/sample_api_real.json',
+                                RPATH + '/tests/fixtures/sample_api_real2.json']);
+await P.waitForTimeout(900);
+const log4 = await P.textContent('#log');
+chk(/파일 2개에서 읽음 — 7건/.test(log4), `쪽 두 개를 이어 붙인다 — ${log4.trim().split('\n').pop()}`);
+chk(/겹쳐서 뺀 줄 1/.test(log4), '겹쳐 저장한 줄은 한 번만 넣는다');
+const [dl4] = await Promise.all([P.waitForEvent('download'), P.click('#dl')]);
+const ctx4 = {};
+new Function('w', fs.readFileSync(await dl4.path(), 'utf-8').replace(/^var /gm, 'w.'))(ctx4);
+chk(ctx4.TEMPSHELTER_META.총건수 === 7, `합쳐서 7곳 — ${ctx4.TEMPSHELTER_META.총건수}`);
+chk((ctx4.TEMPSHELTERS['강원특별자치도']['원주시'] || [])
+      .filter(r => r[0] === '행구촌경로당').length === 1, '겹친 시설이 두 번 찍히지 않는다');
 
 /* 서버가 200 으로 답하면서 몸통에 오류를 담아 보낸 경우 */
 await P.goto(ROOT + 'build/fetch_tempshelter.html');

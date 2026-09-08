@@ -1,0 +1,80 @@
+{
+ "header": {
+  "resultMsg": "NORMAL SERVICE",
+  "resultCode": "00",
+  "errorMsg": null
+ },
+ "numOfRows": 1000,
+ "pageNo": 2,
+ "totalCount": 15911,
+ "body": [
+  {
+   "DTL_ADRES": "강원특별자치도 원주시 행구로 279(행구동)1850-0",
+   "ACMDFCLTY_SE_CD": "003",
+   "LO": "127.98768951615848",
+   "SGG_RN": null,
+   "VT_ACMDFCLTY_NM": "건영아파트경로당",
+   "RN_DTL_ADRES": "경로당",
+   "BDONG_CD": "5113011400",
+   "ARCD": "5113000000",
+   "HDONG_CD": "5113065000",
+   "FCLTY_AR": 144.29,
+   "LA": "37.343615928642265",
+   "ACMDFCLTY_SN": 205,
+   "KOREAN_CTPRVN_NM": null,
+   "VT_ACMD_PSBL_NMPR": 55,
+   "RDNMADR_CD": "4213011400118500000033600"
+  },
+  {
+   "DTL_ADRES": "강원특별자치도 원주시 행구로 250(행구동)1534-29",
+   "ACMDFCLTY_SE_CD": "018",
+   "LO": "127.98389004592374",
+   "SGG_RN": null,
+   "VT_ACMDFCLTY_NM": "행구동행정복지센터",
+   "RN_DTL_ADRES": null,
+   "BDONG_CD": "5113011400",
+   "ARCD": "5113000000",
+   "HDONG_CD": "5113065000",
+   "FCLTY_AR": 551,
+   "LA": "37.342621770026184",
+   "ACMDFCLTY_SN": 192,
+   "KOREAN_CTPRVN_NM": null,
+   "VT_ACMD_PSBL_NMPR": 180,
+   "RDNMADR_CD": "4213011400115340029000001"
+  },
+  {
+   "DTL_ADRES": "강원특별자치도 원주시 북원로 2001(무실동)산123-1",
+   "ACMDFCLTY_SE_CD": "001",
+   "LO": "127.92079212285184",
+   "SGG_RN": "북원로",
+   "VT_ACMDFCLTY_NM": "대성고등학교",
+   "RN_DTL_ADRES": null,
+   "BDONG_CD": "5113011500",
+   "ARCD": "5113000000",
+   "HDONG_CD": "5113066000",
+   "FCLTY_AR": 486,
+   "LA": "37.32734682742507",
+   "ACMDFCLTY_SN": 138,
+   "KOREAN_CTPRVN_NM": "강원도",
+   "VT_ACMD_PSBL_NMPR": 187,
+   "RDNMADR_CD": "4213011500111270004035732"
+  },
+  {
+   "DTL_ADRES": "강원특별자치도 원주시 살구둑길 19-2 (행구동)1300",
+   "ACMDFCLTY_SE_CD": "003",
+   "LO": "127.99312548183634",
+   "SGG_RN": "살구둑길",
+   "VT_ACMDFCLTY_NM": "행구촌경로당",
+   "RN_DTL_ADRES": null,
+   "BDONG_CD": "5113011400",
+   "ARCD": "5113000000",
+   "HDONG_CD": "5113065000",
+   "FCLTY_AR": 164,
+   "LA": "37.345495059661005",
+   "ACMDFCLTY_SN": 125,
+   "KOREAN_CTPRVN_NM": "강원도",
+   "VT_ACMD_PSBL_NMPR": 63,
+   "RDNMADR_CD": "4213011400113000000033763"
+  }
+ ]
+}
