@@ -4,23 +4,30 @@
 <meta charset="utf-8">
 <title>화학사고 초동대응 지원 서비스 — 사용설명서</title>
 <!-- ────────────────────────────────────────────────────────────
-     지자체 담당자용 사용설명서 (인쇄용 A4)
+     지자체 담당자용 사용설명서 (인쇄용 A4 · 넉 장)
 
      이 파일은 **PDF 의 원본**입니다. 고칠 곳은 여기를 고치고
      `node build/make_guide.mjs` 를 돌리면 사진을 다시 찍고 PDF 를
      다시 굽습니다. PDF 를 직접 고치지 마세요.
 
-     ── 이 판의 조건 ───────────────────────────────────────────
-     사용자 요청 — **"글은 최대한 줄이고 스크린샷·그림으로."**
-     예전 판은 글이 5,910자였고 사진은 설명을 거드는 정도였습니다.
-     지금은 **사진이 본문**이고 글은 낱말만 답니다.
-
-     · 가리킬 자리는 **사진 안에 ①②③ 으로 박혀** 있습니다
-       (build/make_guide.mjs 의 `딱지`). 설명서에서 좌표로 얹으면
-       화면을 조금만 고쳐도 엉뚱한 곳을 가리킵니다.
-     · 한 줄 설명은 **8낱말 안쪽**으로 씁니다. 문장으로 늘이지 마세요.
-     · 지어낸 수치를 넣지 않습니다(자료 건수·기준일은 화면과 같아야 함).
-     · 도구가 하지 않는 일(판단·확산모델링)은 마지막 쪽에 그림으로 둡니다.
+     ── 이 판의 조건 (2026-09-08 사용자 지시) ──────────────────
+     ① **A4 넉 장**을 넘기지 않습니다. `make_guide.mjs` 가 쪽수를 세어
+        넉 장이 아니면 알려 줍니다.
+     ② **사진을 크게.** 화면 전체를 A4 폭으로 줄이면 글자가 7pt 아래로
+        내려가 읽을 수 없습니다. 그래서 사진은 **필요한 칸만 잘라** 크게
+        싣습니다(`make_guide.mjs` 의 크롭). 나란히 두 장을 놓을 때도
+        각각 절반 폭에서 읽히는 크기여야 합니다.
+     ③ **문장이 중간에서 끊겨 보이지 않게.** `word-break:keep-all` 로
+        낱말 안에서 줄이 바뀌지 않게 하고, 한 덩어리로 읽어야 하는 것은
+        `<span class="nb">` 으로 묶습니다(주소·전화·수치·짧은 이름).
+        `text-wrap:pretty` 로 마지막 줄에 한 낱말만 남는 것도 막습니다.
+     ④ **각 도구가 무엇을 어떻게 할 수 있는지만** 씁니다. 판단·한계·
+        주의 문구는 넣지 않습니다(사용자 지시).
+     ⑤ 개선 의견·오류를 어디로 보내는지 **1쪽에 크게**, 나머지 쪽은
+        꼬리말에 한 줄로 둡니다.
+     ⑥ 가리킬 자리는 **사진 안에 ①②③ 으로 박혀** 있습니다
+        (`make_guide.mjs` 의 `딱지`). 설명서에서 좌표로 얹으면 화면을
+        조금만 고쳐도 엉뚱한 곳을 가리킵니다.
      ──────────────────────────────────────────────────────────── -->
 <style>
   /* 화면에 쓰는 것과 같은 서체 — 설명서와 실제 화면의 글자가 달라 보이면
@@ -33,108 +40,143 @@
   @page{size:A4}
 
   :root{
-    --ink:#12181f; --ink2:#4a5563; --ink3:#78838f;
+    --ink:#12181f; --ink2:#404a57; --ink3:#6d7885;
     --line:#d5dce3; --line2:#e8edf1; --panel:#f5f7fa;
     --blue:#256ef4; --blue-d:#0b50d0; --blue-l:#ecf2fe;
-    --red:#de3412; --red-l:#fdeeeb;
-    --amber:#8a5c00; --amber-l:#fff3db;
     --green:#1d6b34; --green-l:#e9f5ec;
   }
   *{box-sizing:border-box}
-  body{margin:0; font-family:"Pretendard GOV",system-ui,sans-serif;
-    font-size:10.5pt; line-height:1.55; color:var(--ink);
-    word-break:keep-all; -webkit-print-color-adjust:exact; print-color-adjust:exact}
 
-  .page{break-after:page}
+  /* ── 줄바뀜 ───────────────────────────────────────────────
+     `keep-all` 이 없으면 한글은 낱말 가운데서 줄이 바뀝니다("사고지" /
+     "점"). `pretty` 는 마지막 줄에 한 낱말만 떨어지는 것을 막습니다.
+     둘 다 PDF 를 굽는 크로미움이 그대로 씁니다. */
+  body{margin:0; font-family:"Pretendard GOV",system-ui,sans-serif;
+    font-size:10.5pt; line-height:1.6; color:var(--ink);
+    word-break:keep-all; overflow-wrap:normal; hyphens:none;
+    text-wrap:pretty;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact}
+  p,li{orphans:2; widows:2}
+  /* 한 덩어리로 읽어야 하는 것 — 주소·전화·수치·짧은 이름 */
+  .nb{white-space:nowrap}
+  b{font-weight:700}
+
+  .page{break-after:page; display:flex; flex-direction:column; min-height:0}
   .page:last-child{break-after:auto}
 
   /* ── 쪽 머리 ─────────────────────────────────────────────── */
-  .ph{display:flex; align-items:center; gap:7pt; margin:0 0 9pt;
-    padding-bottom:5pt; border-bottom:1.5pt solid var(--ink)}
-  .ph .n{flex:none; width:19pt; height:19pt; border-radius:4pt;
-    background:var(--blue); color:#fff; font-size:11pt; font-weight:700;
-    text-align:center; line-height:19pt}
-  .ph h2{margin:0; font-size:15pt; letter-spacing:-.01em}
-  .ph .tail{margin-left:auto; font-size:9pt; color:var(--ink3); font-weight:400}
+  .ph{display:flex; align-items:center; gap:8pt; margin:0 0 10pt;
+    padding-bottom:6pt; border-bottom:1.5pt solid var(--ink)}
+  .ph .n{flex:none; padding:0 7pt; height:21pt; border-radius:4pt;
+    background:var(--blue); color:#fff; font-size:12pt; font-weight:700;
+    line-height:21pt; letter-spacing:.02em}
+  .ph h2{margin:0; font-size:17pt; letter-spacing:-.01em; text-wrap:balance}
+  .ph .tail{margin-left:auto; font-size:9.5pt; color:var(--ink3)}
 
   /* ── 표지 ────────────────────────────────────────────────── */
-  .cover{border-top:7pt solid var(--blue); padding-top:13pt}
-  .cover .kind{font-size:9pt; letter-spacing:.08em; color:var(--blue-d); font-weight:700}
-  .cover h1{margin:5pt 0 3pt; font-size:25pt; line-height:1.2; letter-spacing:-.02em}
-  .cover .sub{margin:0; font-size:11.5pt; color:var(--ink2)}
-  .addr{margin-top:11pt; padding:9pt 12pt; background:var(--blue-l);
-    border-radius:5pt; display:flex; align-items:baseline; gap:9pt}
-  .addr b{font-size:9pt; color:var(--blue-d); flex:none}
-  .addr code{font-family:inherit; font-size:15pt; font-weight:700; color:var(--blue-d)}
-  .addr .no{margin-left:auto; font-size:9pt; color:var(--blue-d)}
+  .cover{border-top:7pt solid var(--blue); padding-top:14pt}
+  .cover .kind{font-size:9.5pt; letter-spacing:.06em; color:var(--blue-d);
+    font-weight:700}
+  .cover h1{margin:6pt 0 4pt; font-size:27pt; line-height:1.15;
+    letter-spacing:-.02em; text-wrap:balance}
+  .cover .sub{margin:0; font-size:12pt; color:var(--ink2)}
+  .addr{margin-top:12pt; padding:10pt 13pt; background:var(--blue-l);
+    border-radius:6pt; display:flex; align-items:baseline; gap:10pt}
+  .addr b{font-size:9.5pt; color:var(--blue-d); flex:none}
+  .addr code{font-family:inherit; font-size:17pt; font-weight:700;
+    color:var(--blue-d); white-space:nowrap}
+  .addr .no{margin-left:auto; font-size:9.5pt; color:var(--blue-d);
+    white-space:nowrap}
 
   /* ── 사진 ───────────────────────────────────────────────── */
-  figure{margin:0 0 8pt; break-inside:avoid}
-  figure img{display:block; width:100%; border:1pt solid var(--line); border-radius:4pt}
-  figure img.phone{width:44%; margin:0 auto}
-  .two{display:flex; gap:9pt; align-items:flex-start}
+  figure{margin:0; break-inside:avoid}
+  figure img{display:block; width:100%; border:1pt solid var(--line);
+    border-radius:5pt}
+  figcaption{margin-top:4pt; font-size:9.5pt; color:var(--ink2);
+    line-height:1.45}
+  figcaption b{color:var(--ink)}
+  /* 사진을 조금 좁게 놓는 자리 — 글자는 이미 충분히 크고, 쪽 높이를
+     아껴야 넉 장에 들어갑니다(사용자 지시: A4 4장). */
+  figure img.w70{width:70%; margin:0 auto}
+  figure img.w82{width:82%; margin:0 auto}
+  .two{display:flex; gap:10pt; align-items:flex-start}
+  /* 나란히 두 장을 놓을 때 **키를 맞춰** 붙잡습니다 — 한 장이 세로로
+     길면(세부사항 창) 그 한 장 때문에 쪽이 넘어갑니다. 폭이 아니라
+     높이로 잡아야 두 장이 같은 줄에서 끝납니다. */
+  .two.cap img{width:auto; max-width:100%; max-height:92mm; margin:0 auto}
+  .two.cap figcaption,.two.cap60 figcaption{text-align:center}
+  .two.cap60 img{width:auto; max-width:100%; max-height:60mm; margin:0 auto}
   .two > *{flex:1; min-width:0}
 
-  /* ── 사진에 딸린 번호 설명 — 한 줄씩 ─────────────────────── */
-  ol.keys{margin:0; padding:0; list-style:none; counter-reset:k}
-  ol.keys li{position:relative; padding-left:20pt; margin:0 0 4pt;
-    font-size:10.5pt; line-height:1.4; counter-increment:k}
-  ol.keys li::before{content:counter(k); position:absolute; left:0; top:.5pt;
-    width:14pt; height:14pt; border-radius:50%; background:var(--red);
-    color:#fff; font-size:8.5pt; font-weight:700; text-align:center; line-height:14pt}
-  ol.keys b{color:var(--ink)}
-  ol.keys .g{color:var(--ink3); font-weight:400}
+  /* ── 무엇을 할 수 있나 ─────────────────────────────────── */
+  ul.can{margin:0 0 10pt; padding:0; list-style:none}
+  ul.can li{position:relative; padding-left:15pt; margin-bottom:4pt;
+    font-size:11pt; line-height:1.5}
+  ul.can li:last-child{margin-bottom:0}
+  ul.can li::before{content:""; position:absolute; left:3pt; top:5.5pt;
+    width:5pt; height:5pt; border-radius:50%; background:var(--blue)}
 
-  /* 가로로 늘어놓는 번호 설명 — 사진 아래 한 줄에 셋 */
-  ol.keys.row{display:flex; gap:9pt}
-  ol.keys.row li{flex:1; margin:0}
-
-  /* ── 흐름 (그림) ────────────────────────────────────────── */
-  .flow{display:flex; align-items:center; gap:5pt; margin:0 0 9pt}
-  .flow .b{flex:1; padding:7pt 8pt; background:var(--panel);
+  /* ── 걸음 흐름 ──────────────────────────────────────────── */
+  .flow{display:flex; align-items:stretch; gap:5pt; margin:0 0 10pt}
+  .flow .b{flex:1; padding:5pt 7pt; background:var(--panel);
     border:1pt solid var(--line); border-radius:5pt; text-align:center}
-  .flow .b .t{font-size:11pt; font-weight:700; line-height:1.25}
-  .flow .b .d{font-size:9pt; color:var(--ink3); margin-top:1pt}
-  .flow .a{flex:none; color:var(--ink3); font-size:14pt; font-weight:700}
+  .flow .b .t{font-size:11pt; font-weight:700; line-height:1.3;
+    white-space:nowrap}
+  .flow .b .d{font-size:9pt; color:var(--ink3); margin-top:2pt;
+    line-height:1.3}
+  .flow .a{flex:none; align-self:center; color:var(--ink3);
+    font-size:13pt; font-weight:700}
   .flow .b.on{background:var(--blue-l); border-color:var(--blue)}
   .flow .b.on .t{color:var(--blue-d)}
 
-  /* ── 기기별 설치 (그림 3칸) ─────────────────────────────── */
-  .devs{display:flex; gap:9pt}
-  .dev{flex:1; border:1pt solid var(--line); border-radius:6pt; overflow:hidden}
-  .dev .hd{display:flex; align-items:center; gap:6pt; padding:6pt 9pt;
-    background:var(--panel); border-bottom:1pt solid var(--line)}
-  .dev .hd b{font-size:11pt}
-  .dev svg{width:17pt; height:17pt; flex:none; color:var(--blue-d)}
-  .dev ol{margin:0; padding:8pt 9pt 9pt 24pt; font-size:10pt; line-height:1.45}
-  .dev li{margin-bottom:3pt}
-  .dev li:last-child{margin-bottom:0}
-  kbd{font-family:inherit; font-weight:700; background:var(--blue-l);
-    color:var(--blue-d); border-radius:3pt; padding:0 3pt}
+  /* ── 사진 속 번호와 짝지어 읽는 줄 ─────────────────────── */
+  ol.keys{margin:6pt 0 0; padding:0; list-style:none; counter-reset:k}
+  ol.keys li{position:relative; padding-left:19pt; margin-bottom:3pt;
+    font-size:10pt; line-height:1.45; counter-increment:k}
+  ol.keys li:last-child{margin-bottom:0}
+  ol.keys li::before{content:counter(k); position:absolute; left:0; top:1pt;
+    width:13.5pt; height:13.5pt; border-radius:50%; background:#de3412;
+    color:#fff; font-size:8pt; font-weight:700; text-align:center;
+    line-height:13.5pt}
+  ol.keys.row{display:flex; gap:10pt}
+  ol.keys.row li{flex:1; margin-bottom:0}
 
-  /* ── 꼭 알아 두기 (그림 딱지) ───────────────────────────── */
-  .warns{display:flex; flex-wrap:wrap; gap:8pt}
-  .warn{flex:1 1 46%; display:flex; gap:8pt; align-items:flex-start;
-    padding:9pt 10pt; border-radius:6pt; background:var(--amber-l);
-    border:1pt solid #e8cf9a}
-  .warn.stop{background:var(--red-l); border-color:#f0c3b9}
-  .warn svg{width:20pt; height:20pt; flex:none; color:var(--amber)}
-  .warn.stop svg{color:var(--red)}
-  .warn .t{font-size:10.5pt; font-weight:700; line-height:1.35}
-  .warn .d{font-size:9.5pt; color:var(--ink2); line-height:1.35; margin-top:1pt}
+  /* ── 세 도구 요약 (표지) ────────────────────────────────── */
+  .parts{display:flex; gap:9pt; margin-top:11pt}
+  .part{flex:1; border:1pt solid var(--line); border-radius:6pt;
+    overflow:hidden}
+  .part .hd{display:flex; align-items:center; gap:6pt; padding:6pt 9pt;
+    background:var(--blue); color:#fff}
+  .part .hd .no{font-size:9pt; font-weight:700; opacity:.85}
+  .part .hd b{font-size:11pt; line-height:1.25}
+  .part p{margin:0; padding:8pt 9pt 9pt; font-size:9.5pt; line-height:1.5;
+    color:var(--ink2)}
 
-  .foot{margin-top:10pt; padding-top:6pt; border-top:1pt solid var(--line);
-    font-size:9pt; color:var(--ink3); display:flex; gap:10pt}
-  .foot .r{margin-left:auto}
-  .note{font-size:9pt; color:var(--ink3); margin:4pt 0 0}
+  /* ── 보내는 곳 ──────────────────────────────────────────── */
+  .send{margin-top:auto; border:1.5pt solid var(--green);
+    border-radius:6pt; overflow:hidden}
+  .send .hd{padding:6pt 11pt; background:var(--green-l);
+    border-bottom:1pt solid var(--green); font-size:10.5pt; font-weight:700;
+    color:var(--green)}
+  .send .bd{padding:9pt 11pt; font-size:10.5pt; line-height:1.6}
+  .send .who{font-size:11pt}
+  .send .mail{margin-top:3pt}
+  .send .mail span{white-space:nowrap}
+  .send .mail em{font-style:normal; color:var(--ink3)}
+
+  /* ── 꼬리말 ────────────────────────────────────────────── */
+  .foot{margin-top:auto; padding-top:7pt; border-top:1pt solid var(--line);
+    font-size:8.5pt; color:var(--ink3); display:flex; gap:10pt}
+  .foot .r{margin-left:auto; white-space:nowrap}
+  .foot span{white-space:nowrap}
 </style>
 </head>
 <body>
 
-<!-- ══════════ 1쪽 · 표지 + 한눈에 ══════════ -->
+<!-- ══════════ 1쪽 · 표지 + 세 도구 ══════════ -->
 <div class="page">
   <div class="cover">
-    <div class="kind">화학물질안전원 · 지자체 담당자용</div>
+    <div class="kind">기후에너지환경부 화학물질안전원 · 지자체 담당자용</div>
     <h1>화학사고 초동대응 지원 서비스</h1>
     <p class="sub">사고가 나면 이 세 가지를 여기서 찾습니다</p>
   </div>
@@ -145,287 +187,197 @@
     <span class="no">설치 · 회원가입 없음</span>
   </div>
 
-  <figure style="margin-top:10pt">
+  <figure style="margin-top:11pt">
     <img src="guide-img/01-첫화면-pc.png" alt="첫 화면 — 도구 세 장의 카드">
   </figure>
 
-  <ol class="keys row">
-    <li><b>방제 물품·장비 찾기</b><br><span class="g">굴착기 · 흡착포 · 방독면</span></li>
-    <li><b>주민 대피장소 찾기</b><br><span class="g">가까운 순 · 도보시간</span></li>
-    <li><b>주민대피 문자생성기</b><br><span class="g">표준문안 · 글자수</span></li>
-  </ol>
-
-  <p class="note">세 가지는 따로 써도 되고, 순서도 없습니다.</p>
-</div>
-
-<!-- ══════════ 2쪽 · 바탕화면에 아이콘 ══════════ -->
-<div class="page">
-  <div class="ph"><span class="n">1</span><h2>바탕화면에 아이콘 만들기</h2>
-    <span class="tail">처음 한 번만</span></div>
-
-  <div class="devs">
-    <div class="dev">
-      <div class="hd">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="2" y="4" width="20" height="13" rx="1.5"/><path d="M8 20h8M12 17v3"/></svg>
-        <b>PC</b>
-      </div>
-      <ol>
-        <li>크롬 · 엣지 열기</li>
-        <li>주소 입력</li>
-        <li>오른쪽 위 <kbd>⋮</kbd> → <kbd>바로가기 만들기</kbd></li>
-      </ol>
+  <div class="parts">
+    <div class="part">
+      <div class="hd"><span class="no">01</span><b>방제 물품·장비 찾기</b></div>
+      <p>폐기물을 맡길 <b>업체</b>와
+        <span class="nb">흡착포·보호복·굴착기</span> 같은 <b>물품</b>을
+        사고지점에서 <span class="nb">가까운 순으로</span> 찾습니다.</p>
     </div>
-
-    <div class="dev">
-      <div class="hd">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18.5h2"/></svg>
-        <b>안드로이드</b>
-      </div>
-      <ol>
-        <li>크롬 열기</li>
-        <li>주소 입력</li>
-        <li>오른쪽 위 <kbd>⋮</kbd> → <kbd>홈 화면에 추가</kbd></li>
-      </ol>
+    <div class="part">
+      <div class="hd"><span class="no">02</span><b>주민 대피장소 찾기</b></div>
+      <p>사고지점 주변 <b>대피장소</b>를 거리·도보시간·수용인원과 함께
+        지도와 목록으로 봅니다.</p>
     </div>
-
-    <div class="dev">
-      <div class="hd">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M9.5 5.5h5"/></svg>
-        <b>아이폰</b>
-      </div>
-      <ol>
-        <li><b>사파리</b>로 열기 <span class="g">(크롬 ✗)</span></li>
-        <li>주소 입력</li>
-        <li>아래 <kbd>공유 ⬆</kbd> → <kbd>홈 화면에 추가</kbd></li>
-      </ol>
+    <div class="part">
+      <div class="hd"><span class="no">03</span><b>주민대피 문자생성기</b></div>
+      <p>사고 정보를 넣으면 <b>재난문자 표준문안</b>이 만들어집니다.
+        복사해서 발송시스템에 붙입니다.</p>
     </div>
   </div>
 
-  <p class="note" style="margin-top:9pt">
-    다음부터는 아이콘만 누르면 열립니다. 인터넷 익스플로러에서는 화면이 깨집니다.</p>
-
-  <figure style="margin-top:12pt">
-    <img class="phone" src="guide-img/02-첫화면-폰.png" alt="휴대전화에서 본 첫 화면">
-  </figure>
+  <div class="send">
+    <div class="hd">개선 의견 · 오류 신고를 받습니다</div>
+    <div class="bd">
+      <div class="who">기후에너지환경부 화학물질안전원
+        <b>김재훈 전문위원</b></div>
+      <div class="mail">
+        <span><b>kjh221@korea.kr</b></span>
+        &nbsp;·&nbsp;
+        <em>온메일</em> <span><b>rlawogns@mail.go.kr</b></span>
+      </div>
+    </div>
+  </div>
 </div>
 
-<!-- ══════════ 3쪽 · ① 방제 물품·장비 찾기 — 세 걸음 ══════════ -->
+<!-- ══════════ 2쪽 · 01 방제 물품·장비 찾기 ══════════ -->
 <div class="page">
-  <div class="ph"><span class="n">2</span><h2>방제 물품·장비 찾기</h2>
-    <span class="tail">01</span></div>
+  <div class="ph"><span class="n">01</span><h2>방제 물품·장비 찾기</h2>
+    <span class="tail">업체 <span class="nb">1,717건</span> ·
+      물품 <span class="nb">4,075건</span></span></div>
+
+  <ul class="can">
+    <li><b>업체 섭외</b> — 폐기물을 맡길 곳을 <b>허가 갈래 7가지</b>로 찾습니다.
+      <span class="nb">수집·운반 · 중간처분 · 종합재활용 · 최종처분(매립) ·
+      중장비 · 독성가스 · 폐수 수탁처리</span></li>
+    <li><b>방제물품 찾기</b> — 흡착포 · 보호복 · 호흡보호구 · 굴착기 같은
+      <span class="nb">물품 27가지</span> 중에서 고르면
+      <span class="nb"><b>고른 것을 가진 곳만</b> 나옵니다.</span></li>
+    <li>줄을 누르면 <b>전화번호 · 보유 물품 · 수량</b>이 창으로 열리고,
+      여러 곳을 <b>동원 목록</b>에 담아 한 번에 복사할 수 있습니다.</li>
+  </ul>
 
   <div class="flow">
-    <div class="b on"><div class="t">무엇을 하려나</div><div class="d">두 갈래</div></div>
-    <span class="a">→</span>
-    <div class="b on"><div class="t">무엇이 필요한가</div><div class="d">여러 개</div></div>
-    <span class="a">→</span>
-    <div class="b on"><div class="t">사고지점</div><div class="d">주소 · 지도 · 내 위치</div></div>
-    <span class="a">→</span>
-    <div class="b"><div class="t">가까운 순</div></div>
+    <div class="b on"><div class="t">걸음 1 무엇을 하려나</div></div>
+    <div class="a">›</div>
+    <div class="b"><div class="t">걸음 2 무엇이 필요한가</div></div>
+    <div class="a">›</div>
+    <div class="b"><div class="t">걸음 3 사고지점</div></div>
+    <div class="a">›</div>
+    <div class="b"><div class="t">가까운 순 목록</div></div>
   </div>
 
-  <figure><img src="guide-img/10-방제-갈래.png" alt="걸음 1 — 업체 섭외인지 방제물품인지 고르는 화면"></figure>
-  <ol class="keys row" style="margin-bottom:11pt">
-    <li><b>업체 섭외</b><br><span class="g">맡길 곳 · 부를 곳</span></li>
-    <li><b>방제물품 찾기</b><br><span class="g">물건이 어디 있나</span></li>
-  </ol>
+  <figure>
+    <img class="w70" src="guide-img/10-방제-갈래.png" alt="걸음 1 — 업체 섭외와 방제물품 찾기 두 갈래">
+    <figcaption><b>걸음 1</b> ① 맡길 곳을 부를 때는 <b>업체 섭외</b>,
+      ② 물건을 찾을 때는 <b>방제물품 찾기</b>.</figcaption>
+  </figure>
 
-  <div class="two">
-    <div>
-      <figure><img src="guide-img/11-방제-업체.png" alt="업체 섭외 — 맡길 갈래 고르기"></figure>
-      <ol class="keys">
-        <li><b>맡길 갈래</b> <span class="g">(여러 개)</span></li>
-        <li><b>다음</b></li>
-      </ol>
-    </div>
-    <div>
-      <figure><img src="guide-img/12-방제-물품.png" alt="방제물품 — 물품 이름 고르기"></figure>
-      <ol class="keys">
-        <li><b>물품 이름</b> <span class="g">(여러 개)</span></li>
-      </ol>
-    </div>
+  <div class="two cap" style="margin-top:9pt">
+    <figure>
+      <img src="guide-img/17-방제-목록줄.png" alt="목록 한 줄 — 거리·물품·수량·전화번호">
+      <figcaption>목록 한 줄 — <b>거리 · 시간 · 물품 · 수량 · 전화번호</b>.</figcaption>
+    </figure>
+    <figure>
+      <img src="guide-img/16-방제-세부창.png" alt="세부사항 창 — 전화번호와 보유 물품·수량">
+      <figcaption><b>세부사항 창</b> — 전화번호와 보유 물품·수량.</figcaption>
+    </figure>
   </div>
 
-  <p class="note">모르겠으면 <b>전부 보기</b>. 되돌아가도 고른 것은 남습니다.</p>
-</div>
-
-<!-- ══════════ 4쪽 · ① 결과 보기 ══════════ -->
-<div class="page">
-  <div class="ph"><span class="n">2</span><h2>찾은 결과 보기</h2>
-    <span class="tail">01</span></div>
-
-  <figure><img src="guide-img/13-방제-결과.png" alt="방제 물품·장비 결과 화면"></figure>
-
-  <ol class="keys row">
-    <li><b>사고지점 · 가장 가까운 곳</b><br><span class="g">한 줄 요약</span></li>
-    <li><b>목록 · 전화번호</b><br><span class="g">그대로 눌러 전화</span></li>
-    <li><b>범례</b><br><span class="g">그림 = 종류</span></li>
-  </ol>
-
-  <div class="two" style="margin-top:11pt">
-    <div>
-      <figure><img src="guide-img/16-방제-세부창.png" alt="세부사항 창 — 전화번호가 가장 크고 보유 물품·수량이 아래에"></figure>
-    </div>
-    <div>
-      <p class="note"><b>줄이나 지도 동그라미를 누르면</b> 이 창이 뜹니다 —
-        <b>전화번호 · 보유 물품 · 수량</b>. 고른 물품이 맨 위에 옵니다.</p>
-      <figure><img src="guide-img/15-방제-협의된곳.png" alt="미리 협의된 곳 — 초록 띠가 붙은 첫 줄"></figure>
-      <p class="note"><b>미리 협의된 곳</b>은 맨 위에 옵니다 — 먼저 전화하세요.</p>
-    </div>
+  <div class="foot">
+    <span>화학사고 초동대응 지원 서비스 · 01 방제 물품·장비 찾기</span>
+    <span class="r">개선 의견 · 오류 — 김재훈 전문위원
+      <b>kjh221@korea.kr</b></span>
   </div>
 </div>
 
-<!-- ══════════ 5쪽 · ② 주민 대피장소 찾기 ══════════ -->
+<!-- ══════════ 3쪽 · 02 주민 대피장소 찾기 ══════════ -->
 <div class="page">
-  <div class="ph"><span class="n">3</span><h2>주민 대피장소 찾기</h2>
-    <span class="tail">02</span></div>
+  <div class="ph"><span class="n">02</span><h2>주민 대피장소 찾기</h2>
+    <span class="tail">대피장소 <span class="nb">1,849곳</span> ·
+      임시주거시설 <span class="nb">15,905곳</span></span></div>
 
-  <figure><img src="guide-img/20-대피장소-시작.png" alt="사고지점 넣는 줄"></figure>
-  <ol class="keys row" style="margin-bottom:11pt">
-    <li><b>주소 · 장소 검색</b></li>
-    <li><b>지도에서 찍기</b></li>
-    <li><b>내 위치</b> <span class="g">(현장에서)</span></li>
-  </ol>
+  <ul class="can">
+    <li>사고지점을 <b>주소 · 장소 검색</b>,
+      <b>지도에서 찍기</b>, <b>내 위치</b>,
+      <span class="nb">위도·경도</span> 넷 중 아무 것으로나 넣습니다.</li>
+    <li>주변 대피장소가 <b>가까운 순</b>으로 나오고, 각 줄에
+      <span class="nb">직선거리 · 도보시간 · 차량시간 ·
+      수용인원 · 관할부서 전화</span><span class="nb">가 적힙니다.</span></li>
+    <li>반경 <span class="nb">1 · 2 · 5km</span> 안에 몇 곳인지 한 줄로 보고,
+      고른 곳까지 <b>도로 경로</b>를 그려 봅니다.</li>
+    <li><b>화학사고 대피장소</b>와 <b>이재민 임시주거시설</b> 두 층을
+      각각 켜고 끌 수 있습니다.</li>
+  </ul>
 
-  <figure><img src="guide-img/21-대피장소-결과.png" alt="대피장소 결과 화면"></figure>
-  <ol class="keys row">
-    <li><b>가장 가까운 곳 · 1·2·5km 안 몇 곳</b></li>
-    <li><b>가까운 대피장소 3곳</b></li>
-    <li><b>수용인원 · 관할부서 전화</b></li>
-  </ol>
+  <figure>
+    <img src="guide-img/20-대피장소-시작.png" alt="사고지점을 넣는 줄">
+    <figcaption><b>사고지점 넣기</b> ① 주소·장소로 검색, ② 지도에서 찍기,
+      ③ 현장에서는 <b>내 위치</b>.</figcaption>
+  </figure>
 
-  <!-- 두 도구의 범례를 **나란히** 둡니다 — "동그라미 안 그림이 곧 종류" 라는
-       규칙이 ②③ 에 같다는 것을 글로 적는 대신 그림으로 보입니다. -->
-  <div class="two" style="margin-top:11pt">
-    <div>
-      <figure><img src="guide-img/22-대피장소-범례.png" alt="② 지도 범례 — 초록 비상구가 대피장소"></figure>
-      <p class="note"><b>초록 비상구</b> 화학사고 대피장소 ·
-        <b>보라 집</b> 이재민 임시주거시설. <b>두 자료는 별개</b>이고
-        어디로 보낼지는 담당자가 정합니다.</p>
-    </div>
-    <div>
-      <figure><img src="guide-img/14-방제-범례.png" alt="③ 지도 범례 — 갈래마다 다른 그림"></figure>
-      <p class="note"><b>방제 물품·장비 찾기</b>도 같은 규칙입니다 — <b>그림과 색이 곧 종류</b>,
-        속이 빈 동그라미는 <b>주소로 어림잡은 자리</b>입니다.</p>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ 6쪽 · ③ 문자 만들기 ══════════ -->
-<div class="page">
-  <div class="ph"><span class="n">4</span><h2>주민대피 문자 만들기</h2>
-    <span class="tail">03</span></div>
-
-  <figure><img src="guide-img/30-문자-발송구분.png" alt="발송 구분 세 가지"></figure>
-  <ol class="keys row" style="margin-bottom:11pt">
-    <li><b>실내대피 알림</b><br><span class="g">집 안에 머무르게</span></li>
-    <li><b>도로 우회 알림</b><br><span class="g">차량 우회</span></li>
-    <li><b>주민소산(대피명령)</b><br><span class="g">대피소로 이동</span></li>
-  </ol>
-
-  <figure><img src="guide-img/31-문자-걸음.png" alt="한 걸음에 한 묶음씩 채우는 화면"></figure>
-  <ol class="keys row">
-    <li><b>걸음 표시</b> <span class="g">눌러서 건너뛰기</span></li>
-    <li><b>한 화면에 한 묶음만</b></li>
-  </ol>
-</div>
-
-<!-- ══════════ 7쪽 · ③ 문안 ══════════ -->
-<div class="page">
-  <div class="ph"><span class="n">4</span><h2>문안 복사해서 발송</h2>
-    <span class="tail">03</span></div>
-
-  <figure><img src="guide-img/32-문자-문안.png" alt="만들어진 문안"></figure>
-
-  <ol class="keys row">
-    <li><b>표준문안</b><br><span class="g">승인된 문장 그대로</span></li>
-    <li><b>글자수</b><br><span class="g">넘으면 빨강</span></li>
-    <li><b>복사</b><br><span class="g">문자발송시스템에 붙이기</span></li>
-  </ol>
-
-  <div class="warn stop" style="margin-top:11pt">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-         stroke-linecap="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.3v.2"/></svg>
-    <div>
-      <div class="t">빈칸이 남으면 문안이 안 만들어집니다</div>
-      <div class="d">덜 채운 칸을 대신 알려 줍니다 — 반쪽 문안이 나가는 것을 막습니다.</div>
-    </div>
-  </div>
-</div>
-
-<!-- ══════════ 8쪽 · 꼭 알아 두기 ══════════ -->
-<div class="page">
-  <div class="ph"><span class="n">5</span><h2>꼭 알아 두기</h2></div>
-
-  <div class="warns">
-    <div class="warn stop">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M12 3l9 16H3z"/><path d="M12 9v4.5M12 16.5v.2"/></svg>
-      <div>
-        <div class="t">도구는 판단하지 않습니다</div>
-        <div class="d">어디로 대피시킬지는 담당자가 정합니다.</div>
-      </div>
-    </div>
-
-    <div class="warn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M4 18L20 6"/><circle cx="4" cy="18" r="2"/><circle cx="20" cy="6" r="2"/></svg>
-      <div>
-        <div class="t">거리는 직선거리</div>
-        <div class="d">도보·차량 시간은 어림값입니다.</div>
-      </div>
-    </div>
-
-    <div class="warn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="8.5" stroke-dasharray="3 3"/><circle cx="12" cy="12" r="1.6"/></svg>
-      <div>
-        <div class="t">반경 원은 참고 거리</div>
-        <div class="d">확산 모델링 결과가 아닙니다.</div>
-      </div>
-    </div>
-
-    <div class="warn">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M6.5 4h11v16l-5.5-3-5.5 3z"/><path d="M9.5 9h5"/></svg>
-      <div>
-        <div class="t">전화 전에 가동 여부 확인</div>
-        <div class="d">업체는 폐업하고 담당자는 바뀝니다.</div>
-      </div>
-    </div>
+  <div class="two" style="margin-top:10pt">
+    <figure>
+      <img src="guide-img/24-대피장소-지도.png" alt="지도 — 사고지점과 주변 대피장소 표시">
+      <figcaption>사고지점(빨강)과 주변 대피장소가 지도에 함께 찍힙니다.
+        왼쪽 위 <b>범례</b>가 표시의 뜻입니다.</figcaption>
+    </figure>
+    <figure>
+      <img src="guide-img/25-대피장소-목록.png" alt="목록 — 가까운 순으로 나온 대피장소">
+      <figcaption>목록은 <b>가까운 순</b>입니다. 줄을 누르면 지도가 그곳으로
+        움직이고 <b>관할부서 번호</b>로 바로 전화할 수 있습니다.</figcaption>
+    </figure>
   </div>
 
-  <div class="ph" style="margin-top:16pt"><span class="n">6</span><h2>안 될 때</h2></div>
-
-  <div class="devs">
-    <div class="dev">
-      <div class="hd"><b>화면이 깨져 보임</b></div>
-      <ol><li>크롬 · 엣지로 여세요</li><li>인터넷 익스플로러 ✗</li></ol>
-    </div>
-    <div class="dev">
-      <div class="hd"><b>지도에 배경이 없음</b></div>
-      <ol><li>인터넷이 막힌 것입니다</li><li>대피장소 · 목록은 그대로 나옵니다</li></ol>
-    </div>
-    <div class="dev">
-      <div class="hd"><b>인터넷이 아예 없음</b></div>
-      <ol><li>단일 파일판을 받아 두세요</li><li>USB로 옮겨 열면 됩니다</li></ol>
+  <div class="two cap60" style="margin-top:10pt">
+    <figure>
+      <img src="guide-img/26-대피장소-가까운3곳.png" alt="가까운 대피장소 3곳 — 지도 위에 떠 있는 카드">
+      <figcaption><b>가까운 3곳</b>은 지도 위에 늘 떠 있습니다.
+        목록을 훑지 않아도 바로 보입니다.</figcaption>
+    </figure>
+    <div>
+      <figure>
+        <img src="guide-img/22-대피장소-범례.png" alt="범례 — 초록 비상구는 대피장소, 보라 집은 임시주거시설">
+      </figure>
+      <p style="margin:7pt 0 0; font-size:10pt; line-height:1.5; color:var(--ink2)">
+        <b>초록 비상구</b>는 화학사고 대피장소,
+        <b>보라 집</b>은 이재민 임시주거시설입니다.
+        목록 줄에도 <span class="nb">어느 자료인지</span> 딱지가 붙습니다.</p>
     </div>
   </div>
 
   <div class="foot">
-    <span>화학물질안전원 화학사고 초동대응 지원 서비스</span>
-    <span class="r">붙여 놓고 보는 <b>한 장 요약</b>이 따로 있습니다</span>
+    <span>화학사고 초동대응 지원 서비스 · 02 주민 대피장소 찾기</span>
+    <span class="r">개선 의견 · 오류 — 김재훈 전문위원
+      <b>kjh221@korea.kr</b></span>
+  </div>
+</div>
+
+<!-- ══════════ 4쪽 · 03 주민대피 문자생성기 ══════════ -->
+<div class="page">
+  <div class="ph"><span class="n">03</span><h2>주민대피 문자생성기</h2>
+    <span class="tail">표준문안 <span class="nb">12건</span> ·
+      실제 발송사례 <span class="nb">42건</span></span></div>
+
+  <ul class="can">
+    <li>발송 구분 세 가지 중에서 고릅니다 —
+      <b>실내대피 알림</b> · <b>도로 우회 알림</b> ·
+      <b>주민소산(대피명령)</b>.</li>
+    <li>한 화면에 <b>한 묶음만</b> 묻습니다. 진행 표시를 눌러
+      <span class="nb">아는 값부터</span> 채울 수 있습니다.</li>
+    <li>채우면 <b>표준문안</b>이 만들어지고 <b>글자수</b>가 함께 나옵니다.
+      <b>복사</b>를 눌러 재난문자 발송시스템에 붙입니다.</li>
+    <li>같은 화면에서 <b>상황종료 문안</b>까지 만들어집니다.
+      사고 정보를 다시 넣지 않습니다.</li>
+  </ul>
+
+  <figure>
+    <img src="guide-img/30-문자-발송구분.png" alt="발송 구분 세 가지">
+    <figcaption><b>발송 구분</b> ① 집 안에 머무르게 할 때, ② 차량을
+      돌릴 때, ③ 대피소로 보낼 때.</figcaption>
+  </figure>
+
+  <figure style="margin-top:9pt">
+    <img src="guide-img/34-문자-걸음칸.png" alt="걸음 표시와 지금 걸음의 입력 묶음">
+    <figcaption><b>한 걸음에 한 묶음만</b> — 위쪽 걸음 표시를 눌러
+      아무 걸음으로나 건너뜁니다.</figcaption>
+  </figure>
+
+  <figure style="margin-top:9pt">
+    <img src="guide-img/33-문자-문안카드.png" alt="만들어진 재난문자 문안과 글자수·복사 단추">
+    <figcaption><b>만들어진 문안</b> ① 승인받은 표준문안 그대로이고,
+      왼쪽 아래에 <span class="nb">글자수(87/90자)</span>가 나옵니다.
+      ② <b>복사</b>를 누르면 문안 전체가 복사됩니다.</figcaption>
+  </figure>
+
+  <div class="foot">
+    <span>화학사고 초동대응 지원 서비스 · 03 주민대피 문자생성기</span>
+    <span class="r">개선 의견 · 오류 — 김재훈 전문위원
+      <b>kjh221@korea.kr</b> · 온메일 <b>rlawogns@mail.go.kr</b></span>
   </div>
 </div>
 

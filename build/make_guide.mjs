@@ -208,7 +208,11 @@ const 찍기 = async (page, 이름, sel, 자름) => {
     { n: 1, sel: '.rz-br', i: 0 },
     { n: 2, sel: '.rz-br', i: 1 },
   ]);
-  await 찍기(p, '10-방제-갈래', null, await 끝까지('.rz-br'));
+  /* ⚠ y=0 에서 자르면 **상단 바와 걸음 표시까지** 들어옵니다. A4 넉 장에서는
+     그 90px 이 그대로 자리를 먹고, 정작 카드 글자는 작아집니다.
+     묻는 줄(#rzH0)부터 카드 밑까지, 가로도 카드 폭에 맞춰 자릅니다. */
+  await 찍기(p, '10-방제-갈래', null,
+    (await 칸만('#rzH0', '.rz-brs', '.rz-brs')) || await 끝까지('.rz-br'));
 
   /* 걸음 2 ㉮ — 업체 섭외(허가 갈래).
      딱지는 둘만 답니다 — '전부 보기' 에 달면 번호가 왼쪽 밖으로 나가
@@ -332,6 +336,20 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   });
   if (창) await 찍기(p, '16-방제-세부창', null, 창);
   else console.error('⚠ 세부사항 창(.rkd)을 못 찾아 사진을 건너뜁니다');
+
+  /* 목록 줄 한 개 — 무엇이 적혀 있는지(거리·물품·수량·전화)를 보이는 자리.
+     ⚠ **한 줄만** 자릅니다. 목록 전체를 실으면 A4 에서 글자가 6pt 가 되고,
+       줄이 잘려 설명서가 고장 난 것처럼 보입니다. 지금은 고른 줄이라
+       전화·복사·담기 단추까지 펴져 있어 그대로 쓸모가 있습니다. */
+  const 한줄 = await p.evaluate(() => {
+    const e = document.querySelector('#shList .ms-it');
+    if (!e) return null;
+    const r = e.getBoundingClientRect();
+    return { x: Math.floor(r.left) - 3, y: Math.floor(r.top) - 3,
+             width: Math.ceil(r.width) + 6, height: Math.ceil(r.height) + 6 };
+  });
+  if (한줄) await 찍기(p, '17-방제-목록줄', null, 한줄);
+  else console.error('⚠ 목록 줄(.ms-it)을 못 찾아 사진을 건너뜁니다');
   await ctx.close();
 }
 
@@ -364,6 +382,46 @@ const 찍기 = async (page, 이름, sel, 자름) => {
      ③ 범례와 나란히 실어 "그림은 종류" 라는 규칙이 두 도구에 같음을 알립니다. */
   await 딱지(p, []);
   await 찍기(p, '22-대피장소-범례', '.maplegend');
+
+  /* ── 나란히 실을 두 장 (지도 / 목록) ─────────────────────────
+     화면 전체(1280px)를 A4 폭으로 줄이면 글자가 7pt 아래로 내려가 읽기
+     어렵습니다. 그래서 **지도 칸**과 **목록 세 줄**을 따로 잘라, 각각
+     A4 폭의 절반에 놓습니다 — 같은 자리에서 글자가 두 배가 됩니다. */
+  const 지도칸 = await p.evaluate(() => {
+    const e = document.querySelector('.mmap');
+    if (!e) return null;
+    const r = e.getBoundingClientRect();
+    /* 옆에 놓는 목록 사진과 높이가 비슷해야 두 장이 나란히 앉습니다.
+       폭의 1.15 배까지 — 설명서 3쪽은 자리가 남아서 크게 실을 수 있습니다. */
+    return { x: Math.floor(r.left), y: Math.floor(r.top),
+             width: Math.ceil(r.width),
+             height: Math.min(Math.ceil(r.height), Math.ceil(r.width * 1.15)) };
+  });
+  if (지도칸) await 찍기(p, '24-대피장소-지도', null, 지도칸);
+
+  const 목록칸 = await p.evaluate(() => {
+    const it = document.querySelectorAll('#shList .ms-it');
+    const box = document.querySelector('.ms-list');
+    if (!it.length || !box) return null;
+    const b = box.getBoundingClientRect();
+    /* **다 보이는 줄까지만** 자릅니다. 다섯째 줄이 목록 칸(스크롤 상자)
+       아래로 걸쳐 있으면 그 줄이 반쯤 잘려, 읽는 사람이 화면이 깨진 줄
+       압니다(실제로 그렇게 찍혔습니다). 상자 안에서 끝나는 마지막 줄을
+       찾아 그 밑에서 자릅니다 — 많아도 다섯 줄. */
+    let 끝 = 0, 셈 = 0;
+    it.forEach((e) => {
+      const r = e.getBoundingClientRect();
+      if (셈 < 5 && r.bottom <= b.bottom - 1) { 끝 = r.bottom; 셈 += 1; }
+    });
+    if (!끝) 끝 = Math.min(b.bottom, it[0].getBoundingClientRect().bottom);
+    return { x: Math.floor(b.left), y: Math.floor(b.top),
+             width: Math.ceil(b.width), height: Math.ceil(끝 - b.top) };
+  });
+  if (목록칸) await 찍기(p, '25-대피장소-목록', null, 목록칸);
+
+  /* '가까운 대피장소 3곳' 카드 — 지도 위에 늘 떠 있는 자리입니다.
+     목록을 훑지 않아도 "그래서 어디로 보내면 되는가"가 여기 있습니다. */
+  await 찍기(p, '26-대피장소-가까운3곳', '.mnear');
   await ctx.close();
 }
 
@@ -395,6 +453,43 @@ const 찍기 = async (page, 이름, sel, 자름) => {
      한 장이 A4 한 쪽을 다 먹습니다. */
   await 찍기(p, '31-문자-걸음', null, { x: 0, y: 0, width: 1280, height: 620 });
 
+  /* 같은 화면을 **가운데 칸만** 다시 — 진행 표시부터 첫 입력 묶음까지.
+     넉 장짜리 설명서에서는 이쪽을 씁니다(위 사진은 폭 1280 이라 A4 에서
+     글자가 7pt 밑으로 내려갑니다). */
+  /* 첫 걸음(사고유형)에는 **글자 입력칸이 없습니다** — 칩만 있고 `.fgrp` 는
+     네 개 다 숨어 있어 높이가 0 입니다. 그대로 자르면 네모가 뒤집혀
+     사진을 못 찍습니다(찍기가 시간초과로 죽었습니다). 입력칸이 보이는
+     걸음으로 한 번 넘어가서 찍습니다. */
+  const 다음 = await p.$('#stepNav .sn-next');
+  if (다음) { await 다음.click(); await p.waitForTimeout(500); }
+  /* 딱지는 **걸음 표시에만** 답니다. 묶음 상자(.fgrp)는 높아서 딱지가
+     상자 **안쪽 왼쪽 위**에 서는데, 거기에 묶음 제목이 있어 글자를
+     덮습니다("발송 정보 문자를 보내는 기관과 시각"이 가려졌습니다). */
+  await 딱지(p, [
+    { n: 1, sel: '#stepBar' },
+  ]);
+  const 걸음칸 = await p.evaluate(() => {
+    const bar = document.querySelector('#stepBar');
+    let grp = null;
+    document.querySelectorAll('.fgrp').forEach((e) => {
+      if (!grp && e.getBoundingClientRect().height > 24) grp = e;
+    });
+    if (!bar || !grp) return null;
+    const a = bar.getBoundingClientRect(), b = grp.getBoundingClientRect();
+    const L = Math.max(0, Math.floor(Math.min(a.left, b.left)) - 44);
+    const R = Math.ceil(Math.max(a.right, b.right)) + 16;
+    const y = Math.max(0, Math.floor(a.top) - 10);
+    /* ⚠ 자를 네모가 **화면 밖으로 나가면 사진을 못 찍습니다**(찍기가
+       시간초과로 죽습니다). 보이는 칸 안으로 붙잡습니다. */
+    const W = document.documentElement.clientWidth;
+    const H = document.documentElement.clientHeight;
+    return { x: L, y,
+             width: Math.min(R - L, W - L),
+             height: Math.min(Math.ceil(b.bottom - y) + 10, H - y) };
+  });
+  if (걸음칸) await 찍기(p, '34-문자-걸음칸', null, 걸음칸);
+  else console.error('⚠ 걸음 칸(#stepBar·.fgrp)을 못 찾아 사진을 건너뜁니다');
+
   /* 필수 칸을 채워야 문안이 만들어집니다(반쪽 문안은 아예 안 만듭니다) */
   await p.evaluate(o => {
     Object.keys(o).forEach(k => {
@@ -419,10 +514,33 @@ const 찍기 = async (page, 이름, sel, 자름) => {
     /* 문안 상자는 **오른쪽 아래**에 답니다 — 왼쪽 위에 달면 기관명
        ([서천군])을 덮습니다. 문안이 두 줄이라 오른쪽 아래가 비어 있습니다. */
     { n: 1, sel: '.out .msg', i: 0, 자리: '우하' },
-    { n: 2, sel: '.out .cnt', i: 0, 자리: '우상' },
-    { n: 3, sel: '.out footer button', i: 0, 자리: '우하' },
+    /* ⚠ 글자수(.cnt)에는 딱지를 달지 않습니다. 낮은 요소라 번호가 **왼쪽
+       밖**에 서는데, 카드 안쪽이어서 숫자를 덮습니다 — "87 / 90자" 가
+       "37 / 90자" 로 읽혔습니다. 글자수는 설명 글로만 가리킵니다. */
+    { n: 2, sel: '.out footer button', i: 0, 자리: '우하' },
   ]);
   await 찍기(p, '32-문자-문안');
+
+  /* 문안 카드 **한 장만** — 설명서에서는 이것이 이 도구의 결과물입니다.
+     화면 전체를 실으면 문안 글자가 6pt 가 되어 "무엇이 만들어지는가"를
+     못 보여 줍니다. 카드 하나를 잘라 A4 폭에 놓으면 문안이 그대로 읽힙니다.
+     ⚠ 카드는 `.out` 입니다(`.out .card` 는 없습니다 — 그렇게 찾다가
+       문안 상자만 잘려서 **글자수·복사 단추가 빠진** 사진이 실렸습니다).
+       머리표(긴급재난문자)·문안·글자수·복사가 한 장에 다 들어와야
+       설명서의 설명과 사진이 맞습니다. */
+  const 문안 = await p.evaluate(() => {
+    const e = document.querySelector('.out');
+    if (!e) return null;
+    const r = e.getBoundingClientRect();
+    /* 낮은 요소(글자수)의 번호 딱지는 **왼쪽 밖**에 섭니다 — 카드에 딱
+       맞춰 자르면 그 번호가 반쯤 잘립니다(실제로 그랬습니다). */
+    const x = Math.max(0, Math.floor(r.left) - 46);
+    return { x, y: Math.floor(r.top) - 3,
+             width: Math.ceil(r.right - x) + 6,
+             height: Math.min(Math.ceil(r.height) + 6, 520) };
+  });
+  if (문안) await 찍기(p, '33-문자-문안카드', null, 문안);
+  else console.error('⚠ 문안 카드(.out)를 못 찾아 사진을 건너뜁니다');
   await ctx.close();
 }
 
@@ -454,6 +572,18 @@ if (한장.쪽 > 1) {
   process.exitCode = 1;
 } else {
   console.log('  원페이퍼 한 쪽 확인');
+}
+
+/* 설명서는 **A4 넉 장**이어야 합니다 — 2026-09-08 사용자 지시
+   ("페이지는 많아서는 안돼. A4용지 4장이면 좋겠어").
+   한 쪽이라도 넘치면 마지막 쪽에 몇 줄만 남은 반쪽이 생기고, 넉 장으로
+   출력해 나눠 주려던 것이 어긋납니다. */
+if (설명서.쪽 !== 4) {
+  console.error(`\n⚠ 설명서가 ${설명서.쪽}쪽이 되었습니다 — 넉 장이어야 합니다.`
+    + ` 사진 높이나 글을 줄이세요(쪽마다 .page 하나).`);
+  process.exitCode = 1;
+} else {
+  console.log('  설명서 넉 장 확인');
 }
 
 /* 설명서에 글이 다시 불어나지 않게 셉니다. 사용자가 "글은 최대한 줄이고
