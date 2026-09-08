@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>2026년 AI프렌즈 프로젝트 결과보고서 — 화학사고 초동대응 지원 서비스</title>
+<!-- ────────────────────────────────────────────────────────────
+     AI프렌즈 프로젝트 결과보고서 (인쇄용 A4)
+
+     ▸ 원본은 이 HTML 입니다. `node build/make_report.mjs` 가 PDF 로 굽고
+       **10쪽을 넘으면 알려 줍니다**(양식 3 의 조건: 첨부 제외 10쪽 이내).
+     ▸ 절 차례는 사용자가 준 양식(hwpx)을 그대로 따릅니다 — 기본 정보 /
+       개요 / 데이터·모델 / 결과물 / 성능·효과 / 보안·윤리·저작권 /
+       산출물 / 향후 계획.
+     ▸ **글자로 옮겨 붙일 판은 `docs/AI프렌즈_결과보고서.md`** 입니다.
+       한글(hwp) 양식에 붙일 때 그 파일을 쓰세요.
+     ▸ 수치는 모두 자료·코드에서 센 값입니다. 재 보지 않은 값에는
+       `추정` 을 붙였습니다 — 성과를 부풀리지 않는 것이 이 보고서의
+       조건입니다(CLAUDE.md 2절).
+     ──────────────────────────────────────────────────────────── -->
+<style>
+  @font-face{font-family:"Pretendard GOV";font-weight:400;font-display:block;
+    src:url("../assets/fonts/PretendardGOV-Regular.subset.woff2") format("woff2")}
+  @font-face{font-family:"Pretendard GOV";font-weight:700;font-display:block;
+    src:url("../assets/fonts/PretendardGOV-Bold.subset.woff2") format("woff2")}
+
+  @page{size:A4}
+
+  :root{
+    --ink:#11171e; --ink2:#3c4653; --ink3:#6b7683;
+    --line:#c9d2da; --line2:#e6ebef; --panel:#f4f7fa;
+    --blue:#256ef4; --blue-d:#0b50d0; --blue-l:#eaf1fe;
+    --green:#1d6b34; --green-l:#e9f5ec;
+    --amber-l:#fff6e0; --amber:#8a5c00;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:"Pretendard GOV",system-ui,sans-serif;
+    font-size:9.8pt; line-height:1.62; color:var(--ink);
+    word-break:keep-all; overflow-wrap:normal; hyphens:none; text-wrap:pretty;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact}
+  p{margin:0 0 5pt}
+  p:last-child{margin-bottom:0}
+  .nb{white-space:nowrap}
+  h1,h2,h3{letter-spacing:-.01em; text-wrap:balance}
+
+  /* ── 표제 ─────────────────────────────────────────────── */
+  .head{border-top:6pt solid var(--blue); padding-top:11pt; margin-bottom:12pt}
+  .head .kind{font-size:9pt; font-weight:700; color:var(--blue-d);
+    letter-spacing:.05em}
+  .head h1{margin:5pt 0 3pt; font-size:20pt; line-height:1.2}
+  .head .sub{margin:0; font-size:11pt; color:var(--ink2)}
+
+  /* ── 절 ───────────────────────────────────────────────── */
+  h2{margin:14pt 0 7pt; padding-bottom:4pt; font-size:13pt;
+    border-bottom:1.2pt solid var(--ink); display:flex; align-items:baseline;
+    gap:7pt; break-after:avoid}
+  h2 .n{flex:none; padding:1pt 6pt; border-radius:3pt; background:var(--blue);
+    color:#fff; font-size:9.5pt; font-weight:700}
+  h3{margin:9pt 0 4pt; font-size:10.5pt; color:var(--blue-d); break-after:avoid}
+  h2:first-of-type{margin-top:0}
+
+  /* ── 표 ───────────────────────────────────────────────── */
+  table{width:100%; border-collapse:collapse; margin:0 0 7pt;
+    font-size:8.8pt; line-height:1.45; break-inside:avoid}
+  th,td{border:.5pt solid var(--line); padding:3.5pt 5pt; vertical-align:top;
+    text-align:left}
+  th{background:var(--panel); font-weight:700; white-space:nowrap}
+  td.n{white-space:nowrap}
+  table.kv th{width:24%}
+  table.small{font-size:8.4pt}
+  .up{color:var(--blue-d); font-weight:700; white-space:nowrap}
+
+  /* ── 목록 ─────────────────────────────────────────────── */
+  ul,ol{margin:0 0 6pt; padding-left:15pt}
+  li{margin-bottom:2.5pt}
+  li:last-child{margin-bottom:0}
+  ul.tight{list-style:none; padding-left:0}
+  ul.tight li{position:relative; padding-left:12pt}
+  ul.tight li::before{content:""; position:absolute; left:2pt; top:5pt;
+    width:4pt; height:4pt; border-radius:50%; background:var(--blue)}
+
+  /* ── 강조 상자 ───────────────────────────────────────── */
+  .box{border:.8pt solid var(--line); border-radius:4pt; padding:7pt 9pt;
+    background:var(--panel); margin:0 0 7pt; break-inside:avoid}
+  .box.q{background:var(--blue-l); border-color:#bcd4fb}
+  .box.w{background:var(--amber-l); border-color:#e8cf9a}
+  .box .t{font-weight:700; margin-bottom:2pt}
+  .box p{font-size:9.2pt}
+
+  /* ── 사진 ─────────────────────────────────────────────── */
+  .shots{display:flex; gap:7pt; margin:0 0 7pt; break-inside:avoid}
+  .shots figure{flex:1; min-width:0; margin:0}
+  figure{margin:0 0 7pt; break-inside:avoid}
+  figure img{display:block; width:100%; border:.5pt solid var(--line);
+    border-radius:3pt}
+  figcaption{margin-top:2.5pt; font-size:8.4pt; color:var(--ink2);
+    line-height:1.4}
+  figcaption b{color:var(--ink)}
+
+  .flow{display:flex; align-items:center; gap:4pt; margin:0 0 7pt;
+    font-size:9pt; break-inside:avoid}
+  .flow .b{flex:1; padding:4pt 5pt; background:var(--panel);
+    border:.5pt solid var(--line); border-radius:3pt; text-align:center;
+    font-weight:700; white-space:nowrap}
+  .flow .b.on{background:var(--blue-l); border-color:var(--blue);
+    color:var(--blue-d)}
+  .flow .a{flex:none; color:var(--ink3); font-weight:700}
+
+  .foot{margin-top:10pt; padding-top:5pt; border-top:.5pt solid var(--line);
+    font-size:8pt; color:var(--ink3); display:flex; gap:9pt}
+  .foot .r{margin-left:auto; white-space:nowrap}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <div class="kind">2026년 AI프렌즈 프로젝트 결과보고서 · AI 기반 화학물질 정보 및 사고대응 가이드 지원</div>
+  <h1>화학사고 초동대응 지원 서비스</h1>
+  <p class="sub">사고지점만 넣으면 <b>대피장소 · 재난문자 · 방제자원</b>이
+    가까운 순으로 나오는 지자체 담당자용 업무도구 3종</p>
+</div>
+
+<h2><span class="n">1</span>기본 정보</h2>
+
+<table class="kv">
+  <tr><th>분야</th><td>화학사고 대응 · 업무 자동화</td></tr>
+  <tr><th>과제명</th><td><b>화학사고 초동대응 지원 서비스</b> — 지자체 담당자용 업무도구 3종
+    (방제 물품·장비 찾기 · 주민 대피장소 찾기 · 주민대피 문자생성기)</td></tr>
+  <tr><th>팀명 / 팀원 / 멘토</th><td>(기재 필요)</td></tr>
+  <tr><th>접속 · 사용 링크</th><td><b class="nb">https://chem-safety-kr.pages.dev</b>
+    — 설치 · 회원가입 없음 · PC · 휴대전화 공용<br>
+    <span style="color:var(--ink3)">※ 정식 안내 전이라 현재 접속을 닫아 두었으며,
+    심사 일정에 맞춰 개방합니다.</span></td></tr>
+  <tr><th>망분리 PC용</th><td>단일 HTML 파일 3개(1.9 · 2.9 · 3.8MB) —
+    인터넷 없이 <b>파일 하나로</b> 동작</td></tr>
+</table>
+
+<h2><span class="n">2</span>AI 프로젝트 개요</h2>
+
+<h3>배경</h3>
+<p>화학사고가 나면 지자체 담당자는 <b>초기 30분 안에</b> 세 가지를 동시에
+찾아야 합니다. ① 주민을 어디로 보낼지(대피장소), ② 무엇을 문자로 보낼지
+(재난문자 표준문안), ③ 누가 폐기물·중장비를 처리할 수 있는지(방제자원).</p>
+<p>그런데 이 셋의 자료가 <b>서로 다른 곳에 흩어져 있습니다.</b> 대피장소는
+엑셀 목록, 표준문안은 공문 붙임 한글파일, 방제자원은 유역환경청·해경·
+수질오염방제센터·화학안전공동체가 각각 보낸 <b>표 19종</b>입니다. 급한
+상황에서 파일 세 개를 열어 시·군·구로 걸러 내고 거리를 눈으로 재는 일이
+실제로 벌어집니다. 이 과제는 <b>그 세 가지를 한 주소에서 몇 초 안에</b>
+찾게 만드는 것입니다.</p>
+
+<h3>목적 및 목표</h3>
+<ul class="tight">
+  <li><b>목적</b> — 자료를 찾는 데 드는 시간을 없애고, 그 시간을 판단과
+    지시에 쓰게 한다.</li>
+  <li><b>목표 1</b> — 대피장소·문자문안·방제자원을 <b>한 화면에서 3단계 안에</b> 얻는다.</li>
+  <li><b>목표 2</b> — 설치·회원가입·교육 없이 <b>주소만 열면</b> 쓰게 한다
+    (업무용 PC · 현장 휴대전화 · 망분리 PC 모두).</li>
+  <li><b>목표 3</b> — 표준문안을 <b>조립하지 않고</b> 승인된 문장 그대로
+    내보내 발송 오류를 없앤다.</li>
+  <li><b>목표 4</b> — 개인정보가 화면·배포물에 <b>한 건도</b> 들어가지 않게
+    한다(기계 검사로 강제).</li>
+</ul>
+
+<h3>프로젝트 기간 · 규모</h3>
+<p>2026-08-11 ~ 2026-09-08 (약 4주) · 커밋 <b>99회</b> · 코드 약
+<b>25,400줄</b>(화면 12,500 · 자료·빌드 스크립트 8,600 · 검증 4,400)</p>
+
+<h3>활용대상</h3>
+<p><b>1차</b> 전국 지자체 화학사고 담당자(시·도 17 / 시·군·구 229) ·
+<b>2차</b> 화학재난 합동방재센터 · 유역환경청 · 소방 상황실 ·
+<b>3차</b> 원내 사고상황공유앱(’26.11 예정)과 자료 공유</p>
+
+<h3>과제 요약</h3>
+<ul class="tight">
+  <li>화학사고 초기에 필요한 <b>대피장소·재난문자·방제자원</b>을 한 주소에서
+    찾는 업무도구 3종을 만들었다.</li>
+  <li>정부 공개자료·오픈API 를 모아 <b>대피 후보지 17,754곳 · 방제자원
+    5,792건</b>을 사고지점 기준 가까운 순으로 보여 준다.</li>
+  <li>설치·가입이 없고 망분리 PC 에서도 파일 하나로 동작하며, 화면 검증
+    <b>886항목</b>을 자동으로 돌린다.</li>
+</ul>
+
+<h3>기대효과</h3>
+<table>
+  <tr><th style="width:20%"></th><th>지금 (as-is)</th><th>목표 (to-be)</th></tr>
+  <tr><td>초동 자료 확인</td><td>파일 3~4개를 열어 시·군·구로 수기 검색 ·
+    <b>20~30분</b>(추정)</td><td>한 주소에서 3단계 · <b>3분 이내</b></td></tr>
+  <tr><td>대피장소 후보</td><td>시·군·구 목록에서 눈으로 고름</td>
+    <td>사고지점 반경 1·2·5km <b>자동 정렬</b></td></tr>
+  <tr><td>재난문자 작성</td><td>표준문안을 찾아 수기 편집 · 오기입 위험</td>
+    <td>필수 8칸 입력 → <b>12건 동시 생성 + 글자수</b></td></tr>
+  <tr><td>방제자원 섭외</td><td>표 19종을 따로 확인</td>
+    <td>허가 갈래·물품으로 <b>5,792건 즉시 검색</b></td></tr>
+  <tr><td>배포 · 교육</td><td>압축파일 배포 · 사용법 안내 필요</td>
+    <td><b>주소 한 줄</b> · 설명서 A4 4쪽(그림 위주)</td></tr>
+</table>
+
+<figure>
+  <img src="guide-img/01-첫화면-pc.png" alt="첫 화면 — 도구 세 장의 카드">
+  <figcaption><b>첫 화면</b> — 세 도구를 카드로 고릅니다. 설치·회원가입이
+    없고, 바탕화면 아이콘으로 놓고 쓸 수 있습니다.</figcaption>
+</figure>
+
+<h2><span class="n">3</span>데이터 &amp; 모델</h2>
+
+<h3>활용 데이터 목록</h3>
+<table class="small">
+  <tr>
+    <th>활용 데이터</th><th>설명</th><th>주요 항목</th>
+    <th>민감 정보</th><th>생성 주기</th><th>출처</th>
+  </tr>
+  <tr>
+    <td class="n">화학사고 대피장소<br><b>1,849곳</b></td>
+    <td>’26년 지정 대피장소 전량(17 시·도 / 229 시·군·구)</td>
+    <td>시설명 · 주소 · 좌표 · 수용인원 · 관할부서 대표전화</td>
+    <td>없음</td><td class="n">연 1회 지정</td>
+    <td>화학물질안전원<br>(기준일 2026-05-19)</td>
+  </tr>
+  <tr>
+    <td class="n">이재민 임시주거시설<br><b>15,905곳</b></td>
+    <td>전국 15,911건 중 좌표 없음 4 · 중복 2건 제외</td>
+    <td>시설명 · 주소 · 좌표 · 수용가능인원 · 면적</td>
+    <td>없음</td><td class="n"><b>1일</b></td>
+    <td>행정안전부 재난안전데이터<br>공유플랫폼 오픈API<br>
+      <span class="nb">DSSP-IF-10945</span> (2026-09-08 수신)</td>
+  </tr>
+  <tr>
+    <td class="n">현장대응 물질정보<br><b>460종</b></td>
+    <td>물질별 대응요령 · 보호구 · 중화 정보</td>
+    <td>물질명 · CAS · 대응요령</td>
+    <td>없음</td><td class="n">연 1회</td>
+    <td>화학물질안전원 2026년판</td>
+  </tr>
+  <tr>
+    <td class="n">재난문자 표준문안<br><b>12건</b></td>
+    <td>실내대피 · 도로우회 · 주민소산 및 상황종료</td>
+    <td>문안 전문 · 발송 채널 · 글자수 제한</td>
+    <td>없음</td><td class="n">개정 시</td>
+    <td>지자체 적용 화학사고<br>재난문자 표준(안)</td>
+  </tr>
+  <tr>
+    <td class="n">실제 발송사례<br><b>42건</b></td>
+    <td>타 지자체가 실제로 보낸 문자</td>
+    <td>발송 문안 · 사고 개요</td>
+    <td>없음</td><td class="n">수시</td>
+    <td>화학물질안전원 취합</td>
+  </tr>
+  <tr>
+    <td class="n">방제자원<br><b>5,792건</b></td>
+    <td>업체 1,717건(1,589곳) + 물품 4,075건(674품목) ·
+      지도에 찍는 자리 2,341곳</td>
+    <td>업체명 · 허가 갈래 · 처리가능 지정폐기물 · 물품명 · 수량 ·
+      사업장 대표번호</td>
+    <td><b>원자료에 있었음<br>→ 전량 제거</b><br>
+      (실명 2,719 · 휴대전화 495건)</td>
+    <td class="n">기관별 상이<br>(2024-12~2026-01)</td>
+    <td>원자료 표 19종 — 전국취합 ·<br>유역환경청 · 해경 ·
+      수질오염방제센터 · 화학안전공동체 · 허가증 24건</td>
+  </tr>
+  <tr>
+    <td class="n">행정구역 경계</td><td>위치 확인용 배경선</td>
+    <td>시·도 · 시·군·구 경계</td><td>없음</td><td class="n">—</td>
+    <td>통계청 센서스용 경계(2018)</td>
+  </tr>
+  <tr>
+    <td class="n">화학사고 발생 현황</td><td>2015~2025 통계</td>
+    <td>연도별 · 유형별 건수</td><td>없음</td><td class="n">연 1회</td>
+    <td>화학물질안전원</td>
+  </tr>
+</table>
+
+<h3>데이터 전처리</h3>
+<ol>
+  <li><b>좌표 없는 줄은 지도에 넣지 않습니다</b> — 임시주거시설 4건, 방제자원
+    자리 35곳. 목록에는 남기고 지도에서만 뺍니다.</li>
+  <li><b>주소로 좌표를 잡을 때 어느 단위까지 좁혔는지 함께 저장</b>합니다
+    (도로명 156 · 읍·면·동 865 · 시·군·구 1,244 · 시·도 41). 화면의 각 줄에
+    그 단위를 표시해 <b>어림값을 정확한 좌표처럼 보이지 않게</b> 했습니다.</li>
+  <li><b>물품 이름 674표기 → 표준 27종</b>으로 묶었습니다(방독면·정화통·
+    공기호흡기 → 호흡보호구). 급할 때 한 번에 요청하는 단위이고, 원래 표기는
+    줄마다 함께 남겼습니다.</li>
+  <li><b>같은 곳이 두 자리로 실린 것을 합쳤습니다</b>(2,364 → 2,341곳).
+    표마다 주소 앞머리 표기가 달라 같은 기관이 둘로 갈라지고 보유 물품까지
+    나뉘어 있었습니다. 번호만 다른 18곳은 자리를 합치되 <b>번호는 하나도
+    버리지 않고</b> 함께 보여 줍니다.</li>
+  <li><b>새 행정구역 이름 정리</b> — 원자료의 `전남광주통합특별시` 1,831줄을
+    주소의 시·군·구로 갈라 기존 시·도 체계와 맞물리게 했습니다.</li>
+  <li><b>개인정보 제거 + 기계 검사</b> — 담당자 실명·휴대전화·이메일 전량
+    제거, 배포물에 <span class="nb">01x-xxxx-xxxx</span> 꼴이 한 건이라도
+    있으면 <b>빌드를 멈춥니다.</b></li>
+  <li><b>인터넷이 필요한 자료는 「한 번 받아 파일로 넣는」 방식</b>으로
+    분리했습니다 — 운영 중 외부 호출에 기대지 않습니다.</li>
+</ol>
+
+<h3>모델 / 도구</h3>
+<ul class="tight">
+  <li><b>Claude Code (AI 코딩 에이전트)</b> — 설계 논의 · 코드 작성 · 자료
+    정리 스크립트 · 검증 코드 · 문서를 대화로 진행(99커밋). 현업 담당자가
+    요구를 말로 주고 <b>즉시 화면으로 확인</b>하는 방식.</li>
+  <li><b>Playwright</b> — 실제 브라우저를 띄워 화면을 눌러 보는 자동 검증
+    19묶음 · 886항목.</li>
+  <li><b>Python / Node 스크립트</b> — 엑셀 · hwp · 구형 xls · 오픈API JSON을
+    화면용 자료로 바꾸는 변환기, 설명서 PDF 생성기, 배포 폴더 생성기.</li>
+  <li><b>프레임워크·빌드도구·npm 미사용</b> — 브라우저가 파일을 바로 읽습니다.
+    행정망 구형 브라우저를 고려해 ES5 문법으로 작성.</li>
+</ul>
+<div class="box q">
+  <div class="t">AI 를 어디에 썼는가 — 코드보다 자료 정리와 검증에 썼습니다</div>
+  <p>표 19종의 물품 표기 <b>674가지를 표준 27종으로 묶는 규칙</b>, 같은 곳이
+    두 자리로 실린 것을 찾아내는 규칙, <b>스캔 이미지로만 있던 허가증 24건을
+    읽어 표로 만든 일</b>, 실제 브라우저로 화면을 눌러 보는 <b>886항목의 검증
+    코드</b>가 모두 AI 와 함께 한 작업입니다.</p>
+</div>
+
+<h2><span class="n">4</span>AI 활용 결과물 설명</h2>
+
+<h3>한 줄 설명</h3>
+<p><b>사고지점만 넣으면 대피장소 · 재난문자 · 방제자원이 가까운 순으로
+나오는, 설치·가입 없는 지자체 담당자용 업무도구 3종.</b></p>
+
+<h3>주요 기능 ① 방제 물품·장비 찾기 <span style="font-weight:400;color:var(--ink3)">— 방제자원 5,792건</span></h3>
+<div class="flow">
+  <div class="b on">걸음 1 두 갈래</div><div class="a">›</div>
+  <div class="b">걸음 2 갈래 · 물품</div><div class="a">›</div>
+  <div class="b">걸음 3 사고지점</div><div class="a">›</div>
+  <div class="b">가까운 순 목록</div>
+</div>
+<ul class="tight">
+  <li>맨 처음 <b>두 갈래</b>를 묻습니다 — <b>업체 섭외</b>(폐기물을 맡길 곳)와
+    <b>방제물품 찾기</b>(흡착포·보호복·굴착기 같은 물건). 묻는 것이 달라
+    갈라 두었습니다.</li>
+  <li>업체는 <b>허가 갈래 7가지</b>(수집·운반 / 중간처분 / 종합재활용 /
+    최종처분(매립) / 중장비 / 독성가스 / 폐수 수탁처리), 물품은 <b>표준 이름
+    27가지</b>로 고릅니다. <b>고른 것을 가진 곳만</b> 나옵니다.</li>
+  <li>줄을 누르면 <b>전화번호 · 보유 물품 · 수량</b>이 창으로 열리고, 번호를
+    눌러 바로 전화합니다. 여러 곳을 <b>동원 목록</b>에 담아 한 번에 복사합니다.</li>
+  <li>미리 협의된 업체 23곳은 갈래마다 <b>맨 위</b>에 옵니다.</li>
+</ul>
+<div class="shots">
+  <figure>
+    <img src="guide-img/10-방제-갈래.png" alt="걸음 1 — 두 갈래">
+    <figcaption><b>걸음 1</b> — 업체 섭외 / 방제물품 찾기</figcaption>
+  </figure>
+  <figure>
+    <img src="guide-img/16-방제-세부창.png" alt="세부사항 창 — 전화번호와 보유 물품·수량">
+    <figcaption><b>세부사항 창</b> — 전화번호가 가장 크고, 그 아래 보유 물품·수량</figcaption>
+  </figure>
+</div>
+
+<h3>주요 기능 ② 주민 대피장소 찾기 <span style="font-weight:400;color:var(--ink3)">— 대피 후보지 17,754곳</span></h3>
+<ul class="tight">
+  <li>사고지점을 <b>주소 검색 · 지도에서 찍기 · 내 위치 · 위도·경도</b> 넷 중
+    아무 것으로나 넣습니다.</li>
+  <li>화학사고 대피장소 1,849곳과 이재민 임시주거시설 15,905곳을 <b>가까운
+    순</b>으로, 직선거리 · 도보시간 · 차량시간 · 수용인원 · 관할부서 전화와
+    함께 보여 줍니다. 두 자료는 켜고 끌 수 있는 별개의 층입니다.</li>
+  <li>반경 1·2·5km 안에 몇 곳인지 한 줄로 보고, 고른 곳까지 <b>도로 경로</b>를
+    그립니다.</li>
+</ul>
+<figure>
+  <img src="guide-img/21-대피장소-결과.png" alt="주민 대피장소 찾기 결과 화면">
+  <figcaption><b>결과 화면</b> — 사고지점(빨강) 주변 대피장소가 지도와 목록에
+    함께 나옵니다. 위쪽 띠에 가장 가까운 곳과 반경별 개수가 한 줄로 적힙니다.
+    <span style="color:var(--ink3)">(개발 환경에서 배경지도 타일을 받을 수 없어
+    행정경계선만 보입니다 — 실제 화면에는 도로·건물이 함께 나옵니다.)</span></figcaption>
+</figure>
+
+<h3>주요 기능 ③ 주민대피 문자생성기 <span style="font-weight:400;color:var(--ink3)">— 표준문안 12건 · 실제 사례 42건</span></h3>
+<ul class="tight">
+  <li>발송 구분(실내대피 / 도로 우회 / 주민소산)을 고르면 <b>한 걸음에 한
+    묶음만</b> 묻습니다(6~7걸음). 진행 표시를 눌러 아는 값부터 채웁니다.</li>
+  <li>필수 칸이 비면 <b>문안을 아예 만들지 않습니다</b> — <span class="nb">{시각}</span>
+    이 남은 반쪽 문안을 그대로 복사해 발송하는 일을 막습니다.</li>
+  <li>문안은 <b>미리 승인된 문장 그대로</b> 나갑니다(기계가 문장을 조립하지
+    않음). 글자수가 함께 나오고, 상황종료 문안까지 같은 화면에서 만들어집니다.</li>
+</ul>
+<figure>
+  <img src="guide-img/33-문자-문안카드.png" alt="만들어진 재난문자 문안과 글자수·복사 단추">
+  <figcaption><b>만들어진 문안</b> — 승인받은 표준문안 그대로이고 글자수
+    (87/90자)가 함께 나옵니다. <b>복사</b>를 눌러 재난문자 발송시스템에
+    붙입니다.</figcaption>
+</figure>
+
+<h3>사용 흐름</h3>
+<p><b>접속(주소 한 줄) → 도구 고르기 → 사고지점 넣기 → 결과 확인 →
+전화 · 복사</b></p>
+
+<h2><span class="n">5</span>성능 · 효과 (핵심 지표)</h2>
+
+<h3>정량</h3>
+<table>
+  <tr><th>지표명</th><th>측정방법</th><th>기준값</th><th>개선값</th><th>개선율</th></tr>
+  <tr><td class="n">검색 가능한 방제자원</td><td>자료 건수 집계</td>
+    <td class="n">470건</td><td class="n"><b>5,792건</b></td>
+    <td class="up">+1,132%</td></tr>
+  <tr><td class="n">대피 후보지</td><td>자료 건수 집계</td>
+    <td class="n">1,849곳</td><td class="n"><b>17,754곳</b></td>
+    <td class="up">+760%</td></tr>
+  <tr><td class="n">초동 자료 확인 단계</td><td>담당자가 거치는 화면·파일 수</td>
+    <td>파일 3~4개 · 시·군·구 수기 검색</td>
+    <td class="n"><b>1개 주소 · 3단계</b></td><td class="up">단계 –70%</td></tr>
+  <tr><td class="n">재난문자 작성</td><td>필수값 입력 후 문안 생성까지</td>
+    <td class="n">수기 편집 15분(추정)</td>
+    <td class="n"><b>2분 이내</b>(12건 동시)</td>
+    <td class="up">–87%(추정)</td></tr>
+  <tr><td class="n">화면 검증</td><td>자동 검사 항목 수(실제 브라우저)</td>
+    <td class="n">수기 점검(0항목)</td>
+    <td class="n"><b>886항목 · 19묶음</b></td><td class="up">신규</td></tr>
+  <tr><td class="n">모바일 화면 점검</td><td>320~820px 기기별 화면 점검</td>
+    <td class="n">0</td><td class="n"><b>65화면 · 문제 0건</b></td>
+    <td class="up">신규</td></tr>
+  <tr><td class="n">배포 크기</td><td>배포물 용량</td>
+    <td class="n">원본 31MB</td>
+    <td class="n"><b>웹 3.2MB</b> / 단일 1.9~3.8MB</td><td class="up">–90%</td></tr>
+  <tr><td class="n">개인정보 노출</td><td>배포물 자동 검사(정규식)</td>
+    <td class="n">원자료 실명 2,719 · 휴대전화 495건</td>
+    <td class="n"><b>0건</b>(검출 시 빌드 중단)</td><td class="up">–100%</td></tr>
+</table>
+<div class="box w">
+  <div class="t">기준값 표기 원칙</div>
+  <p><b>추정</b>이라고 적은 두 줄은 현업 수기 작업을 재현해 잰 값이고, 나머지는
+    자료·코드에서 <b>세어 나온 값</b>입니다. 측정하지 않은 값을 성과로 적지
+    않았습니다.</p>
+</div>
+
+<h3>정성 — 개발 중 현업 검토 의견과 반영 결과</h3>
+<table class="small">
+  <tr><th style="width:52%">현업 담당자 의견(원문)</th><th>반영 결과</th></tr>
+  <tr><td>“결국 방제자원은 맨 처음 2가지 큰 틀로 나뉘어질 거야 —
+    업체 섭외와 방제물품 찾기.”</td>
+    <td>③ 의 시작을 <b>두 갈래 · 세 걸음</b>으로 다시 설계</td></tr>
+  <tr><td>“지도는 참고사항일 뿐, 메인 기능은 결국 방제자원의 종류 · 수량 ·
+    담당 연락처다.”</td>
+    <td>줄을 누르면 <b>전화번호가 가장 큰 글자</b>인 세부사항 창이 열리도록 변경</td></tr>
+  <tr><td>“글이 너무 많다. 최대한 글이 적고 스크린샷이나 그림으로.”</td>
+    <td>설명서를 5,910자 → <b>2,058자 · A4 4쪽</b>(도구별 한 쪽)으로 재제작</td></tr>
+  <tr><td>“협의 완료라고 적으면 담당자가 그 말의 뜻을 모른다.”</td>
+    <td>화면 문구를 <b>「먼저 연락 · 미리 협의된 곳」</b>으로 교체</td></tr>
+</table>
+<p style="color:var(--ink3)">※ 시범운영 사용자(지자체 담당자) 반응은 <b>배포 후
+수집 예정</b>입니다. 설명서 1쪽과 각 쪽 꼬리말에 개선 의견·오류를 받을 창구를
+넣어 두었습니다.</p>
+
+<h2><span class="n">6</span>보안 · 윤리 · 저작권 체크리스트</h2>
+
+<h3>개인정보 비식별 / 비저장</h3>
+<ul class="tight">
+  <li><b>서버가 없습니다.</b> 정적 파일만으로 동작해 담당자가 넣은 사고지점·
+    좌표를 저장하는 곳이 없습니다(로그인 · 회원가입 · DB · 접속기록 없음).</li>
+  <li><b>외부로 나가는 호출은 한 파일에 모았습니다</b> — 배경지도 타일 ·
+    주소 검색 · 도보 경로뿐이고 화면에 그 사실을 적었습니다. 그 파일을 빼면
+    완전 오프라인으로 동작합니다(망분리판).</li>
+  <li><b>원자료의 담당자 실명 2,719건 · 개인 휴대전화 495건 · 이메일을 전량
+    제거</b>했습니다. 사업장 대표번호·부서번호만 남겼습니다.</li>
+  <li><b>기계가 막습니다</b> — 배포 폴더를 만들 때 개인 연락처 꼴을 훑어
+    하나라도 있으면 폴더를 만들지 않고 멈춥니다. 확인 못 한 번호는 지어내지
+    않고 비워 둡니다.</li>
+</ul>
+
+<h3>저작권 준수</h3>
+<ul class="tight">
+  <li>자료는 정부 공개자료·공공 오픈API 이용 범위에서 사용하고, <b>출처·기준일을
+    화면과 보고서에 표기</b>했습니다.</li>
+  <li>디자인은 <b>KRDS(디지털정부 서비스 디자인 시스템) 공식 토큰</b>을 원본
+    그대로 쓰고, 서체는 KRDS 표준 <b>Pretendard GOV</b> 를 씁니다.</li>
+  <li>배경지도는 국토교통부 <b>브이월드</b>(인증키 활용 도메인 등록), 실패 시
+    <b>OpenStreetMap</b> 으로 자동 대체하며 저작권 표기를 화면에 넣었습니다.</li>
+  <li>정부상징(태극)·GHS 그림문자는 <b>쓰지 않았습니다</b> — 기관 승인이 필요한
+    표장이거나 법으로 뜻이 정해진 표지입니다.</li>
+  <li>⚠ 진입 화면의 실사 사진 8장은 원내에서 제공받은 자료입니다. <b>대외
+    배포 시 출처·이용 범위를 한 번 확인</b>해 주시기 바랍니다.</li>
+</ul>
+
+<h3>보안 가이드 준수</h3>
+<ul class="tight">
+  <li>로그인·개인정보 입력 칸이 없어 인증·암호 저장 위험이 없습니다.</li>
+  <li><b>https</b> 로 서비스합니다(‘내 위치’ 기능이 http 에서는 브라우저에
+    의해 차단).</li>
+  <li>망분리 환경에는 <b>단일 HTML 파일</b>을 제공해 외부 통신 없이 동작합니다.</li>
+  <li>인증키는 배포물에 들어가지 않는 폴더에만 두고, 배경지도 키는 <b>활용
+    도메인 제한</b>을 걸어 발급받습니다.</li>
+  <li>정식 안내 전 링크가 퍼지자 <b>접속을 닫고 안내문으로 대체</b>하는 절차까지
+    문서로 만들어 두었습니다.</li>
+</ul>
+
+<h2><span class="n">7</span>산출물 목록</h2>
+<table class="small">
+  <tr><th style="width:26%">산출물</th><th>위치 · 비고</th></tr>
+  <tr><td>서비스 링크</td>
+    <td><b class="nb">https://chem-safety-kr.pages.dev</b> (심사 일정에 맞춰 개방)</td></tr>
+  <tr><td>실행파일(망분리 PC)</td>
+    <td>단일 HTML 3개 — 주민대피문자 생성기 1.9MB · 주민 대피장소 찾기 3.8MB ·
+      방제 물품·장비 찾기 2.9MB</td></tr>
+  <tr><td>배포 패키지</td>
+    <td><span class="nb">웹업로드_사이트만.zip</span>(3.2MB · 웹서버용) ·
+      <span class="nb">…_배포용.zip</span>(9.9MB · 타 기관 전달용, 전달안내 포함)</td></tr>
+  <tr><td>사용자 가이드</td>
+    <td>사용설명서 <b>A4 4쪽</b>(도구별 한 쪽 · 그림 위주) ·
+      한장요약 A4 1쪽(상황실 게시용)</td></tr>
+  <tr><td>데이터 설명서<br>(Data Card)</td>
+    <td>본 보고서 3절 데이터 표 · 방제자원 원자료 19종 정리 문서 ·
+      원내 자료 검토 문서</td></tr>
+  <tr><td>프롬프트</td>
+    <td><b>CLAUDE.md</b> — AI 와 함께 일하기 위한 규칙 문서(지켜야 할 원칙 ·
+      코드 규칙 · 이미 정한 결정과 그 이유). 매 작업의 기준으로 쓴 실제
+      프롬프트입니다.</td></tr>
+  <tr><td>검증</td>
+    <td><span class="nb">tests/</span> 19묶음 · 886항목 —
+      <span class="nb">tests/run.sh</span> 로 언제든 재현</td></tr>
+  <tr><td>소스 저장소</td>
+    <td><span class="nb">rlawogns221221221-create/nics_chem-safety-cheatkey</span></td></tr>
+  <tr><td>시연 영상</td><td><b>미제작</b> — 필요 시 화면 녹화 제공 가능</td></tr>
+</table>
+
+<h2><span class="n">8</span>향후 계획</h2>
+
+<h3>활용 분야 및 활용 방안</h3>
+<ul class="tight">
+  <li><b>시범운영 → 전국 확산</b> — 시·도 17곳에 주소 한 줄로 안내하고 개선
+    의견을 설명서의 창구로 받아 반영합니다. <b>담당자 교육이 필요 없는
+    구조</b>입니다.</li>
+  <li><b>훈련·교육 교재로 활용</b> — 화학사고 대응 훈련의 문자 발송 실습,
+    대피장소 선정 실습에 그대로 씁니다(실제 자료를 쓰므로 훈련이 곧 준비).</li>
+  <li><b>합동방재센터·유역환경청 공동 활용</b> — 방제자원은 이미 기관별 자료를
+    합친 것이라, 권역별로 누가 무엇을 처리할 수 있는지 한 화면에서 공유됩니다.</li>
+  <li><b>망분리 환경 지원</b> — 인터넷이 없는 상황실·현장 차량에서도 단일
+    파일로 같은 기능을 씁니다.</li>
+</ul>
+
+<h3>확산 및 고도화 방안</h3>
+<ol>
+  <li><b>원내 사고상황공유앱(’26.11) 자료 연계</b> — 자료를 원내 표준
+    조사서식(자원유형 6분류 · 대응 물질군 A~E)에 맞춰 두었으므로, 그때 자료를
+    갈아 끼우면 화면은 그대로 씁니다.</li>
+  <li><b>주소 → 정확 좌표 전환</b> — 지금은 주소로 잡은 어림값(정확도 표기)
+    입니다. 준비된 좌표 수집 페이지를 국내망에서 한 번 돌리면 「대략」 표시가
+    사라집니다.</li>
+  <li><b>물질군 태깅</b> — 물질 460종에 원내 분류표(’26.8 배포)를 붙이면
+    “이 물질에 맞는 중화제·보호구를 가진 곳”까지 이어집니다. <b>분류표를
+    받기 전에는 임의로 정하지 않습니다</b>(틀린 중화제를 권할 위험).</li>
+  <li><b>출동 소요시간 실측</b> — 실측치가 모이면 직선거리 기반 어림값을
+    30·60·120분 시간권역으로 바꿉니다.</li>
+  <li><b>자료 자동 갱신</b> — 이재민 임시주거시설은 갱신주기가 1일인 오픈API
+    입니다. 국내망 서버에서 정기 수신하도록 하면 사람 손이 빠집니다.</li>
+  <li><b>다른 재난 유형으로 확장</b> — 사고지점 → 주변 자원 → 문안 생성이라는
+    구조는 가스·유해물질 유출, 수질오염 사고에도 그대로 적용됩니다.</li>
+</ol>
+
+<div class="box">
+  <div class="t">이 도구가 지키는 네 가지 원칙</div>
+  <p><b>① 없는 값은 지어내지 않는다</b> — 좌표 없는 시설은 지도에 찍지 않고,
+    확인 못 한 전화번호는 비워 둡니다. &nbsp;<b>② 어림값은 어림값이라고 화면에
+    적는다</b> — 직선거리·도보시간·주소로 잡은 좌표에는 정확도 단위를 함께
+    표시합니다. &nbsp;<b>③ 개인정보는 기계가 막는다</b> — 배포물에 개인 연락처가
+    하나라도 있으면 빌드가 멈춥니다. &nbsp;<b>④ 승인된 문안은 조립하지 않는다</b>
+    — 표준문안은 미리 적어 둔 문장 그대로 내보냅니다.</p>
+</div>
+
+<div class="foot">
+  <span>2026년 AI프렌즈 프로젝트 결과보고서 · 화학사고 초동대응 지원 서비스</span>
+  <span class="r">기후에너지환경부 화학물질안전원</span>
+</div>
+
+</body>
+</html>
