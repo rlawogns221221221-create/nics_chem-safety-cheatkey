@@ -155,6 +155,14 @@ const 덧그리기 = `
       if (!r.height || r.height > 200) return;
       if (Math.abs(r.bottom - innerHeight) < 4) h = Math.max(h, r.height);
     });
+    /* 지도 아래쪽 줄(축척 막대 · 겹쳐 그리기 체크칸)은 고정 요소가 아니라
+       지도 칸 **안에** 있습니다. 그래서 위 검사에 안 잡히는데, 지도가 화면
+       바닥까지 닿아 있으면 자막이 그 줄을 덮습니다 — 그만큼 올립니다. */
+    const m = document.querySelector('.mmap');
+    if (m) {
+      const r = m.getBoundingClientRect();
+      if (Math.abs(r.bottom - innerHeight) < 12) h = Math.max(h, 44);
+    }
     return h;
   };
   window.__title = (big, small) => {
@@ -302,9 +310,15 @@ const 이름으로찍기 = async (검색칸, 이름, 고를것) => {
      전에 줄을 붙잡아 두면 누를 때 "Element is not attached to the DOM" 으로
      죽습니다(러너에서 실제로 그렇게 죽었습니다). 다 그려진 뒤에 고르고,
      붙잡은 손잡이가 아니라 **그때 다시 찾는 방식(locator)** 으로 누릅니다. */
-  await p.waitForFunction(() => !document.querySelector('.mpk-busy'),
-    null, { timeout: 9000 }).catch(() => {});
-  await 잠깐(500);
+  /* ⚠ 여기서 **가만히** 기다리면 그 자리가 영상에서 가장 긴 정지가 됩니다
+     (러너에서 4.8초였습니다 — 인터넷 검색이 실패할 때까지 기다린 시간).
+     짧게 끊고, 기다리는 동안에도 커서는 움직입니다. */
+  for (let t = 0; t < 2200; t += 300) {
+    const 바쁨 = await p.evaluate(() => !!document.querySelector('.mpk-busy'));
+    if (!바쁨) break;
+    await 머무르기(300);
+  }
+  await 머무르기(450);
   const 줄 = 고를것
     ? p.locator('.mpk-row', { hasText: 고를것 }).first()
     : p.locator('.mpk-row').first();
@@ -325,7 +339,8 @@ const 이름으로찍기 = async (검색칸, 이름, 고를것) => {
   /* 어림 좌표면 "지도를 누르세요" 가 뜹니다 — 한 번 눌러 사고지점을 확정 */
   const 누르랄때 = await p.$('text=지도를 누르세요');
   if (누르랄때) {
-    await 자막('어림잡은 좌표는 사고지점으로 자동 확정하지 않습니다 — 지도에서 한 번 확정', 1900);
+    await 자막자리();
+    await 자막('어림잡은 좌표는 사고지점으로 자동 확정하지 않습니다 — 지도에서 한 번 확정', 1500);
     const map = await p.$('.mmap');
     const mb = await map.boundingBox();
     커서 = { x: mb.x + mb.width * 0.5, y: mb.y + mb.height * 0.46 };
