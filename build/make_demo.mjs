@@ -352,6 +352,34 @@ const 이름으로찍기 = async (검색칸, 이름, 고를것) => {
   return true;
 };
 
+/* 칸에 **실제로 쳐 넣습니다.** 값을 한꺼번에 밀어 넣으면 화면에 채우는
+   과정이 남지 않아, 보는 사람이 "여기서 무엇을 묻는지"를 알 수 없습니다
+   (2026-09-14 사용자 지적 — "중간에 작성과정 스킵하잖아"). */
+const 칸에치기 = async (칸, 값, 속도) => {
+  const 있 = await p.$(칸);
+  if (!있) { console.error('  ⚠ 칸을 못 찾음: ' + 칸); return false; }
+  await 가서누르기(칸, { 앞: 260, 뒤: 140 });
+  await p.type(칸, 값, { delay: 속도 || 62 });
+  await 머무르기(320);
+  return true;
+};
+
+/* 시각처럼 자판으로 치기 까다로운 칸(type=time)은 눌러서 보여 준 뒤 채웁니다 */
+const 시각넣기 = async (칸, 값) => {
+  await 가서누르기(칸, { 앞: 260, 뒤: 160 });
+  await p.fill(칸, 값);
+  await 머무르기(420);
+};
+
+/* 다음 걸음으로 — 단추 글씨가 그때그때 다르므로(다음 — ○○ / 문안 만들기)
+   자리로 찾습니다. */
+const 다음걸음 = async (뒤) => {
+  const 있 = await p.$('#stepNav .sn-next');
+  if (!있) { console.error('  ⚠ 다음 단추가 없습니다'); return false; }
+  await 가서누르기('#stepNav .sn-next', { 앞: 300, 뒤: 뒤 || 900 });
+  return true;
+};
+
 /* ══ 0. 표지 ═══════════════════════════════════════════════ */
 await p.goto(`${ROOT}index.html`);
 await 잠깐(1100);
@@ -393,41 +421,68 @@ await 잠깐(1000);
 await 자막자리();
 await 자막('② 주민대피 문자생성기 — 발송 구분을 먼저 고릅니다', 1800);
 await 훑기('#stages', 550);
-await 가서누르기('#stages button[data-s=evac]', { 뒤: 1100 });
-await 자막('한 화면에 한 묶음만 묻습니다 — 급할 때 헤매지 않게', 1900);
+/* ⚠ **실내대피 알림**으로 녹화합니다(2026-09-14 사용자 지정). 걸음이
+   여섯이라 대피장소 걸음이 빠지고, 채우는 과정이 한 번에 다 보입니다. */
+await 가서누르기('#stages button[data-s=indoor]', { 뒤: 1100 });
+await 자막('실내대피 알림을 골랐습니다 — 한 화면에 한 묶음만 묻습니다', 1900);
 await 훑기('#stepBar', 650);
 await 자막자리();
 
-/* 값 채우기 — 실제로 타이핑하는 칸을 하나 보여 주고, 나머지는 한 번에 */
-const 다음 = await p.$('#stepNav .sn-next');
-if (다음) { await 가서누르기('#stepNav .sn-next', { 뒤: 900 }); }
-const 첫칸 = await p.$('.fgrp input[type=text]');
-if (첫칸) {
-  await 가서누르기('.fgrp input[type=text]', { 뒤: 250 });
-  await p.keyboard.type('청주시', { delay: 120 });
-  await 머무르기(600);
+/* ── 여섯 걸음을 **실제로 채웁니다** ─────────────────────────
+   ⚠ 값을 한꺼번에 밀어 넣지 마세요. 예전 판이 그랬는데, 화면에 채우는
+   과정이 남지 않아 "무엇을 묻는 도구인지" 가 영상에서 빠졌습니다
+   (사용자 지적 — "스킵하지말고 … 과정이 다 나오도록").
+   ⚠ 사업장 이름이 실제 회사라 **가상 상황임을 반드시 밝힙니다**(윗글 참고) */
+
+/* 걸음 1 — 사고유형 */
+await 자막('걸음 1 사고유형 — 누출 · 화재 · 폭발 중에서', 1600);
+/* 한글 값은 따옴표로 감쌉니다 — 안 그러면 CSS 선택자가 깨집니다 */
+await 가서누르기('#types button[data-t="누출"]', { 뒤: 800 });
+await 다음걸음();
+
+/* 걸음 2 — 발송 정보(기관·시각) */
+await 자막자리();
+await 자막('걸음 2 발송 정보 — 문자를 보내는 기관과 발생시각', 1700);
+await 칸에치기('#if_기관', '청주시');
+await 시각넣기('#if_시각', '14:20');
+await 다음걸음();
+
+/* 걸음 3 — 사고 발생 위치 */
+await 자막자리();
+await 자막('걸음 3 사고 발생 위치 — 시·군·구 · 읍·면·동 · 사업장', 1800);
+await 칸에치기('#if_시군', '청주시');
+await 칸에치기('#if_읍면동', '흥덕구');
+await 칸에치기('#if_사업장', 'SK하이닉스㈜ 청주', 55);
+await 다음걸음();
+
+/* 걸음 4 — 문자 받을 지역. 사고 장소와 다를 수 있어 따로 묻습니다 */
+await 자막자리();
+await 자막('걸음 4 문자 받을 지역 — 사고 장소와 다를 수 있어 따로 묻습니다', 2000);
+await 칸에치기('#if_대상지역', '흥덕구 일원');
+await 다음걸음();
+
+/* 걸음 5 — 사고물질. 460종에서 골라 넣습니다(직접 입력도 됩니다) */
+await 자막자리();
+await 자막('걸음 5 사고물질 — 460종에서 찾아 고릅니다', 1700);
+await 가서누르기('#if_물질', { 앞: 260, 뒤: 160 });
+await p.type('#if_물질', '염산', { delay: 110 });
+await 머무르기(700);
+const 물질줄 = p.locator('.mpk-row').first();
+if (await 물질줄.count()) {
+  const mb2 = await 물질줄.boundingBox().catch(() => null);
+  if (mb2) {
+    커서 = { x: mb2.x + mb2.width / 2, y: mb2.y + mb2.height / 2 };
+    await p.mouse.move(커서.x, 커서.y, { steps: 14 });
+    await 잠깐(380);
+  }
+  await 물질줄.click();
+  await 머무르기(700);
 }
-await 자막('아는 값부터 채워도 됩니다 — 진행 표시를 눌러 건너뜁니다', 1900);
-/* ⚠ 사업장 이름이 실제 회사라 **가상 상황임을 반드시 밝힙니다**(윗글 참고) */
-await p.evaluate((o) => {
-  Object.keys(o).forEach((k) => {
-    const el = document.getElementById('if_' + k);
-    if (el) { el.value = o[k]; el.dispatchEvent(new Event('input', { bubbles: true })); }
-  });
-}, { 기관: '청주시', 시각: '14:20', 시군: '청주시', 읍면동: '흥덕구',
-     사업장: 'SK하이닉스㈜ 청주', 대상지역: '흥덕구 일원', 물질: '염산',
-     대피소: '청주실내체육관', 집결지: '흥덕구 행정복지센터' });
-await 잠깐(600);
-/* ⚠ 값을 한 번에 넣으면 **사고물질 자동완성 목록**이 열려 화면 왼쪽 위를
-   덮습니다(실제로 그렇게 찍혔습니다). 닫고 넘어갑니다. */
-await p.keyboard.press('Escape');
-await p.evaluate(() => {
-  const m = document.querySelector('.mpk');
-  if (m) { m.hidden = true; m.style.display = 'none'; }
-});
-await 잠깐(400);
-const 확인 = await p.$('#stepBar button[data-go=out]');
-if (확인) { await 가서누르기('#stepBar button[data-go=out]', { 뒤: 1400 }); }
+await 자막('진행 표시를 눌러 아무 걸음으로나 건너뛸 수도 있습니다', 1800);
+await 훑기('#stepBar', 700);
+
+/* 걸음 6 — 문안 확인 */
+await 다음걸음(1400);
 await 예시띠가리기();
 await 자막자리();
 await 자막('※ 아래 문안은 기능 설명을 위한 가상 상황입니다 — 실제 사고가 아닙니다', 2600);
