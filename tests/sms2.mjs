@@ -52,7 +52,7 @@ const setF = async (P, k, v) => {
   await P.goto(`${R}/index.html`); await P.waitForTimeout(600);
   /* 진입 화면을 KRDS 표준형으로 다시 만들면서 선택자가 바뀌었습니다
      (.panels .pn .pn-hit → .tools .pn > a). 검사하는 것은 그대로입니다 —
-     순서가 '실제 업무 순서'인가. 상사 피드백으로 정한 것이라 바꾸면 안 됩니다. */
+     카드 차례가 사용자가 정한 차례인가. 임의로 바꾸면 안 됩니다. */
   const panels = await P.$$eval('.tools .pn', els => els.map(e => ({
     no: e.querySelector('.pn-no').textContent.trim(),
     /* 카드 이름은 h2 였는데 제목 계단을 h1→h2→h3 으로 바로잡아 h3 이 됐습니다 */
@@ -60,14 +60,14 @@ const setF = async (P, k, v) => {
     href: e.querySelector('a').getAttribute('href')
   })));
   console.log('진입화면:', panels.map(p => `${p.no} ${p.title}`).join(' / '));
-  /* 차례는 사용자가 정합니다 — 지금은 방제 물품·장비 → 대피장소 → 문자입니다.
-     한동안 대피장소 → 문자 → 방제자원 이었습니다(상사 피드백, b0802d4). */
-  chk(panels[0].href === 'res/index.html' && panels[0].no === '01', '01 = 방제 물품·장비 찾기');
-  chk(panels[1].href === 'map/index.html' && panels[1].no === '02', '02 = 주민 대피장소 찾기');
-  chk(panels[2].href === 'sms/index.html' && panels[2].no === '03', '03 = 주민대피 문자생성기');
+  /* 차례는 사용자가 정합니다 — 지금은 대피장소 → 문자 → 방제 물품·장비입니다
+     (2026-09-14 사용자 지시로 방제가 다시 3번으로 돌아왔습니다). */
+  chk(panels[0].href === 'map/index.html' && panels[0].no === '01', '01 = 주민 대피장소 찾기');
+  chk(panels[1].href === 'sms/index.html' && panels[1].no === '02', '02 = 주민대피 문자생성기');
+  chk(panels[2].href === 'res/index.html' && panels[2].no === '03', '03 = 방제 물품·장비 찾기');
   // 링크가 실제로 열리는가
   await P.click('.tools .pn:nth-child(1) a'); await P.waitForTimeout(900);
-  chk(P.url().includes('/res/'), '첫 카드를 누르면 방제 물품·장비 찾기가 열린다');
+  chk(P.url().includes('/map/'), '첫 카드를 누르면 주민 대피장소 찾기가 열린다');
   await P.close();
 }
 

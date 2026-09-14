@@ -159,7 +159,7 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   await c2.close();
 }
 
-/* ── 01 방제 물품·장비 찾기 ──────────────────────────────────── */
+/* ── 방제 물품·장비 찾기 (설명서 4쪽) ───────────────────────── */
 /* ⚠ 이 도구는 2026-09-07 에 **세 걸음**이 되었습니다(사용자 분류안 PPT) —
      걸음 1 두 갈래(업체 섭외 / 방제물품 찾기) → 걸음 2 고르기 → 걸음 3 사고지점.
      두 갈래는 **묻는 것이 다릅니다**("어디에 맡길까" ↔ "무엇이 어디 있나").
@@ -353,7 +353,7 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   await ctx.close();
 }
 
-/* ── 02 주민 대피장소 찾기 ───────────────────────────────────── */
+/* ── 주민 대피장소 찾기 (설명서 2쪽) ────────────────────────── */
 {
   const ctx = await browser.newContext({ viewport: PC, deviceScaleFactor: 2 });
   const p = await ctx.newPage();
@@ -392,7 +392,7 @@ const 찍기 = async (page, 이름, sel, 자름) => {
     if (!e) return null;
     const r = e.getBoundingClientRect();
     /* 옆에 놓는 목록 사진과 높이가 비슷해야 두 장이 나란히 앉습니다.
-       폭의 1.15 배까지 — 설명서 3쪽은 자리가 남아서 크게 실을 수 있습니다. */
+       폭의 1.15 배까지 — 대피장소 쪽은 자리가 남아서 크게 실을 수 있습니다. */
     return { x: Math.floor(r.left), y: Math.floor(r.top),
              width: Math.ceil(r.width),
              height: Math.min(Math.ceil(r.height), Math.ceil(r.width * 1.15)) };
@@ -425,7 +425,7 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   await ctx.close();
 }
 
-/* ── 03 주민대피 문자생성기 ──────────────────────────────────── */
+/* ── 주민대피 문자생성기 (설명서 3쪽) ───────────────────────── */
 {
   const ctx = await browser.newContext({ viewport: PC, deviceScaleFactor: 2 });
   const p = await ctx.newPage();

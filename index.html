@@ -124,12 +124,12 @@
       <p class="hero-lead s1">사고가 나면 <b>무엇을 부를지</b>,
         <b>어디로 대피시킬지</b>, <b>무엇을 문자로 보낼지</b> —
         세 가지를 이 화면에서 시작합니다.</p>
-      <p class="hero-lead s2">맡길 업체나 필요한 물품을 고르고 사고지점을 넣으면
-        <b>가까운 순으로</b> 찾습니다 — 업체 1,717건 · 물품 4,075건.</p>
-      <p class="hero-lead s3">사고지점을 찍으면 주변 대피장소를
+      <p class="hero-lead s2">사고지점을 찍으면 주변 대피장소를
         <b>가까운 순으로</b> 찾습니다 — 전국 <b>1,849곳</b>.</p>
-      <p class="hero-lead s4">사고정보를 넣으면 <b>재난문자 표준문안</b>이
+      <p class="hero-lead s3">사고정보를 넣으면 <b>재난문자 표준문안</b>이
         만들어집니다 — 표준문안 12건 · 발송 사례 42건.</p>
+      <p class="hero-lead s4">맡길 업체나 필요한 물품을 고르고 사고지점을 넣으면
+        <b>가까운 순으로</b> 찾습니다 — 업체 1,717건 · 물품 4,075건.</p>
       <p class="hero-lead s5">이 도구는 <b>판단하지 않습니다.</b>
         어디까지 대피시킬지는 담당자가 정하고, 도구는 자료를 모읍니다.</p>
     </div>
@@ -162,9 +162,10 @@
     <ul class="tools" id="tools" aria-label="업무도구 3종">
 
       <!-- ⚠ 순서는 사용자가 정합니다 — 지금은
-           `01 방제 물품·장비 찾기 → 02 주민 대피장소 찾기 → 03 주민대피 문자생성기`
-           입니다. 한동안 `대피장소 → 문자 → 방제자원` 이었는데(상사 피드백,
-           b0802d4) 사용자가 이 차례로 바꾸라고 했습니다. 임의로 되돌리지 마세요.
+           `01 주민 대피장소 찾기 → 02 주민대피 문자생성기 → 03 방제 물품·장비 찾기`
+           입니다. 한동안 방제가 맨 앞이었는데, 2026-09-14 사용자가 다시 이
+           차례로 돌아가자고 했습니다("방제자원 찾기가 3번으로 가는게 좋을것
+           같아. 예전처럼 돌아가자"). 임의로 되돌리지 마세요.
            링크를 바꾸려면 아래 href 만 고치면 됩니다.
 
            ── 카드 한 장의 구성 ────────────────────────────────────
@@ -189,37 +190,6 @@
 
            색은 세 카드 모두 같은 파랑(Primary)입니다. 빨강은 사고지점처럼
            실제 위험에만, 초록은 지도의 대피장소 마커에만 씁니다. -->
-      <li class="pn t3">
-        <a href="res/index.html">
-          <div class="pn-ph">
-            <!-- 01 방제 물품·장비 — 방제지원차량과 대응인력이 출동 준비를 하는 현장 -->
-            <div class="pn-art" aria-hidden="true">
-              <img src="assets/img/site/card-res.jpg" alt="" width="1200" height="675" loading="lazy">
-              <div class="pn-lbs">
-                <b class="pn-lb l1">방제장비</b>
-                <b class="pn-lb l2">대응 인력</b>
-              </div>
-            </div>
-            <div class="pn-ov">
-              <p class="pn-d">업체 섭외인지 방제물품인지 고르고 사고지점을 넣으면,
-                그것을 가진 곳을 가까운 순으로 찾습니다. 미리 협의된 업체가 맨 위에 옵니다.</p>
-              <p class="pn-meta"><span class="nb">업체 1,717건</span> ·
-                <span class="nb">물품 4,075건</span> · <span class="nb">기준일 2026-09-08</span></p>
-            </div>
-          </div>
-          <div class="pn-hd">
-            <span class="pn-no" aria-hidden="true">01</span>
-            <h3>방제 물품·장비 찾기</h3>
-            <span class="pn-go" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
-                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
-                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
-              </svg>
-            </span>
-          </div>
-        </a>
-      </li>
-
       <li class="pn t2">
         <a href="map/index.html">
           <div class="pn-ph">
@@ -240,7 +210,7 @@
             </div>
           </div>
           <div class="pn-hd">
-            <span class="pn-no" aria-hidden="true">02</span>
+            <span class="pn-no" aria-hidden="true">01</span>
             <h3>주민 대피장소 찾기</h3>
             <span class="pn-go" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
@@ -251,7 +221,6 @@
           </div>
         </a>
       </li>
-
       <li class="pn t1">
         <a href="sms/index.html">
           <div class="pn-ph">
@@ -271,8 +240,38 @@
             </div>
           </div>
           <div class="pn-hd">
-            <span class="pn-no" aria-hidden="true">03</span>
+            <span class="pn-no" aria-hidden="true">02</span>
             <h3>주민대피 문자생성기</h3>
+            <span class="pn-go" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
+        </a>
+      </li>
+      <li class="pn t3">
+        <a href="res/index.html">
+          <div class="pn-ph">
+            <!-- 03 방제 물품·장비 — 방제지원차량과 대응인력이 출동 준비를 하는 현장 -->
+            <div class="pn-art" aria-hidden="true">
+              <img src="assets/img/site/card-res.jpg" alt="" width="1200" height="675" loading="lazy">
+              <div class="pn-lbs">
+                <b class="pn-lb l1">방제장비</b>
+                <b class="pn-lb l2">대응 인력</b>
+              </div>
+            </div>
+            <div class="pn-ov">
+              <p class="pn-d">업체 섭외인지 방제물품인지 고르고 사고지점을 넣으면,
+                그것을 가진 곳을 가까운 순으로 찾습니다. 미리 협의된 업체가 맨 위에 옵니다.</p>
+              <p class="pn-meta"><span class="nb">업체 1,717건</span> ·
+                <span class="nb">물품 4,075건</span> · <span class="nb">기준일 2026-09-08</span></p>
+            </div>
+          </div>
+          <div class="pn-hd">
+            <span class="pn-no" aria-hidden="true">03</span>
+            <h3>방제 물품·장비 찾기</h3>
             <span class="pn-go" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
                    stroke-linecap="round" stroke-linejoin="round" focusable="false">
