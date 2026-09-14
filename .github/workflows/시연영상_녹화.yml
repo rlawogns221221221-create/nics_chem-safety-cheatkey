@@ -71,6 +71,15 @@ jobs:
           probe "브이월드     " "https://api.vworld.kr/req/wmts/1.0.0/$KEY/Base/12/1720/3510.png"
           probe "OpenStreetMap" "https://tile.openstreetmap.org/12/3510/1720.png"
 
+          # 영상에서 사고지점을 **사업장 이름으로** 찾으려면 이 검색이 살아 있어야
+          # 합니다(assets/online.js 가 부르는 그 주소 그대로). 안 되면 이름을 쳐도
+          # 결과가 비어 영상에 빈 목록이 찍힙니다 — 녹화 전에 확인합니다.
+          echo "장소 검색 확인 (SK하이닉스 청주공장)"
+          Q=$(printf 'SK하이닉스 청주공장' | tr ' ' '+')
+          curl -sS --max-time 25 -o /tmp/search.json -w '  HTTP %{http_code}\n' \
+            "https://api.vworld.kr/req/search?service=search&request=search&version=2.0&crs=EPSG:4326&size=10&page=1&format=json&errorformat=json&type=place&query=$Q&key=$KEY" || true
+          head -c 400 /tmp/search.json; echo
+
       - uses: actions/setup-node@v4
         if: ${{ inputs.peek != true }}
         with:
