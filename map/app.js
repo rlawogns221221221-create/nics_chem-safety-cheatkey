@@ -1126,10 +1126,29 @@ function placeIndex() {
     out.push({ label: d.sido + " " + d.sgg + " " + d.nm, lat: d.sy / d.n, lon: d.sx / d.n,
                sido: d.sido, sgg: d.sgg, kind: "dong" });
   });
+
+  /* 사업장·기관 이름(data/places.js · 2026-09-14 사용자 결정) ─────────
+     사고지점은 거의 사업장입니다. 그런데 이 칸의 안내문은 예전부터
+     "사업장·건물 이름 … 으로 찾습니다" 라고 적혀 있었고, 실제로 그렇게
+     되는 것은 **인터넷이 될 때(브이월드)뿐**이었습니다 — 망분리 PC 에서
+     사업장 이름을 치면 아무것도 안 나왔습니다. 이제 우리 자료 안의
+     이름으로도 찾습니다.
+     · 파일이 없으면 이 줄만 빠지고 나머지는 그대로 돕니다(선택 파일).
+     · 좌표는 주소로 잡은 **어림값**이라 exact 를 두지 않습니다 — 고른다고
+       사고지점이 찍히지 않고, 옮겨간 자리에서 한 번 눌러야 확정됩니다. */
+  var B = window.PLACES || [];
+  B.forEach(function (b) {
+    if (b.la == null || b.lo == null) return;
+    out.push({ label: b.n + " · " + b.sd + " " + b.sg, lat: b.la, lon: b.lo,
+               sido: b.sd, sgg: b.sg, kind: "biz" });
+  });
+
   PLACE_IDX = out;
   return out;
 }
-var KIND_ORDER = { sgg: 0, dong: 1, place: 2 };
+/* 사업장은 **맨 뒤**입니다 — 이 도구의 본디 자료는 대피장소이고, 한 글자만
+   쳐도 사업장 2,306곳이 위로 올라오면 대피장소를 찾던 사람이 밀려납니다. */
+var KIND_ORDER = { sgg: 0, dong: 1, place: 2, biz: 3 };
 function searchPlaces(q) {
   var nq = String(q || "").trim().replace(/\s+/g, "");
   if (nq.length < 1) return [];
@@ -1144,7 +1163,7 @@ function searchPlaces(q) {
   return rows.slice(0, 30);
 }
 var KIND_LABEL = { sgg: "시·군·구", dong: "읍·면·동", place: "대피장소",
-                   poi: "장소", addr: "주소" };
+                   biz: "사업장", poi: "장소", addr: "주소" };
 var addrRows = [], addrSel = -1;
 
 /* ── 인터넷 장소 검색 ────────────────────────────────────────

@@ -154,6 +154,39 @@ async function page(stub) {
   await ctx.close();
 }
 
+// ══ 6. 인터넷이 없어도 **사업장 이름**으로 찾힌다 (data/places.js) ══
+//   이 칸의 안내문은 예전부터 "사업장·건물 이름 … 으로 찾습니다" 라고 적혀
+//   있었는데, 실제로 되는 것은 인터넷이 될 때뿐이었습니다. 2026-09-14 에
+//   우리 자료 안의 이름으로도 찾게 했습니다 — 그 말이 이제 참입니다.
+{
+  const { ctx, P } = await page(null);
+  const n = await P.evaluate(() => (window.PLACES || []).length);
+  chk(n > 1000, `사업장 이름 목록이 실린다 (${n}곳)`);
+
+  await P.fill('#mAddrQ', 'SK하이닉스'); await P.waitForTimeout(1200);
+  const 줄 = await P.$$eval('#addrPop .mpk-row', e => e.map(x => x.innerText));
+  chk(줄.length > 0, `인터넷 없이 사업장 이름으로 찾힌다 (${줄.length}줄)`);
+  chk(/사업장/.test(줄.join(' ')), '무엇으로 찾힌 것인지 「사업장」이라고 적는다');
+  chk(/청주/.test(줄.join(' ')), '어느 시·군·구인지 함께 적는다');
+
+  //   ⚠ 좌표가 **주소로 잡은 어림값**이라, 고른다고 사고지점이 찍히면 안 됩니다.
+  //     옮겨간 자리에서 한 번 눌러야 확정됩니다(어림값을 실측처럼 보이지 않게).
+  await P.click('#addrPop .mpk-row >> nth=0'); await P.waitForTimeout(900);
+  chk(await P.inputValue('#mSido') === '충청북도'
+      && await P.inputValue('#mSgg') === '청주시', '고르면 그 시·군·구로 옮겨 간다');
+  chk(!(await P.inputValue('#acLat')) && !(await P.inputValue('#acLon')),
+    '고른 것만으로는 사고지점이 찍히지 않는다 (어림 좌표이므로)');
+  chk(/지도를 누르세요/.test(await P.textContent('body')),
+    '지도를 눌러 확정하라고 말한다');
+
+  //   대피장소 검색이 밀리지 않아야 합니다 — 이 도구의 본디 자료입니다.
+  await P.fill('#mAddrQ', '김천'); await P.waitForTimeout(900);
+  const 앞 = await P.$$eval('#addrPop .mpk-row', e => e.slice(0, 3).map(x => x.innerText));
+  chk(앞.some(t => /대피장소|시·군·구/.test(t)),
+    '사업장이 늘어도 대피장소·시군구가 앞에 남는다');
+  await ctx.close();
+}
+
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');
 ok.forEach(m => console.log('  ok  ' + m));
 bad.forEach(m => console.log('  FAIL ' + m));

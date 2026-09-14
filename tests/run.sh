@@ -77,9 +77,22 @@ mkdir -p .out
 #    적었더니, 첫 번째 호출이 백업을 치우고 두 번째 호출이 **진짜 자료를
 #    지웠습니다**(실제로 그랬습니다 — 통과해 놓고 자료가 사라졌습니다).
 #    그래서 **처음에 진짜 자료가 있었는지**를 따로 표시해 두고 그것만 봅니다.
+# ⚠⚠ **두 개를 동시에 돌리지 마세요.** 백업 자리가 하나라, 나중에 뜬 쪽이
+#    앞선 쪽의 백업·표시를 지우고 → 앞선 쪽이 "처음에 없었다"고 보고
+#    **진짜 자료를 지웁니다**(2026-09-14 에 실제로 그랬습니다 — 전체 묶음을
+#    돌리는 중에 `tests/run.sh n3` 을 따로 띄웠다가 data/tempshelters.js 가
+#    사라졌습니다. git 에 있어 되살렸습니다). 아래 잠금이 그것을 막습니다.
 DATA=../data/tempshelters.js
 REAL=.out/tempshelters.real.bak
 HAD=.out/tempshelters.had
+LOCK=.out/tempshelters.lock
+mkdir -p .out
+if ! mkdir "$LOCK" 2>/dev/null; then
+  echo "이미 다른 tests/run.sh 가 돌고 있습니다 — 끝난 뒤에 다시 돌리세요."
+  echo "  (자료 파일 백업 자리를 함께 쓰기 때문에 동시에 돌리면 자료가 지워집니다)"
+  echo "  정말 남아 있는 것이 없으면: rmdir $PWD/$LOCK"
+  exit 2
+fi
 rm -f "$REAL" "$HAD"
 if [ -e "$DATA" ]; then cp "$DATA" "$REAL"; : > "$HAD"; fi
 use_fixture() { cp fixtures/tempshelters.js "$DATA"; }
@@ -88,7 +101,7 @@ use_real() {
   return 0
 }
 restore_real() { use_real; }              # 몇 번을 불러도 같습니다
-cleanup() { use_real; rm -f "$REAL" "$HAD"; return 0; }
+cleanup() { use_real; rm -f "$REAL" "$HAD"; rmdir "$LOCK" 2>/dev/null; return 0; }
 trap cleanup EXIT
 
 TARGETS="${*:-$ALL}"
