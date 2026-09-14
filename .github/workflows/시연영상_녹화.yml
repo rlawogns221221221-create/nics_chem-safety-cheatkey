@@ -74,11 +74,29 @@ jobs:
           # 영상에서 사고지점을 **사업장 이름으로** 찾으려면 이 검색이 살아 있어야
           # 합니다(assets/online.js 가 부르는 그 주소 그대로). 안 되면 이름을 쳐도
           # 결과가 비어 영상에 빈 목록이 찍힙니다 — 녹화 전에 확인합니다.
+          #
+          # 브이월드 인증키는 **활용 도메인**이 걸려 있어 호출한 자리(Referer)를
+          # 봅니다. 그래서 같은 질의를 ① 그냥 ② 배포 주소를 Referer 로 붙여
+          # 두 번 걸어 봅니다 — ②가 되면 배포 주소에서 녹화하면 됩니다.
+          SITE=https://chem-safety-kr.pages.dev
+          Q=$(printf 'SK하이닉스 청주공장' | jq -sRr @uri 2>/dev/null \
+              || printf 'SK%%ED%%95%%98%%EC%%9D%%B4%%EB%%8B%%89%%EC%%8A%%A4')
+          SEARCH="https://api.vworld.kr/req/search?service=search&request=search&version=2.0&crs=EPSG:4326&size=10&page=1&format=json&errorformat=json&type=place&query=$Q&key=$KEY"
           echo "장소 검색 확인 (SK하이닉스 청주공장)"
-          Q=$(printf 'SK하이닉스 청주공장' | tr ' ' '+')
-          curl -sS --max-time 25 -o /tmp/search.json -w '  HTTP %{http_code}\n' \
-            "https://api.vworld.kr/req/search?service=search&request=search&version=2.0&crs=EPSG:4326&size=10&page=1&format=json&errorformat=json&type=place&query=$Q&key=$KEY" || true
-          head -c 400 /tmp/search.json; echo
+          echo "  ① Referer 없이"
+          curl -sS --max-time 25 -o /tmp/s1.json -w '     HTTP %{http_code}\n' "$SEARCH" || true
+          head -c 300 /tmp/s1.json | tr -d '\n'; echo
+          echo "  ② Referer: $SITE"
+          curl -sS --max-time 25 -H "Referer: $SITE/" -o /tmp/s2.json \
+            -w '     HTTP %{http_code}\n' "$SEARCH" || true
+          head -c 300 /tmp/s2.json | tr -d '\n'; echo
+          echo "  ③ 배포 주소가 열려 있는지"
+          curl -sS --max-time 25 -o /tmp/site.html -w '     HTTP %{http_code} %{size_download}바이트\n' "$SITE/" || true
+          grep -o '1,849곳\|17,754\|5,792' /tmp/site.html | sort -u | tr '\n' ' '; echo
+          echo "  ④ 배포 주소를 Referer 로 타일"
+          curl -sS --max-time 25 -H "Referer: $SITE/" -o /tmp/t2.png \
+            -w '     HTTP %{http_code} %{content_type}\n' \
+            "https://api.vworld.kr/req/wmts/1.0.0/$KEY/Base/12/1720/3510.png" || true
 
       - uses: actions/setup-node@v4
         if: ${{ inputs.peek != true }}
