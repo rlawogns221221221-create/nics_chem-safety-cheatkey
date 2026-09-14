@@ -298,20 +298,29 @@ const 이름으로찍기 = async (검색칸, 이름, 고를것) => {
   await p.fill(검색칸, '');
   await p.type(검색칸, 이름, { delay: 95 });
   await 잠깐(900);
-  const 줄들 = await p.$$('.mpk-row');
-  let 고름 = 줄들[0];
-  for (const r of 줄들) {
-    const t = (await r.textContent()) || '';
-    if (고를것 && t.includes(고를것)) { 고름 = r; break; }
+  /* ⚠ 인터넷 검색을 한 번 걸었다가 끝나면 **목록이 다시 그려집니다.** 그
+     전에 줄을 붙잡아 두면 누를 때 "Element is not attached to the DOM" 으로
+     죽습니다(러너에서 실제로 그렇게 죽었습니다). 다 그려진 뒤에 고르고,
+     붙잡은 손잡이가 아니라 **그때 다시 찾는 방식(locator)** 으로 누릅니다. */
+  await p.waitForFunction(() => !document.querySelector('.mpk-busy'),
+    null, { timeout: 9000 }).catch(() => {});
+  await 잠깐(500);
+  const 줄 = 고를것
+    ? p.locator('.mpk-row', { hasText: 고를것 }).first()
+    : p.locator('.mpk-row').first();
+  const 있 = await 줄.count().catch(() => 0);
+  const 쓸줄 = 있 ? 줄 : p.locator('.mpk-row').first();
+  if (!(await 쓸줄.count())) {
+    console.error('  ⚠ 검색 결과가 없습니다: ' + 이름);
+    return false;
   }
-  if (!고름) { console.error('  ⚠ 검색 결과가 없습니다: ' + 이름); return false; }
-  const b = await 고름.boundingBox();
+  const b = await 쓸줄.boundingBox().catch(() => null);
   if (b) {
     커서 = { x: b.x + b.width / 2, y: b.y + b.height / 2 };
     await p.mouse.move(커서.x, 커서.y, { steps: 16 });
     await 잠깐(420);
   }
-  await 고름.click();
+  await 쓸줄.click();
   await 머무르기(1100);
   /* 어림 좌표면 "지도를 누르세요" 가 뜹니다 — 한 번 눌러 사고지점을 확정 */
   const 누르랄때 = await p.$('text=지도를 누르세요');

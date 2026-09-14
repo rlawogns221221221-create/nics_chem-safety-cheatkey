@@ -117,7 +117,11 @@ jobs:
         if: ${{ inputs.peek != true }}
         # mp4 굽기가 러너에서 너무 오래 걸리면 `FFPRESET: veryfast` 를 여기
         # env 로 넣으세요(crf 는 24 그대로라 화질 차이는 작습니다).
-        run: node build/make_demo.mjs 2>&1 | tee 녹화기록.txt
+        run: |
+          # ⚠ `set -o pipefail` 이 없으면 tee 의 성공이 node 의 실패를 덮습니다.
+          #   녹화가 35초 만에 죽었는데 이 단계가 "성공"으로 찍힌 적이 있습니다.
+          set -o pipefail
+          node build/make_demo.mjs 2>&1 | tee 녹화기록.txt
 
       # 커밋이 막히거나 다시 손보고 싶을 때를 대비해 내려받을 수 있게 둡니다.
       # 실패해도 올립니다 — 3분짜리 녹화를 통째로 잃지 않기 위해서입니다.
