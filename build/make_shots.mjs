@@ -35,14 +35,22 @@ const 사업장 = 'SK하이닉스';
 const browser = await chromium.launch();
 
 /* 이 환경에서만 뜨는 띠(배경지도 못 받음)는 가립니다 — 실제 주소에서는
-   뜨지 않는 것이라 남겨 두면 읽는 사람이 고장으로 봅니다. */
+   뜨지 않는 것이라 남겨 두면 읽는 사람이 고장으로 봅니다.
+
+   ⚠ `hidden = true` 로는 안 됩니다. 화면이 타일을 받을 때마다 다시 그리면서
+     `w.hidden = !s.warn` 로 **도로 켜 버립니다**(res/app.js). 러너에서는
+     OSM 타일이 계속 들어와 가려 둔 띠가 사진에 그대로 찍혔습니다.
+     그래서 **스타일 규칙 한 줄을 심어** 다시 그려도 안 보이게 합니다. */
 const 띠가리기 = async (p) => {
   await p.evaluate(() => {
-    const w = document.querySelector('#mWarn');
-    if (w) w.hidden = true;
-    document.querySelectorAll('.alert.w').forEach((e) => { e.style.display = 'none'; });
+    if (!document.getElementById('__hideWarn')) {
+      const st = document.createElement('style');
+      st.id = '__hideWarn';
+      st.textContent = '#mWarn,.mbar-warn,.alert.w{display:none!important}';
+      document.head.appendChild(st);
+    }
   });
-  await p.waitForTimeout(150);
+  await p.waitForTimeout(200);
 };
 
 const 찍기 = async (p, 이름, 자를곳) => {
