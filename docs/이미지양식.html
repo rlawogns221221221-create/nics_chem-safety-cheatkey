@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>[참고 2] 이미지(사진) 양식 — 화학안전 치트키</title>
+<!-- ────────────────────────────────────────────────────────────
+     [참고 2] 이미지(사진) 양식
+
+     주최 측 조건(2026.9.10. 계획 `참고 2`)
+       ※ 대표 이미지 **1장 필수** — 주요 기능 및 성과를 잘 나타내는 것
+       ※ 추가 이미지는 주요 화면 또는 활동사진을 자율 제출
+       ※ 이미지별 설명을 간략히 기재
+       ※ 칸·쪽을 필요한 만큼 추가
+       ※ 성과사례집·카드뉴스에 쓰므로 **고화질**
+
+     ▸ 사진은 `docs/성과이미지/` 입니다. `node build/make_shots.mjs` 가
+       **번호 딱지 없이** 찍습니다(설명서 사진에는 ①②③ 이 박혀 있어
+       설명 없이는 무엇을 가리키는지 알 수 없습니다).
+     ▸ 원본 PNG 를 함께 보내세요 — 이 PDF 안의 그림은 A4 폭에 맞춰 줄어듭니다.
+     ▸ ⚠ 지도 사진의 배경지도(도로·건물)는 **인터넷이 되는 자리에서 찍은
+       것**이라야 합니다. 개발 자리는 타일 서버로 못 나가 행정경계선만
+       찍힙니다(CLAUDE.md 6절) — 그때는 `.github/workflows/성과이미지_굽기.yml`
+       로 다시 굽습니다.
+     ──────────────────────────────────────────────────────────── -->
+<style>
+  @font-face{font-family:"Pretendard GOV";font-weight:400;font-display:block;
+    src:url("../assets/fonts/PretendardGOV-Regular.subset.woff2") format("woff2")}
+  @font-face{font-family:"Pretendard GOV";font-weight:700;font-display:block;
+    src:url("../assets/fonts/PretendardGOV-Bold.subset.woff2") format("woff2")}
+  @page{size:A4}
+  :root{
+    --ink:#11171e; --ink2:#3c4653; --ink3:#69737f;
+    --line:#b9c3cc; --line2:#e3e9ee; --panel:#f3f6f9;
+    --blue:#256ef4; --blue-d:#0b50d0; --blue-l:#eaf1fe;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; font-family:"Pretendard GOV",system-ui,sans-serif;
+    font-size:9.2pt; line-height:1.55; color:var(--ink);
+    word-break:keep-all; text-wrap:pretty;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact}
+  .nb{white-space:nowrap}
+
+  .head{border-top:5pt solid var(--blue); padding-top:8pt; margin-bottom:9pt;
+    display:flex; align-items:baseline; gap:8pt}
+  .head .tag{flex:none; padding:1.5pt 6pt; border-radius:3pt;
+    background:var(--blue); color:#fff; font-size:8.6pt; font-weight:700}
+  .head h1{margin:0; font-size:15pt; letter-spacing:-.02em}
+  .head .r{margin-left:auto; font-size:8.4pt; color:var(--ink3); white-space:nowrap}
+
+  table{width:100%; border-collapse:collapse; table-layout:fixed;
+    margin-bottom:9pt; break-inside:avoid}
+  th,td{border:.5pt solid var(--line); padding:5pt 7pt; vertical-align:top}
+  th{width:60pt; background:var(--panel); font-weight:700; text-align:center;
+    vertical-align:middle}
+  figure{margin:0}
+  /* ⚠ 사진 높이를 **반드시 묶어 둡니다.** 휴대전화 사진은 390×780 이라
+     폭에 맞추면 한 쪽을 통째로 먹고, 옆 칸이 빈 채로 다음 쪽까지
+     갈라집니다(실제로 그랬습니다). 세로를 막고 가운데 둡니다. */
+  figure img{display:block; width:100%; max-height:62mm; object-fit:contain;
+    object-position:top; border:.4pt solid var(--line2); border-radius:2pt}
+  .file{font-size:7.8pt; color:var(--ink3)}
+
+  /* 추가 이미지 — 두 장씩 나란히. 양식이 "칸을 추가하여 작성" 이라 했습니다.
+     칸 하나가 쪽을 넘어 갈라지지 않도록 each 를 통째로 묶습니다. */
+  .two{display:flex; gap:7pt; break-inside:avoid}
+  .two > *{flex:1; min-width:0}
+  .two table{break-inside:avoid}
+  .two figure img{max-height:47mm}
+  /* 대표 이미지는 크게 — 한 장 필수이고 성과사례집에 쓰입니다 */
+  .big figure img{max-height:78mm}
+
+  .note{border:.5pt solid var(--line); border-left:2.5pt solid var(--blue);
+    background:var(--panel); border-radius:0 3pt 3pt 0; padding:6pt 9pt;
+    font-size:8.6pt; color:var(--ink2)}
+  .note b{color:var(--ink)}
+  .note p{margin:0 0 2pt}
+  .note p:last-child{margin-bottom:0}
+  h2{margin:11pt 0 5pt; font-size:10.5pt; color:var(--blue-d);
+    border-bottom:.8pt solid var(--line); padding-bottom:3pt; break-after:avoid}
+  .page2{break-before:page}
+</style>
+</head>
+<body>
+
+<div class="head">
+  <span class="tag">참고 2</span>
+  <h1>이미지(사진) 양식</h1>
+  <span class="r">화학안전치트키 · 화학사고 초동대응 지원 서비스</span>
+</div>
+
+<table class="big">
+  <tr>
+    <th>대표<br>이미지</th>
+    <td>
+      <figure>
+        <img src="성과이미지/01-대표-진입화면.png" alt="진입 화면 — 업무도구 세 가지를 고르는 첫 화면">
+      </figure>
+    </td>
+  </tr>
+  <tr>
+    <th>설명</th>
+    <td>
+      <p><b>«사고지점 하나로 세 가지를 찾는다»는 서비스 전체를 한 화면에 보여 주는
+        진입 화면.</b> 주소만 열면 설치·회원가입 없이 바로 쓰며,
+        <span class="nb">① 주민 대피장소 찾기 · ② 주민대피 문자생성기 ·
+        ③ 방제 물품·장비 찾기</span> 세 도구로 나뉨</p>
+      <p class="file">파일 : 01-대표-진입화면.png · 2,880×1,800px</p>
+    </td>
+  </tr>
+</table>
+
+<h2>추가 이미지 — 도구별 주요 화면</h2>
+
+<div class="two">
+  <table>
+    <tr><th>이미지</th></tr>
+    <tr><td>
+      <figure><img src="성과이미지/02-대피장소-결과.png"
+        alt="주민 대피장소 찾기 — 사고지점 주변 대피 후보지를 가까운 순으로"></figure>
+    </td></tr>
+    <tr><th>설명</th></tr>
+    <tr><td>
+      <p><b>① 주민 대피장소 찾기.</b> 사고지점을 사업장 이름으로 넣으면
+        <b>대피 후보지 17,754곳</b> 중 주변을 가까운 순으로 표출 —
+        직선거리·도보시간·수용인원·관할부서 전화를 함께 보여 줌</p>
+      <p class="file">02-대피장소-결과.png</p>
+    </td></tr>
+  </table>
+
+  <table>
+    <tr><th>이미지</th></tr>
+    <tr><td>
+      <figure><img src="성과이미지/03-방제-세부창.png"
+        alt="방제 물품·장비 찾기 — 전화번호와 보유 물품·수량이 뜨는 세부사항 창"></figure>
+    </td></tr>
+    <tr><th>설명</th></tr>
+    <tr><td>
+      <p><b>③ 방제 물품·장비 찾기.</b> 필요한 물품을 고르고 사고지점을 넣으면
+        보유처가 가까운 순으로 나오고, 줄을 누르면 <b>전화번호가 가장 큰 글자</b>로
+        뜨는 세부사항 창에서 보유 물품·수량을 바로 확인</p>
+      <p class="file">03-방제-세부창.png</p>
+    </td></tr>
+  </table>
+</div>
+
+<div class="two">
+  <table>
+    <tr><th>이미지</th></tr>
+    <tr><td>
+      <figure><img src="성과이미지/04-문자-문안.png"
+        alt="주민대피 문자생성기 — 만들어진 재난문자 표준문안과 글자수"></figure>
+    </td></tr>
+    <tr><th>설명</th></tr>
+    <tr><td>
+      <p><b>② 주민대피 문자생성기.</b> 한 걸음에 한 묶음씩 물어 값을 채우면
+        <b>승인 표준문안</b>이 조립 없이 원문 그대로 생성되고 글자수가 함께 표시 —
+        복사해 발송시스템에 붙여 사용</p>
+      <p class="file">04-문자-문안.png &nbsp;·&nbsp;
+        <b>※ 화면의 사고 내용은 기능 설명을 위한 가상 상황</b></p>
+    </td></tr>
+  </table>
+
+  <table>
+    <tr><th>이미지</th></tr>
+    <tr><td>
+      <figure><img src="성과이미지/05-휴대전화-진입화면.png"
+        alt="휴대전화로 연 진입 화면 — 세 도구가 한 화면에"></figure>
+    </td></tr>
+    <tr><th>설명</th></tr>
+    <tr><td>
+      <p><b>현장에서 쓰는 휴대전화 화면.</b> 같은 주소를 휴대전화로 열면 세 도구가
+        한 화면에 들어오도록 자동 조정 — 현장 출동 담당자가 앱 설치 없이
+        그대로 사용</p>
+      <p class="file">05-휴대전화-진입화면.png</p>
+    </td></tr>
+  </table>
+</div>
+
+<div class="note">
+  <p><b>제출 파일</b> — 위 이미지의 원본 PNG 5장을 <b>고화질 그대로</b> 함께
+    보냅니다(이 문서 안의 그림은 A4 폭에 맞춰 줄인 것입니다).</p>
+  <p><b>촬영 조건</b> — 실제 동작 화면을 그대로 찍은 것이며, 화면에 없는 설명·
+    표시를 덧그리지 않았습니다.</p>
+</div>
+
+</body>
+</html>
