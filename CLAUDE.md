@@ -148,6 +148,11 @@ node   build/make_guide.mjs      # 설명서 PDF 두 가지 (4쪽 + 한장요약
 python3 build/make_hwpx.py       # AI프렌즈 결과보고서 **한글파일**(주최 측 양식을 채웁니다)
 node   build/make_report.mjs     # 같은 보고서의 PDF 판(그림이 들어간 것)
 
+node   build/make_shots.mjs      # 성과요약서용 깨끗한 화면 사진 5장(딱지 없음)
+node   build/사진줄이기.mjs       # 그 사진을 한글 파일에 넣을 크기로 줄임(축소/*.jpg)
+python3 build/make_summary_hwpx.py # 참고 1·2 **한글파일**(성과요약서 + 이미지 양식)
+node   build/make_summary.mjs    # 같은 두 가지의 PDF 판
+
 python3 build/방제자원_정리.py    # 드라이브 원자료 → docs/방제자원_정리/표/*.csv
 python3 build/방제자원_통계.py    # 표 → 통계.json (보고서 수치는 여기서 나옵니다)
 python3 build/방제자원_통합.py    # 표 → 통합/업체.csv · 물품.csv (분류안의 두 갈래)
@@ -1011,6 +1016,21 @@ nominatim · kakao · 그 밖의 지오코딩 서비스 전부.
 머리띠는 사진과 문구가 **5초마다 함께 바뀝니다**(7절).
 **시범운영용 링크 배포 준비도 끝냈습니다** — 바탕화면 아이콘·웹앱 설치·
 인터넷 없이 열기까지(7절). 어디에 올릴지는 `docs/배포하기.md`.
+
+**★ AI프렌즈 [참고 1] 성과요약서·[참고 2] 이미지 양식을 만들었습니다
+(2026-09-16 · 9/18 제출).** 원본은 `docs/성과요약서.html`·`docs/이미지양식.html`
+이고, PDF 는 `make_summary.mjs`, **한글파일은 `make_summary_hwpx.py`** 가 굽습니다
+(`docs/화학안전치트키_성과요약서.hwpx` 한 파일에 참고 1·2 가 다 있습니다).
+- 참고 1 은 **A4 한 쪽**이 조건이라 두 빌드가 모두 쪽수를 세어 넘치면 멈춥니다.
+- 참고 2 의 사진은 `docs/성과이미지/` 5장 — **배경지도가 나와야 해서 액션에서
+  굽습니다**(`.github/workflows/성과이미지_굽기.yml` · 6절과 같은 이유).
+  한글 파일에는 `축소/*.jpg`(긴 변 1,600px)를 넣고 **고화질 원본 PNG 는 따로**
+  냅니다 — 양식이 그렇게 요구합니다.
+- ⚠ **한글 파일을 이 자리에서 열어 볼 수 없습니다**(리눅스에 한글이 없고
+  LibreOffice 는 hwpx 를 못 엽니다 — H2Orestart 확장을 깔아 봤지만 주최 측이
+  준 **정품 hwpx 도** 못 열었습니다). 그래서 `make_summary_hwpx.py` 의
+  `검사()` 가 구조를 기계로 대조합니다(표 칸 주소·그림 목록·줄배치 겹침).
+  **마지막 확인은 사용자가 한 번 열어 보는 것입니다.**
 
 사용자가 KRDS 스킬(`krds-chemical-safety-government-web`)을 건네주었습니다.
 진입 화면을 고칠 때 그 안의 `references/components-and-forms.md`(카드 위계·CTA·

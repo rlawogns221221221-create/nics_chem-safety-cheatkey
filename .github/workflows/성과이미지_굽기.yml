@@ -9,9 +9,9 @@
 #  (시연 영상을 여기서 굽는 것과 같은 이유 — 시연영상_녹화.yml 참고)
 #
 #  ── 무엇을 하나 ───────────────────────────────────────────
-#  `build/make_shots.mjs` 로 사진 5장을 찍고, `build/make_summary.mjs`
-#  로 참고 1·2 PDF 를 다시 구워 **이 가지에 커밋**합니다.
-#  아무것도 배포하지 않습니다.
+#  `build/make_shots.mjs` 로 사진 5장을 찍고, 그것을 줄여
+#  (`build/사진줄이기.mjs`) 참고 1·2 의 **PDF 두 가지와 한글파일**을
+#  다시 구워 **이 가지에 커밋**합니다. 아무것도 배포하지 않습니다.
 #
 #  ── 돌리는 법 ─────────────────────────────────────────────
 #  저장소 → Actions → "성과 이미지 굽기" → Run workflow.
@@ -63,12 +63,14 @@ jobs:
           # 없는 글자가 두부(□)로 나올 수 있어 시스템 한글 글꼴을 깔아 둡니다.
           sudo apt-get install -y --no-install-recommends fonts-noto-cjk
 
-      - name: 사진 찍고 PDF 굽기
+      - name: 사진 찍고 PDF·한글파일 굽기
         run: |
           # ⚠ `set -o pipefail` 이 없으면 tee 의 성공이 node 의 실패를 덮습니다.
           set -o pipefail
           node build/make_shots.mjs 2>&1 | tee 사진기록.txt
+          node build/사진줄이기.mjs 2>&1 | tee -a 사진기록.txt
           node build/make_summary.mjs 2>&1 | tee -a 사진기록.txt
+          python3 build/make_summary_hwpx.py 2>&1 | tee -a 사진기록.txt
 
       - name: 사진 올려 두기 (내려받기용)
         if: always()
@@ -79,13 +81,15 @@ jobs:
             docs/성과이미지
             docs/화학안전치트키_성과요약서.pdf
             docs/화학안전치트키_이미지.pdf
+            docs/화학안전치트키_성과요약서.hwpx
             사진기록.txt
 
       - name: 저장소에 넣기
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/성과이미지 docs/화학안전치트키_성과요약서.pdf docs/화학안전치트키_이미지.pdf
+          git add docs/성과이미지 docs/화학안전치트키_성과요약서.pdf \
+                  docs/화학안전치트키_이미지.pdf docs/화학안전치트키_성과요약서.hwpx
           if git diff --cached --quiet; then
             echo "바뀐 것이 없습니다 — 커밋하지 않습니다."
             exit 0
