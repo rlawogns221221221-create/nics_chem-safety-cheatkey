@@ -119,7 +119,6 @@ const 이름으로찍기 = async (p, 칸, 이름) => {
      번호가 있는 보유처가 나올 자리를 만듭니다. */
   const 넓히기 = await p.$('text=범위 넓히기');
   if (넓히기) { await 넓히기.click(); await p.waitForTimeout(1500); }
-  await 띠가리기(p);
   const 줄수 = await p.locator('#shList .ms-it').count();
   let 찾음 = false;
   for (let i = 0; i < Math.min(줄수, 8); i++) {
@@ -131,6 +130,10 @@ const 이름으로찍기 = async (p, 칸, 이름) => {
     if (닫) { await 닫.click(); await p.waitForTimeout(400); }
   }
   if (!찾음) console.error('  ⚠ 전화번호가 있는 줄을 못 찾았습니다 — 사진을 확인하세요');
+  /* ⚠ 띠 가리기는 **찍기 바로 앞**에서 합니다. 배경지도가 브이월드 → OSM 으로
+     바뀌는 띠는 타일을 받아 본 **뒤에** 뜨는데, 먼저 가려 두면 그 사이에 다시
+     나타납니다(러너 사진에 노란 띠가 그대로 찍혔습니다). */
+  await 띠가리기(p);
   await 찍기(p, '03-방제-세부창');
   await ctx.close();
 }
