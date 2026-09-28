@@ -159,7 +159,7 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   await c2.close();
 }
 
-/* ── 방제 물품·장비 찾기 (설명서 4쪽) ───────────────────────── */
+/* ── 방제 물품·장비 찾기 (설명서 2쪽) ───────────────────────── */
 /* ⚠ 이 도구는 2026-09-07 에 **세 걸음**이 되었습니다(사용자 분류안 PPT) —
      걸음 1 두 갈래(업체 섭외 / 방제물품 찾기) → 걸음 2 고르기 → 걸음 3 사고지점.
      두 갈래는 **묻는 것이 다릅니다**("어디에 맡길까" ↔ "무엇이 어디 있나").
@@ -353,7 +353,7 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   await ctx.close();
 }
 
-/* ── 주민 대피장소 찾기 (설명서 2쪽) ────────────────────────── */
+/* ── 주민 대피장소 찾기 (설명서 3쪽) ────────────────────────── */
 {
   const ctx = await browser.newContext({ viewport: PC, deviceScaleFactor: 2 });
   const p = await ctx.newPage();
@@ -425,7 +425,7 @@ const 찍기 = async (page, 이름, sel, 자름) => {
   await ctx.close();
 }
 
-/* ── 주민대피 문자생성기 (설명서 3쪽) ───────────────────────── */
+/* ── 주민대피 문자생성기 (설명서 4쪽) ───────────────────────── */
 {
   const ctx = await browser.newContext({ viewport: PC, deviceScaleFactor: 2 });
   const p = await ctx.newPage();
