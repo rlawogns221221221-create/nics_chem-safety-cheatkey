@@ -153,7 +153,7 @@ node   build/사진줄이기.mjs       # 그 사진을 한글 파일에 넣을 �
 python3 build/make_summary_hwpx.py # 참고 1·2 **한글파일**(성과요약서 + 이미지 양식)
 node   build/make_summary.mjs    # 같은 두 가지의 PDF 판
 python3 build/make_survey_hwpx.py  # 지자체 담당자 메일 설문지 **한글파일**(docs/사용자의견_설문지.hwpx)
-                                  #  이야기형 10문항·약 10분 — 점수 표를 두 번 거절당한 이력은 스크립트 머리말
+                                  #  공문 설문 양식 16문항·약 10분 — 네 번 고친 이력은 스크립트 머리말
 
 python3 build/방제자원_정리.py    # 드라이브 원자료 → docs/방제자원_정리/표/*.csv
 python3 build/방제자원_통계.py    # 표 → 통계.json (보고서 수치는 여기서 나옵니다)
