@@ -22,22 +22,34 @@
   .hd p{margin:0;font-size:8.5pt;opacity:.93}
   .hd .rt{margin-left:auto;font-size:8pt;opacity:.9;white-space:nowrap}
   .kpi{display:flex;gap:5pt;margin-bottom:7pt}
-  .k{flex:1;border:1pt solid var(--line);border-radius:4pt;padding:5pt 8pt;background:var(--blue-l)}
-  .k .t{font-size:7.8pt;font-weight:700;color:var(--blue-d)}
-  .k b{display:block;font-size:17pt;line-height:1.1;letter-spacing:-.03em}
-  .k .s{font-size:7.3pt;color:var(--ink2)}
+  .k{flex:1;border:1pt solid var(--line);border-radius:4pt;padding:5pt 8pt;background:var(--blue-l);
+    display:flex;align-items:baseline;gap:8pt}
+  .k .t{font-size:8.4pt;font-weight:700;color:var(--blue-d)}
+  .k b{font-size:18pt;line-height:1.1;letter-spacing:-.03em}
+  .k .s{font-size:7.6pt;color:var(--ink2);margin-left:auto}
   h2{margin:0 0 3.5pt;font-size:9.8pt;padding-bottom:2pt;border-bottom:1.1pt solid var(--ink)}
+  h2 small{font-weight:400;font-size:7.6pt;color:var(--ink3);margin-left:4pt}
   section{margin-bottom:7pt}
-  ol,ul{margin:0;padding-left:13pt} li{margin-bottom:1.5pt}
-  table{width:100%;border-collapse:collapse;font-size:7.7pt}
-  th,td{border:.8pt solid var(--line);padding:2.4pt 4pt;vertical-align:middle;text-align:left}
+  ul{margin:0;padding-left:12pt} li{margin-bottom:1.5pt}
+  table{width:100%;border-collapse:collapse;font-size:7.8pt}
+  th,td{border:.8pt solid var(--line);padding:2.2pt 4pt;vertical-align:middle;text-align:left}
   th{background:#f3f6f9;font-weight:700;text-align:center;line-height:1.25}
-  td.n{text-align:right;white-space:nowrap} td.b{font-weight:700;color:var(--blue-d)}
+  td.n{text-align:right;white-space:nowrap} td.b{font-weight:700;color:var(--blue-d);font-size:8.6pt}
   td.g{text-align:center;font-weight:700;background:#fafbfc}
   td.nm{font-weight:700;white-space:nowrap}
-  td.why{font-size:7.2pt;line-height:1.4;color:var(--ink2)}
-  td.why .x{display:block;color:var(--ink3)}
+  /* 항목별 개수 — 「업체명 1,110」 한 덩어리가 줄 끝에서 갈라지지 않게 묶습니다 */
+  td.why{line-height:1.6}
+  .c{display:inline-block;white-space:nowrap;margin-right:7pt}
+  .c i{font-style:normal;color:var(--ink2)}
+  .c b{margin-left:2.5pt}
+  .c s{text-decoration:none;color:var(--blue-d);font-weight:700;margin-left:2pt}
+  .c s::before{content:"("} .c s::after{content:")"}
+  td.why .x{display:block;color:var(--ink3);font-size:7.2pt;line-height:1.35}
   tr.sum td{background:var(--blue-l);font-weight:700}
+  table.cat th{font-size:7.6pt}
+  table.cat td{text-align:center}
+  table.cat td b{font-size:11pt;letter-spacing:-.02em}
+  table.cat td.d{font-size:6.9pt;color:var(--ink2);line-height:1.3}
   .note{background:var(--amber-l);border-left:2.6pt solid var(--amber);border-radius:3pt;padding:5pt 8pt}
   .note li{font-size:8pt}
   .ref{margin-top:4pt;font-size:7.6pt;color:var(--ink2)}
@@ -46,55 +58,52 @@
 </head>
 <body>
 <div class="hd"><div><h1>방제자원 원자료 데이터 건수 산정 근거</h1>
-<p>기관별로 집계한 원자료 3,865곳을 데이터 항목 단위로 다시 셌습니다 (보수적 산정)</p></div>
+<p>기관별로 집계한 원자료 3,865곳에 담긴 정보를 항목별로 세었습니다</p></div>
 <div class="rt">산정일 2026. 10. 13.</div></div>
 
 <div class="kpi">
-<div class="k"><div class="t">원자료</div><b>3,865곳</b><div class="s">기관별 집계의 합</div></div>
-<div class="k"><div class="t">원자료 표의 줄</div><b>8,266줄</b><div class="s">자료 표의 행 수</div></div>
-<div class="k"><div class="t">데이터 항목</div><b>41,792건</b><div class="s">업체·기관 정보 15,853 + 장비·내역 정보 25,939</div></div>
+<div class="k"><span class="t">원자료</span><b>3,865곳</b><span class="s">기관별 집계의 합</span></div>
+<div class="k"><span class="t">데이터 항목</span><b>41,792건</b><span class="s">아래 일곱 갈래의 합</span></div>
 </div>
 
-<section><h2>세는 기준</h2><ol>
-<li><b>업체·기관 정보는 한 곳에 한 번만</b> 셉니다 — 업체명·주소·전화가 줄마다 되풀이돼도 1건입니다.</li>
-<li><b>같은 곳 안에서 똑같은 줄은 한 번만</b> 셉니다.</li>
-<li><b>빈칸 · "-" · 수량 0 · 일련번호는 세지 않습니다.</b> 그래서 「곳 × 칸 수」보다 작을 수 있습니다.</li>
-<li><b>다른 칸에서 따라 나오는 값은 세지 않습니다</b> — 가스 이름과 짝인 CAS번호, 두 칸의 합인 '계'.</li>
-</ol></section>
+<section><h2>무엇이 몇 건인가 <small>단위: 건</small></h2>
+<table class="cat"><tr><th>업체·기관명</th><th>주소·위치</th><th>연락처</th><th>지역·관할</th><th>장비·물품</th><th>수량·단위</th><th>업종·허가·기타</th></tr><tr><td><b>3,349</b></td><td><b>3,943</b></td><td><b>3,193</b></td><td><b>5,742</b></td><td><b>7,818</b></td><td><b>7,158</b></td><td><b>10,589</b></td></tr><tr><td class="d">업체명 · 부서명 · 관리기관</td><td class="d">주소 · 소재지 · 보관·계류 장소</td><td class="d">대표전화 · 연락망</td><td class="d">시·도 · 시·군·구 · 관할기관</td><td class="d">장비 · 물품 · 인력 · 차량 · 선박 · 취급 가스</td><td class="d">보유 수량 · 용량 · 허가량 · 단위</td><td class="d">허가 업종 · 처리방법 · 시설분류 · 기준일 · 비고</td></tr></table></section>
 
-<section><h2>자료별 산정 내역</h2>
+<section><h2>자료별로 무엇을 몇 건 셌나 <small>단위: 건 · (○종)은 장비·가스가 몇 가지인지</small></h2>
 <table>
-<colgroup><col style="width:7%"><col style="width:15%"><col style="width:7%"><col style="width:7%">
-<col style="width:8%"><col style="width:8%"><col style="width:8%"><col></colgroup>
-<thead><tr><th>기관</th><th>자료</th><th>집계<br>(곳)</th><th>원자료<br>줄</th><th>① 업체·<br>기관 정보</th>
-<th>② 장비·<br>내역 정보</th><th>데이터<br>항목</th><th>산정 근거</th></tr></thead>
+<colgroup><col style="width:7%"><col style="width:15%"><col style="width:7%"><col style="width:8.5%"><col></colgroup>
+<thead><tr><th>기관</th><th>자료</th><th>집계<br>(곳)</th><th>데이터<br>항목</th><th>항목별 개수</th></tr></thead>
 <tbody>
-<tr><td class="g" rowspan="1">지자체</td><td class="nm">지자체 방재장비</td><td class="n">221</td><td class="n">437</td><td class="n">2,449</td><td class="n">2,135</td><td class="n b">4,584</td><td class="why">담당 부서 412곳 × 구분·시도·시군구·부서·주소·대표전화 = 2,449<br>보관장소 + 장비 15종 수량 = 2,135<span class="x">빼고 셈: 수량 0 155칸 · 내역이 비거나 0뿐인 줄 9줄</span></td></tr>
-<tr><td class="g" rowspan="6">사업장</td><td class="nm">폐기물처리업체</td><td class="n">1,505</td><td class="n">1,505</td><td class="n">6,199</td><td class="n">2,302</td><td class="n b">8,501</td><td class="why">업체 1,110곳 × 인허가기관·시도·시군구·업체명·소재지·대표전화 = 6,199<br>허가 1,151줄 × 업종·처리방법 = 2,302<span class="x">빼고 셈: 똑같은 줄 354줄</span></td></tr>
-<tr><td class="nm">화학안전공동체</td><td class="n">576</td><td class="n">1,296</td><td class="n">345</td><td class="n">3,761</td><td class="n b">4,106</td><td class="why">사업장 116곳 × 업체명·소재지·대표전화 = 345<br>장비·인력 1,291줄 × 이름·단위·수량 = 3,761<span class="x">빼고 셈: 똑같은 줄 4줄 · 내역이 비거나 0뿐인 줄 1줄</span></td></tr>
-<tr><td class="nm">독성가스 취급업체</td><td class="n">1,431</td><td class="n">4,277</td><td class="n">6,279</td><td class="n">15,216</td><td class="n b">21,495</td><td class="why">업체 1,579곳 × 업체명·주소·대표전화·관할지사 = 6,279<br>취급 내역 4,058줄 × 시설분류·가스 이름·허가량·기준일 = 15,216<span class="x">빼고 셈: CAS번호(가스 이름과 짝) · 수량 0 886칸 · 똑같은 줄 219줄</span></td></tr>
-<tr><td class="nm">독성가스 회수업체</td><td class="n">2</td><td class="n">2</td><td class="n">18</td><td class="n">—</td><td class="n b">18</td><td class="why">업체 2곳 × 채워진 칸 9개(업체명·소재지·작업유형·처리 가능 물질 등) = 18</td></tr>
-<tr><td class="nm">ERCV(비상캡슐)</td><td class="n">17</td><td class="n">19</td><td class="n">57</td><td class="n">43</td><td class="n b">100</td><td class="why">업체 19곳 × 업체명·주소·대표전화 = 57<br>비상캡슐 19줄 × 장비명·용량·비고(적힌 것만) = 43</td></tr>
-<tr><td class="nm">민간방제선박</td><td class="n">35</td><td class="n">129</td><td class="n">175</td><td class="n">516</td><td class="n b">691</td><td class="why">업체 35곳 × 관할서·업종·등록번호·업체명·주소 = 175<br>선박 129척 × 선명·선종·총톤수·계류장소 = 516<span class="x">해양오염방제업 현황(2025. 9.) 원본에서 셈</span></td></tr>
-<tr><td class="g" rowspan="2">환경청</td><td class="nm">방제장비함</td><td class="n">33</td><td class="n">492</td><td class="n">185</td><td class="n">1,567</td><td class="n b">1,752</td><td class="why">설치장소 48곳 × 설치장소·산단/고속도로·주소·관리주체·연락망 = 185<br>장비 492줄 × 장비명·단위 + 수량(컨테이너 91 · 간이 91 · '계'만 적힌 줄 401) = 1,567<span class="x">빼고 셈: 두 칸이 있는 줄의 '계'(합계)</span></td></tr>
-<tr><td class="nm">수질오염방제센터</td><td class="n">8</td><td class="n">54</td><td class="n">—</td><td class="n">336</td><td class="n b">336</td><td class="why">장비 54종 × 구분·장비명·단위 = 162<br>권역 4곳별 보유 수량 = 174<span class="x">자료가 센터 8곳이 아니라 권역 4곳 단위라 기관 정보 칸이 없습니다</span></td></tr>
-<tr><td class="g" rowspan="1">소방</td><td class="nm">대응 차량</td><td class="n">9</td><td class="n">9</td><td class="n">9</td><td class="n">—</td><td class="n b">9</td><td class="why">차량 9대 × 1건(울산 대용량방사포 2 · 여수 화학대응차량 7)<span class="x">원본 파일을 받지 못해 차량 수만 셈</span></td></tr>
-<tr><td class="g" rowspan="2">해경</td><td class="nm">화학방제정</td><td class="n">25</td><td class="n">25</td><td class="n">125</td><td class="n">—</td><td class="n b">125</td><td class="why">방제정 25척 × 소속·선명·선형·톤급·정박지 = 125</td></tr>
-<tr><td class="nm">방제비축기지</td><td class="n">3</td><td class="n">21</td><td class="n">12</td><td class="n">63</td><td class="n b">75</td><td class="why">기지 3곳 × 이름·위치·연면적·시설형태 = 12<br>장비 21줄 × 장비명·단위·수량 = 63</td></tr>
-<tr class="sum"><td colspan="2">합계</td><td class="n">3,865</td><td class="n">8,266</td>
-<td class="n">15,853</td><td class="n">25,939</td><td class="n">41,792</td><td></td></tr>
+<tr><td class="g" rowspan="1">지자체</td><td class="nm">지자체 방재장비</td><td class="n">221</td><td class="n b">4,584</td><td class="why"><span class="c"><i>기관(담당 부서)</i><b>412</b></span><span class="c"><i>주소</i><b>411</b></span><span class="c"><i>연락처</i><b>411</b></span><span class="c"><i>시·도·시·군·구</i><b>803</b></span><span class="c"><i>광역·기초 구분</i><b>412</b></span><span class="c"><i>보관장소</i><b>419</b></span><span class="c"><i>장비 보유</i><b>1,716</b><s>15종</s></span></td></tr>
+<tr><td class="g" rowspan="6">사업장</td><td class="nm">폐기물처리업체</td><td class="n">1,505</td><td class="n b">8,501</td><td class="why"><span class="c"><i>업체명</i><b>1,110</b></span><span class="c"><i>소재지</i><b>1,110</b></span><span class="c"><i>연락처</i><b>1,106</b></span><span class="c"><i>시·도·시·군·구</i><b>2,220</b></span><span class="c"><i>인허가기관</i><b>653</b></span><span class="c"><i>허가 업종</i><b>1,151</b></span><span class="c"><i>처리방법</i><b>1,151</b></span></td></tr>
+<tr><td class="nm">화학안전공동체</td><td class="n">576</td><td class="n b">4,106</td><td class="why"><span class="c"><i>업체명</i><b>116</b></span><span class="c"><i>소재지</i><b>115</b></span><span class="c"><i>연락처</i><b>114</b></span><span class="c"><i>장비·인력</i><b>1,291</b><s>476종</s></span><span class="c"><i>수량</i><b>1,186</b></span><span class="c"><i>단위</i><b>1,284</b></span></td></tr>
+<tr><td class="nm">독성가스 취급업체</td><td class="n">1,431</td><td class="n b">21,495</td><td class="why"><span class="c"><i>업체명</i><b>1,579</b></span><span class="c"><i>주소</i><b>1,579</b></span><span class="c"><i>연락처</i><b>1,542</b></span><span class="c"><i>관할지사</i><b>1,579</b></span><span class="c"><i>취급 가스</i><b>4,058</b><s>256종</s></span><span class="c"><i>허가량</i><b>3,165</b></span><span class="c"><i>시설분류</i><b>4,058</b></span><span class="c"><i>기준일</i><b>3,935</b></span></td></tr>
+<tr><td class="nm">독성가스 회수업체</td><td class="n">2</td><td class="n b">18</td><td class="why"><span class="c"><i>업체명</i><b>2</b></span><span class="c"><i>소재지</i><b>2</b></span><span class="c"><i>처리 가능 물질</i><b>2</b></span><span class="c"><i>보유차량</i><b>2</b></span><span class="c"><i>운영인력</i><b>2</b></span><span class="c"><i>처리용량</i><b>2</b></span><span class="c"><i>작업유형</i><b>2</b></span><span class="c"><i>처리비용·특이사항</i><b>4</b></span></td></tr>
+<tr><td class="nm">ERCV(비상캡슐)</td><td class="n">17</td><td class="n b">100</td><td class="why"><span class="c"><i>업체명</i><b>19</b></span><span class="c"><i>주소</i><b>19</b></span><span class="c"><i>연락처</i><b>19</b></span><span class="c"><i>비상캡슐</i><b>19</b><s>15종</s></span><span class="c"><i>용량</i><b>19</b></span><span class="c"><i>비고</i><b>5</b></span></td></tr>
+<tr><td class="nm">민간방제선박</td><td class="n">35</td><td class="n b">691</td><td class="why"><span class="c"><i>업체명</i><b>35</b></span><span class="c"><i>주소</i><b>35</b></span><span class="c"><i>관할서</i><b>35</b></span><span class="c"><i>업종·등록번호</i><b>70</b></span><span class="c"><i>선박</i><b>129</b></span><span class="c"><i>선종</i><b>129</b></span><span class="c"><i>총톤수</i><b>129</b></span><span class="c"><i>계류장소</i><b>129</b></span><span class="x">해양오염방제업 현황(2025. 9.) 원본에서 셈 · 원본에 전화번호 칸이 없음</span></td></tr>
+<tr><td class="g" rowspan="2">환경청</td><td class="nm">방제장비함</td><td class="n">33</td><td class="n b">1,752</td><td class="why"><span class="c"><i>관리기관</i><b>48</b></span><span class="c"><i>설치장소</i><b>48</b></span><span class="c"><i>주소</i><b>48</b></span><span class="c"><i>연락처</i><b>1</b></span><span class="c"><i>산단·고속도로</i><b>40</b></span><span class="c"><i>장비</i><b>492</b><s>85종</s></span><span class="c"><i>수량</i><b>583</b></span><span class="c"><i>단위</i><b>492</b></span></td></tr>
+<tr><td class="nm">수질오염방제센터</td><td class="n">8</td><td class="n b">336</td><td class="why"><span class="c"><i>장비</i><b>54</b><s>54종</s></span><span class="c"><i>권역별 보유 수량</i><b>174</b></span><span class="c"><i>단위</i><b>54</b></span><span class="c"><i>장비 구분</i><b>54</b></span><span class="x">자료가 센터 8곳이 아니라 권역 4곳 단위로 묶여 있어 기관별 주소·연락처 칸이 없음</span></td></tr>
+<tr><td class="g" rowspan="1">소방</td><td class="nm">대응 차량</td><td class="n">9</td><td class="n b">9</td><td class="why"><span class="c"><i>차량</i><b>9</b></span><span class="x">울산 대용량방사포 2대 · 여수 화학대응차량 7대 — 원본 파일을 받지 못해 차량 수만 셈</span></td></tr>
+<tr><td class="g" rowspan="2">해경</td><td class="nm">화학방제정</td><td class="n">25</td><td class="n b">125</td><td class="why"><span class="c"><i>소속 해경서</i><b>25</b></span><span class="c"><i>방제정</i><b>25</b></span><span class="c"><i>정박지</i><b>25</b></span><span class="c"><i>톤급</i><b>25</b></span><span class="c"><i>선형</i><b>25</b></span></td></tr>
+<tr><td class="nm">방제비축기지</td><td class="n">3</td><td class="n b">75</td><td class="why"><span class="c"><i>기지명</i><b>3</b></span><span class="c"><i>위치</i><b>3</b></span><span class="c"><i>장비</i><b>21</b><s>7종</s></span><span class="c"><i>수량</i><b>21</b></span><span class="c"><i>단위</i><b>21</b></span><span class="c"><i>연면적</i><b>3</b></span><span class="c"><i>시설형태</i><b>3</b></span></td></tr>
+<tr class="sum"><td colspan="2">합계</td><td class="n">3,865</td><td class="n">41,792</td>
+<td></td></tr>
 </tbody></table></section>
 
+<section><h2>세는 기준</h2><ul>
+<li><b>같은 업체·기관은 한 번만</b> 셌습니다 — 한 업체가 여러 줄에 나와도 업체명·주소·연락처는 1건씩입니다.</li>
+<li><b>빈칸 · "-" · 수량 0 · 일련번호 · 똑같이 되풀이된 줄은 세지 않았습니다.</b></li>
+<li><b>다른 칸에서 따라 나오는 값은 세지 않았습니다</b> — 가스 이름과 짝인 CAS번호, 두 칸을 더한 '계'.</li>
+</ul></section>
+
 <section class="note"><h2 style="border:0;margin-bottom:2pt">숫자를 쓸 때 함께 알아 둘 것</h2><ul>
+<li><b>업체명 수가 집계(곳)와 다른 것</b>은 세는 단위가 달라서입니다 — 폐기물처리업체는 허가 1,505건 가운데 업체가 1,110곳,
+지자체는 221개 시·군·구의 담당 부서 412곳, 독성가스 취급업체는 주소별 1,579곳입니다.</li>
 <li><b>독성가스 취급업체 21,495건이 전체의 51%</b>입니다. 원자료로 모아 정리했지만 지금 서비스(방제 물품·장비 찾기)에는 넣지 않은 자료입니다.</li>
-<li><b>곳 수가 집계와 다른 자료</b>는 세는 단위가 다르기 때문입니다 — 지자체 221(시·군·구) ↔ 412(담당 부서),
-독성가스 1,431 ↔ 1,579(주소별), 방제장비함 33 ↔ 48(설치장소), ERCV 17 ↔ 19, 수질오염방제센터 8 ↔ 4(권역).
-데이터 항목은 표에 실제로 있는 단위로 셌습니다.</li>
 <li><b>화학안전공동체</b>는 576곳 가운데 정리 표에 있는 106개 기업(116곳)만 셌습니다. 원본을 받으면 늘어납니다.</li>
-<li><b>소방 9대</b>는 원본 파일을 받지 못해 차량 1대를 1건으로만 셌습니다.</li>
 <li><b>담당자 실명·휴대전화</b>는 정리 단계에서 지웠으므로 세지 않았습니다.</li>
 </ul></section>
-<p class="ref">참고 — 원표의 칸을 빈칸만 빼고 모두 세면 66,919건입니다. 업체 정보가 줄마다 되풀이된 것까지 세는 값이라 위 산정에는 쓰지 않았습니다.</p>
+<p class="ref">참고 — 원표의 칸을 빈칸만 빼고 모두 세면 66,919건입니다. 같은 업체 정보가 줄마다 되풀이된 것까지 세는 값이라 위 산정에는 쓰지 않았습니다.</p>
 <footer>같은 기준으로 다시 세면 같은 숫자가 나옵니다 — 산정에 쓴 표와 세는 방법을 보관하고 있습니다.</footer>
 </body>
 </html>
