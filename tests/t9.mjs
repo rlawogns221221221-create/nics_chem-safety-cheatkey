@@ -10,7 +10,7 @@
 
    지금 확인하는 것
      · 구조·기관 로고·도구 세 링크
-     · 평소에는 번호·이름·자료 건수만 (미니멀)
+     · 평소에는 번호·이름만 (미니멀) — 자료 건수는 첫 화면에 적지 않음
      · 마우스를 올리면 설명이 올라오고 화살표 단추가 파랗게 찬다
      · 키보드 초점에서도 같고, 손가락 기기·인쇄에서는 처음부터 펼쳐진다
      · 사진 네 장이 실제로 불러와지고, 그 위 딱지가 살아 움직인다
@@ -106,6 +106,8 @@ chk(hit > 0.98, `카드 전체가 누를 수 있는 영역 (폭 비율 ${hit.toF
    합니다 — 글이 문서에서 사라지면 화면낭독기가 읽지 못합니다. */
 const rest = await P.evaluate(() => [...document.querySelectorAll('.tools > li')].map(li => {
   const ov = li.querySelector('.pn-ov'), d = li.querySelector('.pn-d');
+  /* 자료 기준일 줄(.pn-meta)은 기준일이 있는 카드에만 있습니다 — 문자생성기는
+     건수를 뺀 뒤 적을 것이 남지 않아 줄이 없습니다(2026-10-14). */
   const m = li.querySelector('.pn-meta'), h = li.querySelector('h3');
   return {
     ov: +getComputedStyle(ov).opacity,
@@ -113,8 +115,8 @@ const rest = await P.evaluate(() => [...document.querySelectorAll('.tools > li')
     disp: getComputedStyle(d).display, vis: getComputedStyle(d).visibility,
     /* 제 불투명도만 보면 1 입니다 — 판(.pn-ov)이 0 이라 화면에는 안 보입니다.
        그래서 조상까지 따지는 checkVisibility 로 봅니다. */
-    m: m.checkVisibility ? m.checkVisibility({ opacityProperty: true }) : false,
-    metaIn: !!m.closest('.pn-ov'),
+    m: m && m.checkVisibility ? m.checkVisibility({ opacityProperty: true }) : false,
+    metaIn: !m || !!m.closest('.pn-ov'),
     hh: h.getBoundingClientRect().height,
     go: getComputedStyle(li.querySelector('.pn-go')).backgroundColor
   };
@@ -125,8 +127,8 @@ chk(rest.every(s => s.len > 30 && s.disp !== 'none' && s.vis !== 'hidden'),
 /* 자료 건수·기준일도 설명과 함께 사진 위로 올라옵니다 — 사용자가 "그 문구가
    굳이 나타나 있지 않아도 될 것 같다"고 해서 옮겼습니다. 평소 카드에 보이는
    글자는 `01 이름` 한 줄뿐입니다. */
-chk(rest.every(s => s.m === false), '자료 건수도 평소에는 비켜 있다');
-chk(rest.every(s => s.metaIn), '자료 건수는 설명 판 안에 들어 있다');
+chk(rest.every(s => s.m === false), '자료 기준일도 평소에는 비켜 있다');
+chk(rest.every(s => s.metaIn), '자료 기준일은 설명 판 안에 들어 있다');
 chk(rest.every(s => s.hh > 20), '도구 이름은 처음부터 보인다');
 
 await P.hover('.tools > li:nth-child(1) > a'); await P.waitForTimeout(420);
@@ -618,13 +620,15 @@ chk(new Set(show.leadTops).size === 1,
 chk(show.leadKept, '안 보이는 문구도 문서에 남아 있다 (화면낭독기가 다섯 줄을 다 읽는다)');
 chk(show.firstImgOp > 0.95 && show.firstLeadOp > 0.95,
   '첫 사진·첫 문구는 열자마자 보인다');
-/* 지어낸 수치를 넣지 않았는지 — 문구에 적은 숫자는 카드에 적힌 자료 건수와
-   같은 값이어야 합니다. 다른 숫자가 나오면 어딘가에서 지어낸 것입니다. */
-const nums = show.leadText.join(' ').match(/[\d,]+(?=곳|건|종)/g) || [];
-const cardNums = await P.$$eval('.pn-meta',
-  ps => (ps.map(p => p.textContent).join(' ').match(/[\d,]+(?=곳|건|종)/g) || []));
-chk(nums.every(n => cardNums.indexOf(n) >= 0),
-  `문구의 수치가 카드의 자료 건수와 같다 (${nums.join('/')})`);
+/* 첫 화면에는 자료 건수를 적지 않습니다 — 2026-10-14 사용자 결정("첫 화면에
+   업체 몇건 물품 몇건 숫자들은 다 제외시키자"). 예전에는 문구와 카드의 건수가
+   서로 같은지 대조했는데, 이제는 **건수가 아예 없는지** 봅니다. 화면에 안
+   보이는 글(sr-only · 겹쳐 둔 문구)까지 문서 전체를 훑습니다.
+   '업무도구 3종' 의 3 처럼 한 자리 숫자는 자료 건수가 아니라 셈에서 뺍니다. */
+const counts = await P.evaluate(() =>
+  (document.body.textContent.replace(/\s+/g, ' ')
+    .match(/\d[\d,]+\s*(?:곳|건|종|개|척|대)/g) || []));
+chk(counts.length === 0, `첫 화면에 자료 건수가 없다${counts.length ? ' (' + counts.join(' / ') + ')' : ''}`);
 
 /* 멈춤 단추 — 있는가, 그리고 눌렀을 때 실제로 서는가 */
 chk((await P.$$('.hero-btn')).length === 1, '사진 넘김을 멈추는 단추가 있다');

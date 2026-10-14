@@ -1760,17 +1760,20 @@ window.addEventListener("storage", function (e) {
   <div class="wrap">
     <h1><span>화학사고</span> <span>초동대응</span> <span>지원</span> <span>서비스</span></h1>
     <!-- 다섯 줄이 같은 자리에 겹쳐 있습니다(.hero-leads 가 grid).
-         겹쳐 두지 않고 순서대로 두면 문구가 바뀔 때마다 띠 높이가 들썩입니다. -->
+         겹쳐 두지 않고 순서대로 두면 문구가 바뀔 때마다 띠 높이가 들썩입니다.
+         ⚠ 문구에 자료 건수(업체 ○건 · 대피장소 ○곳 …)를 넣지 않습니다 —
+         2026-10-14 사용자 결정("첫 화면에 업체 몇건 물품 몇건 숫자들은 다
+         제외시키자"). 건수는 자료를 갈아 끼울 때마다 낡아 버립니다. -->
     <div class="hero-leads">
       <p class="hero-lead s1">사고가 나면 <b>무엇을 부를지</b>,
         <b>어디로 대피시킬지</b>, <b>무엇을 문자로 보낼지</b> —
         세 가지를 이 화면에서 시작합니다.</p>
       <p class="hero-lead s2">맡길 업체나 필요한 물품을 고르고 사고지점을 넣으면
-        <b>가까운 순으로</b> 찾습니다 — 업체 1,717건 · 물품 4,075건.</p>
+        <b>가까운 순으로</b> 찾습니다.</p>
       <p class="hero-lead s3">사고지점을 찍으면 주변 대피장소를
-        <b>가까운 순으로</b> 찾습니다 — 전국 <b>1,849곳</b>.</p>
+        <b>가까운 순으로</b> 찾습니다.</p>
       <p class="hero-lead s4">사고정보를 넣으면 <b>재난문자 표준문안</b>이
-        만들어집니다 — 표준문안 12건 · 발송 사례 42건.</p>
+        만들어집니다.</p>
       <p class="hero-lead s5">이 도구는 <b>판단하지 않습니다.</b>
         어디까지 대피시킬지는 담당자가 정하고, 도구는 자료를 모읍니다.</p>
     </div>
@@ -1819,9 +1822,12 @@ window.addEventListener("storage", function (e) {
                        주고 하나씩 차례로 나타났다 사라집니다. 지어낸 수치는
                        넣지 않습니다 — 자리는 portal.css 의 `.pn.tN .lN`.
            ③ .pn-ov    마우스를 올리거나 초점이 오면 사진 위로 올라오는 설명.
-                       **자료 건수·기준일도 이 안에 함께** 들어 있습니다 —
+                       **자료 기준일도 이 안에 함께** 들어 있습니다 —
                        사용자가 "그 문구가 굳이 나타나 있지 않아도 될 것
                        같다. 마우스를 올리면 설명 정도만" 이라고 했습니다.
+                       ⚠ 자료 건수(업체 ○건 · 물품 ○건 …)는 **적지 않습니다**
+                       (2026-10-14 사용자 결정 — 첫 화면의 건수는 다 뺌).
+                       기준일은 건수가 아니라 "언제 자료인가" 라서 남겼습니다.
                        감추는 것이 아니라 비켜 두는 것이므로 화면낭독기는 늘
                        읽고(opacity 만 0), 손가락 기기·인쇄에서는 처음부터
                        펼쳐 둡니다.
@@ -1844,8 +1850,7 @@ window.addEventListener("storage", function (e) {
             <div class="pn-ov">
               <p class="pn-d">업체 섭외인지 방제물품인지 고르고 사고지점을 넣으면,
                 그것을 가진 곳을 가까운 순으로 찾습니다. 미리 협의된 업체가 맨 위에 옵니다.</p>
-              <p class="pn-meta"><span class="nb">업체 1,717건</span> ·
-                <span class="nb">물품 4,075건</span> · <span class="nb">기준일 2026-09-08</span></p>
+              <p class="pn-meta">자료 기준일 <span class="nb">2026-09-08</span></p>
             </div>
           </div>
           <div class="pn-hd">
@@ -1876,8 +1881,7 @@ window.addEventListener("storage", function (e) {
             <div class="pn-ov">
               <p class="pn-d">사고지점을 찍으면 주변 대피장소를 가까운 순으로 찾습니다.
                 거리·도보시간·영향 참고 반경·풍하방향을 함께 봅니다.</p>
-              <p class="pn-meta">대피장소 <span class="nb">1,849곳</span> ·
-                <span class="nb">기준일 2026-05-19</span></p>
+              <p class="pn-meta">자료 기준일 <span class="nb">2026-05-19</span></p>
             </div>
           </div>
           <div class="pn-hd">
@@ -1907,8 +1911,6 @@ window.addEventListener("storage", function (e) {
             <div class="pn-ov">
               <p class="pn-d">사고정보를 넣으면 재난문자 표준문안이 만들어집니다.
                 90자를 넘으면 줄일 곳을 짚어 주고, 실제 발송 사례를 나란히 봅니다.</p>
-              <p class="pn-meta"><span class="nb">표준문안 12건</span> ·
-                <span class="nb">발송 사례 42건</span> · <span class="nb">물질 460종</span></p>
             </div>
           </div>
           <div class="pn-hd">
