@@ -156,6 +156,7 @@ python3 build/make_survey_hwpx.py  # 지자체 담당자 메일 설문지 **한�
                                   #  공문 설문 양식 16문항·약 10분 — 네 번 고친 이력은 스크립트 머리말
 python3 build/원자료_건수.py      # 원자료 3,865곳의 데이터 건수(보수 산정) + 근거 표 HTML
 node   build/데이터건수_근거.mjs   # 그 표 → docs/방제자원_원자료_데이터건수_근거.pdf (A4 한 쪽)
+python3 build/데이터건수_근거_hwpx.py # 같은 표의 **한글파일**(.hwpx · 보고서에 붙여 고쳐 쓰는 용)
 
 python3 build/방제자원_정리.py    # 드라이브 원자료 → docs/방제자원_정리/표/*.csv
 python3 build/방제자원_통계.py    # 표 → 통계.json (보고서 수치는 여기서 나옵니다)
