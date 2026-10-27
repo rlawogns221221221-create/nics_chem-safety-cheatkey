@@ -2377,3 +2377,207 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:1.5rem;flex:no
   .rkd > footer .rkd-close{margin-left:0}
 }
 @media print{ .rkd-back{display:none!important} }
+
+/* ════════════════════════════════════════════════════════════════
+   휴대전화 다듬기 (2026-10-27)
+   ────────────────────────────────────────────────────────────────
+   만족도 조사(19명) 뒤 사용자 지시 — "모바일 버전이 메인이니까 최대한
+   깔끔하게 가독성이 좋도록 … 오와 열이 맞아야 하고, 문장이나 단어도
+   불가피한 경우가 아니면 한 줄로". 기능은 건드리지 않고 **보이는 것만**
+   고칩니다. 넓은 화면은 그대로입니다 — 아래 규칙은 대부분 560px 아래에서만
+   켜집니다. 이 묶음을 파일 맨 끝에 두는 까닭은, 앞쪽의 좁은 화면 규칙을
+   하나하나 고치지 않고 **여기서 한 번에 덮기** 위해서입니다.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 머리띠 '메뉴' (assets/theme.js 의 more()) ─────────────────── */
+.act-more{display:flex;gap:8px;flex-wrap:wrap}
+.morebtn{display:none}
+@media (max-width:560px){
+  /* 한 줄: [제목 ………… ◐ ⋯메뉴]. 예전에는 제목 한 줄 + 단추 넷 한 줄로
+     110px 이었습니다. '화학사고' 앞말은 화면에서만 빼고(카드 이름과 같아짐)
+     화면낭독기·탭 제목에는 그대로 남깁니다. */
+  .top{position:relative}
+  .top .wrap{flex-wrap:nowrap;gap:8px;padding-top:0}
+  .top h1{flex:1 1 auto;min-width:0;font-size:1.9rem;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .h-pre{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .top .act{flex:none;flex-wrap:nowrap;gap:6px}
+  .modebtn{width:var(--h-s);padding:0;justify-content:center}
+  .morebtn{display:inline-flex;align-items:center;gap:5px;padding:0 12px}
+  .morebtn svg{width:1.6rem;height:1.6rem;flex:none}
+  .morebtn[aria-expanded=true]{border-color:var(--brand);color:var(--brand)}
+  /* 접힌 단추는 머리띠 바로 아래 오른쪽에 세로로 펼칩니다 */
+  .act-more{display:none;position:absolute;right:12px;top:calc(100% + 6px);
+    z-index:2000;flex-direction:column;align-items:stretch;gap:2px;
+    min-width:17rem;padding:6px;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--r-l);
+    box-shadow:0 6px 24px rgba(16,32,48,.18)}
+  .act.open .act-more{display:flex}
+  .act-more button{justify-content:flex-start;text-align:left;border-color:transparent;
+    min-height:var(--h-m);padding:0 14px;font-size:var(--fs-m);color:var(--ink)}
+  .act-more button[hidden]{display:none}
+  .act-more button:disabled{color:var(--ink3)}
+}
+@media (max-width:560px){ .top,.mapapp .top{padding:8px 0} }
+
+/* ── ③ 시작 세 걸음 ─────────────────────────────────────────────
+   · 제목·안내는 **왼쪽 정렬** — 카드 왼쪽 끝과 한 줄에 서야 눈이 편합니다
+     (가운데 정렬이면 두 줄째가 들쭉날쭉해 열이 무너집니다).
+   · 걸음 1 카드는 큰 세로 카드 → **가로 한 줄**(그림 · 이름/할 일 · 건수).
+     예전에는 한 장이 250px 이라 둘째 카드가 화면 밖으로 밀렸습니다.
+   · 걸음 2 업체 카드는 이름 옆에 건수를 붙여 한 줄을 아낍니다.
+   · 안내 문장은 한 줄 — 걸음 1 은 제목이 이미 묻고 있어 화면에서만 뺍니다. */
+@media (max-width:560px){
+  .rz{padding:14px 16px 32px}
+  .rz-bar{margin:0 0 18px}
+  .rz h2{text-align:left;font-size:2.2rem;font-size:min(2.4rem, 6.4vw);
+    line-height:1.35;margin:0 0 4px}
+  .rz-lead{text-align:left;font-size:1.4rem;line-height:1.6;color:var(--ink3);margin:0 0 16px}
+  #rzP0 .rz-lead{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+  .rz-brs{gap:10px}
+  .rz-br{display:grid;grid-template-columns:4.4rem minmax(0,1fr) auto;
+    grid-template-areas:"ic t n" "ic d d";column-gap:14px;row-gap:2px;
+    align-items:center;padding:14px 16px}
+  .rz-br-ic{grid-area:ic;width:4.4rem;height:4.4rem;margin:0}
+  .rz-br-ic .rk-ic{width:2.6rem;height:2.6rem}
+  .rz-br-t{grid-area:t;font-size:1.9rem;line-height:1.35}
+  .rz-br-n{grid-area:n;margin:0;font-size:1.3rem}
+  .rz-br-d{grid-area:d;font-size:1.4rem;line-height:1.5;text-wrap:balance}
+
+  .rz-need{align-items:center;gap:12px;padding:12px 14px}
+  .rz-need-ic{width:4rem;height:4rem}
+  .rz-need-ic .rk-ic{width:2.4rem;height:2.4rem}
+  .rz-need-b{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px}
+  .rz-need-t{order:1}
+  .rz-need-n{order:2;margin:0;font-size:1.3rem}
+  .rz-need-d{order:3;flex-basis:100%;margin-top:2px;font-size:1.35rem;line-height:1.5;
+    text-wrap:balance}
+  .rz-need-x{margin-top:0}
+
+  .rz-way{padding:14px 16px 14px 52px}
+  .rz-way + .rz-way{margin-top:10px}
+  .rz-n{left:15px;top:15px;width:24px;height:24px;font-size:1.4rem}
+  .rz-wt{font-size:1.7rem}
+  .rz-wd{font-size:1.4rem}
+  .rz-way input[type=text]{margin-top:10px}
+
+  /* 아래 줄 — [다음 …] 한 줄 가득, 그 아래 [← 이전] 왼쪽 · [전부 보기] 오른쪽 */
+  .rz-nav{gap:2px 12px;margin-top:16px}
+  .rz-next{order:-1;flex:1 0 100%;margin-left:0;min-height:5.2rem;font-size:1.7rem}
+  .rz-back,.rz-skip{font-size:1.4rem}
+  .rz-skip{margin-left:auto}
+  .rz-sub{display:none}
+}
+/* 아주 좁은 화면 — 걸음 표시는 지금 걸음의 이름만(나머지는 번호) */
+@media (max-width:380px){
+  .rz-b button b{display:none}
+  .rz-b.on button b{display:inline}
+}
+
+/* ── ① 문자생성기 ───────────────────────────────────────────────
+   · 첫 화면: 좁은 정사각형 셋(셋째 이름이 두 줄) → **가로 줄 셋**.
+     줄마다 [그림 · 이름 / 누구에게] 한 줄씩 — 이름과 설명이 한 열에 섭니다.
+   · 고른 뒤: 고른 것 **한 줄만** 남깁니다. 세 칸을 나란히 두면
+     '주민소산(대피명령) 알림' 이 두 줄로 접히는데, 기관이 쓰는 분류 이름이라
+     줄일 수 없습니다. 그 줄을 누르면 셋이 다시 펼쳐집니다(sms/app.js).
+   · 아래 단추: [← 이전] [다음 — ○○] 한 줄. 예전에는 두 줄이었습니다.
+   · 못 채운 칸: [걸음 이름 …… 채우러 가기 →] / 칸 이름들(왼쪽 정렬).
+     앞쪽(400줄 부근) 좁은 화면 규칙은 그 아래 기본 규칙에 덮여 듣지 않았습니다. */
+.stp-chg{display:none}
+@media (max-width:560px){
+  /* ‼ .toolstage 는 세로 flex 인 body 안에서 margin:0 auto 만 받아 **내용
+     크기로 쪼그라듭니다**(3절의 그 함정). 넓은 화면에서는 그 덕에 고르는 띠와
+     입력 칸의 폭이 맞아 그대로 두고, 휴대전화에서만 화면 폭을 채웁니다 —
+     첫 화면의 세 줄이 390px 화면에서 278px 밖에 안 됐습니다. */
+  .toolstage{width:100%}
+  .stepsz{padding:14px 0 8px}
+  .steps{grid-template-columns:minmax(0,1fr);gap:10px;max-width:none}
+  .steps button.stp{display:grid;grid-template-columns:3.2rem minmax(0,1fr) auto;
+    grid-template-areas:"ic b chg" "ic d chg";column-gap:14px;row-gap:1px;
+    align-items:center;justify-items:start;text-align:left;
+    height:auto;min-height:7.2rem;padding:12px 18px;border-radius:var(--r-l)}
+  .steps button.stp:hover{transform:none}
+  .stp-ic{grid-area:ic;width:3rem;height:3rem}
+  .steps button.stp b{grid-area:b;font-size:1.8rem;white-space:nowrap}
+  .stp-d{grid-area:d;display:block;max-height:none;opacity:1;margin:0;
+    font-size:1.4rem;white-space:nowrap}
+  /* 오른쪽 끝 꺾쇠 — 누르면 다음으로 간다는 표시. 글자가 아니라 그림이라
+     화면낭독기는 읽지 않습니다. */
+  .steps button.stp::after{content:"";grid-area:chg;width:.9rem;height:.9rem;
+    border:solid var(--ink3);border-width:0 2px 2px 0;transform:rotate(-45deg)}
+
+  /* 고른 뒤 — 고른 것 한 줄(나머지는 접힘). 높이 52px */
+  body.has-stage .stepsz{padding:10px 0 6px}
+  body.has-stage .steps button.stp{grid-template-areas:"ic b chg";grid-template-columns:2.2rem minmax(0,1fr) auto;
+    height:auto;min-height:5.2rem;padding:0 16px;column-gap:10px;border-radius:var(--r-l)}
+  body.has-stage .stp-ic{width:2.2rem;height:2.2rem}
+  body.has-stage .steps button.stp b{font-size:1.6rem}
+  body.has-stage .stp-d{display:none}
+  body.has-stage .steps:not(.open) button.stp[aria-pressed=false]{display:none}
+  body.has-stage .steps button.stp::after{content:none}
+  body.has-stage .steps button.stp[aria-pressed=true] .stp-chg{grid-area:chg;display:inline-flex;
+    align-items:center;gap:6px;font-size:1.4rem;font-weight:600;opacity:.9}
+  body.has-stage .steps button.stp[aria-pressed=true] .stp-chg::after{content:"";
+    width:.7rem;height:.7rem;border:solid currentColor;border-width:0 2px 2px 0;
+    transform:translateY(-2px) rotate(45deg)}
+  body.has-stage .steps.open button.stp[aria-pressed=true] .stp-chg::after{
+    transform:translateY(2px) rotate(-135deg)}
+  body.has-stage .steps.open button.stp[aria-pressed=false]{background:var(--card)}
+
+  /* 이전 · 다음 한 줄 */
+  .stepnav{flex-wrap:nowrap;gap:8px;margin-top:14px}
+  .stepnav .sn-prev{flex:none;padding:0 16px}
+  .stepnav .sn-sub{display:none}
+  .stepnav .sn-next{flex:1 1 auto;width:auto;min-width:0;margin-left:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stepnav .sn-first{margin-left:auto}
+  .stepnav .sn-sp{display:none}
+
+  /* 못 채운 칸 */
+  .nf-hd{font-size:1.8rem}
+  .nf-d{font-size:1.4rem;margin:4px 0 12px}
+  .nf-list button{display:grid;grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"b em" "s s";align-items:center;gap:2px 10px;padding:10px 14px}
+  .nf-list button b{grid-area:b;font-size:1.6rem}
+  .nf-list button em{grid-area:em;margin:0;font-size:1.4rem}
+  .nf-list button span{grid-area:s;font-size:1.35rem;color:var(--ink3);line-height:1.5}
+}
+@media (max-width:560px){
+  /* 사고유형 넷 — 같은 폭 네 칸. 낱말 길이대로 두면 320px 에서 '기타' 만
+     아랫줄로 떨어졌습니다. */
+  #types{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  #types button{padding:0;min-width:0}
+}
+@media (max-width:400px){
+  /* 걸음 표시 — 번호 칸을 좁혀 지금 걸음의 이름이 잘리지 않게(320px 에서
+     '사…' 로 잘렸습니다). */
+  .stepbar button{padding:0 .3rem;gap:.6rem}
+  .stepbar button i{width:2.2rem;height:2.2rem}
+  .stepbar .on button{padding:0 .6rem}
+}
+
+/* ── ②③ 결과 — 고른 줄의 링크·복사 단추, ③ 세부사항 창 아래 단추 ─────
+   폭이 제각각이라 줄 끝이 들쭉날쭉했고, ③ 창에서는 링크(얇음)와 단추(두꺼움)가
+   한 줄에 섞여 높이가 달랐습니다. 줄마다 같은 폭 칸으로 나눠 **양 끝을 맞춥니다**. */
+@media (max-width:560px){
+  .ms-it .l4{display:grid;gap:6px}
+  .ms-it .l4 .shmap-ext,.rkd-ext .shmap-ext{display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .ms-it .l4 .ms-cp{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}
+  .shmap-ext a{justify-content:center;min-height:40px;border-radius:var(--r-s)}
+  .ms-it .l4 .ms-cp button,.rkd > footer button{min-height:40px;padding:0 6px;
+    font-size:1.4rem;white-space:nowrap}
+  .rkd > footer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px}
+  .rkd > footer .rkd-ext{grid-column:1/-1;display:block}
+  .rkd > footer .rkd-close{margin:0;padding:0 14px}
+}
+@media (max-width:560px){
+  /* 검색칸 위 이름표 — 화면에서만 비켜 둡니다. 옆 줄의 '사고지점' 은 왼쪽에
+     서는데 이것만 위에 서서 두 줄의 시작이 어긋났습니다. 칸 안의 짧은
+     안내문(theme.js 의 shortPh)이 같은 말을 하고, 화면낭독기는 그대로 읽습니다. */
+  .mb-addr .mb-lt{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+}

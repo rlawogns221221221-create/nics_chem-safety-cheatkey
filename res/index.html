@@ -35,7 +35,7 @@
 
 <div class="top">
   <div class="wrap">
-    <h1>화학사고 방제 물품·장비 찾기</h1>
+    <h1><span class="h-pre">화학사고 </span>방제 물품·장비 찾기</h1>
     <div class="act noprint">
       <button id="btnSrc" type="button">자료 출처</button>
       <button id="btnPrint" type="button">인쇄</button>
@@ -90,7 +90,7 @@
       <div class="rz-needs" id="rzNeeds" role="group" aria-label="필요한 것 고르기"></div>
 
       <div class="rz-nav">
-        <button type="button" class="rz-back" id="rzBack0">← 이전 — 무엇을</button>
+        <button type="button" class="rz-back" id="rzBack0">← 이전<span class="rz-sub"> — 무엇을</span></button>
         <button type="button" class="rz-skip" id="rzAll">
           무엇이 필요한지 모르겠어요 — 전부 보기
         </button>
@@ -128,7 +128,7 @@
       </button>
 
       <div class="rz-nav">
-        <button type="button" class="rz-back" id="rzBack">← 이전 — 필요한 것</button>
+        <button type="button" class="rz-back" id="rzBack">← 이전<span class="rz-sub"> — 필요한 것</span></button>
         <button type="button" class="rz-skip" id="startSkip">사고지점 없이 지역으로 둘러보기</button>
       </div>
     </section>
@@ -140,8 +140,8 @@
 <div class="mbar noprint">
   <div class="mbar-in">
     <label class="mb-f mb-addr" title="주소·시군구·읍면동은 물론 보유 장비 이름으로도 찾습니다(굴착기·흡착포 등).">
-      주소·장소·장비 검색
-      <input type="text" id="mAddrQ" placeholder="예) 김천시, 굴착기, 흡착포" autocomplete="off">
+      <span class="mb-lt">주소·장소·장비 검색</span>
+      <input type="text" id="mAddrQ" data-ph-s="주소·장소·장비 검색" placeholder="예) 김천시, 굴착기, 흡착포" autocomplete="off">
     </label>
 
     <!-- 사고지점 정하기 — ② 주민 대피장소 찾기와 같은 자리에 둡니다. 예전에는

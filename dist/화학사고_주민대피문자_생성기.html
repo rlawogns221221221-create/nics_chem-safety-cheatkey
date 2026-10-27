@@ -3203,6 +3203,210 @@ input[type=text].shmap-radin{width:96px;padding:4px 8px;font-size:1.5rem;flex:no
 }
 @media print{ .rkd-back{display:none!important} }
 
+/* ════════════════════════════════════════════════════════════════
+   휴대전화 다듬기 (2026-10-27)
+   ────────────────────────────────────────────────────────────────
+   만족도 조사(19명) 뒤 사용자 지시 — "모바일 버전이 메인이니까 최대한
+   깔끔하게 가독성이 좋도록 … 오와 열이 맞아야 하고, 문장이나 단어도
+   불가피한 경우가 아니면 한 줄로". 기능은 건드리지 않고 **보이는 것만**
+   고칩니다. 넓은 화면은 그대로입니다 — 아래 규칙은 대부분 560px 아래에서만
+   켜집니다. 이 묶음을 파일 맨 끝에 두는 까닭은, 앞쪽의 좁은 화면 규칙을
+   하나하나 고치지 않고 **여기서 한 번에 덮기** 위해서입니다.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ── 머리띠 '메뉴' (assets/theme.js 의 more()) ─────────────────── */
+.act-more{display:flex;gap:8px;flex-wrap:wrap}
+.morebtn{display:none}
+@media (max-width:560px){
+  /* 한 줄: [제목 ………… ◐ ⋯메뉴]. 예전에는 제목 한 줄 + 단추 넷 한 줄로
+     110px 이었습니다. '화학사고' 앞말은 화면에서만 빼고(카드 이름과 같아짐)
+     화면낭독기·탭 제목에는 그대로 남깁니다. */
+  .top{position:relative}
+  .top .wrap{flex-wrap:nowrap;gap:8px;padding-top:0}
+  .top h1{flex:1 1 auto;min-width:0;font-size:1.9rem;white-space:nowrap;
+    overflow:hidden;text-overflow:ellipsis}
+  .h-pre{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  .top .act{flex:none;flex-wrap:nowrap;gap:6px}
+  .modebtn{width:var(--h-s);padding:0;justify-content:center}
+  .morebtn{display:inline-flex;align-items:center;gap:5px;padding:0 12px}
+  .morebtn svg{width:1.6rem;height:1.6rem;flex:none}
+  .morebtn[aria-expanded=true]{border-color:var(--brand);color:var(--brand)}
+  /* 접힌 단추는 머리띠 바로 아래 오른쪽에 세로로 펼칩니다 */
+  .act-more{display:none;position:absolute;right:12px;top:calc(100% + 6px);
+    z-index:2000;flex-direction:column;align-items:stretch;gap:2px;
+    min-width:17rem;padding:6px;background:var(--card);
+    border:1px solid var(--line);border-radius:var(--r-l);
+    box-shadow:0 6px 24px rgba(16,32,48,.18)}
+  .act.open .act-more{display:flex}
+  .act-more button{justify-content:flex-start;text-align:left;border-color:transparent;
+    min-height:var(--h-m);padding:0 14px;font-size:var(--fs-m);color:var(--ink)}
+  .act-more button[hidden]{display:none}
+  .act-more button:disabled{color:var(--ink3)}
+}
+@media (max-width:560px){ .top,.mapapp .top{padding:8px 0} }
+
+/* ── ③ 시작 세 걸음 ─────────────────────────────────────────────
+   · 제목·안내는 **왼쪽 정렬** — 카드 왼쪽 끝과 한 줄에 서야 눈이 편합니다
+     (가운데 정렬이면 두 줄째가 들쭉날쭉해 열이 무너집니다).
+   · 걸음 1 카드는 큰 세로 카드 → **가로 한 줄**(그림 · 이름/할 일 · 건수).
+     예전에는 한 장이 250px 이라 둘째 카드가 화면 밖으로 밀렸습니다.
+   · 걸음 2 업체 카드는 이름 옆에 건수를 붙여 한 줄을 아낍니다.
+   · 안내 문장은 한 줄 — 걸음 1 은 제목이 이미 묻고 있어 화면에서만 뺍니다. */
+@media (max-width:560px){
+  .rz{padding:14px 16px 32px}
+  .rz-bar{margin:0 0 18px}
+  .rz h2{text-align:left;font-size:2.2rem;font-size:min(2.4rem, 6.4vw);
+    line-height:1.35;margin:0 0 4px}
+  .rz-lead{text-align:left;font-size:1.4rem;line-height:1.6;color:var(--ink3);margin:0 0 16px}
+  #rzP0 .rz-lead{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+
+  .rz-brs{gap:10px}
+  .rz-br{display:grid;grid-template-columns:4.4rem minmax(0,1fr) auto;
+    grid-template-areas:"ic t n" "ic d d";column-gap:14px;row-gap:2px;
+    align-items:center;padding:14px 16px}
+  .rz-br-ic{grid-area:ic;width:4.4rem;height:4.4rem;margin:0}
+  .rz-br-ic .rk-ic{width:2.6rem;height:2.6rem}
+  .rz-br-t{grid-area:t;font-size:1.9rem;line-height:1.35}
+  .rz-br-n{grid-area:n;margin:0;font-size:1.3rem}
+  .rz-br-d{grid-area:d;font-size:1.4rem;line-height:1.5;text-wrap:balance}
+
+  .rz-need{align-items:center;gap:12px;padding:12px 14px}
+  .rz-need-ic{width:4rem;height:4rem}
+  .rz-need-ic .rk-ic{width:2.4rem;height:2.4rem}
+  .rz-need-b{display:flex;flex-wrap:wrap;align-items:baseline;column-gap:8px}
+  .rz-need-t{order:1}
+  .rz-need-n{order:2;margin:0;font-size:1.3rem}
+  .rz-need-d{order:3;flex-basis:100%;margin-top:2px;font-size:1.35rem;line-height:1.5;
+    text-wrap:balance}
+  .rz-need-x{margin-top:0}
+
+  .rz-way{padding:14px 16px 14px 52px}
+  .rz-way + .rz-way{margin-top:10px}
+  .rz-n{left:15px;top:15px;width:24px;height:24px;font-size:1.4rem}
+  .rz-wt{font-size:1.7rem}
+  .rz-wd{font-size:1.4rem}
+  .rz-way input[type=text]{margin-top:10px}
+
+  /* 아래 줄 — [다음 …] 한 줄 가득, 그 아래 [← 이전] 왼쪽 · [전부 보기] 오른쪽 */
+  .rz-nav{gap:2px 12px;margin-top:16px}
+  .rz-next{order:-1;flex:1 0 100%;margin-left:0;min-height:5.2rem;font-size:1.7rem}
+  .rz-back,.rz-skip{font-size:1.4rem}
+  .rz-skip{margin-left:auto}
+  .rz-sub{display:none}
+}
+/* 아주 좁은 화면 — 걸음 표시는 지금 걸음의 이름만(나머지는 번호) */
+@media (max-width:380px){
+  .rz-b button b{display:none}
+  .rz-b.on button b{display:inline}
+}
+
+/* ── ① 문자생성기 ───────────────────────────────────────────────
+   · 첫 화면: 좁은 정사각형 셋(셋째 이름이 두 줄) → **가로 줄 셋**.
+     줄마다 [그림 · 이름 / 누구에게] 한 줄씩 — 이름과 설명이 한 열에 섭니다.
+   · 고른 뒤: 고른 것 **한 줄만** 남깁니다. 세 칸을 나란히 두면
+     '주민소산(대피명령) 알림' 이 두 줄로 접히는데, 기관이 쓰는 분류 이름이라
+     줄일 수 없습니다. 그 줄을 누르면 셋이 다시 펼쳐집니다(sms/app.js).
+   · 아래 단추: [← 이전] [다음 — ○○] 한 줄. 예전에는 두 줄이었습니다.
+   · 못 채운 칸: [걸음 이름 …… 채우러 가기 →] / 칸 이름들(왼쪽 정렬).
+     앞쪽(400줄 부근) 좁은 화면 규칙은 그 아래 기본 규칙에 덮여 듣지 않았습니다. */
+.stp-chg{display:none}
+@media (max-width:560px){
+  /* ‼ .toolstage 는 세로 flex 인 body 안에서 margin:0 auto 만 받아 **내용
+     크기로 쪼그라듭니다**(3절의 그 함정). 넓은 화면에서는 그 덕에 고르는 띠와
+     입력 칸의 폭이 맞아 그대로 두고, 휴대전화에서만 화면 폭을 채웁니다 —
+     첫 화면의 세 줄이 390px 화면에서 278px 밖에 안 됐습니다. */
+  .toolstage{width:100%}
+  .stepsz{padding:14px 0 8px}
+  .steps{grid-template-columns:minmax(0,1fr);gap:10px;max-width:none}
+  .steps button.stp{display:grid;grid-template-columns:3.2rem minmax(0,1fr) auto;
+    grid-template-areas:"ic b chg" "ic d chg";column-gap:14px;row-gap:1px;
+    align-items:center;justify-items:start;text-align:left;
+    height:auto;min-height:7.2rem;padding:12px 18px;border-radius:var(--r-l)}
+  .steps button.stp:hover{transform:none}
+  .stp-ic{grid-area:ic;width:3rem;height:3rem}
+  .steps button.stp b{grid-area:b;font-size:1.8rem;white-space:nowrap}
+  .stp-d{grid-area:d;display:block;max-height:none;opacity:1;margin:0;
+    font-size:1.4rem;white-space:nowrap}
+  /* 오른쪽 끝 꺾쇠 — 누르면 다음으로 간다는 표시. 글자가 아니라 그림이라
+     화면낭독기는 읽지 않습니다. */
+  .steps button.stp::after{content:"";grid-area:chg;width:.9rem;height:.9rem;
+    border:solid var(--ink3);border-width:0 2px 2px 0;transform:rotate(-45deg)}
+
+  /* 고른 뒤 — 고른 것 한 줄(나머지는 접힘). 높이 52px */
+  body.has-stage .stepsz{padding:10px 0 6px}
+  body.has-stage .steps button.stp{grid-template-areas:"ic b chg";grid-template-columns:2.2rem minmax(0,1fr) auto;
+    height:auto;min-height:5.2rem;padding:0 16px;column-gap:10px;border-radius:var(--r-l)}
+  body.has-stage .stp-ic{width:2.2rem;height:2.2rem}
+  body.has-stage .steps button.stp b{font-size:1.6rem}
+  body.has-stage .stp-d{display:none}
+  body.has-stage .steps:not(.open) button.stp[aria-pressed=false]{display:none}
+  body.has-stage .steps button.stp::after{content:none}
+  body.has-stage .steps button.stp[aria-pressed=true] .stp-chg{grid-area:chg;display:inline-flex;
+    align-items:center;gap:6px;font-size:1.4rem;font-weight:600;opacity:.9}
+  body.has-stage .steps button.stp[aria-pressed=true] .stp-chg::after{content:"";
+    width:.7rem;height:.7rem;border:solid currentColor;border-width:0 2px 2px 0;
+    transform:translateY(-2px) rotate(45deg)}
+  body.has-stage .steps.open button.stp[aria-pressed=true] .stp-chg::after{
+    transform:translateY(2px) rotate(-135deg)}
+  body.has-stage .steps.open button.stp[aria-pressed=false]{background:var(--card)}
+
+  /* 이전 · 다음 한 줄 */
+  .stepnav{flex-wrap:nowrap;gap:8px;margin-top:14px}
+  .stepnav .sn-prev{flex:none;padding:0 16px}
+  .stepnav .sn-sub{display:none}
+  .stepnav .sn-next{flex:1 1 auto;width:auto;min-width:0;margin-left:0;
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .stepnav .sn-first{margin-left:auto}
+  .stepnav .sn-sp{display:none}
+
+  /* 못 채운 칸 */
+  .nf-hd{font-size:1.8rem}
+  .nf-d{font-size:1.4rem;margin:4px 0 12px}
+  .nf-list button{display:grid;grid-template-columns:minmax(0,1fr) auto;
+    grid-template-areas:"b em" "s s";align-items:center;gap:2px 10px;padding:10px 14px}
+  .nf-list button b{grid-area:b;font-size:1.6rem}
+  .nf-list button em{grid-area:em;margin:0;font-size:1.4rem}
+  .nf-list button span{grid-area:s;font-size:1.35rem;color:var(--ink3);line-height:1.5}
+}
+@media (max-width:560px){
+  /* 사고유형 넷 — 같은 폭 네 칸. 낱말 길이대로 두면 320px 에서 '기타' 만
+     아랫줄로 떨어졌습니다. */
+  #types{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+  #types button{padding:0;min-width:0}
+}
+@media (max-width:400px){
+  /* 걸음 표시 — 번호 칸을 좁혀 지금 걸음의 이름이 잘리지 않게(320px 에서
+     '사…' 로 잘렸습니다). */
+  .stepbar button{padding:0 .3rem;gap:.6rem}
+  .stepbar button i{width:2.2rem;height:2.2rem}
+  .stepbar .on button{padding:0 .6rem}
+}
+
+/* ── ②③ 결과 — 고른 줄의 링크·복사 단추, ③ 세부사항 창 아래 단추 ─────
+   폭이 제각각이라 줄 끝이 들쭉날쭉했고, ③ 창에서는 링크(얇음)와 단추(두꺼움)가
+   한 줄에 섞여 높이가 달랐습니다. 줄마다 같은 폭 칸으로 나눠 **양 끝을 맞춥니다**. */
+@media (max-width:560px){
+  .ms-it .l4{display:grid;gap:6px}
+  .ms-it .l4 .shmap-ext,.rkd-ext .shmap-ext{display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .ms-it .l4 .ms-cp{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:6px}
+  .shmap-ext a{justify-content:center;min-height:40px;border-radius:var(--r-s)}
+  .ms-it .l4 .ms-cp button,.rkd > footer button{min-height:40px;padding:0 6px;
+    font-size:1.4rem;white-space:nowrap}
+  .rkd > footer{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto;gap:6px}
+  .rkd > footer .rkd-ext{grid-column:1/-1;display:block}
+  .rkd > footer .rkd-close{margin:0;padding:0 14px}
+}
+@media (max-width:560px){
+  /* 검색칸 위 이름표 — 화면에서만 비켜 둡니다. 옆 줄의 '사고지점' 은 왼쪽에
+     서는데 이것만 위에 서서 두 줄의 시작이 어긋났습니다. 칸 안의 짧은
+     안내문(theme.js 의 shortPh)이 같은 말을 하고, 화면낭독기는 그대로 읽습니다. */
+  .mb-addr .mb-lt{position:absolute;width:1px;height:1px;margin:-1px;padding:0;
+    overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+}
+
 </style>
 <!-- 밝음·고대비 화면 — 그려지기 전에 정해야 하므로 head 에서 부릅니다 -->
 <script>
@@ -3276,6 +3480,7 @@ function draw() {
 }
 
 function build() {
+  shortPh();
   /* 도구마다 머리띠 오른쪽에 단추 줄(.act)이 있습니다. 없으면(진입 화면 등)
      둘 자리를 못 찾은 것이므로 아무 것도 만들지 않습니다 — 화면 아무 데나
      떠 있는 단추를 만들면 인쇄·좁은 화면에서 걸립니다. */
@@ -3288,6 +3493,81 @@ function build() {
   btn.onclick = function () { apply(mode === HC ? LIGHT : HC); };
   slot.insertBefore(btn, slot.firstChild);
   draw();
+  more(slot);
+}
+
+/* ── 좁은 화면의 짧은 안내문(placeholder) ─────────────────────
+   검색칸 안내문 "예) 강릉시 옥계면, 개령서부초등학교" 가 휴대전화에서는
+   칸 끝에서 **글자 중간이 잘려** 보였습니다. 칸 위 이름표도 화면에서 비켜
+   두었으므로(shell.css) 그 자리에서는 안내문이 곧 이름입니다 — data-ph-s 의
+   짧은 말로 바꿔 끼웁니다. 화면을 돌려 넓어지면 원래 안내문으로 돌아옵니다. */
+function shortPh() {
+  var els = document.querySelectorAll("[data-ph-s]");
+  if (!els.length || !window.matchMedia) return;
+  var mq = window.matchMedia("(max-width:560px)");
+  function set() {
+    for (var i = 0; i < els.length; i++) {
+      var e = els[i];
+      if (!e.hasAttribute("data-ph-l")) e.setAttribute("data-ph-l", e.getAttribute("placeholder") || "");
+      e.setAttribute("placeholder", e.getAttribute(mq.matches ? "data-ph-s" : "data-ph-l"));
+    }
+  }
+  set();
+  if (mq.addEventListener) mq.addEventListener("change", set);
+  else if (mq.addListener) mq.addListener(set);
+}
+
+/* ── 휴대전화에서 머리띠를 한 줄로 — '메뉴' 단추 ───────────────
+   도구 화면 머리띠는 제목 + 단추 넷(고대비·자료 출처·인쇄·초기화)이라
+   휴대전화에서는 **두 줄 110px** 을 먹었습니다. 지도·문안이 그만큼 밀려
+   내려가고, 첫 화면이 단추로 시작했습니다(2026-10-27 만족도 조사 뒤
+   사용자 지시 — "모바일 버전을 최대한 깔끔하게").
+   그래서 고대비 단추만 밖에 두고 나머지를 '메뉴' 하나에 접습니다.
+   · **넓은 화면에서는 아무것도 바뀌지 않습니다** — 접는 것은 CSS 가
+     560px 아래에서만 합니다. 이 함수는 단추를 한 상자에 담기만 합니다.
+   · 단추의 id·동작은 그대로입니다(각 app.js 가 id 로 찾습니다).
+   · 이 파일에 두는 까닭 — 세 도구가 모두 head 에서 부르는 공용 파일이 이것
+     하나라, 파일을 새로 늘리지 않고 망분리용 단일 파일에도 그대로 들어갑니다.
+   · 접을 것이 하나뿐이면(진입 화면의 누리집 링크) 아무것도 하지 않습니다. */
+function more(slot) {
+  var kids = [], i, c = slot.children;
+  for (i = 0; i < c.length; i++) if (c[i] !== btn) kids.push(c[i]);
+  if (kids.length < 2) return;
+  var box = document.createElement("div");
+  box.className = "act-more";
+  box.id = "actMore";
+  for (i = 0; i < kids.length; i++) box.appendChild(kids[i]);
+  var t = document.createElement("button");
+  t.type = "button";
+  t.className = "morebtn noprint";
+  t.setAttribute("aria-expanded", "false");
+  t.setAttribute("aria-controls", "actMore");
+  t.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+    + '<circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/>'
+    + '<circle cx="19" cy="12" r="2"/></svg><span>메뉴</span>';
+  slot.appendChild(t);
+  slot.appendChild(box);
+  function set(open) {
+    slot.className = slot.className.replace(/\s*\bopen\b/g, "") + (open ? " open" : "");
+    t.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  t.onclick = function () { set(t.getAttribute("aria-expanded") !== "true"); };
+  /* 메뉴 밖을 누르거나 메뉴 안 단추를 누르면 닫습니다 — 열어 둔 채로 두면
+     아래 지도·입력칸을 덮습니다. */
+  document.addEventListener("click", function (e) {
+    var n = e.target, inSlot = false, onBtn = false;
+    for (; n && n !== document; n = n.parentNode) {
+      if (n === slot) { inSlot = true; break; }
+      if (n.tagName === "BUTTON" && n !== t) onBtn = true;
+    }
+    if (!inSlot || (onBtn && box.contains(e.target))) set(false);
+  });
+  document.addEventListener("keydown", function (e) {
+    if ((e.key === "Escape" || e.keyCode === 27) && t.getAttribute("aria-expanded") === "true") {
+      set(false);
+      t.focus();
+    }
+  });
 }
 
 if (document.readyState === "loading")
@@ -3308,7 +3588,7 @@ window.addEventListener("storage", function (e) {
 
 <div class="top">
   <div class="wrap">
-    <h1>화학사고 주민대피 문자생성기</h1>
+    <h1><span class="h-pre">화학사고 </span>주민대피 문자생성기</h1>
     <div class="act noprint">
       <button id="btnCases" type="button" hidden>실제 발송 사례</button>
       <button id="btnTxt" disabled>기록 저장</button>
@@ -6735,14 +7015,36 @@ function renderStages() {
         + '<span class="stp-ic" aria-hidden="true">' + (STAGE_ICONS[s.id] || "") + "</span>"
         + "<b>" + esc(s.이름) + "</b>"
         + (s.짧은설명 ? '<span class="stp-d">' + esc(s.짧은설명) + "</span>" : "")
+        + '<span class="stp-chg" aria-hidden="true">바꾸기</span>'
         + "</button>";
     }).join("");
     $$("#stages button").forEach(function (b) {
-      b.onclick = function () { state.stage = b.dataset.s; save(); renderAll(); };
+      b.onclick = function () {
+        /* 휴대전화에서는 고른 뒤 고른 것 한 줄만 남깁니다(shell.css '휴대전화
+           다듬기'). 세 칸을 나란히 두면 '주민소산(대피명령) 알림' 이 두 줄로
+           접히는데, 기관이 쓰는 분류 이름이라 줄일 수 없습니다. 그 한 줄을
+           다시 누르면 셋이 펼쳐집니다 — 넓은 화면에서는 .open 이 아무 일도
+           하지 않으므로 같은 것을 다시 눌러도 예전과 같습니다. */
+        if (state.stage === b.dataset.s) { box.classList.toggle("open"); stageExpanded(); return; }
+        box.classList.remove("open");
+        state.stage = b.dataset.s; save(); renderAll();
+      };
     });
   }
   $$("#stages button").forEach(function (b) {
     b.setAttribute("aria-pressed", String(state.stage === b.dataset.s));
+  });
+  stageExpanded();
+}
+/* 접혀 있는지를 화면낭독기에도 알립니다 — 고른 것 한 줄만 보이는 휴대전화
+   화면에서만 뜻이 있으므로 그때만 답니다. */
+function stageExpanded() {
+  var box = $("#stages"), narrow = window.matchMedia
+    && window.matchMedia("(max-width:560px)").matches;
+  $$("#stages button").forEach(function (b) {
+    if (narrow && b.getAttribute("aria-pressed") === "true")
+      b.setAttribute("aria-expanded", String(box.classList.contains("open")));
+    else b.removeAttribute("aria-expanded");
   });
 }
 
@@ -6941,7 +7243,8 @@ function renderStepNav() {
   var next = i + 1 < list.length ? list[i + 1] : null;
   nav.innerHTML =
     (prev ? '<button type="button" class="sn-prev" data-go="' + prev.id + '">'
-       + "이전 — " + esc(prev.제목) + "</button>" : '<span class="sn-sp"></span>')
+       + '← 이전<span class="sn-sub"> — ' + esc(prev.제목) + "</span></button>"
+       : '<span class="sn-sp"></span>')
     + (next ? '<button type="button" class="p sn-next" data-go="' + next.id + '">'
        + (next.id === "out" ? "문안 만들기" : "다음 — " + esc(next.제목)) + "</button>"
        : '<button type="button" class="sn-first" data-go="' + list[0].id + '">'

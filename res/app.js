@@ -71,10 +71,10 @@ var R2 = {
 };
 var BRANCHES = [
   { id: "biz", 이름: "업체 섭외", ic: "phone",
-    할일: "폐기물·폐수를 맡길 곳, 중장비·독성가스 회수를 부를 곳",
+    할일: "폐기물·폐수 처리, 중장비·가스 회수",
     설명: "허가 갈래로 고릅니다 — 수집·운반 · 중간처분 · 종합재활용 · 최종처분(매립) · 중장비 · 독성가스 · 폐수 수탁처리" },
   { id: "item", 이름: "방제물품 찾기", ic: "chem",
-    할일: "흡착포·보호복·굴착기처럼 지금 필요한 물건",
+    할일: "흡착포·보호복·굴착기 같은 물건",
     설명: "물품 이름으로 고릅니다 — 고른 물품을 가진 곳만 나옵니다" }
 ];
 function branch() { return st.br === "item" ? "item" : "biz"; }
@@ -436,9 +436,21 @@ function fitTarget() {
     add(wx(st.acc.lon) - r, wy(st.acc.lat) - r);
     add(wx(st.acc.lon) + r, wy(st.acc.lat) + r);
   }
-  if (!any) return { cx: wx(127.8), cy: wy(36.3), w: 0.09 };   // 전국
+  /* 지도 칸의 가로:세로. 예전에는 늘 1.35(가로로 넓은 PC 지도)로 잡아,
+     세로로 긴 휴대전화에서는 시야가 필요보다 넓어져 **우리나라가 칸 한쪽에
+     작게** 찍혔습니다(2026-10-27 사용자 — "처음 페이지에 진입하면 지도가
+     화면보다 작게 나와서 이상해 보인다"). 세로로 긴 칸에서만 실제 비율을
+     씁니다 — 넓은 화면은 예전과 같습니다(min). */
+  var sz = svgSize(), ratio = sz.w / Math.max(1, sz.h), asp = Math.min(1.35, ratio);
+  if (!any) {
+    /* 전국 — 남한(제주·울릉 포함)이 칸을 채우도록 맞춥니다. 예전에는 폭을
+       경도 32° 로 못 박아 PC 에서도 한반도가 지도의 1/5 남짓이었습니다. */
+    var x0 = wx(124.6), x1 = wx(131.0), y0 = wy(38.7), y1 = wy(33.1);
+    return { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2,
+             w: Math.max((x1 - x0) * 1.08, (y1 - y0) * 1.08 * ratio) };
+  }
   var w = (M - m) * 1.22, h = (N - n) * 1.22;
-  return { cx: (m + M) / 2, cy: (n + N) / 2, w: Math.max(w, h * 1.35, 0.00035) };
+  return { cx: (m + M) / 2, cy: (n + N) / 2, w: Math.max(w, h * asp, 0.00035) };
 }
 
 /* 시야를 다시 잡는다. 처음 여는 화면(아직 볼 시야가 없음)은 그 자리서 바로
@@ -605,8 +617,13 @@ function draw() {
   var cap = vb.sw < 560 ? 10 : (vb.sw < 900 ? 18 : 26);
   st.show.forEach(function (s, i) {
     if (i !== st.sel && i !== st.hover && st.show.length > cap) return;
-    g.push('<text class="mkl' + (i === st.sel ? " on" : "") + '" x="' + pX(s.lon).toFixed(1)
-      + '" y="' + (pY(s.lat) - R * 2).toFixed(1) + '" font-size="12">'
+    /* 사고지점 바로 곁의 이름은 **마커 아래**에 씁니다 — 위에 쓰면 십자 위의
+       '사고지점' 글자와 한 자리에 겹쳐 둘 다 읽을 수 없었습니다(사고지점에서
+       6m 떨어진 시청이 그랬습니다). 이름 자리만 옮기고 마커는 그대로입니다. */
+    var sx = pX(s.lon), sy = pY(s.lat);
+    var 곁 = acc && Math.abs(sx - ax) < 70 && Math.abs(sy - ay) < 34;
+    g.push('<text class="mkl' + (i === st.sel ? " on" : "") + '" x="' + sx.toFixed(1)
+      + '" y="' + (곁 ? sy + R * 2 + 18 : sy - R * 2).toFixed(1) + '" font-size="12">'
       + esc(s.name) + (s.d != null ? " " + fmtDist(s.d) : "") + "</text>");
   });
   if (st.show.length > cap)
@@ -1132,10 +1149,10 @@ function renderStart() {
     var all = isItem() ? !anyItm() : !rzChosen();
     lead.innerHTML = all
       ? (isItem() ? "방제물품을 가진 " : "업체 ")
-        + rzHitCount() + "곳 전부를 <b>사고지점에서 가까운 순</b>으로 찾습니다."
+        + rzHitCount() + "곳 전부 — <b>가까운 순</b>으로 찾습니다."
       : "<b>" + picked.slice(0, 6).map(esc).join(" · ")
         + (picked.length > 6 ? " 외 " + (picked.length - 6) + "가지" : "")
-        + "</b> — " + rzHitCount() + "곳을 <b>사고지점에서 가까운 순</b>으로 찾습니다.";
+        + "</b> " + rzHitCount() + "곳 — <b>가까운 순</b>으로 찾습니다.";
   }
 }
 
@@ -1154,7 +1171,8 @@ function renderRzBranch() {
       + '<span class="rz-br-t">' + esc(b.이름) + "</span>"
       + '<span class="rz-br-d">' + esc(b.할일) + "</span>"
       + '<span class="rz-br-s">' + esc(b.설명) + "</span>"
-      + '<span class="rz-br-n">' + n.toLocaleString() + "줄</span>"
+      /* 단위는 '건' — 예전 '줄' 은 표의 행이라는 우리끼리 쓰던 말이었습니다 */
+      + '<span class="rz-br-n">' + n.toLocaleString() + "건</span>"
       + "</button>";
   }).join("");
   $$("#rzBr .rz-br").forEach(function (b) {
@@ -1178,9 +1196,10 @@ function renderRzPick() {
   if (!box) return;
   if (h) h.textContent = isItem() ? "어떤 물품이 필요하세요?" : "무엇을 맡기려 하십니까?";
   if (lead) {
+    /* 휴대전화에서 한 줄에 들어가게 짧게(2026-10-27 휴대전화 다듬기) */
     lead.innerHTML = isItem()
-      ? "고른 물품을 <b>가진 곳만</b> 나옵니다. 여러 개 골라도 됩니다."
-      : "맡길 갈래를 고르면 <b>그 허가를 가진 업체만</b> 나옵니다. 여러 개 골라도 됩니다.";
+      ? "여러 개 고를 수 있고, <b>가진 곳만</b> 나옵니다."
+      : "여러 개 고를 수 있고, <b>허가 업체만</b> 나옵니다.";
   }
   box.className = isItem() ? "rz-items" : "rz-needs";
   /* 물품 걸음에서만 상자를 넓힙니다 — 칩이 묶음마다 한 줄에 들어가야

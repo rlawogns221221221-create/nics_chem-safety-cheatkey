@@ -646,14 +646,36 @@ function renderStages() {
         + '<span class="stp-ic" aria-hidden="true">' + (STAGE_ICONS[s.id] || "") + "</span>"
         + "<b>" + esc(s.이름) + "</b>"
         + (s.짧은설명 ? '<span class="stp-d">' + esc(s.짧은설명) + "</span>" : "")
+        + '<span class="stp-chg" aria-hidden="true">바꾸기</span>'
         + "</button>";
     }).join("");
     $$("#stages button").forEach(function (b) {
-      b.onclick = function () { state.stage = b.dataset.s; save(); renderAll(); };
+      b.onclick = function () {
+        /* 휴대전화에서는 고른 뒤 고른 것 한 줄만 남깁니다(shell.css '휴대전화
+           다듬기'). 세 칸을 나란히 두면 '주민소산(대피명령) 알림' 이 두 줄로
+           접히는데, 기관이 쓰는 분류 이름이라 줄일 수 없습니다. 그 한 줄을
+           다시 누르면 셋이 펼쳐집니다 — 넓은 화면에서는 .open 이 아무 일도
+           하지 않으므로 같은 것을 다시 눌러도 예전과 같습니다. */
+        if (state.stage === b.dataset.s) { box.classList.toggle("open"); stageExpanded(); return; }
+        box.classList.remove("open");
+        state.stage = b.dataset.s; save(); renderAll();
+      };
     });
   }
   $$("#stages button").forEach(function (b) {
     b.setAttribute("aria-pressed", String(state.stage === b.dataset.s));
+  });
+  stageExpanded();
+}
+/* 접혀 있는지를 화면낭독기에도 알립니다 — 고른 것 한 줄만 보이는 휴대전화
+   화면에서만 뜻이 있으므로 그때만 답니다. */
+function stageExpanded() {
+  var box = $("#stages"), narrow = window.matchMedia
+    && window.matchMedia("(max-width:560px)").matches;
+  $$("#stages button").forEach(function (b) {
+    if (narrow && b.getAttribute("aria-pressed") === "true")
+      b.setAttribute("aria-expanded", String(box.classList.contains("open")));
+    else b.removeAttribute("aria-expanded");
   });
 }
 
@@ -852,7 +874,8 @@ function renderStepNav() {
   var next = i + 1 < list.length ? list[i + 1] : null;
   nav.innerHTML =
     (prev ? '<button type="button" class="sn-prev" data-go="' + prev.id + '">'
-       + "이전 — " + esc(prev.제목) + "</button>" : '<span class="sn-sp"></span>')
+       + '← 이전<span class="sn-sub"> — ' + esc(prev.제목) + "</span></button>"
+       : '<span class="sn-sp"></span>')
     + (next ? '<button type="button" class="p sn-next" data-go="' + next.id + '">'
        + (next.id === "out" ? "문안 만들기" : "다음 — " + esc(next.제목)) + "</button>"
        : '<button type="button" class="sn-first" data-go="' + list[0].id + '">'

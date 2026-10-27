@@ -68,6 +68,7 @@ function draw() {
 }
 
 function build() {
+  shortPh();
   /* 도구마다 머리띠 오른쪽에 단추 줄(.act)이 있습니다. 없으면(진입 화면 등)
      둘 자리를 못 찾은 것이므로 아무 것도 만들지 않습니다 — 화면 아무 데나
      떠 있는 단추를 만들면 인쇄·좁은 화면에서 걸립니다. */
@@ -80,6 +81,81 @@ function build() {
   btn.onclick = function () { apply(mode === HC ? LIGHT : HC); };
   slot.insertBefore(btn, slot.firstChild);
   draw();
+  more(slot);
+}
+
+/* ── 좁은 화면의 짧은 안내문(placeholder) ─────────────────────
+   검색칸 안내문 "예) 강릉시 옥계면, 개령서부초등학교" 가 휴대전화에서는
+   칸 끝에서 **글자 중간이 잘려** 보였습니다. 칸 위 이름표도 화면에서 비켜
+   두었으므로(shell.css) 그 자리에서는 안내문이 곧 이름입니다 — data-ph-s 의
+   짧은 말로 바꿔 끼웁니다. 화면을 돌려 넓어지면 원래 안내문으로 돌아옵니다. */
+function shortPh() {
+  var els = document.querySelectorAll("[data-ph-s]");
+  if (!els.length || !window.matchMedia) return;
+  var mq = window.matchMedia("(max-width:560px)");
+  function set() {
+    for (var i = 0; i < els.length; i++) {
+      var e = els[i];
+      if (!e.hasAttribute("data-ph-l")) e.setAttribute("data-ph-l", e.getAttribute("placeholder") || "");
+      e.setAttribute("placeholder", e.getAttribute(mq.matches ? "data-ph-s" : "data-ph-l"));
+    }
+  }
+  set();
+  if (mq.addEventListener) mq.addEventListener("change", set);
+  else if (mq.addListener) mq.addListener(set);
+}
+
+/* ── 휴대전화에서 머리띠를 한 줄로 — '메뉴' 단추 ───────────────
+   도구 화면 머리띠는 제목 + 단추 넷(고대비·자료 출처·인쇄·초기화)이라
+   휴대전화에서는 **두 줄 110px** 을 먹었습니다. 지도·문안이 그만큼 밀려
+   내려가고, 첫 화면이 단추로 시작했습니다(2026-10-27 만족도 조사 뒤
+   사용자 지시 — "모바일 버전을 최대한 깔끔하게").
+   그래서 고대비 단추만 밖에 두고 나머지를 '메뉴' 하나에 접습니다.
+   · **넓은 화면에서는 아무것도 바뀌지 않습니다** — 접는 것은 CSS 가
+     560px 아래에서만 합니다. 이 함수는 단추를 한 상자에 담기만 합니다.
+   · 단추의 id·동작은 그대로입니다(각 app.js 가 id 로 찾습니다).
+   · 이 파일에 두는 까닭 — 세 도구가 모두 head 에서 부르는 공용 파일이 이것
+     하나라, 파일을 새로 늘리지 않고 망분리용 단일 파일에도 그대로 들어갑니다.
+   · 접을 것이 하나뿐이면(진입 화면의 누리집 링크) 아무것도 하지 않습니다. */
+function more(slot) {
+  var kids = [], i, c = slot.children;
+  for (i = 0; i < c.length; i++) if (c[i] !== btn) kids.push(c[i]);
+  if (kids.length < 2) return;
+  var box = document.createElement("div");
+  box.className = "act-more";
+  box.id = "actMore";
+  for (i = 0; i < kids.length; i++) box.appendChild(kids[i]);
+  var t = document.createElement("button");
+  t.type = "button";
+  t.className = "morebtn noprint";
+  t.setAttribute("aria-expanded", "false");
+  t.setAttribute("aria-controls", "actMore");
+  t.innerHTML = '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">'
+    + '<circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/>'
+    + '<circle cx="19" cy="12" r="2"/></svg><span>메뉴</span>';
+  slot.appendChild(t);
+  slot.appendChild(box);
+  function set(open) {
+    slot.className = slot.className.replace(/\s*\bopen\b/g, "") + (open ? " open" : "");
+    t.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+  t.onclick = function () { set(t.getAttribute("aria-expanded") !== "true"); };
+  /* 메뉴 밖을 누르거나 메뉴 안 단추를 누르면 닫습니다 — 열어 둔 채로 두면
+     아래 지도·입력칸을 덮습니다. */
+  document.addEventListener("click", function (e) {
+    var n = e.target, inSlot = false, onBtn = false;
+    for (; n && n !== document; n = n.parentNode) {
+      if (n === slot) { inSlot = true; break; }
+      if (n.tagName === "BUTTON" && n !== t) onBtn = true;
+    }
+    if (!inSlot || (onBtn && box.contains(e.target))) set(false);
+  });
+  document.addEventListener("keydown", function (e) {
+    if ((e.key === "Escape" || e.keyCode === 27) && t.getAttribute("aria-expanded") === "true") {
+      set(false);
+      t.focus();
+    }
+  });
 }
 
 if (document.readyState === "loading")

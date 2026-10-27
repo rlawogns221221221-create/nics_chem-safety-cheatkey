@@ -38,8 +38,8 @@ chk(brs.every(b => b.d.length > 8), '카드마다 무슨 일을 하는 자리인
 chk(brs.every(b => b.ic > 0), '카드마다 그림이 그려진다');
 /* 건수는 지어내지 않고 자료에서 센 값이어야 합니다 */
 const real = await P.evaluate(() => ({ biz: RES2_BIZ.length, item: RES2_ITEM.length }));
-chk(brs[0].n === real.biz.toLocaleString() + '줄'
-    && brs[1].n === real.item.toLocaleString() + '줄',
+chk(brs[0].n === real.biz.toLocaleString() + '건'
+    && brs[1].n === real.item.toLocaleString() + '건',
   `카드의 건수가 자료와 같다 (${brs.map(b => b.n).join(' / ')})`);
 
 /* ── 같은 곳이 두 자리로 실려 있지 않은가 ──────────────────────
