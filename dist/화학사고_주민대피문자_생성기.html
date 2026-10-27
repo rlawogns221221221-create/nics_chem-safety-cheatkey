@@ -7330,7 +7330,7 @@ function renderStepNav() {
     + (next ? '<button type="button" class="p sn-next" data-go="' + next.id + '">'
        + (next.id === "out" ? "문안 만들기" : "다음 — " + esc(next.제목)) + "</button>"
        : '<button type="button" class="sn-first" data-go="' + list[0].id + '">'
-       + "처음 걸음으로</button>");
+       + "처음으로</button>");
   $$("#stepNav button").forEach(function (b) {
     b.onclick = function () { gotoStep(b.dataset.go); };
   });

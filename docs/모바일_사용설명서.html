@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>화학사고 초동대응 지원 서비스 — 휴대전화 사용법</title>
+<!--
+  휴대전화 사용설명서 원본 — PDF 를 고치지 말고 이 파일을 고친 뒤
+  `node build/make_mobile_guide.mjs` 로 다시 구우세요(사진도 다시 찍습니다).
+
+  ⚠ 지키는 것 (2026-10-27 사용자)
+    · 사용법만 적습니다. "도구 ○개" 같은 소개 · "도구는 판단하지 않습니다" 같은
+      원칙 문구는 넣지 않습니다.
+    · 글은 사진마다 한 줄. 사진이 설명합니다.
+    · 「걸음」이라는 낱말을 쓰지 않습니다 — 사진 속 글자까지 빌드가 검사합니다.
+    · 차례는 진입 화면 카드와 같습니다(01 방제 → 02 대피장소 → 03 문자).
+-->
+<style>
+@font-face{font-family:"Pretendard GOV";font-weight:400;
+  src:url("../assets/fonts/PretendardGOV-Regular.subset.woff2") format("woff2")}
+@font-face{font-family:"Pretendard GOV";font-weight:700;
+  src:url("../assets/fonts/PretendardGOV-Bold.subset.woff2") format("woff2")}
+@page{size:A4;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0;background:#fff}
+body{font-family:"Pretendard GOV","Noto Sans CJK KR",sans-serif;color:#1d1d1d;
+  word-break:keep-all;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+.page{width:210mm;height:297mm;padding:13mm 12mm 10mm;overflow:hidden;
+  page-break-after:always;break-after:page;position:relative}
+.page:last-child{page-break-after:auto;break-after:auto}
+
+/* 쪽 머리 — 번호와 이름만 */
+.ph{display:flex;align-items:center;gap:4mm;margin:0 0 7mm;padding-bottom:4mm;
+  border-bottom:.6mm solid #256ef4}
+.ph .no{font-size:7mm;font-weight:700;color:#256ef4;letter-spacing:-.02em}
+.ph h2{margin:0;font-size:7mm;font-weight:700;letter-spacing:-.03em}
+
+/* 사진 여섯 장 — 세 칸 두 줄 */
+.grid{display:grid;grid-template-columns:repeat(3,1fr);column-gap:7mm;row-gap:8mm}
+figure{margin:0}
+.shot{display:block;width:100%;border:1.6mm solid #1d1d1d;border-radius:5mm;
+  background:#1d1d1d;overflow:hidden}
+.shot img{display:block;width:100%;border-radius:3.4mm}
+figcaption{display:flex;align-items:flex-start;gap:2mm;margin-top:3mm;
+  font-size:3.9mm;font-weight:700;line-height:1.35;letter-spacing:-.02em}
+figcaption i{flex:none;display:grid;place-items:center;width:5.6mm;height:5.6mm;
+  border-radius:50%;background:#ff3b30;color:#fff;font-style:normal;font-size:3.3mm;
+  margin-top:-.2mm}
+
+/* 표지 */
+.cover .brand{font-size:4.6mm;font-weight:700;color:#256ef4;margin:6mm 0 2mm}
+.cover h1{margin:0 0 12mm;font-size:12mm;font-weight:700;letter-spacing:-.04em;line-height:1.2}
+.open{display:grid;grid-template-columns:1fr 1fr;column-gap:10mm;align-items:start}
+.qr{border:.5mm solid #d6dbe1;border-radius:5mm;padding:8mm 6mm 7mm;text-align:center}
+.qr img{display:block;width:62mm;height:62mm;margin:0 auto}
+.qr .url{margin:4mm 0 0;font-size:4mm;color:#464c53}
+.open figcaption{justify-content:center;font-size:4.6mm;margin-top:5mm}
+.open figcaption i{width:6.4mm;height:6.4mm;font-size:3.8mm}
+.home{margin-top:8mm;border-radius:4mm;background:#f3f6fb;padding:5mm 6mm;
+  font-size:3.8mm;line-height:1.7}
+.home b{color:#256ef4}
+.toc{list-style:none;margin:10mm 0 0;padding:0;border-top:.3mm solid #d6dbe1}
+.toc li{display:flex;align-items:center;gap:4mm;padding:4mm 1mm;
+  border-bottom:.3mm solid #d6dbe1;font-size:4.8mm;font-weight:700}
+.toc li b{color:#256ef4;width:9mm}
+.toc li span{margin-left:auto;color:#8a949e;font-weight:400;font-size:4mm}
+</style>
+</head>
+<body>
+
+<!-- ── 1쪽 · 여는 법 ───────────────────────────────────────── -->
+<section class="page cover">
+  <p class="brand">화학사고 초동대응 지원 서비스</p>
+  <h1>휴대전화 사용법</h1>
+  <div class="open">
+    <figure>
+      <div class="qr">
+        <img src="QR/QR_접속.svg" alt="접속 QR 코드">
+        <p class="url">chem-safety-kr.pages.dev</p>
+      </div>
+      <figcaption><i>1</i>카메라로 QR을 비추세요</figcaption>
+      <div class="home">
+        <b>홈 화면에 추가</b>하면 앱처럼 바로 열립니다<br>
+        아이폰 &nbsp;사파리 공유 단추(□↑) → 홈 화면에 추가<br>
+        안드로이드 &nbsp;크롬 메뉴(⋮) → 홈 화면에 추가
+      </div>
+    </figure>
+    <figure>
+      <div class="shot"><img src="모바일설명서/00-첫화면.png" alt=""></div>
+      <figcaption><i>2</i>쓸 것을 누르세요</figcaption>
+    </figure>
+  </div>
+  <ol class="toc">
+    <li><b>01</b>방제 물품·장비 찾기<span>2쪽</span></li>
+    <li><b>02</b>주민 대피장소 찾기<span>3쪽</span></li>
+    <li><b>03</b>주민대피 문자생성기<span>4쪽</span></li>
+  </ol>
+</section>
+
+<!-- ── 2쪽 · 01 방제 물품·장비 찾기 ───────────────────────────── -->
+<section class="page">
+  <header class="ph"><span class="no">01</span><h2>방제 물품·장비 찾기</h2></header>
+  <div class="grid">
+    <figure><div class="shot"><img src="모바일설명서/11-무엇을.png" alt=""></div>
+      <figcaption><i>1</i>찾을 것을 고르세요</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/12-물품고르기.png" alt=""></div>
+      <figcaption><i>2</i>필요한 물품을 누르고 다음</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/13-사고지점.png" alt=""></div>
+      <figcaption><i>3</i>사고 장소를 넣으세요</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/14-지도.png" alt=""></div>
+      <figcaption><i>4</i>아래로 내리면 목록이 나옵니다</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/15-목록.png" alt=""></div>
+      <figcaption><i>5</i>한 곳을 누르세요</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/16-세부창.png" alt=""></div>
+      <figcaption><i>6</i>번호를 누르면 바로 전화됩니다</figcaption></figure>
+  </div>
+</section>
+
+<!-- ── 3쪽 · 02 주민 대피장소 찾기 ──────────────────────────────── -->
+<section class="page">
+  <header class="ph"><span class="no">02</span><h2>주민 대피장소 찾기</h2></header>
+  <div class="grid">
+    <figure><div class="shot"><img src="모바일설명서/21-주소넣기.png" alt=""></div>
+      <figcaption><i>1</i>주소나 장소 이름을 넣으세요</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/22-지도누르기.png" alt=""></div>
+      <figcaption><i>2</i>지도를 한 번 눌러 정하세요</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/23-결과.png" alt=""></div>
+      <figcaption><i>3</i>가까운 대피장소가 나옵니다</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/24-층고르기.png" alt=""></div>
+      <figcaption><i>4</i>볼 대피장소를 켜고 끄세요</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/25-길찾기.png" alt=""></div>
+      <figcaption><i>5</i>누르면 길찾기로 이어집니다</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/26-문자로.png" alt=""></div>
+      <figcaption><i>6</i>그대로 문자 만들기로 넘어갑니다</figcaption></figure>
+  </div>
+</section>
+
+<!-- ── 4쪽 · 03 주민대피 문자생성기 ─────────────────────────────── -->
+<section class="page">
+  <header class="ph"><span class="no">03</span><h2>주민대피 문자생성기</h2></header>
+  <div class="grid">
+    <figure><div class="shot"><img src="모바일설명서/31-알림고르기.png" alt=""></div>
+      <figcaption><i>1</i>보낼 알림을 고르세요</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/32-칸채우기.png" alt=""></div>
+      <figcaption><i>2</i>칸을 채우고 다음</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/33-물질.png" alt=""></div>
+      <figcaption><i>3</i>물질은 앞 글자만 쳐도 나옵니다</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/34-빈칸.png" alt=""></div>
+      <figcaption><i>4</i>빈칸은 눌러서 바로 채우세요</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/35-대피장소.png" alt=""></div>
+      <figcaption><i>5</i>대피장소는 지도에서 고르세요</figcaption></figure>
+    <figure><div class="shot"><img src="모바일설명서/36-복사.png" alt=""></div>
+      <figcaption><i>6</i>문안을 복사해 쓰세요</figcaption></figure>
+  </div>
+</section>
+
+</body>
+</html>
