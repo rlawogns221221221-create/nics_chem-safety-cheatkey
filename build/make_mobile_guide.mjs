@@ -14,7 +14,7 @@
    하나와 **한 줄 설명**만 둡니다. 아래 검사가 그 약속을 기계로 지킵니다.
      · 원본 글과 **사진 속 글자**에 「걸음」이 있으면 멈춥니다.
      · 「도구는 …」 「판단」 「○개 도구 / 세 가지」 같은 말이 있으면 멈춥니다.
-     · 쪽수가 넉 장이 아니면 멈춥니다.
+     · 쪽수가 다섯 장(QR 첫 장 + 사용법 넉 장)이 아니면 멈춥니다.
 
    ── 배경지도 ───────────────────────────────────────────────────
    개발 자리는 타일 서버로 못 나가 지도에 행정경계선만 찍힙니다(CLAUDE.md 6절).
@@ -290,8 +290,8 @@ if (!process.argv.includes('--pdf')) {
   const 본문 = 원본.replace(/<style[\s\S]*?<\/style>/g, '').replace(/<!--[\s\S]*?-->/g, '')
     .replace(/<[^>]+>/g, ' ');
   금지말.forEach((re) => { const m = 본문.match(re); if (m) 문제.push(`설명서 글에 「${m[0]}」`); });
-  [...원본.matchAll(/src="모바일설명서\/([^"]+)"/g)].forEach((m) => {
-    if (!existsSync(`${IMG}/${m[1]}`)) 문제.push(`사진이 없음: ${m[1]}`);
+  [...원본.matchAll(/src="((?:모바일설명서|QR)\/[^"]+)"/g)].forEach((m) => {
+    if (!existsSync(`${RPATH}/docs/${m[1]}`)) 문제.push(`그림이 없음: ${m[1]}`);
   });
   const ctx = await browser.newContext({ viewport: { width: 794, height: 1123 } });
   const p = await ctx.newPage();
@@ -305,7 +305,7 @@ if (!process.argv.includes('--pdf')) {
   넘침.forEach(([i, mm]) => 문제.push(`${i}쪽이 ${mm}mm — A4(297mm)를 넘습니다`));
   const 쪽 = (readFileSync(PDF, 'latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
   console.log(`\n  docs/모바일_사용설명서.pdf  ${쪽}쪽`);
-  if (쪽 !== 4) 문제.push(`쪽수가 ${쪽} — 넉 장이어야 합니다`);
+  if (쪽 !== 5) 문제.push(`쪽수가 ${쪽} — 다섯 장(QR 첫 장 + 사용법 넉 장)이어야 합니다`);
   await ctx.close();
 }
 await browser.close();

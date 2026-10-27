@@ -1,10 +1,13 @@
 """시범운영 접속용 QR 코드를 만듭니다.
 
-    python3 build/make_qr.py                     # 기본 주소
-    python3 build/make_qr.py https://다른주소/     # 주소가 바뀌었을 때
+    python3 build/make_qr.py                                 # 기본 주소 둘
+    python3 build/make_qr.py https://다른주소/                 # 접속 주소가 바뀌었을 때
+    python3 build/make_qr.py https://다른주소/ https://새설문/   # 설문 주소까지 바뀌었을 때
 
 만드는 것 (docs/QR/)
     QR_접속.svg · QR_접속.png   — QR 만 (문서·발표자료에 붙이는 용)
+    QR_만족도조사.svg · .png    — 사용자 만족도 조사(네이버 폼 짧은 주소)
+                                  휴대전화 사용설명서 첫 장에 접속 QR 과 나란히 들어갑니다
     QR_안내.html                — 안내 한 장의 원본 (서비스 이름 · QR · 주소)
     그다음 `node build/make_qr_card.mjs` 가 안내 한 장을 PNG·PDF 로 굽습니다.
 
@@ -31,6 +34,9 @@ except ImportError:
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 OUT = ROOT / "docs" / "QR"
 주소 = sys.argv[1] if len(sys.argv) > 1 else "https://chem-safety-kr.pages.dev/"
+# 만족도 조사 — 사용자가 알려 준 주소 그대로(2026-10-27). 짧은 주소라 QR 칸이 작아
+# 멀리서도 잘 읽힙니다. 설문을 새로 만들면 이 줄(또는 둘째 인자)을 고치세요.
+설문 = sys.argv[2] if len(sys.argv) > 2 else "https://naver.me/FaeWaurT"
 서비스이름 = "화학사고 초동대응 지원 서비스"   # 7절 — 공식 이름 그대로
 
 OUT.mkdir(parents=True, exist_ok=True)
@@ -38,6 +44,10 @@ qr = segno.make(주소, error="q", boost_error=False)
 qr.save(OUT / "QR_접속.svg", scale=10, border=4, dark="#000", light="#fff",
         xmldecl=False, title=서비스이름 + " 접속")
 qr.save(OUT / "QR_접속.png", scale=30, border=4, dark="#000", light="#fff")
+qr2 = segno.make(설문, error="q", boost_error=False)
+qr2.save(OUT / "QR_만족도조사.svg", scale=10, border=4, dark="#000", light="#fff",
+         xmldecl=False, title="사용자 만족도 조사")
+qr2.save(OUT / "QR_만족도조사.png", scale=30, border=4, dark="#000", light="#fff")
 
 # 안내 한 장 — QR 은 SVG 를 그대로 박아 넣어 어느 크기로 인쇄해도 또렷합니다.
 svg = qr.svg_inline(scale=10, border=4, dark="#000", light="#fff")
@@ -76,4 +86,5 @@ body{{font-family:"Pretendard GOV",sans-serif;color:#1d1d1d;
 
 print(f"  주소 {주소}")
 print(f"  QR 버전 {qr.version} · 오류 정정 {qr.error} · {qr.symbol_size(border=4)[0]}칸")
-print(f"  → {OUT.relative_to(ROOT)}/QR_접속.svg · QR_접속.png · QR_안내.html")
+print(f"  설문 {설문} · QR 버전 {qr2.version}")
+print(f"  → {OUT.relative_to(ROOT)}/QR_접속.svg·png · QR_만족도조사.svg·png · QR_안내.html")
