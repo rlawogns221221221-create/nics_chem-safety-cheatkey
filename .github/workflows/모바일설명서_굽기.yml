@@ -40,7 +40,9 @@ jobs:
   # ⚠ 잡 id 는 영문·숫자·_·- 만 됩니다(한국어를 쓰면 워크플로가 안 돕니다).
   bake:
     name: 설명서 사진 찍고 PDF 굽기
-    runs-on: ubuntu-latest
+    # ⚠ ubuntu-latest 를 쓰지 마세요 — 2026-10 부터 26.04 를 가리키는데
+    #   Playwright 1.56.1 이 그 판을 몰라 크로미움 설치에서 멈췄습니다(첫 실행).
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
