@@ -97,6 +97,60 @@ const shown = P => P.$$eval('#shList .ms-it', e => e.length);
   await ctx.close();
 }
 
+// ── 목록이 아래에 있다는 안내 (2026-10-27) ──
+//   휴대전화에서는 목록이 지도 아래 화면 밖에 있어 사람들이 모르고 지나갑니다.
+//   사고지점을 넣으면 '아래로 내려 목록 ○곳 보기' 가 뜨고, 누르면 목록으로
+//   내려가며, 한 번 본 뒤에는 같은 결과에서 다시 뜨지 않아야 합니다.
+//   PC 에서는 목록이 처음부터 보이므로 뜨면 안 됩니다.
+{
+  const 상태 = P => P.evaluate(() => {
+    const h = document.querySelector('.list-hint');
+    const hd = document.querySelector('.mside .ms-hd').getBoundingClientRect();
+    return { on: !!h && h.classList.contains('on') && getComputedStyle(h).visibility === 'visible',
+      txt: h ? h.textContent : '', hdTop: Math.round(hd.top), vh: innerHeight,
+      n: document.querySelectorAll('#shList .ms-it').length };
+  });
+  for (const [기기, 보기] of [['휴대전화', { width: 390, height: 664, isMobile: true, hasTouch: true }],
+                            ['PC', { width: 1500, height: 900 }]]) {
+    const { width, height, ...그밖 } = 보기;
+    const ctx = await B.newContext({ viewport: { width, height }, ...그밖 });
+    const P = await ctx.newPage();
+    P.on('pageerror', e => errs.push('PAGEERROR: ' + e.message));
+    for (const 도구 of ['map', 'res']) {
+      await P.goto(ROOT + 도구 + '/index.html'); await P.waitForTimeout(800);
+      if (도구 === 'res') {                     // ③ 은 시작 세 걸음을 지나야 목록이 나옵니다
+        if (await P.$('.rz-br')) {
+          await (await P.$$('.rz-br'))[1].click(); await P.waitForTimeout(300);
+          await P.click('#rzNeeds button:not([disabled])'); await P.waitForTimeout(200);
+          await P.click('#rzNext'); await P.waitForTimeout(400);
+          chk(!(await 상태(P)).on, `${기기} ③ 시작 세 걸음에서는 안내가 없다`);
+          await P.click('#startPick'); await P.waitForTimeout(700);
+        }
+      }
+      await P.fill('#acLat', String(LAT)); await P.fill('#acLon', String(LON));
+      await P.dispatchEvent('#acLon', 'change'); await P.waitForTimeout(1200);
+      await P.evaluate(() => scrollTo(0, 0)); await P.waitForTimeout(300);
+      const s = await 상태(P);
+      const 이름 = `${기기} ${도구 === 'map' ? '②' : '③'}`;
+      if (기기 === 'PC') {
+        chk(!s.on, `${이름} 목록이 처음부터 보이면 안내를 띄우지 않는다 (목록 머리 ${s.hdTop}px)`);
+        continue;
+      }
+      chk(s.hdTop > s.vh && s.on, `${이름} 목록이 화면 밖이면 안내가 뜬다 (목록 머리 ${s.hdTop}px)`);
+      chk(s.txt.includes(s.n.toLocaleString() + '곳'), `${이름} 안내의 건수가 목록 줄 수와 같다 (${s.txt.trim()})`);
+      await P.click('.list-hint'); await P.waitForTimeout(1200);
+      const t = await 상태(P);
+      //   목록이 짧으면 페이지 끝에 닿아 머리가 맨 위까지 못 올라옵니다(③ 1곳).
+      //   그래도 머리와 첫 줄이 화면 안에 있으면 된 것입니다.
+      chk(t.hdTop >= 0 && t.hdTop < t.vh - 120, `${이름} 누르면 목록이 화면에 들어온다 (머리 ${t.hdTop}px)`);
+      chk(!t.on, `${이름} 목록을 보면 안내가 사라진다`);
+      await P.evaluate(() => scrollTo(0, 0)); await P.waitForTimeout(400);
+      chk(!(await 상태(P)).on, `${이름} 위로 되돌아와도 같은 결과에서는 다시 안 뜬다`);
+    }
+    await ctx.close();
+  }
+}
+
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');
 ok.forEach(m => console.log('  ok  ' + m));
 bad.forEach(m => console.log('  FAIL ' + m));

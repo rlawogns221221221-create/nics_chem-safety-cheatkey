@@ -808,7 +808,62 @@ function foldBar() {
   else if (narrow.addListener) narrow.addListener(on);
 }
 
+/* ── 목록이 아래에 있다는 안내 ────────────────────────────────
+   휴대전화에서는 목록이 지도 **아래**에 있어, 사고지점을 넣고 지도와
+   '가까운 곳 3곳' 이 뜨면 그것으로 끝인 줄 압니다(2026-10-27 사용자 —
+   "스크롤하면 밑에 리스트가 쭉 나온다는걸 사람들이 모를것 같아").
+   그래서 목록 머리가 화면 밖에 있을 때만 화면 아래에 작은 안내를 띄웁니다.
+   · **누르면 목록으로 내려가고, 목록 머리가 한 번 보이면 사라집니다.**
+     같은 결과에서는 다시 띄우지 않습니다 — 지도로 되돌아와 볼 때마다
+     따라다니면 지도를 가립니다. 사고지점·지역·범위가 바뀌면 다시 띄웁니다.
+   · 넓은 화면에서는 목록이 지도 옆에 처음부터 보이므로 저절로 안 뜹니다
+     (화면 폭으로 가르지 않고 **목록이 실제로 보이는지**로 가릅니다).
+   · 목록이 숨어 있으면(③ 의 시작 세 걸음 동안) 높이가 0 이라 '봤다'로
+     세면 안 됩니다 — 그때는 아무것도 하지 않습니다. */
+var hint = null, hintHead = null, hintKey = null, hintSeen = false, hintN = 0, hintRaf = 0;
+function hintCheck() {
+  hintRaf = 0;
+  if (!hint || !hintHead) return;
+  var r = hintHead.getBoundingClientRect();
+  if (!r.height) { hint.className = "list-hint noprint"; return; }
+  var vh = window.innerHeight || document.documentElement.clientHeight;
+  var below = r.top > vh - 24;
+  if (!below) hintSeen = true;
+  hint.className = "list-hint noprint" + (below && !hintSeen && hintN > 0 ? " on" : "");
+}
+function hintLater() {
+  if (hintRaf) return;
+  hintRaf = window.requestAnimationFrame ? window.requestAnimationFrame(hintCheck)
+                                         : setTimeout(hintCheck, 16);
+}
+function listHint(head, n, key) {
+  if (!head || !document.body) return;
+  if (!hint) {
+    hint = document.createElement("button");
+    hint.type = "button";
+    hint.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"'
+      + ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'
+      + '<path d="M6 9l6 6 6-6"/></svg><span>아래로 내려 목록 <b></b> 보기</span>';
+    hint.onclick = function () {
+      var 줄임 = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      hintSeen = true; hintCheck();
+      try { hintHead.scrollIntoView({ behavior: 줄임 ? "auto" : "smooth", block: "start" }); }
+      catch (e) { hintHead.scrollIntoView(true); }
+    };
+    document.body.appendChild(hint);
+    window.addEventListener("scroll", hintLater, { passive: true });
+    window.addEventListener("resize", hintLater);
+  }
+  hintHead = head;
+  if (key !== hintKey) { hintKey = key; hintSeen = false; }
+  hintN = n;
+  hint.querySelector("b").textContent = Number(n).toLocaleString() + "곳";
+  hintLater();
+}
+
 window.MAPCORE = {
+  /* 목록이 아래에 있다는 안내 (②③ 의 renderList 끝에서 부름) */
+  listHint: listHint,
   /* 투영 */
   wx: wx, wy: wy, wxInv: wxInv, wyInv: wyInv,
   mToWorld: mToWorld, worldToM: worldToM,

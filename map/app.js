@@ -696,6 +696,12 @@ function renderList() {
   var acc = st.acc;
   $("#listCnt").textContent = st.all.length
     ? (st.q ? st.show.length + " / " + st.all.length + "곳" : st.all.length + "곳") : "";
+  /* 목록이 지도 아래(화면 밖)에 있으면 알려 줍니다. 열쇠가 바뀌면(사고지점·
+     지역·범위·건수) 새 결과라 다시 띄웁니다 — 목록 안 검색칸에 칠 때도 건수가
+     바뀌지만, 그때는 목록 머리가 이미 화면에 있어 뜨지 않습니다. */
+  MC.listHint($(".mside .ms-hd"), st.show.length,
+    [st.acc ? st.acc.lat + "," + st.acc.lon : "", st.sido, st.sgg, st.scope,
+     st.show.length].join("|"));
 
   if (!st.show.length) {
     $("#shList").innerHTML = '<p class="ms-empty">'
