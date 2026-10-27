@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>화학사고 초동대응 지원 서비스 — 휴대전화 사용법</title>
+<title>화학사고 초동대응 지원 서비스 — 사용 설명서</title>
 <!--
   휴대전화 사용설명서 원본 — PDF 를 고치지 말고 이 파일을 고친 뒤
   `node build/make_mobile_guide.mjs` 로 다시 구우세요(사진도 다시 찍습니다).
@@ -48,9 +48,14 @@ figcaption i{flex:none;display:grid;place-items:center;width:5.6mm;height:5.6mm;
   border-radius:50%;background:#ff3b30;color:#fff;font-style:normal;font-size:3.3mm;
   margin-top:-.2mm}
 
-/* 첫 장 — QR 두 개 */
-.qrs{display:flex;flex-direction:column;justify-content:center}
-.qrs .brand{margin:0 0 14mm;text-align:center;font-size:5.6mm;font-weight:700;color:#256ef4}
+/* 첫 장 — 표지. 위쪽 파란 띠에 제목, 아래에 QR 두 개(2026-10-27 사용자 —
+   "사용설명서의 첫 장이라는 느낌이 나도록"). 만족도 조사 카드는 붉은 테두리로
+   접속 카드(파랑)와 한눈에 갈립니다. */
+.qrs{padding:0;display:flex;flex-direction:column}
+.cv{background:#256ef4;color:#fff;padding:34mm 16mm 16mm}
+.cv p{margin:0;font-size:6mm;font-weight:700;opacity:.92;letter-spacing:-.02em}
+.cv h1{margin:3mm 0 0;font-size:17mm;font-weight:700;letter-spacing:-.05em;line-height:1.15}
+.qb{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 12mm 6mm}
 .two{display:grid;grid-template-columns:1fr 1fr;column-gap:10mm}
 .qc{border:.8mm solid #d6dbe1;border-radius:6mm;padding:9mm 6mm 8mm;text-align:center}
 .qc h2{margin:0 0 7mm;font-size:8.4mm;font-weight:700;letter-spacing:-.03em}
@@ -58,20 +63,39 @@ figcaption i{flex:none;display:grid;place-items:center;width:5.6mm;height:5.6mm;
 .qc p{margin:6mm 0 0;font-size:4.2mm;color:#464c53;letter-spacing:.01em}
 .qc.go{border-color:#256ef4}
 .qc.go h2{color:#256ef4}
+.qc.ask{border-color:#e0352b}
+.qc.ask h2{color:#e0352b}
 .qrs .how{margin:12mm 0 0;text-align:center;font-size:5mm;font-weight:700}
 
-/* 표지 */
+/* 2쪽 — 제목 · 홈 화면에 추가(아이폰 / 안드로이드) · 첫 화면 · 차례 */
 .cover .brand{font-size:4.6mm;font-weight:700;color:#256ef4;margin:6mm 0 2mm}
-.cover h1{margin:0 0 12mm;font-size:12mm;font-weight:700;letter-spacing:-.04em;line-height:1.2}
+.cover h1{margin:0 0 10mm;font-size:12mm;font-weight:700;letter-spacing:-.04em;line-height:1.2}
 .open{display:grid;grid-template-columns:1fr 1fr;column-gap:10mm;align-items:start}
-.qr{border:.5mm solid #d6dbe1;border-radius:5mm;padding:8mm 6mm 7mm;text-align:center}
-.qr img{display:block;width:62mm;height:62mm;margin:0 auto}
-.qr .url{margin:4mm 0 0;font-size:4mm;color:#464c53}
 .open figcaption{justify-content:center;font-size:4.6mm;margin-top:5mm}
 .open figcaption i{width:6.4mm;height:6.4mm;font-size:3.8mm}
-.home{margin-top:8mm;border-radius:4mm;background:#f3f6fb;padding:5mm 6mm;
-  font-size:3.8mm;line-height:1.7}
-.home b{color:#256ef4}
+.hm-t{margin:0 0 5mm;font-size:5.6mm;font-weight:700;line-height:1.4;letter-spacing:-.03em}
+.hm-t b{color:#256ef4}
+.hm{border-radius:4mm;background:#f3f6fb;padding:5mm 5mm 4.5mm}
+.hm + .hm{margin-top:5mm}
+.hm-os{display:flex;align-items:baseline;gap:2.5mm;margin:0 0 3.5mm;font-size:5.2mm;font-weight:700}
+.hm-os span{font-size:3.6mm;font-weight:400;color:#6d7882}
+.hm ol{list-style:none;margin:0;padding:0;counter-reset:hm}
+.hm li{counter-increment:hm;position:relative;padding:0 0 0 8mm;font-size:4.3mm;line-height:1.5}
+.hm li + li{margin-top:2.6mm}
+.hm li::before{content:counter(hm);position:absolute;left:0;top:.4mm;width:5.6mm;height:5.6mm;
+  border-radius:50%;background:#256ef4;color:#fff;font-size:3.3mm;font-weight:700;
+  display:grid;place-items:center}
+.hm li b{color:#1d1d1d}
+.hm li small{display:block;font-size:3.5mm;color:#6d7882}
+.hm svg{width:4.6mm;height:4.6mm;vertical-align:-.8mm;color:#256ef4}
+.hm .k svg{width:3.6mm;height:3.6mm;vertical-align:0}
+/* 메뉴 표시(⋯ ⋮ ≡)는 글꼴이 아니라 그림으로 — 글꼴마다 모양이 달라 밑줄처럼 보였습니다 */
+.hm .k{display:inline-grid;place-items:center;width:5.4mm;height:5.4mm;border-radius:1.2mm;
+  background:#fff;border:.3mm solid #c6ccd3;color:#256ef4;vertical-align:-1.2mm}
+.hm-etc{margin:4mm 0 0;padding-top:3.5mm;border-top:.3mm solid #dfe3e8;font-size:3.5mm;color:#464c53}
+.hm-etc b{display:block;margin-bottom:1.5mm;font-size:3.6mm;color:#1d1d1d}
+/* 한 덩어리로 읽어야 하는 줄 — 「홈 / 화면」 처럼 낱말 가운데서 끊겼습니다 */
+.nb{white-space:nowrap}
 .toc{list-style:none;margin:10mm 0 0;padding:0;border-top:.3mm solid #d6dbe1}
 .toc li{display:flex;align-items:center;gap:4mm;padding:4mm 1mm;
   border-bottom:.3mm solid #d6dbe1;font-size:4.8mm;font-weight:700}
@@ -83,42 +107,58 @@ figcaption i{flex:none;display:grid;place-items:center;width:5.6mm;height:5.6mm;
 
 <!-- ── 1쪽 · QR 두 개 ──────────────────────────────────────── -->
 <section class="page qrs">
-  <p class="brand">화학사고 초동대응 지원 서비스</p>
-  <div class="two">
-    <div class="qc go">
-      <h2>서비스 접속</h2>
-      <img src="QR/QR_접속.svg" alt="서비스 접속 QR 코드">
-      <p>chem-safety-kr.pages.dev</p>
-    </div>
-    <div class="qc">
-      <h2>만족도 조사</h2>
-      <img src="QR/QR_만족도조사.svg" alt="만족도 조사 QR 코드">
-      <p>naver.me/FaeWaurT</p>
-    </div>
+  <div class="cv">
+    <p>화학사고 초동대응 지원 서비스</p>
+    <h1>사용 설명서</h1>
   </div>
-  <p class="how">휴대전화 카메라로 비추세요</p>
+  <div class="qb">
+    <div class="two">
+      <div class="qc go">
+        <h2>서비스 접속</h2>
+        <img src="QR/QR_접속.svg" alt="서비스 접속 QR 코드">
+        <p>chem-safety-kr.pages.dev</p>
+      </div>
+      <div class="qc ask">
+        <h2>만족도 조사</h2>
+        <img src="QR/QR_만족도조사.svg" alt="만족도 조사 QR 코드">
+        <p>naver.me/FaeWaurT</p>
+      </div>
+    </div>
+    <p class="how">휴대전화 카메라로 비추세요</p>
+  </div>
 </section>
 
-<!-- ── 2쪽 · 여는 법 ───────────────────────────────────────── -->
+<!-- ── 2쪽 · 사용 설명서 — 홈 화면에 추가 · 첫 화면 · 차례 ──────────── -->
 <section class="page cover">
   <p class="brand">화학사고 초동대응 지원 서비스</p>
-  <h1>휴대전화 사용법</h1>
+  <h1>사용 설명서</h1>
   <div class="open">
-    <figure>
-      <div class="qr">
-        <img src="QR/QR_접속.svg" alt="접속 QR 코드">
-        <p class="url">chem-safety-kr.pages.dev</p>
+    <div>
+      <p class="hm-t"><b>홈 화면에 추가</b>하면<br>앱처럼 바로 열립니다</p>
+      <div class="hm">
+        <p class="hm-os">아이폰<span>iOS · 사파리</span></p>
+        <ol>
+          <li>아래 <b>공유</b> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
+            d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11v9h12v-9"/></svg> 누르기
+            <small>안 보이면 <span class="k"><svg viewBox="0 0 24 24" fill="currentColor" aria-label="더보기"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></span> 를 먼저 누르세요</small></li>
+          <li><b>홈 화면에 추가</b> 누르기</li>
+          <li>오른쪽 위 <b>추가</b> 누르기</li>
+        </ol>
       </div>
-      <figcaption><i>1</i>카메라로 QR을 비추세요</figcaption>
-      <div class="home">
-        <b>홈 화면에 추가</b>하면 앱처럼 바로 열립니다<br>
-        아이폰 &nbsp;사파리 공유 단추(□↑) → 홈 화면에 추가<br>
-        안드로이드 &nbsp;크롬 메뉴(⋮) → 홈 화면에 추가
+      <div class="hm">
+        <p class="hm-os">안드로이드<span>크롬</span></p>
+        <ol>
+          <li>오른쪽 위 <b>메뉴</b> <span class="k"><svg viewBox="0 0 24 24" fill="currentColor" aria-label="메뉴"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg></span> 누르기</li>
+          <li><b>홈 화면에 추가</b> 누르기</li>
+          <li><b>추가</b> 누르기</li>
+        </ol>
+        <p class="hm-etc"><b>삼성 인터넷</b><span class="nb">메뉴 <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-label="메뉴"><path d="M5 7h14M5 12h14M5 17h14"/></svg></span> → 현재 페이지 추가 → 홈 화면</span></p>
       </div>
-    </figure>
+    </div>
     <figure>
       <div class="shot"><img src="모바일설명서/00-첫화면.png" alt=""></div>
-      <figcaption><i>2</i>쓸 것을 누르세요</figcaption>
+      <figcaption><i>1</i>쓸 것을 누르세요</figcaption>
     </figure>
   </div>
   <ol class="toc">
