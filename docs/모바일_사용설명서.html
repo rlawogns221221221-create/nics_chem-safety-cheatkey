@@ -53,8 +53,10 @@ figcaption i{flex:none;display:grid;place-items:center;width:5.6mm;height:5.6mm;
    접속 카드(파랑)와 한눈에 갈립니다. */
 .qrs{padding:0;display:flex;flex-direction:column}
 .cv{background:#256ef4;color:#fff;padding:34mm 16mm 16mm}
-.cv p{margin:0;font-size:6mm;font-weight:700;opacity:.92;letter-spacing:-.02em}
-.cv h1{margin:3mm 0 0;font-size:17mm;font-weight:700;letter-spacing:-.05em;line-height:1.15}
+/* 서비스 이름은 크게 — 6mm 로 두었더니 "우리 서비스의 이름인데 너무 작다"
+   (2026-10-27 사용자). 한 줄에 들어가는 크기까지만 키웠습니다. */
+.cv p{margin:0;font-size:11mm;font-weight:700;letter-spacing:-.04em;line-height:1.25}
+.cv h1{margin:4mm 0 0;font-size:17mm;font-weight:700;letter-spacing:-.05em;line-height:1.15}
 .qb{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 12mm 6mm}
 .two{display:grid;grid-template-columns:1fr 1fr;column-gap:10mm}
 .qc{border:.8mm solid #d6dbe1;border-radius:6mm;padding:9mm 6mm 8mm;text-align:center}
@@ -67,35 +69,13 @@ figcaption i{flex:none;display:grid;place-items:center;width:5.6mm;height:5.6mm;
 .qc.ask h2{color:#e0352b}
 .qrs .how{margin:12mm 0 0;text-align:center;font-size:5mm;font-weight:700}
 
-/* 2쪽 — 제목 · 홈 화면에 추가(아이폰 / 안드로이드) · 첫 화면 · 차례 */
+/* 2쪽 — 제목 · 첫 화면 사진(가운데) · 차례. 홈 화면에 추가 안내는 걷어냈습니다
+   (2026-10-27 사용자 — "홈화면에 추가하는 기능은 삭제를 해버리고 … 가운데로"). */
 .cover .brand{font-size:4.6mm;font-weight:700;color:#256ef4;margin:6mm 0 2mm}
 .cover h1{margin:0 0 10mm;font-size:12mm;font-weight:700;letter-spacing:-.04em;line-height:1.2}
-.open{display:grid;grid-template-columns:1fr 1fr;column-gap:10mm;align-items:start}
+.open{width:88mm;margin:0 auto}
 .open figcaption{justify-content:center;font-size:4.6mm;margin-top:5mm}
 .open figcaption i{width:6.4mm;height:6.4mm;font-size:3.8mm}
-.hm-t{margin:0 0 5mm;font-size:5.6mm;font-weight:700;line-height:1.4;letter-spacing:-.03em}
-.hm-t b{color:#256ef4}
-.hm{border-radius:4mm;background:#f3f6fb;padding:5mm 5mm 4.5mm}
-.hm + .hm{margin-top:5mm}
-.hm-os{display:flex;align-items:baseline;gap:2.5mm;margin:0 0 3.5mm;font-size:5.2mm;font-weight:700}
-.hm-os span{font-size:3.6mm;font-weight:400;color:#6d7882}
-.hm ol{list-style:none;margin:0;padding:0;counter-reset:hm}
-.hm li{counter-increment:hm;position:relative;padding:0 0 0 8mm;font-size:4.3mm;line-height:1.5}
-.hm li + li{margin-top:2.6mm}
-.hm li::before{content:counter(hm);position:absolute;left:0;top:.4mm;width:5.6mm;height:5.6mm;
-  border-radius:50%;background:#256ef4;color:#fff;font-size:3.3mm;font-weight:700;
-  display:grid;place-items:center}
-.hm li b{color:#1d1d1d}
-.hm li small{display:block;font-size:3.5mm;color:#6d7882}
-.hm svg{width:4.6mm;height:4.6mm;vertical-align:-.8mm;color:#256ef4}
-.hm .k svg{width:3.6mm;height:3.6mm;vertical-align:0}
-/* 메뉴 표시(⋯ ⋮ ≡)는 글꼴이 아니라 그림으로 — 글꼴마다 모양이 달라 밑줄처럼 보였습니다 */
-.hm .k{display:inline-grid;place-items:center;width:5.4mm;height:5.4mm;border-radius:1.2mm;
-  background:#fff;border:.3mm solid #c6ccd3;color:#256ef4;vertical-align:-1.2mm}
-.hm-etc{margin:4mm 0 0;padding-top:3.5mm;border-top:.3mm solid #dfe3e8;font-size:3.5mm;color:#464c53}
-.hm-etc b{display:block;margin-bottom:1.5mm;font-size:3.6mm;color:#1d1d1d}
-/* 한 덩어리로 읽어야 하는 줄 — 「홈 / 화면」 처럼 낱말 가운데서 끊겼습니다 */
-.nb{white-space:nowrap}
 .toc{list-style:none;margin:10mm 0 0;padding:0;border-top:.3mm solid #d6dbe1}
 .toc li{display:flex;align-items:center;gap:4mm;padding:4mm 1mm;
   border-bottom:.3mm solid #d6dbe1;font-size:4.8mm;font-weight:700}
@@ -128,37 +108,14 @@ figcaption i{flex:none;display:grid;place-items:center;width:5.6mm;height:5.6mm;
   </div>
 </section>
 
-<!-- ── 2쪽 · 사용 설명서 — 홈 화면에 추가 · 첫 화면 · 차례 ──────────── -->
+<!-- ── 2쪽 · 사용 설명서 — 첫 화면 · 차례 ──────────────────────── -->
 <section class="page cover">
   <p class="brand">화학사고 초동대응 지원 서비스</p>
   <h1>사용 설명서</h1>
   <div class="open">
-    <div>
-      <p class="hm-t"><b>홈 화면에 추가</b>하면<br>앱처럼 바로 열립니다</p>
-      <div class="hm">
-        <p class="hm-os">아이폰<span>iOS · 사파리</span></p>
-        <ol>
-          <li>아래 <b>공유</b> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path
-            d="M12 3v12"/><path d="M8 7l4-4 4 4"/><path d="M6 11v9h12v-9"/></svg> 누르기
-            <small>안 보이면 <span class="k"><svg viewBox="0 0 24 24" fill="currentColor" aria-label="더보기"><circle cx="5" cy="12" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="19" cy="12" r="2.2"/></svg></span> 를 먼저 누르세요</small></li>
-          <li><b>홈 화면에 추가</b> 누르기</li>
-          <li>오른쪽 위 <b>추가</b> 누르기</li>
-        </ol>
-      </div>
-      <div class="hm">
-        <p class="hm-os">안드로이드<span>크롬</span></p>
-        <ol>
-          <li>오른쪽 위 <b>메뉴</b> <span class="k"><svg viewBox="0 0 24 24" fill="currentColor" aria-label="메뉴"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg></span> 누르기</li>
-          <li><b>홈 화면에 추가</b> 누르기</li>
-          <li><b>추가</b> 누르기</li>
-        </ol>
-        <p class="hm-etc"><b>삼성 인터넷</b><span class="nb">메뉴 <span class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-label="메뉴"><path d="M5 7h14M5 12h14M5 17h14"/></svg></span> → 현재 페이지 추가 → 홈 화면</span></p>
-      </div>
-    </div>
     <figure>
       <div class="shot"><img src="모바일설명서/00-첫화면.png" alt=""></div>
-      <figcaption><i>1</i>쓸 것을 누르세요</figcaption>
+      <figcaption><i>1</i>필요한 서비스를 누르세요</figcaption>
     </figure>
   </div>
   <ol class="toc">
