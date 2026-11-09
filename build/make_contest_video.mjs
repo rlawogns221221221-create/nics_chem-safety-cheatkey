@@ -268,10 +268,32 @@ const 카카오미리 = async (주소) => {
       deviceScaleFactor: 2, locale: 'ko-KR' });
     const q = await c2.newPage();
     const 응답 = await q.goto(주소, { waitUntil: 'load', timeout: 20000 });
-    await q.waitForTimeout(5000);
+    await q.waitForTimeout(3500);
+    /* 휴대전화 웹에서는 "카카오맵 앱에서 더 편리하게 … 앱으로 보기" 안내 창이 먼저
+       떠서 지도를 가립니다(첫 러너 판에서 그대로 찍혔습니다). 사람이 하듯 그 창의
+       '웹으로 보기·닫기' 를 눌러 닫고 찍습니다 — 화면을 지우거나 고치지 않습니다. */
+    const 앱안내 = () => q.getByText('앱으로 보기').first().isVisible().catch(() => false);
+    for (const 말 of [/모바일\s?웹/, /웹으로/, /괜찮아요/, /다음에/, /닫기/]) {
+      if (!(await 앱안내())) break;
+      const b = q.getByText(말).first();
+      if (await b.isVisible().catch(() => false)) {
+        await b.click({ timeout: 2000 }).catch(() => {});
+        await q.waitForTimeout(900);
+      }
+    }
+    if (await 앱안내()) {
+      const x = q.locator('[aria-label*="닫기"], [class*="close"], [class*="Close"]').first();
+      if (await x.isVisible().catch(() => false)) { await x.click({ timeout: 2000 }).catch(() => {}); await q.waitForTimeout(900); }
+    }
+    if (await 앱안내()) { await q.mouse.click(30, 110); await q.waitForTimeout(900); }   // 바깥 어두운 막
+    console.log((await 앱안내()) ? '  카카오맵 앱 안내 창을 못 닫았습니다 — 창이 뜬 그대로 찍습니다'
+                                : '  카카오맵 지도 화면 그대로 찍습니다');
+    await q.waitForTimeout(1500);
     const 글 = await q.evaluate(() => (document.body && document.body.innerText || '').length);
     if (응답 && 응답.status() < 400 && 글 > 20 && /kakao/.test(q.url())) {
-      카카오화면 = 'data:image/png;base64,' + (await q.screenshot({ type: 'png' })).toString('base64');
+      const 사진 = await q.screenshot({ type: 'png' });
+      writeFileSync(`${RPATH}/카카오화면.png`, 사진);      // 러너 결과물로 올려 눈으로 확인
+      카카오화면 = 'data:image/png;base64,' + 사진.toString('base64');
       console.log('  카카오맵 화면을 찍었습니다 — ' + q.url().slice(0, 80));
     } else console.log('  카카오맵을 못 열었습니다 — 화면은 넣지 않습니다');
   } catch (e) { console.log('  카카오맵을 못 열었습니다(' + String(e.message || e).slice(0, 60) + ')'); }

@@ -147,6 +147,7 @@ jobs:
           path: |
             docs/공모전_시연영상.mp4
             영상기록.txt
+            카카오화면.png
 
       - name: 저장소에 넣기
         run: |
