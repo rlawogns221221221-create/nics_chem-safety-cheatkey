@@ -1,0 +1,99 @@
+# ═══════════════════════════════════════════════════════════════
+#  공모전 시연영상 굽기 (배경지도까지 나오게)
+#
+#  ── 왜 필요한가 ───────────────────────────────────────────
+#  2026 공공 AI 대전환 챌린지 세션1 에 낼 시연영상입니다(5분 안 · mp4).
+#  개발 자리는 배경지도 타일 서버로 못 나가(CONNECT 403) 지도에 행정경계선만
+#  나옵니다(CLAUDE.md 6절). 그래서 인터넷이 되는 러너에서 굽습니다 —
+#  모바일설명서_굽기.yml 과 같은 이유입니다.
+#
+#  ── 무엇을 하나 ───────────────────────────────────────────
+#  `build/make_contest_video.mjs` 가 build/영상무대.html 을 열고, 가운데
+#  휴대전화 안에서 실제 서비스를 눌러 가며 녹화해 `docs/공모전_시연영상.mp4`
+#  를 만듭니다. 그것을 **이 가지에 커밋**합니다. 배포는 안 합니다.
+#
+#  ── 언제 도나 ─────────────────────────────────────────────
+#  · 영상 스크립트·무대를 이 가지에 올리면 저절로 돕니다(push).
+#  · 결과(mp4)는 아래 paths 에 없어 커밋해도 다시 돌지 않습니다.
+# ═══════════════════════════════════════════════════════════════
+name: 공모전 시연영상 굽기
+
+on:
+  push:
+    branches: [claude/affectionate-mendel-gvdnjk]
+    paths:
+      - build/make_contest_video.mjs
+      - build/영상무대.html
+      - .github/workflows/공모전영상_굽기.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write        # 구운 영상을 커밋하기 위해서만 씁니다
+
+concurrency:
+  group: contest-video-bake
+  cancel-in-progress: true
+
+jobs:
+  # ⚠ 잡 id 는 영문·숫자·_·- 만 됩니다(한국어를 쓰면 워크플로가 안 돕니다).
+  bake:
+    name: 시연영상 녹화하고 mp4 굽기
+    # ⚠ ubuntu-latest 를 쓰지 마세요 — 26.04 를 가리키는데 Playwright 1.56.1 이
+    #   그 판을 몰라 크로미움 설치에서 멈춥니다(모바일설명서_굽기.yml 첫 실행).
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 배경지도 타일이 받아지는지 확인
+        run: |
+          R=$(curl -sS -o /tmp/tile.png -w '%{http_code} %{size_download}바이트 %{content_type}' \
+              --max-time 25 "https://tile.openstreetmap.org/12/3510/1720.png" 2>&1 || echo "받지 못함")
+          echo "OpenStreetMap → $R (200 · image/png 이면 영상에 도로·건물이 나옵니다)"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 크로미움 · 한글 글꼴 · ffmpeg 준비
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+          sudo apt-get update
+          # 저장소의 Pretendard GOV 는 부분집합이라 없는 글자가 두부(□)로 나올 수
+          # 있어 시스템 한글 글꼴을 깔아 둡니다. ffmpeg 은 장면을 mp4 로 굽는 데 씁니다.
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk ffmpeg
+
+      - name: 녹화하고 굽기
+        env:
+          FFPRESET: medium
+        run: |
+          # ⚠ `set -o pipefail` 이 없으면 tee 의 성공이 node 의 실패를 덮습니다.
+          set -o pipefail
+          node build/make_contest_video.mjs 2>&1 | tee 영상기록.txt
+
+      - name: 결과 올려 두기 (내려받기용)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 공모전-시연영상
+          path: |
+            docs/공모전_시연영상.mp4
+            영상기록.txt
+
+      - name: 저장소에 넣기
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/공모전_시연영상.mp4
+          if git diff --cached --quiet; then
+            echo "바뀐 것이 없습니다 — 커밋하지 않습니다."
+            exit 0
+          fi
+          git commit -m "공모전 시연영상을 배경지도가 나오는 자리에서 구웠습니다
+
+          개발 자리는 타일 서버가 막혀(CONNECT 403) 지도에 경계선만 나왔습니다.
+          인터넷이 되는 액션 러너에서 같은 스크립트(build/make_contest_video.mjs)를
+          돌려 영상을 다시 만들었습니다."
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}"

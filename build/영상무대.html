@@ -1,0 +1,430 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>공모전 시연영상 무대</title>
+<!--
+  공모전 시연영상의 '무대'입니다 — build/make_contest_video.mjs 가 이 쪽을 열고
+  가운데 휴대전화(iframe) 안에서 **실제 서비스 화면을 눌러 가며** 녹화합니다.
+
+  왜 무대를 따로 두나 (2026-11-09 사용자 — "시연 영상이 너무 밋밋해서 … 동적으로
+  사람들이 몰입해서 볼 수 있는 영상 … 흥미진진하게 쉽게 설명")
+  · 휴대전화 화면만 크게 찍으면 옆에 설명을 둘 자리가 없습니다. 1920×1080 무대
+    가운데에 휴대전화를 세우고, 오른쪽에 '미션'과 큰 자막을 띄웁니다.
+  · 화면을 그려 넣지 않습니다 — 휴대전화 안은 실제 서비스입니다. 숫자·목록은
+    전부 실제 자료에서 나옵니다. 이 쪽은 테두리·자막·확대만 맡습니다.
+  · 휴대전화가 메인입니다(CLAUDE.md 1절) — 그래서 PC 화면은 나오지 않습니다.
+
+  이 파일은 영상 제작용이라 배포에 들어가지 않습니다(build/ 아래).
+  사이트 코드가 아니므로 최신 자바스크립트를 씁니다(tests/ 와 같은 예외).
+-->
+<style>
+@font-face{font-family:"Pretendard GOV";font-weight:400;
+  src:url("../assets/fonts/PretendardGOV-Regular.subset.woff2") format("woff2")}
+@font-face{font-family:"Pretendard GOV";font-weight:700;
+  src:url("../assets/fonts/PretendardGOV-Bold.subset.woff2") format("woff2")}
+:root{
+  --blue:#4c8dff; --blue2:#256ef4; --red:#ff4d42; --green:#2fbf71;
+  --txt:#f4f7ff; --mut:#9fb0d0; --card:rgba(9,20,46,.92);
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+*{box-sizing:border-box}
+html,body{margin:0;width:1920px;height:1080px;overflow:hidden;background:#050d1f;color:var(--txt);
+  font-family:"Pretendard GOV","Noto Sans CJK KR","Noto Sans KR","WenQuanYi Zen Hei",sans-serif;
+  word-break:keep-all;letter-spacing:-.02em}
+
+/* ── 바탕 — 움직이지 않습니다. 움직이는 것은 휴대전화 안과 자막뿐이어야 눈이
+      어디를 볼지 압니다. ─────────────────────────────────────── */
+#bg{position:absolute;inset:0;
+  background:radial-gradient(1100px 820px at 33% 48%,#12306c 0%,transparent 62%),
+             radial-gradient(900px 700px at 88% 86%,#13275a 0%,transparent 60%),
+             linear-gradient(160deg,#071431,#040a18)}
+#bg::after{content:"";position:absolute;inset:0;
+  background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);
+  background-size:48px 48px;
+  -webkit-mask-image:radial-gradient(circle at 33% 50%,#000 0,transparent 68%);
+          mask-image:radial-gradient(circle at 33% 50%,#000 0,transparent 68%)}
+
+/* ── 위 띠 ── */
+#brand{position:absolute;left:48px;top:34px;font-size:22px;font-weight:700;color:#cfe0ff;
+  display:flex;align-items:center;gap:12px;z-index:5}
+#brand i{width:12px;height:12px;border-radius:50%;background:var(--blue);box-shadow:0 0 0 6px rgba(76,141,255,.2)}
+#virt{position:absolute;right:64px;top:40px;z-index:5;padding:10px 20px;border-radius:999px;
+  border:2px solid rgba(255,77,66,.7);color:#ffd5d2;font-size:21px;font-weight:700;
+  background:rgba(255,77,66,.12);transition:opacity .5s}
+
+/* ── 왼쪽 — 상황 카드 ── */
+#sit{position:absolute;left:44px;top:380px;width:290px;padding:24px 24px 22px;border-radius:22px;
+  background:rgba(255,77,66,.08);border:2px solid rgba(255,77,66,.45);z-index:3;
+  transition:opacity .6s,transform .6s var(--ease)}
+#sit .h{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:700;color:#ffb3ad}
+#sit .h i{width:12px;height:12px;border-radius:50%;background:var(--red);animation:blink 1.2s infinite}
+#sit .tm{margin:16px 0 4px;font-size:44px;font-weight:700;letter-spacing:-.03em}
+#sit .pl{font-size:24px;color:#e9eefb;line-height:1.4}
+#sit .ev{margin-top:8px;font-size:30px;font-weight:700;color:var(--red)}
+#sit.off{opacity:0;transform:translateX(-30px)}
+@keyframes blink{50%{opacity:.25}}
+
+/* ── 휴대전화 ── */
+#phoneBox{position:absolute;left:368px;top:41px;width:418px;height:768px;z-index:4;
+  transform-origin:0 0;transform:scale(1.3);transition:transform .95s var(--ease)}
+#phone{position:relative;width:418px;height:768px;border-radius:62px;background:#0b0f17;padding:14px;
+  box-shadow:0 0 0 2px #2b3754,0 0 0 9px #0b0f17,0 0 0 11px #263150,
+             0 40px 90px rgba(0,0,0,.6),0 0 140px rgba(76,141,255,.28)}
+#screen{position:relative;width:390px;height:740px;border-radius:48px;overflow:hidden;background:#fff}
+#status{height:40px;display:flex;align-items:center;justify-content:space-between;padding:0 30px 0 34px;
+  font:700 15px/1 "Pretendard GOV",sans-serif;color:#111;background:#fff}
+#status .isl{position:absolute;left:50%;top:9px;width:112px;height:26px;margin-left:-56px;
+  border-radius:20px;background:#0b0f17}
+#status .r{display:flex;gap:6px;align-items:center}
+#status .bat{width:24px;height:12px;border:2px solid #111;border-radius:4px;position:relative}
+#status .bat::after{content:"";position:absolute;inset:1px 5px 1px 1px;background:#111;border-radius:1px}
+iframe#app{display:block;border:0;width:390px;height:700px;background:#fff}
+
+/* ── 누름 표시 — 손가락 자리 ── */
+#taps{position:absolute;inset:0;pointer-events:none;z-index:30}
+.tap{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;
+  background:rgba(255,255,255,.55);border:4px solid var(--blue);box-shadow:0 0 0 4px rgba(255,255,255,.65),0 6px 18px rgba(0,0,0,.35);
+  animation:tapIn .55s var(--ease) forwards}
+.tap::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:4px solid var(--blue);
+  animation:tapRing .7s .12s ease-out forwards}
+@keyframes tapIn{0%{transform:scale(.4);opacity:0}35%{transform:scale(1);opacity:1}100%{transform:scale(.85);opacity:0}}
+@keyframes tapRing{0%{transform:scale(1);opacity:.9}100%{transform:scale(2.3);opacity:0}}
+
+/* 확대할 때 그 자리를 두르는 고리 */
+#ring{position:absolute;z-index:31;border:5px solid #ffd43b;border-radius:16px;pointer-events:none;
+  box-shadow:0 0 0 9999px rgba(3,8,20,.42),0 0 30px rgba(255,212,59,.6);opacity:0;transition:opacity .35s}
+#ring.on{opacity:1}
+
+/* ── 오른쪽 — 진행 · 미션 · 자막 ── */
+#side{position:absolute;left:1010px;top:0;width:850px;height:1080px;z-index:6}
+#prog{position:absolute;left:0;top:110px;display:flex;gap:12px;margin:0;padding:0;list-style:none}
+#prog li{padding:10px 18px;border-radius:999px;font-size:20px;font-weight:700;color:#7f90b3;
+  border:2px solid #22345e;background:rgba(10,22,50,.6);transition:all .5s var(--ease)}
+#prog li.now{color:#fff;background:var(--blue2);border-color:var(--blue2);box-shadow:0 0 24px rgba(37,110,244,.55)}
+#prog li.done{color:#bfe9d2;border-color:#2b6b4c}
+#prog li.done::before{content:"✓ ";color:var(--green)}
+#mis{position:absolute;left:0;top:200px;width:850px;transition:opacity .5s}
+#mis .k{display:inline-block;font-size:22px;font-weight:700;letter-spacing:.22em;color:var(--blue)}
+#mis h2{margin:14px 0 10px;font-size:70px;line-height:1.12;font-weight:700;letter-spacing:-.04em}
+#mis p{margin:0;font-size:30px;color:var(--mut)}
+#feed{position:absolute;left:0;bottom:96px;width:850px;display:flex;flex-direction:column;gap:18px}
+.say{display:flex;align-items:flex-start;gap:20px;padding:20px 26px;border-radius:20px;background:var(--card);
+  border:1px solid rgba(120,160,255,.18);box-shadow:0 12px 30px rgba(0,0,0,.28);
+  font-size:38px;font-weight:700;line-height:1.3;
+  animation:sayIn .55s var(--ease) both;transition:opacity .45s,transform .45s var(--ease),font-size .45s}
+.say .n{flex:none;display:grid;place-items:center;width:46px;height:46px;margin-top:2px;border-radius:50%;
+  background:var(--blue2);font-size:24px}
+.say b{color:#9cc0ff}
+.say.key{border:2px solid rgba(47,191,113,.65);background:rgba(10,40,30,.92)}
+.say.key .n{background:var(--green)}
+.say.key b{color:#8ff0bb}
+.say.old{opacity:.36;transform:scale(.96);transform-origin:left center;font-size:30px}
+@keyframes sayIn{from{opacity:0;transform:translateY(46px)}to{opacity:1;transform:none}}
+
+/* 미션 완료 도장 */
+.stamp{position:absolute;left:0;top:395px;width:850px;padding:40px 44px;border-radius:28px;z-index:3;
+  background:rgba(8,40,28,.96);border:3px solid var(--green);box-shadow:0 0 60px rgba(47,191,113,.35);
+  display:flex;flex-wrap:wrap;align-items:center;gap:20px 30px;animation:stampIn .55s var(--ease) both}
+.stamp b{display:grid;place-items:center;width:110px;height:110px;border-radius:50%;background:var(--green);
+  font-size:70px;color:#fff}
+.stamp div{font-size:76px;font-weight:700;letter-spacing:-.04em;line-height:1}
+.stamp div span{display:block;font-size:26px;letter-spacing:.22em;color:#8ff0bb;margin-bottom:12px}
+.stamp em{flex-basis:100%;font-style:normal;font-size:32px;color:#d6f5e4;line-height:1.4}
+.stamp.out{opacity:0;transform:scale(.96);transition:all .45s}
+@keyframes stampIn{0%{opacity:0;transform:scale(1.5) rotate(-4deg)}60%{opacity:1;transform:scale(.97) rotate(0)}100%{transform:none}}
+
+/* 마무리 — 정리 세 줄 */
+.pt{display:flex;align-items:center;gap:26px;padding:26px 30px;border-radius:22px;background:var(--card);
+  border:1px solid rgba(120,160,255,.2);font-size:38px;font-weight:700;line-height:1.3;
+  animation:sayIn .6s var(--ease) both}
+.pt svg{flex:none;width:64px;height:64px;color:var(--blue)}
+.pt em{display:block;font-style:normal;font-size:27px;font-weight:400;color:var(--mut);margin-top:4px}
+
+/* ── 전체 화면 장면(여는 장면 · 미션 넘김 · 끝) ── */
+#full,#chap{position:absolute;inset:0;z-index:50;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(1200px 800px at 50% 45%,#0e2350,#040a18 70%);
+  opacity:0;pointer-events:none;transition:opacity .6s}
+#full.on,#chap.on{opacity:1}
+.op{text-align:center}
+.lead{font-size:40px;color:var(--mut);margin:0 0 30px}
+
+/* 여는 장면 1 — 사고 알림 */
+.op1 .sir{width:120px;height:120px;margin:0 auto 34px;border-radius:50%;background:var(--red);
+  box-shadow:0 0 0 0 rgba(255,77,66,.7);animation:sir 1.1s infinite}
+@keyframes sir{0%{box-shadow:0 0 0 0 rgba(255,77,66,.75)}100%{box-shadow:0 0 0 70px rgba(255,77,66,0)}}
+.op1 .tag{display:inline-block;padding:10px 22px;border-radius:999px;border:2px solid rgba(255,77,66,.7);
+  color:#ffd5d2;font-size:24px;font-weight:700;animation:up .6s var(--ease) both}
+.op1 .t1{margin-top:30px;font-size:60px;font-weight:700;animation:up .6s .5s var(--ease) both}
+.op1 .t2{margin-top:10px;font-size:52px;color:#dfe7ff;animation:up .6s 1.1s var(--ease) both}
+.op1 .t3{margin-top:14px;font-size:120px;font-weight:700;color:var(--red);letter-spacing:-.05em;
+  animation:slam .5s 1.8s var(--ease) both}
+@keyframes up{from{opacity:0;transform:translateY(30px)}to{opacity:1;transform:none}}
+@keyframes slam{0%{opacity:0;transform:scale(1.8)}60%{opacity:1;transform:scale(.96)}100%{opacity:1;transform:none}}
+
+/* 여는 장면 2 — 담당자가 할 일 */
+.op2 ul{list-style:none;margin:0;padding:0;display:flex;gap:34px;justify-content:center}
+.op2 li{width:420px;padding:44px 30px 40px;border-radius:28px;background:rgba(14,32,72,.9);
+  border:2px solid rgba(120,160,255,.28);font-size:40px;font-weight:700;line-height:1.35;
+  animation:up .6s var(--ease) both}
+.op2 li:nth-child(2){animation-delay:.55s}
+.op2 li:nth-child(3){animation-delay:1.1s}
+.op2 li svg{display:block;width:96px;height:96px;margin:0 auto 22px;color:var(--blue)}
+.op2 li b{color:#9cc0ff}
+
+/* 여는 장면 3 — 흩어진 자료 */
+.op3{position:relative;width:1920px;height:1080px}
+.op3 .lead{position:absolute;left:0;right:0;top:170px;font-size:48px;color:#dfe7ff;text-align:center}
+.op3 .lead2{position:absolute;left:0;right:0;bottom:170px;font-size:56px;font-weight:700;text-align:center;
+  animation:up .6s 1.4s var(--ease) both}
+.file{position:absolute;left:50%;top:50%;width:170px;height:206px;margin:-103px 0 0 -85px;border-radius:16px;
+  background:#f4f6fb;color:#1d2a44;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;
+  padding-bottom:22px;font-size:30px;font-weight:700;box-shadow:0 20px 40px rgba(0,0,0,.45);
+  transform:translate(var(--x),var(--y)) rotate(var(--r));animation:pop .55s var(--d) var(--ease) both,
+  drift 3.2s calc(var(--d) + .55s) ease-in-out infinite alternate;transition:transform .8s var(--ease),opacity .8s}
+.file::before{content:"";position:absolute;top:0;right:0;width:46px;height:46px;border-radius:0 16px 0 14px;
+  background:linear-gradient(225deg,#c9d2e6 50%,transparent 50%)}
+.file span{display:block;padding:6px 14px;border-radius:8px;color:#fff;font-size:26px;margin-bottom:10px}
+.file small{font-size:22px;font-weight:400;color:#5a6680}
+@keyframes pop{from{opacity:0;transform:translate(var(--x),var(--y)) rotate(var(--r)) scale(.3)}
+  to{opacity:1;transform:translate(var(--x),var(--y)) rotate(var(--r))}}
+@keyframes drift{to{transform:translate(calc(var(--x) + 14px),calc(var(--y) - 12px)) rotate(calc(var(--r) * -1))}}
+.gather .file{animation:none;transform:translate(0,0) rotate(0) scale(.2);opacity:0}
+
+/* 여는 장면 4 — 이름 */
+.op4 .k{font-size:44px;color:#9cc0ff;font-weight:700;margin:0 0 18px;animation:up .6s var(--ease) both}
+.op4 h1{margin:0;font-size:104px;line-height:1.12;letter-spacing:-.05em;animation:up .7s .35s var(--ease) both}
+.op4 .s{margin-top:30px;font-size:34px;color:var(--mut);animation:up .6s .9s var(--ease) both}
+
+/* 미션 넘김 */
+#chap .num{font-size:300px;font-weight:700;line-height:1;color:transparent;-webkit-text-stroke:4px var(--blue);
+  margin-right:60px;animation:slideL .8s var(--ease) both}
+#chap .tt span{display:block;font-size:30px;font-weight:700;letter-spacing:.24em;color:var(--blue);animation:up .5s .2s var(--ease) both}
+#chap .tt b{display:block;margin:14px 0 12px;font-size:92px;letter-spacing:-.05em;animation:up .6s .35s var(--ease) both}
+#chap .tt em{display:block;font-style:normal;font-size:38px;color:var(--mut);animation:up .6s .6s var(--ease) both}
+@keyframes slideL{from{opacity:0;transform:translateX(-120px)}to{opacity:1;transform:none}}
+
+/* 끝 */
+.op5{display:flex;align-items:center;gap:90px;text-align:left}
+.op5 .qr{width:360px;height:360px;padding:22px;border-radius:28px;background:#fff;animation:pop2 .7s var(--ease) both}
+.op5 .qr img{width:100%;height:100%;display:block}
+.op5 .k{font-size:28px;color:#9cc0ff;font-weight:700;letter-spacing:.06em;margin:0 0 18px}
+.op5 h1{margin:0;font-size:92px;line-height:1.12;letter-spacing:-.05em}
+.op5 .url{margin:30px 0 8px;font-size:44px;font-weight:700;color:#fff}
+.op5 .s{margin:0;font-size:30px;color:var(--mut)}
+@keyframes pop2{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+<div id="brand"><i></i>화학사고 초동대응 지원 서비스</div>
+<div id="virt">가상 상황 · 실제 사고가 아닙니다</div>
+
+<div id="sit">
+  <div class="h"><i></i>가상 상황</div>
+  <div class="tm">오후 2:20</div>
+  <div class="pl">전남 여수 ○○화학</div>
+  <div class="ev">염산 누출</div>
+</div>
+
+<div id="phoneBox"><div id="phone"><div id="screen">
+  <div id="status"><span>14:21</span><span class="isl"></span>
+    <span class="r"><span>5G</span><span class="bat"></span></span></div>
+  <iframe id="app" name="app" title="실제 서비스 화면"></iframe>
+</div></div></div>
+
+<div id="side">
+  <ol id="prog">
+    <li data-n="1">01 방제 물품·장비</li>
+    <li data-n="2">02 주민 대피장소</li>
+    <li data-n="3">03 주민대피 문자</li>
+  </ol>
+  <div id="mis"></div>
+  <div id="feed"></div>
+</div>
+
+<div id="taps"></div>
+<div id="ring"></div>
+<div id="chap"></div>
+<div id="full"></div>
+
+<script>
+/* 무대 — 녹화 스크립트가 page.evaluate 로 부르는 것들 */
+const $ = (s) => document.querySelector(s);
+const 쉼 = (ms) => new Promise((r) => setTimeout(r, ms));
+
+const 그림 = {
+  box: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"><path d="M8 20l24-11 24 11v25L32 56 8 45z"/><path d="M8 20l24 11 24-11M32 31v25"/></svg>',
+  run: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"><path d="M12 56V8h26v48"/><path d="M38 32h16M47 24l8 8-8 8"/><circle cx="31" cy="33" r="2" fill="currentColor"/></svg>',
+  msg: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"><rect x="17" y="5" width="30" height="54" rx="6"/><path d="M24 20h16M24 28h16M24 36h10"/><circle cx="32" cy="50" r="2" fill="currentColor"/></svg>',
+  link: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.6" stroke-linecap="round"><path d="M27 37l10-10"/><path d="M30 21l5-5a10 10 0 0 1 14 14l-5 5M34 43l-5 5a10 10 0 0 1-14-14l5-5"/></svg>',
+  pc: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"><rect x="6" y="10" width="52" height="34" rx="4"/><path d="M22 54h20M32 44v10"/><path d="M24 22l16 12M40 22L24 34" opacity=".55"/></svg>',
+  hand: '<svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linejoin="round" stroke-linecap="round"><path d="M32 6l20 8v15c0 13-9 22-20 27C21 51 12 42 12 29V14z"/><path d="M23 31l7 7 12-14"/></svg>',
+};
+
+/* 휴대전화 자리(확대 계산용). 기본은 1.3배 — 1080 화면에 휴대전화 글자가
+   20px 안팎으로 보여야 노트북 화면에서도 읽힙니다. 그래서 휴대전화 화면 높이를
+   아이폰 사파리에서 실제로 보이는 만큼(700)으로 잡았습니다 — 꽉 찬 844 로 두면
+   1.12배까지밖에 못 키웁니다. */
+const P0 = { x: 368, y: 41 }, S0 = 1.3;
+let 지금 = { tx: 0, ty: 0, s: S0 };
+const 놓기 = () => { $('#phoneBox').style.transform =
+  `translate(${지금.tx}px,${지금.ty}px) scale(${지금.s})`; };
+
+window.무대 = {
+  열기(url) { $('#app').src = url; },
+
+  /* 손가락 자리 — 녹화에는 터치가 찍히지 않아 무엇을 눌렀는지 보이지 않습니다 */
+  톡(x, y) {
+    const d = document.createElement('div');
+    d.className = 'tap'; d.style.left = x + 'px'; d.style.top = y + 'px';
+    $('#taps').appendChild(d);
+    setTimeout(() => d.remove(), 1300);
+  },
+
+  /* 한 자리를 크게 — 휴대전화 전체를 그 자리 중심으로 키웁니다.
+     오른쪽 자막 칸(x 990~)을 덮지 않게 목표 자리를 왼쪽으로 붙잡습니다. */
+  확대(r, S = 1.8, 목표 = { x: 640, y: 560 }) {
+    const lx = (r.x + r.width / 2 - P0.x - 지금.tx) / 지금.s;
+    const ly = (r.y + r.height / 2 - P0.y - 지금.ty) / 지금.s;
+    const w = r.width / 지금.s, h = r.height / 지금.s;
+    const 오른끝 = 목표.x + S * (418 - lx);
+    const 목x = 오른끝 > 985 ? 목표.x - (오른끝 - 985) : 목표.x;
+    지금 = { tx: 목x - P0.x - S * lx, ty: 목표.y - P0.y - S * ly, s: S };
+    놓기();
+    $('#sit').classList.add('off');
+    const g = $('#ring');
+    setTimeout(() => {
+      Object.assign(g.style, { left: (목x - S * w / 2 - 10) + 'px', top: (목표.y - S * h / 2 - 10) + 'px',
+        width: (S * w + 20) + 'px', height: (S * h + 20) + 'px' });
+      g.classList.add('on');
+    }, 900);
+  },
+  원래() {
+    $('#ring').classList.remove('on');
+    지금 = { tx: 0, ty: 0, s: S0 }; 놓기();
+    $('#sit').classList.remove('off');
+  },
+
+  말(t, 종류) {
+    const f = $('#feed');
+    [...f.children].forEach((e) => e.classList.add('old'));
+    while (f.children.length > 2) f.firstElementChild.remove();
+    const n = (f.dataset.n = (+f.dataset.n || 0) + 1);
+    const d = document.createElement('div');
+    d.className = 'say' + (종류 === 'key' ? ' key' : '');
+    d.innerHTML = `<span class="n">${종류 === 'key' ? '✓' : n}</span><span>${t}</span>`;
+    f.appendChild(d);
+  },
+
+  진행(n) {
+    document.querySelectorAll('#prog li').forEach((li) => {
+      const k = +li.dataset.n;
+      li.className = k === n ? 'now' : k < n ? 'done' : '';
+    });
+  },
+
+  async 미션(n, 제목, 부제) {
+    const C = $('#chap');
+    C.innerHTML = `<div class="num">0${n}</div><div class="tt"><span>MISSION 0${n}</span>`
+      + `<b>${제목}</b><em>${부제}</em></div>`;
+    C.classList.add('on');
+    await 쉼(700);
+    this.진행(n);
+    $('#mis').innerHTML = `<span class="k">MISSION 0${n}</span><h2>${제목}</h2><p>${부제}</p>`;
+    const f = $('#feed'); f.innerHTML = ''; f.dataset.n = 0;
+    await 쉼(1900);
+    C.classList.remove('on');
+    await 쉼(650);
+  },
+
+  /* 미션을 마칠 때 찍는 도장 — 지금 어디까지 왔는지를 게임처럼 보여 줍니다
+     (사용자 — "흥미진진하게"). 오른쪽 칸에만 찍고 휴대전화는 가리지 않습니다. */
+  async 완료(n, 한줄) {
+    const d = document.createElement('div');
+    d.className = 'stamp';
+    d.innerHTML = `<b>✓</b><div><span>MISSION 0${n}</span>완료</div>` + (한줄 ? `<em>${한줄}</em>` : '');
+    $('#side').appendChild(d);
+    document.querySelector(`#prog li[data-n="${n}"]`).className = 'done';
+    await 쉼(2300);
+    d.classList.add('out');
+    await 쉼(450);
+    d.remove();
+  },
+
+  머리(k, 제목, 부제) {
+    $('#mis').innerHTML = `<span class="k">${k}</span><h2>${제목}</h2>` + (부제 ? `<p>${부제}</p>` : '');
+  },
+
+  /* ── 여는 장면 (약 16초) ── */
+  async 표지() {
+    const F = $('#full');
+    F.innerHTML = `<div class="op op1"><div class="sir"></div>
+      <span class="tag">가상 상황 · 실제 사고가 아닙니다</span>
+      <div class="t1">오후 2시 20분</div><div class="t2">전남 여수 ○○화학</div>
+      <div class="t3">염산 누출</div></div>`;
+    F.classList.add('on');
+    await 쉼(4300);
+    F.innerHTML = `<div class="op op2"><p class="lead">지자체 담당자가 지금 바로 해야 할 일</p><ul>
+      <li>${그림.box}<b>방제 물품·장비</b>를<br>구하고</li>
+      <li>${그림.run}<b>주민 대피장소</b>를<br>정하고</li>
+      <li>${그림.msg}<b>주민에게</b><br>재난문자를 보냅니다</li></ul></div>`;
+    await 쉼(4400);
+    const 파일 = [
+      ['엑셀', '#1f8a4c', '-560px', '-150px', '-10deg', '.0s', '업체 목록'],
+      ['한글', '#2d6ad8', '-300px', '120px', '7deg', '.25s', '공문'],
+      ['PDF', '#d64040', '-40px', '-170px', '-4deg', '.5s', '현황'],
+      ['스캔', '#7a5bd1', '230px', '130px', '9deg', '.75s', '허가증'],
+      ['엑셀', '#1f8a4c', '500px', '-140px', '-8deg', '1.0s', '대피장소'],
+    ];
+    F.innerHTML = `<div class="op3"><p class="lead">그런데 필요한 자료는</p>`
+      + 파일.map(([a, c, x, y, r, d, s]) => `<div class="file" style="--x:${x};--y:${y};--r:${r};--d:${d}">`
+        + `<span style="background:${c}">${a}</span><small>${s}</small></div>`).join('')
+      + `<p class="lead2">기관마다 · 파일마다 흩어져 있습니다</p></div>`;
+    await 쉼(3900);
+    F.firstElementChild.classList.add('gather');
+    await 쉼(900);
+    F.innerHTML = `<div class="op op4"><p class="k">사고 현장에서, 휴대전화 하나로</p>
+      <h1>화학사고 초동대응<br>지원 서비스</h1>
+      <p class="s">방제 물품·장비 · 주민 대피장소 · 주민대피 문자</p></div>`;
+    await 쉼(3600);
+    F.classList.remove('on');
+    await 쉼(700);
+    F.innerHTML = '';
+  },
+
+  /* ── 마무리 (약 13초) ── */
+  async 마무리() {
+    this.진행(4);
+    this.원래();
+    $('#sit').classList.add('off');
+    $('#virt').style.opacity = '0';
+    this.머리('정리하면', '사고 현장에서,<br>휴대전화 하나로');
+    const f = $('#feed'); f.innerHTML = '';
+    const 줄 = [
+      [그림.link, '링크 하나로 열립니다', '설치 · 회원가입 없이 — QR 로도'],
+      /* '같은 화면'이라고 쓰지 않습니다 — 한 파일판에는 배경지도·주소 검색이 빠집니다 */
+      [그림.pc, '인터넷이 안 되는 업무망 PC 도', '파일 하나로 열립니다'],
+      [그림.hand, '판단은 담당자가 합니다', '서비스는 자료를 모아 가까운 순으로 보여 줍니다'],
+    ];
+    for (const [g, a, b] of 줄) {
+      const d = document.createElement('div');
+      d.className = 'pt'; d.innerHTML = `${g}<div>${a}<em>${b}</em></div>`;
+      f.appendChild(d);
+      await 쉼(1700);
+    }
+    await 쉼(2600);
+    const F = $('#full');
+    F.innerHTML = `<div class="op5"><div class="qr"><img src="../docs/QR/QR_접속.svg" alt=""></div>
+      <div><p class="k">2026 공공 AI 대전환 챌린지 · 세션1</p>
+      <h1>화학사고 초동대응<br>지원 서비스</h1>
+      <p class="url">chem-safety-kr.pages.dev</p>
+      <p class="s">휴대전화 카메라로 QR 을 비추면 바로 열립니다</p></div></div>`;
+    F.classList.add('on');
+    await 쉼(5200);
+  },
+};
+</script>
+</body>
+</html>
