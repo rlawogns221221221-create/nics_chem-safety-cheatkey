@@ -90,8 +90,10 @@ iframe#app{display:block;border:0;width:390px;height:700px;background:#fff}
 
 /* ── 오른쪽 — 진행 · 미션 · 자막 ── */
 #side{position:absolute;left:1010px;top:0;width:850px;height:1080px;z-index:6}
-#prog{position:absolute;left:0;top:110px;display:flex;gap:12px;margin:0;padding:0;list-style:none}
-#prog li{padding:10px 18px;border-radius:999px;font-size:20px;font-weight:700;color:#7f90b3;
+/* 진행 띠 — 네 칸이 오른쪽 칸(850px) 안에 한 줄로 들어가게 글자를 한 단 줄였습니다
+   (04 현장 안전거리를 더하며 · 20 → 18px) */
+#prog{position:absolute;left:0;top:110px;display:flex;gap:9px;margin:0;padding:0;list-style:none}
+#prog li{padding:10px 14px;border-radius:999px;font-size:18px;font-weight:700;color:#7f90b3;white-space:nowrap;
   border:2px solid #22345e;background:rgba(10,22,50,.6);transition:all .5s var(--ease)}
 #prog li.now{color:#fff;background:var(--blue2);border-color:var(--blue2);box-shadow:0 0 24px rgba(37,110,244,.55)}
 #prog li.done{color:#bfe9d2;border-color:#2b6b4c}
@@ -183,6 +185,7 @@ iframe#app{display:block;border:0;width:390px;height:700px;background:#fff}
     <li data-n="1">01 주민 대피장소</li>
     <li data-n="2">02 주민대피 문자</li>
     <li data-n="3">03 방제 물품·장비</li>
+    <li data-n="4">04 현장 안전거리</li>
   </ol>
   <div id="mis"></div>
   <div id="feed"></div>
@@ -307,7 +310,7 @@ window.무대 = {
     const F = $('#full');
     F.innerHTML = `<div class="op op4"><p class="k">사고 현장에서, 휴대전화 하나로</p>
       <h1>화학사고 초동대응<br>지원 서비스</h1>
-      <p class="s">주민 대피장소 · 주민대피 문자 · 방제 물품·장비</p></div>`;
+      <p class="s">주민 대피장소 · 주민대피 문자 · 방제 물품·장비 · 현장 안전거리</p></div>`;
     F.classList.add('on');
     await 쉼(ms);
     F.classList.remove('on');
@@ -325,7 +328,7 @@ window.무대 = {
 
   /* ── 마무리 (약 13초) ── */
   async 마무리() {
-    this.진행(4);
+    this.진행(5);                 // 네 칸 모두 '완료'
     this.원래();
     this.머리('정리하면', '사고 현장에서,<br>휴대전화 하나로');
     const f = $('#feed'); f.innerHTML = '';

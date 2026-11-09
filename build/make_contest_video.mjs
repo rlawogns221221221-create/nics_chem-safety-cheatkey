@@ -19,6 +19,13 @@
    · 02 의 사고물질은 **암모니아**(사용자 지정).
    · 03 은 **업체 섭외와 방제물품 찾기 둘 다** 보여 줍니다(사용자 — "이 두 가지가
      다 보여지면 좋을 것 같아").
+   · **04 현장 안전거리 확인을 맨 뒤에** 넣었습니다(2026-11-09 사용자 — "시연 영상을
+     네 번째 도구까지 포함해서"). 현장 근무자가 물질(암모니아)을 고르고 내 위치를
+     켠 뒤, 내 위치에서 남서쪽으로 약 700m 떨어진 곳을 사고지점으로 찍고 남서풍을
+     고릅니다 — 그러면 방호활동 구역이 내 쪽으로 퍼져 **「방호활동 구역 안」** 이
+     실제로 나옵니다. 화면은 사실(구역 안·밖)만 적으므로 나레이션도 그렇게만 말합니다.
+     낮·밤은 굽는 시각의 일출·일몰로 저절로 정해져 거리 숫자가 판마다 다를 수 있어,
+     나레이션에 숫자를 넣지 않습니다.
    · **업체명과 전화번호는 흐리게 가립니다**(사용자 — "업체명과 번호는 안 보일 수
      있게"). 실제 자료라 실제 회사가 나오기 때문입니다. 대피장소(학교·주민센터)
      이름은 공공시설이라 그대로 두고, 전화번호는 어디서든 가립니다.
@@ -364,7 +371,7 @@ await p.evaluate(() => window.무대.머리('시작', '링크 하나로 열립�
 await 나레이션('여는말2');
 await 말('<b>QR</b> 을 비추거나 링크를 누르면 바로 이 화면');
 await 나레이션('첫화면');
-await 말('<b>01 대피장소 · 02 문자 · 03 방제</b> — 차례대로 해 봅니다');
+await 말('<b>01 대피장소 · 02 문자 · 03 방제 · 04 안전거리</b> — 차례대로');
 await 말다하기();
 await 누르기('#tools .pn', { 뒤: 200 });
 
@@ -530,7 +537,77 @@ await 누르기('.rkd-close', { 뒤: 500 });
 await p.evaluate(() => window.무대.완료(3, '업체 섭외 · 방제물품 · 연락처와 수량'));
 await 말다하기();
 
-/* ══ 4. 마무리 ═════════════════════════════════════════════ */
+/* ══ 4. 04 현장 안전거리 확인 ═════════════════════════════════
+   현장에 나간 근무자 본인이 쓰는 화면입니다. 내 위치(여수 주삼동 · 위 geolocation)를
+   켜고, 거기서 남서쪽으로 약 700m 떨어진 곳을 사고지점으로 찍습니다. 남서풍이면
+   방호활동 구역이 북동쪽(내 쪽)으로 퍼져 「방호활동 구역 안」 이 나오고, 초기이격
+   거리(암모니아 대규모 300m)보다는 멀어 그 밖입니다 — 두 구역의 차이가 보입니다.
+   지도 위 자리는 **축척 막대로 픽셀을 세어** 정합니다(확대 정도가 바뀌어도 같은 거리). */
+const 미션4 = p.evaluate(() => window.무대.미션(4, '내가 선 자리, 구역 안일까?', '04 현장 안전거리 확인'));
+await 잠깐(500);
+await 열기('safe/index.html');
+await 나레이션('안전_시작');
+await 미션4;
+await 나레이션('안전_물질');
+await 말('사고 물질을 고르면 — <b>초기이격 · 방호활동 거리</b>를 읽어 옵니다', '', 400);
+await 치기('#sfMat', '암모니아', 140);
+await 잠깐(600);
+const 물질줄4 = 앱().locator('.mpk-row', { hasText: '암모니아' }).first();
+await 누르기((await 물질줄4.count()) ? 물질줄4 : 앱().locator('.mpk-row').first(), { 뒤: 800 });
+await 말다하기();
+await 나레이션('안전_위치');
+await 말('<b>내 위치</b>를 켜고, 지도에서 <b>사고지점</b>을 찍습니다', '', 400);
+await 누르기('#btnWatch', { 뒤: 1600 });
+await 보이게(찾기('#map'));
+await 타일기다리기();
+const 사고자리 = await 앱().evaluate(() => {
+  const me = document.querySelector('#map circle.me');
+  const box = document.querySelector('#map').getBoundingClientRect();
+  const bar = document.querySelector('#scaleBar').getBoundingClientRect().width;
+  const m = /([\d.]+)\s*(k?m)/.exec(document.querySelector('#scaleTxt').textContent || '');
+  if (!me || !m || !bar) return null;
+  const 한칸 = (+m[1] * (m[2] === 'km' ? 1000 : 1)) / bar;          // 1px 이 몇 m 인가
+  const r = me.getBoundingClientRect(), d = 700 / 한칸 / Math.SQRT2;  // 남서쪽 700m
+  const 붙잡기 = (v, a, b) => Math.min(b, Math.max(a, v));
+  return { fx: 붙잡기((r.x + r.width / 2 - d - box.x) / box.width, 0.1, 0.9),
+           fy: 붙잡기((r.y + r.height / 2 + d - box.y) / box.height, 0.2, 0.86) };
+});
+if (!사고자리) 문제.push('04 — 내 위치 표시나 축척을 못 찾아 사고지점을 어림 자리에 찍었습니다');
+await 누르기('#map', { 앞: 450, 뒤: 1300, ...(사고자리 || { fx: 0.4, fy: 0.62 }) });
+await 말다하기();
+await 나레이션('안전_규모');
+await 말('유출 규모는 <b>현장이 정하고</b>, 바람은 <b>나침반</b>으로', '', 400);
+await 맨위로();
+await 누르기('#segSize button[data-v="l"]', { 뒤: 700 });
+await 누르기('#windBtn', { 뒤: 900 });
+await 누르기('#windPop .wr-b[data-deg="225"]', { 뒤: 1300 });
+await 말다하기();
+await 나레이션('안전_결과');
+await 말('구역이 지도에 — <b>내 위치가 그 안인지</b> 바로', '', 400);
+await 보이게(찾기('#map'));
+await 타일기다리기(2500);
+await 잠깐(1200);
+await 맨위로(600);
+if (!(await 앱().locator('#sfStat .sf-pt.me.pad, #sfStat .sf-pt.me.iso').count()))
+  문제.push('04 — 내 위치가 구역 안으로 나오지 않았습니다(사고지점 자리를 확인하세요)');
+await 크게('#sfStat .sf-pt.me', 1.65, 3000);
+await 말('위험 · 안전을 단정하지 않고 <b>구역 안 · 밖</b>만 적습니다', 'key', 2200);
+await 말다하기();
+await 나레이션('안전_누름');
+await 말('지도를 누르면 <b>그 자리</b>도 확인', '', 400);
+/* 바람이 불어오는 쪽(남서) 아래 귀퉁이 — 두 구역 밖. 축척 막대·범례를 피합니다. */
+await 누르기('#map', { 앞: 400, 뒤: 1300, fx: 0.24, fy: 0.74 });
+await 맨위로(600);
+if (await 앱().locator('#sfStat .sf-pt.probe').count()) await 크게('#sfStat .sf-pt.probe', 1.65, 2600);
+else 문제.push('04 — 누른 곳 결과가 나오지 않았습니다');
+await 말다하기();
+await 나레이션('안전_표');
+await 말('규모 · 낮 · 밤에 따른 거리는 <b>표</b>로', '', 400);
+await 크게('.sf-tbl', 1.5, 3000);
+await p.evaluate(() => window.무대.완료(4, '초기이격 · 방호활동 구역 · 내 위치'));
+await 말다하기();
+
+/* ══ 5. 마무리 ═════════════════════════════════════════════ */
 const 마무리 = p.evaluate(() => window.무대.마무리());
 await 잠깐(300);
 await 나레이션('맺음1');
