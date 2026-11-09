@@ -31,6 +31,12 @@ var esc = function (s) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
   });
 };
+/* 물질정보 글 — 원문의 항목(•)·나눔(/ · [ ] · ※)마다 줄을 바꿔 보입니다
+   (assets/matpicker.js 의 textHtml · 2026-11-09 사용자 댓글 "줄바꿈이 안 되어 있네").
+   그 파일이 없으면 예전처럼 한 줄로 둡니다. */
+function mtxt(s) {
+  return window.MatPicker && MatPicker.textHtml ? MatPicker.textHtml(s) : esc(s);
+}
 
 var MC = window.MAPCORE;
 var wx = MC.wx, wy = MC.wy, wxInv = MC.wxInv, wyInv = MC.wyInv;
@@ -1726,12 +1732,14 @@ function rkDetOpen(i) {
   }
 
   /* 업체 갈래 — 허가현황·처리가능 폐기물은 원문 그대로 옮깁니다. 줄여 쓰면
-     "이 업체가 무엇을 받는가" 가 달라집니다. */
+     "이 업체가 무엇을 받는가" 가 달라집니다. 허가를 여럿 가진 곳은 원문이 「 / 」
+     로 이어 붙여 한 줄로 흘렀습니다(190곳) — 물질정보 글과 같은 규칙(mtxt)으로
+     허가마다 줄을 바꿉니다. 글자는 그대로입니다(2026-11-09 사용자 댓글). */
   var 허가 = "";
   if (s.lic || s.wst || s.eq) {
     허가 = '<div class="rkd-sec"><h4>맡길 수 있는 것</h4><dl class="rkd-dl">'
-      + (s.wst ? "<dt>처리가능 지정폐기물</dt><dd>" + esc(s.wst) + "</dd>" : "")
-      + (s.lic ? "<dt>허가현황</dt><dd>" + esc(s.lic) + "</dd>" : "")
+      + (s.wst ? "<dt>처리가능 지정폐기물</dt><dd>" + mtxt(s.wst) + "</dd>" : "")
+      + (s.lic ? "<dt>허가현황</dt><dd>" + mtxt(s.lic) + "</dd>" : "")
       + (s.eq ? "<dt>보유 장비</dt><dd>" + esc(s.eq) + "</dd>" : "")
       + "</dl></div>";
   }
@@ -1937,7 +1945,7 @@ function renderRad() {
     [["초기이격거리 (전 방향)", m.d1], ["방호활동거리 (풍하방향)", m.d2],
      ["화재 동반 시 대피거리", m.d3]].forEach(function (x) {
       if (!x[1]) return;
-      rows.push("<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>");
+      rows.push("<dt>" + esc(x[0]) + "</dt><dd>" + mtxt(x[1]) + "</dd>");
       pickDistances(x[1]).forEach(function (v) {
         if (btns.indexOf(v) < 0) btns.push(v);
       });
@@ -1956,7 +1964,7 @@ function renderRad() {
         ? '<details class="mr-more noprint"><summary>물질정보 원문</summary>'
           + "<dl>" + rows.join("") + "</dl>"
           + '<p class="src">' + esc(VERSION.물질정보_출처)
-          + " 에 적힌 참고 거리입니다. 확산 모델링 결과가 아니며, 대피 범위 판단은 담당자가 합니다.</p>"
+          + "에 적힌 참고 거리입니다. 확산 모델링 결과가 아니며, 대피 범위 판단은 담당자가 합니다.</p>"
           + "</details>"
         : "");
   bindRad();

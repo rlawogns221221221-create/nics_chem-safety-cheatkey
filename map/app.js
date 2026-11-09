@@ -29,6 +29,12 @@ var esc = function (s) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
   });
 };
+/* 물질정보 글 — 원문의 항목(•)·나눔(/ · [ ] · ※)마다 줄을 바꿔 보입니다
+   (assets/matpicker.js 의 textHtml · 2026-11-09 사용자 댓글 "줄바꿈이 안 되어 있네").
+   그 파일이 없으면 예전처럼 한 줄로 둡니다. */
+function mtxt(s) {
+  return window.MatPicker && MatPicker.textHtml ? MatPicker.textHtml(s) : esc(s);
+}
 
 var MC = window.MAPCORE;
 var wx = MC.wx, wy = MC.wy, wxInv = MC.wxInv, wyInv = MC.wyInv;
@@ -938,7 +944,7 @@ function renderRad() {
     [["초기이격거리 (전 방향)", m.d1], ["방호활동거리 (풍하방향)", m.d2],
      ["화재 동반 시 대피거리", m.d3]].forEach(function (x) {
       if (!x[1]) return;
-      rows.push("<dt>" + esc(x[0]) + "</dt><dd>" + esc(x[1]) + "</dd>");
+      rows.push("<dt>" + esc(x[0]) + "</dt><dd>" + mtxt(x[1]) + "</dd>");
       pickDistances(x[1]).forEach(function (v) {
         if (btns.indexOf(v) < 0) btns.push(v);
       });
@@ -957,7 +963,7 @@ function renderRad() {
         ? '<details class="mr-more noprint"><summary>물질정보 원문</summary>'
           + "<dl>" + rows.join("") + "</dl>"
           + '<p class="src">' + esc(VERSION.물질정보_출처)
-          + " 에 적힌 참고 거리입니다. 확산 모델링 결과가 아니며, 대피 범위 판단은 담당자가 합니다.</p>"
+          + "에 적힌 참고 거리입니다. 확산 모델링 결과가 아니며, 대피 범위 판단은 담당자가 합니다.</p>"
           + "</details>"
         : "");
   bindRad();

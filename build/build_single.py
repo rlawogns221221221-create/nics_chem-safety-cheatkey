@@ -206,10 +206,12 @@ def build(page: pathlib.Path, out: pathlib.Path, swap=None) -> None:
 #
 # 도구로 가는 링크는 파일 안에서는 열 수 없으므로 Artifact 주소로 바꿉니다.
 # 주소는 CLAUDE.md 5절의 표와 같아야 합니다 — 링크를 새로 올리면 여기도 고치세요.
+# ①②③ 의 예전 확인용 링크(claude.ai/code/artifact/…)는 다른 조직 계정에 있어 이
+# 세션에서 갱신할 수 없습니다 — 2026-11-09 지금 계정에 새로 올린 주소로 바꿨습니다.
 PORTAL_LINKS = {
-    "map/index.html": "https://claude.ai/code/artifact/c10d00e5-8ad9-454e-9caf-b4f010f00ef8",
-    "sms/index.html": "https://claude.ai/code/artifact/a42de0d3-9c73-4d67-b048-b4bf9c9c2c53",
-    "res/index.html": "https://claude.ai/code/artifact/26c97527-e8ce-4629-8c12-0790afdceb87",
+    "map/index.html": "https://claude.ai/artifact/GyS4bczn5auvbhrqnDTw22",
+    "sms/index.html": "https://claude.ai/artifact/5gk8Mr9KdjuRRN31iqkNdz",
+    "res/index.html": "https://claude.ai/artifact/ELSRgTEet3cEArJeXrANVe",
     "safe/index.html": "https://claude.ai/artifact/1AfwreaztHLfTiu7iSU3CY",
 }
 PORTAL_BANNER = """<!-- ────────────────────────────────────────────────────────────

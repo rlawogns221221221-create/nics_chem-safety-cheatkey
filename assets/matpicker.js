@@ -247,5 +247,63 @@ if (window.visualViewport) {
   window.visualViewport.addEventListener("scroll", function () { if (input) place(); });
 }
 
-window.MatPicker = { close: close, refresh: function () { READY = false; ALL = []; } };
+/* ── 물질정보 글을 읽기 좋게 나눠 보이기 ─────────────────────────────
+   2026-11-09 사용자 댓글 — "줄바꿈이 안 되어 있네. 이런 거 다 찾아내서 고쳐야 해".
+   원문(화학물질안전원 「현장대응 물질정보」)은 항목을 「•」 로만 이어 적어,
+   화면에서 "…밤: 4.5km 이내 •소규모 유출시 …" 처럼 한 줄로 흘렀습니다.
+   **글자는 한 자도 고치지 않고**, 원문에 이미 있는 나눔 표시에서만 줄을 바꿉니다.
+   · 「•」          항목 — 줄을 바꾸고 앞에 점을 둡니다
+   · 「 / 」        소규모 / 대규모 · 육지 / 수계 (빗금 앞이 띄어진 것만) —
+                    「•」 로 나뉜 글이면 그 항목의 아랫줄, 아니면 그 자체로 항목.
+                    "입/인두/식도" 처럼 붙여 쓴 빗금은 낱말 안이라 나누지 않습니다.
+   · 「[대량 유출]」 꺾쇠 머리 · 「(소규모)」「(대규모)」 괄호 머리 — 그 앞에서
+                    나눔(빗금과 같은 규칙). 괄호는 규모 낱말일 때만 — "(※…)" 나
+                    "(입/인두)" 같은 덧붙임은 나누지 않습니다.
+   · 「 ※…」「 *…」 덧말 — 그 앞에서 나눔. "(※풍속·운반용기에 따름)" 처럼 괄호
+                    안이거나 "KMARK-1*" 처럼 붙은 것은 그대로 둡니다.
+   덧말도 같은 크기·같은 색입니다 — "※ 조직이 얼지 않은 경우: 물로 15분간 세척"
+   같은 응급조치가 덧말 자리에 있어 흐리게 두면 안 됩니다.
+   나눌 것이 없으면 원문 그대로(이스케이프만) 돌려줍니다. 줄바꿈 문자는 넣지
+   않습니다 — ① 의 물질정보 칸은 white-space:pre-line 이라 빈 줄이 생깁니다. */
+function textHtml(s) {
+  /* 쉼표 뒤 띄어쓰기만 화면에서 채웁니다 — 원문의 "신선한공기,산소공급,인공호흡" 은
+     쉼표 뒤가 붙어 있어 줄을 꺾을 자리가 없고 읽기도 어렵습니다. 낱말은 그대로이고
+     "1,000" 같은 숫자 안 쉼표는 건드리지 않습니다. */
+  s = String(s == null ? "" : s).replace(/\s+/g, " ").replace(/,(?=[^\s\d])/g, ", ").trim();
+  if (!s) return "";
+  var bul = s.split(/\s*•\s*/).filter(function (x) { return x; });
+  var hasBul = bul.length > 1;
+  var items = [];
+  bul.forEach(function (b) {
+    var parts = b.split(/\s+(?=[※*])/);
+    var notes = parts.slice(1);
+    var pieces = parts[0].split(/\s+\/\s*|\s+(?=\[)|\s+(?=\((?:소규모|대규모|소량|대량)[^)]*\))/)
+      .filter(function (x) { return x; });
+    if (hasBul || pieces.length < 2) {
+      items.push({ t: pieces[0] || "", subs: pieces.slice(1), notes: notes });
+    } else {
+      pieces.forEach(function (p, i) {
+        items.push({ t: p, subs: [], notes: i === pieces.length - 1 ? notes : [] });
+      });
+    }
+  });
+  /* 「밤: 4.5km 이내」 같은 거리 한 토막은 한 줄에 — 좁은 화면에서 "밤: / 4.5km"
+     로 갈라져 어느 숫자가 낮·밤인지 읽기 어려웠습니다(글자는 그대로, 묶기만) */
+  var e = function (x) {
+    return esc(x).replace(/(?:(?:낮|밤|반경|육지|수계)\s*:?\s*)?\d[\d.]*\s*k?m\+?(?:\s*(?:이내|이상))?/g,
+      function (k) { return '<span class="mtx-k">' + k + "</span>"; });
+  };
+  var inner = function (it) {
+    return e(it.t)
+      + it.subs.map(function (x) { return '<span class="mtx-s">' + e(x) + "</span>"; }).join("")
+      + it.notes.map(function (x) { return '<span class="mtx-n">' + e(x) + "</span>"; }).join("");
+  };
+  /* 원문에 띄어쓰기가 없는 긴 토막("대규모유출시풍하방향으로육지낮1.0km,…")은
+     낱말 단위 줄바꿈(keep-all)으로는 꺾을 자리가 없어 좁은 화면 밖으로 넘칩니다 —
+     그래서 늘 .mtx/.mtx1 로 감싸 넘칠 때만 아무 자리에서나 꺾게 합니다(CSS). */
+  if (items.length === 1) return '<span class="mtx1">' + inner(items[0]) + "</span>";
+  return '<ul class="mtx">' + items.map(function (it) { return "<li>" + inner(it) + "</li>"; }).join("") + "</ul>";
+}
+
+window.MatPicker = { close: close, refresh: function () { READY = false; ALL = []; }, textHtml: textHtml };
 })();

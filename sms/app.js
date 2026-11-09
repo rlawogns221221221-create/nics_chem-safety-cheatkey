@@ -10,6 +10,12 @@ var esc = function (s) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
   });
 };
+/* 물질정보 글 — 원문의 항목(•)·나눔(/ · [ ] · ※)마다 줄을 바꿔 보입니다
+   (assets/matpicker.js 의 textHtml · 2026-11-09 사용자 댓글 "줄바꿈이 안 되어 있네").
+   그 파일이 없으면 예전처럼 한 줄로 둡니다. */
+function mtxt(s) {
+  return window.MatPicker && MatPicker.textHtml ? MatPicker.textHtml(s) : esc(s);
+}
 
 /* 글자수 — 코드포인트 단위(공백·문장부호 포함).
    실제 재난문자방송시스템의 산정 방식과 대조 후 확정해야 합니다. */
@@ -562,14 +568,18 @@ function renderMatInfo() {
   if (m.fe && !/없음|낮음|비인화성|불연/.test(m.fe)) head.push("<b>화재·폭발 가능</b>");
   if (m.hz >= 3) head.push("<b>건강위험 " + m.hz + "단계</b>");
 
+  /* [이름, 이미 만든 HTML] — 물질정보 글(거리·증상·응급조치)만 mtxt 로 줄을 나눕니다.
+     증기밀도 "1.27 / 1.19" 같은 칸까지 나누면 한 값이 두 줄로 갈라집니다. */
   var rows = [];
-  distanceInfo(m).forEach(function (x) { rows.push(x); });
-  if (m.fe) rows.push(["화재·폭발 가능성", m.fe]);
-  if (m.vd) rows.push(["증기밀도 / 비중", m.vd + (m.sg ? " / " + m.sg : "")]);
-  if (m.fp) rows.push(["인화점", m.fp + (m.el ? " · 폭발한계 " + m.el : "")]);
-  if (m.sy) rows.push(["흡입 시 증상", m.sy]);
-  var 응급 = [m.e3 && "눈: " + m.e3, m.e2 && "피부: " + m.e2, m.e1 && "흡입: " + m.e1]
-             .filter(Boolean).join("\n");
+  distanceInfo(m).forEach(function (x) { rows.push([x[0], mtxt(x[1])]); });
+  if (m.fe) rows.push(["화재·폭발 가능성", esc(m.fe)]);
+  if (m.vd) rows.push(["증기밀도 / 비중", esc(m.vd + (m.sg ? " / " + m.sg : ""))]);
+  if (m.fp) rows.push(["인화점", esc(m.fp + (m.el ? " · 폭발한계 " + m.el : ""))]);
+  if (m.sy) rows.push(["흡입 시 증상", mtxt(m.sy)]);
+  /* 눈·피부·흡입을 한 덩어리씩 — 예전에는 "\n" 으로 이어 pre-line 칸이 줄을 바꿨는데,
+     안의 글을 나누면서 HTML 로 묶었습니다(줄바꿈 문자를 섞으면 빈 줄이 생깁니다). */
+  var 응급 = [["눈", m.e3], ["피부", m.e2], ["흡입", m.e1]].filter(function (x) { return x[1]; })
+    .map(function (x) { return '<span class="mtx-g">' + x[0] + ": " + mtxt(x[1]) + "</span>"; }).join("");
   if (응급) rows.push(["응급조치", 응급]);
 
   box.innerHTML =
@@ -579,7 +589,7 @@ function renderMatInfo() {
     + "<span>" + head.join(" · ") + "</span>"
     + '<span class="more">물질정보</span></summary>'
     + '<div class="body"><dl>'
-    + rows.map(function (r) { return "<dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd>"; }).join("")
+    + rows.map(function (r) { return "<dt>" + esc(r[0]) + "</dt><dd>" + r[1] + "</dd>"; }).join("")
     + '</dl><p class="src">화학물질안전원 「화학사고 현장대응 물질정보」 발췌. '
     + "<b>대피 범위·행동요령의 판단 근거가 아니라 참고 자료입니다.</b> "
     + "거리 값은 지시받은 대상지역이 타당한지 대조하는 용도로만 보십시오.</p></div></details>";

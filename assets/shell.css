@@ -2609,6 +2609,21 @@ body.resapp:not(.has-acc) .list-hint{display:none}
 .mside .ms-hd{scroll-margin-top:8px}
 @media print{ .list-hint{display:none!important} }
 
+/* ── 물질정보 글의 줄바꿈 (matpicker.js 의 textHtml · 2026-11-09 사용자 댓글) ──
+   원문이 항목을 「•」 로만 이어 적어 한 줄로 흘렀습니다. 항목마다 줄을 바꾸고
+   점을 두되, 줄이 넘쳐 아랫줄로 갈 때 점 밑으로 들여 써서 다음 항목과 갈립니다.
+   ①②③④ 의 물질정보 칸이 모두 씁니다. 덧말(※ …)도 같은 크기·색입니다 —
+   응급조치가 덧말 자리에 있어 흐리게 두면 안 됩니다. */
+.mtx{list-style:none;margin:0;padding:0}
+.mtx,.mtx1{overflow-wrap:anywhere}
+.mtx li{position:relative;padding-left:1.1em}
+.mtx li + li{margin-top:2px}
+.mtx li::before{content:"•";position:absolute;left:.2em;color:var(--ink3)}
+.mtx-s,.mtx-n,.mtx-g{display:block}
+.mtx li .mtx-s{padding-left:.9em}
+.mtx-g + .mtx-g{margin-top:3px}
+.mtx-k{white-space:nowrap}
+
 /* ══ 04 현장 안전거리 확인 (safe/ · 2026-11-09) ══════════════════════
    휴대전화가 먼저입니다(CLAUDE.md 1절). 위에서부터 고르는 차례 그대로
    조건 → 지금 상태(답) → 지도 → 자세히 가 한 줄로 이어집니다.

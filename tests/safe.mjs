@@ -174,7 +174,30 @@ await ctx.setGeolocation({ ...ACC, accuracy: 15 });
    한다(읽는 중에 닫히면 안 됨). 화면에 '원문'이라는 말은 쓰지 않는다. */
 chk(await P.$eval('#sfInfo', d => !d.open), '물질 정보는 처음에 접혀 있다');
 await P.click('#sfInfo summary'); await P.waitForTimeout(200);
-chk((await P.textContent('#sfInfo')).includes('소규모 반경 30m / 대규모 반경 300m'), '펼치면 물질정보의 글이 그대로 나온다');
+/* 물질정보 글은 원문의 나눔 표시(• · / · [ ] · ※)마다 줄을 바꿉니다 — 한 줄로 흘러
+   읽기 어렵다는 사용자 댓글(2026-11-09). 글자는 한 자도 바꾸지 않습니다. */
+const ddl = await P.$$eval('#sfInfo dl:first-of-type dd', ds => ds.map(d =>
+  [...d.querySelectorAll('.mtx > li')].map(li => li.textContent.trim())));
+chk(ddl[0] && ddl[0].join('|') === '소규모 반경 30m|대규모 반경 300m 이내',
+  `초기이격거리 글이 규모마다 한 줄 (${(ddl[0] || []).join(' | ')})`);
+chk(ddl[1] && ddl[1].length === 2 && /^대규모 유출시/.test(ddl[1][0]) && /^소규모 유출시/.test(ddl[1][1]),
+  `방호활동거리 글이 「•」 항목마다 한 줄 (${(ddl[1] || []).map(x => x.slice(0, 8)).join(' | ')})`);
+/* 460종 전부 — 나눈 뒤에도 글자가 하나도 빠지지 않고, 「•」 가 남은 칸이 없어야 합니다 */
+const mt = await P.evaluate(() => {
+  const F = ['d1', 'd2', 'd3', 'sy', 'e1', 'e2', 'e3'], box = document.createElement('div');
+  let lost = [], dot = [], split = 0;
+  for (const m of MATERIALS) for (const f of F) {
+    const v = m[f]; if (!v) continue;
+    box.innerHTML = MatPicker.textHtml(v);
+    if (box.querySelector('li, span')) split++;
+    const a = box.textContent.replace(/[\s•\/]/g, ''), b = v.replace(/[\s•\/]/g, '');
+    if (a !== b) lost.push(m.n + ' ' + f);
+    if (/•/.test(box.textContent)) dot.push(m.n + ' ' + f);
+  }
+  return { lost, dot, split };
+});
+chk(mt.lost.length === 0, `물질정보 글을 나눠도 글자가 빠지지 않는다 (${mt.split}칸 나눔 · 빠진 곳 ${mt.lost.slice(0, 3).join(', ') || '없음'})`);
+chk(mt.dot.length === 0, `「•」 로 이어 붙은 채 남은 칸이 없다 (${mt.dot.slice(0, 3).join(', ') || '없음'})`);
 await P.click('#btnWatch'); await P.waitForTimeout(900);
 await ctx.setGeolocation(near(80, 0)); await P.waitForTimeout(1200);
 chk(await P.$eval('#sfInfo', d => d.open), '내 위치가 바뀌어 다시 그려도 펼친 채로 남는다');

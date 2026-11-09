@@ -31,6 +31,12 @@ var esc = function (s) {
     return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
   });
 };
+/* 물질정보 글 — 원문의 항목(•)·나눔(/ · [ ] · ※)마다 줄을 바꿔 보입니다
+   (assets/matpicker.js 의 textHtml · 2026-11-09 사용자 댓글 "줄바꿈이 안 되어 있네").
+   그 파일이 없으면 예전처럼 한 줄로 둡니다. */
+function mtxt(s) {
+  return window.MatPicker && MatPicker.textHtml ? MatPicker.textHtml(s) : esc(s);
+}
 
 var MC = window.MAPCORE, ERG = window.ERG;
 var wx = MC.wx, wy = MC.wy, wxInv = MC.wxInv, wyInv = MC.wyInv;
@@ -378,7 +384,7 @@ function renderMore() {
   var dl = function (rows) {
     rows = rows.filter(function (x) { return x[1]; });
     return rows.length ? '<dl class="sf-raw">' + rows.map(function (x) {
-      return "<dt>" + x[0] + "</dt><dd>" + esc(x[1]) + "</dd>";
+      return "<dt>" + x[0] + "</dt><dd>" + mtxt(x[1]) + "</dd>";
     }).join("") + "</dl>" : "";
   };
   var distH = dl(dist), aidH = dl(aid);

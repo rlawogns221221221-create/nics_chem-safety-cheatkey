@@ -205,9 +205,9 @@ python3 build/hwp읽기.py 파일.hwp  # hwp·hwpx 에서 글자 뽑기 (한 번
 | 진행 상황 쪽지 (사용자가 여는 링크) | `preview/index.html` | https://claude.ai/code/artifact/f2a94114-3606-4a66-a75c-655f049fecd8 |
 | **실제 진입 화면** (카드 넷 · 2026-11-09) | `preview/진입화면_한파일.html` | https://claude.ai/artifact/KMfUjqFvgYdB3CuC5BD9Ac |
 | (예전 진입 화면 · 카드 셋 · **다른 조직 계정**이라 이 세션에서 갱신 못 함) | 〃 | https://claude.ai/code/artifact/df4be102-cc11-4bbe-b160-7270e50d9826 |
-| ① 문자생성기 | `dist/화학사고_주민대피문자_생성기.html` | https://claude.ai/code/artifact/a42de0d3-9c73-4d67-b048-b4bf9c9c2c53 |
-| ② 주민 대피장소 찾기 | `dist/화학사고_주민대피장소_찾기.html` | https://claude.ai/code/artifact/c10d00e5-8ad9-454e-9caf-b4f010f00ef8 |
-| ③ 방제 물품·장비 찾기 | `dist/화학사고_방제물품장비_찾기.html` | https://claude.ai/code/artifact/26c97527-e8ce-4629-8c12-0790afdceb87 |
+| ① 문자생성기 | `dist/화학사고_주민대피문자_생성기.html` | https://claude.ai/artifact/5gk8Mr9KdjuRRN31iqkNdz (2026-11-09 새로 · 예전 `code/artifact/a42de0d3-…` 는 다른 조직 계정이라 갱신 못 함) |
+| ② 주민 대피장소 찾기 | `dist/화학사고_주민대피장소_찾기.html` | https://claude.ai/artifact/GyS4bczn5auvbhrqnDTw22 (2026-11-09 새로 · 예전 `code/artifact/c10d00e5-…`) |
+| ③ 방제 물품·장비 찾기 | `dist/화학사고_방제물품장비_찾기.html` | https://claude.ai/artifact/ELSRgTEet3cEArJeXrANVe (2026-11-09 새로 · 예전 `code/artifact/26c97527-…`) |
 | ④ 현장 안전거리 확인 | `dist/화학사고_현장안전거리_확인.html` | https://claude.ai/artifact/1AfwreaztHLfTiu7iSU3CY |
 | 디자인 방향 3안 (고르는 중) | `preview/design.html` | https://claude.ai/code/artifact/270fca8b-6a22-47b3-8dd1-58c66f0216bf |
 | 방제자원 원자료 정리 (검토용) | `docs/방제자원_정리/한눈에보기.html` | https://claude.ai/code/artifact/a4d7613d-8a20-4384-966e-3442d5edf5f3 |
@@ -1204,6 +1204,23 @@ CSS 는 `shell.css`·`portal.css` 맨 끝 **「휴대전화 다듬기 (2026-10-2
     생깁니다("지형· 용기"). 따옴표 뒤 조사는 붙여 씁니다("‘…’에서").
   · 내 위치가 사고지점 바로 위면 지도 이름표를 **「사고지점 · 내 위치」 하나로**
     씁니다 — 두 이름표가 겹쳐 둘 다 안 읽혔습니다.
+- **★ 물질정보 글은 원문의 나눔 표시마다 줄을 바꿉니다(같은 날 사용자 댓글 —
+  "줄바꿈이 안 되어 있네. 이런 거 다 찾아내서 고쳐야 해").** 원문은 항목을 「•」
+  로만 이어 적어 "…밤: 4.5km 이내 •소규모 유출시 …" 가 한 줄로 흘렀습니다.
+  `assets/matpicker.js` 의 **`MatPicker.textHtml()`** 하나가 나누고, **①②③④ 의
+  물질정보 칸과 ③ 세부사항 창의 허가현황·처리가능 폐기물**(「 / 」로 허가 여럿을
+  이어 붙인 곳 190곳)이 모두 씁니다(각 앱의 `mtxt()`).
+  · 나누는 자리 — 「•」 · 앞이 띄어진 「 / 」 · 「[대량 유출]」 · 「(소규모)」「(대규모)」 ·
+    괄호 밖 「 ※」「 *」 덧말. "입/인두/식도"·"(※풍속…)"·"KMARK-1*" 는 나누지 않습니다.
+  · **글자는 한 자도 바꾸지 않습니다** — 화면에서 쉼표 뒤 띄어쓰기만 채웁니다
+    ("신선한공기,산소공급" 은 꺾을 자리가 없어 좁은 화면 밖으로 넘쳤습니다).
+    「밤: 4.5km 이내」 같은 거리 토막은 한 줄로 묶습니다("밤: / 4.5km" 로 갈렸음).
+  · 덧말(※ …)도 같은 크기·색입니다 — "※ 조직이 얼지 않은 경우: 물로 15분간
+    세척" 같은 응급조치가 그 자리에 있습니다.
+  · 원문 자체의 붙여쓰기·오타("오염된의복을벗고다량의", "물질설취시")는 **고치지
+    않았습니다** — 화학물질안전원 자료라 사용자 확인 없이 바꾸지 않습니다.
+  · `tests/safe` 가 460종 전부를 나눠 보고 **빠진 글자가 없는지 · 「•」 가 남은 칸이
+    없는지** 셉니다.
 - **배경지도가 없어도 그대로 돕니다.** 이 개발 환경은 타일을 못 받아 모든 검증과
   사진이 **행정경계선만 있는 지도**에서 나왔습니다(망분리용 단일 파일 포함).
   구역 그리기·내 위치·누른 곳 판정은 좌표 계산이라 배경지도와 상관이 없습니다.
