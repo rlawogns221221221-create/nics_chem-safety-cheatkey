@@ -79,7 +79,7 @@ def main():
             print(f"  build/{n}: 인증키 {k}곳을 지웠습니다(받는 사람이 자기 키를 넣습니다)")
         (PKG / "build" / n).write_text(글, encoding="utf-8")
     shutil.copytree(ROOT / "tests", PKG / "tests",
-                    ignore=shutil.ignore_patterns("*.png", "__pycache__"))
+                    ignore=shutil.ignore_patterns("*.png", "__pycache__", "node_modules"))
 
     # ④ 안내 — 심사위원이 먼저 읽는 것
     shutil.copy2(ROOT / "docs" / "공모전" / "GitLab_README.md", PKG / "README.md")
