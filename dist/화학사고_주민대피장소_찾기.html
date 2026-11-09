@@ -4214,6 +4214,30 @@ function data() {
 
 var pop = null, listEl = null, cntEl = null, input = null, rows = [], sel = -1;
 var silent = false;      // choose() 가 스스로 발생시킨 input 이벤트로 목록이 다시 열리지 않게
+var refocus = false;     // choose() 가 칸에 포커스를 되돌릴 때 '새로 찾기' 로 비우지 않게
+
+/* ── 다시 누르면 새로 찾기 (2026-11-09 사용자 댓글) ──────────────────
+   "물질을 검색했다가 다시 클릭하면 이전 내용을 직접 지우고 다시 눌러야 하는데,
+   클릭하면 새롭게 물질을 검색할 수 있게". 그래서 값이 있는 칸을 누르면
+   · 칸을 비우고 전체 목록(사고 많은 순)을 엽니다 — 바로 새 이름을 칠 수 있습니다.
+   · 지금 고른 물질은 칸 안에 흐린 글씨(placeholder)로 남겨 무엇이 골라져 있는지 보입니다.
+   · **아무것도 치거나 고르지 않고 나가면 원래 물질로 되돌립니다.** 칸만 비우고
+     input 이벤트를 내지 않으므로, 그동안 화면(구역·문안)은 원래 물질 그대로입니다.
+   · 쳤거나 골랐으면 그 값이 남습니다(지운 채로 나가면 빈 칸 — 사람이 지운 것). */
+var fresh = null;        // { el, prev, ph, typed }
+function startFresh(el) {
+  if (!el.value) return;
+  fresh = { el: el, prev: el.value, ph: el.getAttribute("placeholder"), typed: false };
+  el.value = "";
+  el.setAttribute("placeholder", fresh.prev);
+}
+function endFresh() {
+  var f = fresh;
+  fresh = null;
+  if (!f) return;
+  if (f.ph == null) f.el.removeAttribute("placeholder"); else f.el.setAttribute("placeholder", f.ph);
+  if (!f.typed && !f.el.value) f.el.value = f.prev;
+}
 
 function build() {
   if (pop) return;
@@ -4334,15 +4358,20 @@ function choose(i) {
   var el = input;                                   // close() 가 input 을 비우므로 먼저 잡아둔다
   if (!el || !rows[i]) return;
   el.value = rows[i].n;
+  if (fresh) fresh.typed = true;                    // 골랐으니 되돌리지 않습니다
   silent = true;
   try { el.dispatchEvent(new Event("input", { bubbles: true })); } finally { silent = false; }
   close();
-  try { el.focus(); } catch (e) {}
+  refocus = true;
+  try { el.focus(); } catch (e) {} finally { refocus = false; }
 }
 
-function open(el) {
+/* isNew — 사람이 칸을 누른 것(포커스·클릭)이면 '새로 찾기' 로 비웁니다.
+   치는 도중에 목록을 다시 여는 것(input)은 그대로 둡니다. */
+function open(el, isNew) {
   build();
   if (!data().length) return;                       // 물질 데이터가 없는 페이지
+  if (isNew && !(fresh && fresh.el === el)) { endFresh(); startFresh(el); }
   input = el;
   pop.hidden = false;
   render(el.value);
@@ -4352,13 +4381,14 @@ function open(el) {
 function close() {
   if (pop && !pop.hidden) { pop.hidden = true; sel = -1; }
   input = null;
+  endFresh();
 }
 
 build();
 
 document.addEventListener("focusin", function (e) {
   var t = e.target;
-  if (isTarget(t)) open(t);
+  if (isTarget(t)) { if (!refocus) open(t, true); }
   else if (pop && !pop.hidden && !pop.contains(t)) close();
 });
 
@@ -4368,13 +4398,14 @@ function isTarget(t) {
 
 document.addEventListener("input", function (e) {
   if (silent || !isTarget(e.target)) return;
+  if (fresh && fresh.el === e.target) fresh.typed = true;
   if (pop.hidden || input !== e.target) open(e.target);      // 닫혀 있어도 입력하면 다시 열기
   else { render(input.value); place(); }
 });
 
 /* 이미 포커스가 있는 칸을 다시 눌렀을 때도 열리도록 (focusin 이 안 오는 경우) */
 document.addEventListener("click", function (e) {
-  if (isTarget(e.target) && pop.hidden) open(e.target);
+  if (isTarget(e.target) && pop.hidden) open(e.target, true);
 });
 
 document.addEventListener("keydown", function (e) {

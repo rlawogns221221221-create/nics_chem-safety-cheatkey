@@ -243,6 +243,32 @@ chk(/방호활동\s*11km/.test(await P.textContent('#sfStat')), '염화티오닐
 await P.fill('#sfMat', '과산화수소'); await P.waitForTimeout(400);
 chk(await P.$eval('#segSize button', b => b.disabled), '규모 구분이 없는 물질은 규모 단추를 잠근다');
 
+// ══ 5-1. 물질 칸을 다시 누르면 새로 찾기 (2026-11-09 사용자 댓글) ══
+/* "검색했다가 다시 클릭하면 이전 내용을 직접 지우고 다시 눌러야 한다" — 누르면 칸이
+   비고 전체 목록이 열려야 합니다. 아무것도 안 고르고 나가면 원래 물질로 돌아옵니다. */
+await P.keyboard.press('Escape'); await P.waitForTimeout(150);
+await P.click('#sfMat'); await P.waitForTimeout(250);
+const fr = await P.evaluate(() => ({ v: document.querySelector('#sfMat').value,
+  ph: document.querySelector('#sfMat').placeholder,
+  cnt: (document.querySelector('#mpkCnt') || {}).textContent || '',
+  open: !document.querySelector('#mpkCnt').closest('.mpk').hidden }));
+chk(fr.v === '' && fr.open && /사고 많은 순/.test(fr.cnt),
+  `다시 누르면 칸이 비고 전체 목록이 열린다 (값 '${fr.v}' · ${fr.cnt})`);
+chk(fr.ph === '과산화수소', `지금 고른 물질은 흐린 글씨로 보인다 (${fr.ph})`);
+chk((await P.textContent('#sfStat')).length > 0 && await P.$eval('#segSize button', b => b.disabled),
+  '칸을 비워도 화면은 원래 물질 그대로다(아직 안 골랐으므로)');
+await P.keyboard.press('Escape'); await P.waitForTimeout(150);
+chk(await P.inputValue('#sfMat') === '과산화수소', '아무것도 안 고르고 닫으면 원래 물질로 돌아온다');
+await P.click('#sfMat'); await P.waitForTimeout(200);
+await P.keyboard.type('황산'); await P.waitForTimeout(250);
+await P.click('.mpk-row >> nth=0'); await P.waitForTimeout(300);
+chk(await P.inputValue('#sfMat') === '황산'
+  && (await P.$$eval('#segVar button', b => b.map(x => x.textContent.trim()).join('·'))) === '액체·흄',
+  '다시 눌러 새 이름을 치고 고르면 그 물질로 바뀐다');
+await P.click('#sfMat'); await P.waitForTimeout(200);
+await P.click('#sfStat', { position: { x: 5, y: 5 } }); await P.waitForTimeout(200);
+chk(await P.inputValue('#sfMat') === '황산', '칸 밖을 눌러 나가도 원래 물질로 돌아온다');
+
 // ══ 6. 휴대전화 — 가로 밀림 · 손가락 크기 ══
 for (const w of [320, 390]) {
   await P.setViewportSize({ width: w, height: 760 }); await P.waitForTimeout(300);
