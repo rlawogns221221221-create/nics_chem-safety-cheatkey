@@ -182,6 +182,17 @@ await ctx.setGeolocation({ ...ACC, accuracy: 15 });
 const 원문 = await P.evaluate(() => ['.sf-q', '#sfStat', '#sfMore', '#mLeg']
   .map(s => document.querySelector(s).textContent).join(' ') + document.title);
 chk(!/원문/.test(원문), "화면에 '원문' 이라는 말이 없다");
+/* 어려운 말 — "방호활동은 바람이 불어가는 쪽 거리" 가 너무 어렵다는 지적(2026-11-09).
+   '풍하'·'미입력' 대신 "바람 따라 퍼지는 쪽"·"바람 방향 모름" 으로 씁니다 */
+/* 접어 둔 「물질 정보 더 보기」 안은 물질정보의 글을 고치지 않고 싣는 자리라 뺍니다 */
+const 우리말 = await P.evaluate(() => {
+  const c = document.querySelector('#sfMore').cloneNode(true);
+  const i = c.querySelector('#sfInfo'); if (i) i.remove();
+  return ['.sf-q', '#sfStat', '#mLeg'].map(s => document.querySelector(s).textContent).join(' ')
+    + c.textContent + [...document.querySelectorAll('#map text')].map(t => t.textContent).join(' ');
+});
+chk(!/풍하|미입력|불어가는/.test(우리말), `어려운 말(풍하·미입력·불어가는)이 없다`);
+chk((await P.textContent('.sf-key')).includes('바람 따라 퍼지는 쪽'), '표 아래 읽는 법은 쉬운 말로');
 chk((await P.$$('.sf-tbl td.hit')).length >= 2, '거리 표에서 지금 고른 칸을 짚는다');
 
 // ══ 5. 자료가 없는 물질 · 구분이 있는 물질 ══

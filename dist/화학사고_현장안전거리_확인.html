@@ -3530,6 +3530,17 @@ body.safeapp{background:var(--bg)}
 .sf-tbl th,.sf-tbl td{border:1px solid var(--line);padding:6px 6px;text-align:center}
 .sf-tbl th{background:var(--panel);color:var(--ink2);font-weight:700;word-break:keep-all}
 .sf-tbl td.hit{background:var(--brand-l);color:var(--brand-d);font-weight:800;box-shadow:inset 0 0 0 2px var(--brand)}
+/* 표 아래 읽는 법 — 지도와 같은 색 표시 + 짧은 말. 이름 칸 폭을 맞춰 세 줄의 설명이
+   한 세로줄에 서게 합니다(오와 열 · 2026-10-27 휴대전화 다듬기의 원칙) */
+.sf-key{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;
+  font-size:var(--fs-s);color:var(--ink2)}
+.sf-key li{display:flex;align-items:center;gap:8px}
+.sf-key li b{flex:none;width:6.4rem;color:var(--ink);font-weight:700}
+.sf-key i{flex:none;width:13px;height:13px;border:2px solid;font-style:normal;
+  display:inline-grid;place-items:center;line-height:1}
+.sf-key i.iso{border-color:var(--err);background:var(--err-l);border-radius:50%}
+.sf-key i.pad{border-color:var(--warn);background:var(--warn-l);border-radius:2px}
+.sf-key i.none{border-color:transparent}
 .sf-raw{margin:0}
 .sf-raw dt{font-size:var(--fs-xs);font-weight:700;color:var(--ink2)}
 .sf-raw dd{margin:0 0 8px;font-size:var(--fs-s);word-break:keep-all}
@@ -5591,8 +5602,9 @@ function renderStat() {
       .filter(Boolean).join(" · ");
     html += '<div class="sf-zone">'
       + '<span class="zi iso"><i></i>초기이격 <b>' + (z.iso ? fmtDist(z.iso.m) : "자료에 없음") + "</b></span>"
-      + '<span class="zi pad"><i></i>방호활동 <b>' + (z.pad ? padLabel(z.pad) : "자료에 없음") + "</b>"
-      + (z.pad && z.pad.kind !== "ring" ? " 풍하" : "") + "</span>"
+      /* '풍하' 같은 말은 붙이지 않습니다 — 어렵다는 지적(2026-11-09 사용자).
+         어느 쪽으로 퍼지는지는 표 아래 설명과 지도의 화살표가 말합니다. */
+      + '<span class="zi pad"><i></i>방호활동 <b>' + (z.pad ? padLabel(z.pad) : "자료에 없음") + "</b></span>"
       + (cond ? '<span class="zc">' + esc(cond) + "</span>" : "")
       + "</div>";
     if (z.pad && z.pad.kind !== "ring" && st.wind === "")
@@ -5635,7 +5647,7 @@ function pointRow(name, cls, r, z, closable) {
   var sub = ["사고지점에서 " + fmtDist(r.d) + " " + dirName(r.b) + "쪽"];
   if (r.iso && z.iso) sub.push("초기이격 경계까지 " + fmtDist(Math.max(0, z.iso.m - r.d)));
   if (r.pad === "in" && r.side != null) sub.push("구역 옆 경계까지 " + fmtDist(r.side));
-  if (r.pad === "near") sub.push("바람 방향 미입력");
+  if (r.pad === "near") sub.push("바람 방향 모름");
   if (name === "내 위치" && st.me && st.me.stale) sub.push("신호 끊김 — 마지막으로 받은 자리");
   else if (name === "내 위치" && st.me && st.me.acc > 0) sub.push("위치 오차 ±" + fmtDist(st.me.acc));
 
@@ -5755,7 +5767,12 @@ function renderMore() {
     }).join("");
     h += '<div class="sf-blk"><h2>안전거리 <i>' + esc(m.n) + (st.v ? " · " + esc(st.v) : "") + "</i></h2>"
       + '<table class="sf-tbl">' + head + body + "</table>"
-      + '<p class="sf-src">– 는 자료에 없는 값 · 방호활동은 바람이 불어가는 쪽 거리</p></div>';
+      /* 읽는 법은 문장 대신 지도와 같은 색 표시 + 짧은 말로 —
+         "방호활동은 바람이 불어가는 쪽 거리" 가 너무 어렵다는 지적(2026-11-09 사용자) */
+      + '<ul class="sf-key">'
+      + '<li><i class="iso"></i><b>초기이격</b>사고지점 둘레 모든 방향</li>'
+      + '<li><i class="pad"></i><b>방호활동</b>바람 따라 퍼지는 쪽</li>'
+      + '<li><i class="none"></i><b>–</b>자료 없음</li></ul></div>';
   }
 
   /* 물질 정보 — 필요할 때만 펼쳐 봅니다. 숫자를 어떻게 읽었는지 사람이
@@ -6089,10 +6106,10 @@ function updateWindUI() {
     var down = (+st.wind + 180) % 360;
     arrow.hidden = false;
     arrow.style.transform = "translateX(-50%) rotate(" + down + "deg)";
-    cap.innerHTML = "<b>" + windKo(st.wind) + "풍</b> — " + windKo(down) + "쪽으로 불어갑니다";
+    cap.innerHTML = "<b>" + windKo(st.wind) + "풍</b> — " + windKo(down) + "쪽으로 퍼집니다";
   } else {
     arrow.hidden = true;
-    cap.innerHTML = "방향을 고르면<br>불어가는 쪽이 함께 보입니다";
+    cap.innerHTML = "방향을 고르면<br>퍼지는 쪽이 함께 보입니다";
   }
 }
 function setWind(deg) {
@@ -6225,7 +6242,7 @@ function draw() {
         lab = { x: ax, y: ay + L - 8 };
       }
       g.push('<text class="zlbl pad" x="' + lab.x.toFixed(1) + '" y="' + lab.y.toFixed(1) + '" font-size="12.5">'
-        + "방호활동 " + esc(padLabel(z.pad)) + (z.pad.kind !== "ring" && st.wind === "" ? " (바람 방향 미입력)" : "")
+        + "방호활동 " + esc(padLabel(z.pad)) + (z.pad.kind !== "ring" && st.wind === "" ? " · 바람 방향 모름" : "")
         + "</text>");
     }
     /* 초기이격 — 사고지점 둘레 원 */
@@ -6344,7 +6361,7 @@ function initSrc() {
     + "<b>자료에 없음</b>으로 적고 그리지 않습니다. 화면 아래 ‘물질 정보 더 보기’ 에서 "
     + "물질정보의 글과 대조할 수 있습니다.</p>"
     + "<p><b>초기이격</b> — 사고지점을 가운데 둔 원입니다.</p>"
-    + "<p><b>방호활동</b> — 사고지점에서 바람이 불어가는 쪽으로 그 거리만큼, 폭도 같은 "
+    + "<p><b>방호활동</b> — 사고지점에서 바람 따라 퍼지는 쪽으로 그 거리만큼, 폭도 같은 "
     + "정사각형으로 그립니다. 바람 방향을 고르지 않으면 방향을 정할 수 없어 같은 거리의 "
     + "점선 원으로 거리만 보여 줍니다.</p>"
     + "<p><b>낮·밤</b> — 사고지점의 일출·일몰을 날짜로 계산해 저절로 고릅니다(근사식이라 "
