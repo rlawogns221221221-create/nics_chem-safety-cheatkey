@@ -83,11 +83,11 @@ chk(Math.abs(ratio - 1) < 0.02, `로고 비율 그대로 (원본 대비 ${ratio.
 chk(logo.x < 260, `로고가 머리띠 왼쪽에 (x=${Math.round(logo.x)})`);
 
 // ══ 4. 도구 링크 — 카드 전체가 링크이고 차례가 정해져 있다 ══
-//    방제 물품·장비 → 주민 대피장소 → 주민대피 문자. **차례는 사용자가 정합니다.**
-//    2026-09-28 사용자 지시로 방제가 다시 1번이 되었습니다(세 번 오간 자리).
+//    주민 대피장소 → 주민대피 문자 → 방제 물품·장비. **차례는 사용자가 정합니다.**
+//    2026-11-09 사용자 지시(공모전 형태)로 바뀌었습니다(네 번 오간 자리).
 const links = await P.$$eval('.tools > li > a', as => as.map(a => a.getAttribute('href')));
-chk(links.length === 3 && links[0] === 'res/index.html' && links[1] === 'map/index.html'
-    && links[2] === 'sms/index.html', `링크 순서 방제→대피장소→문자: ${links.join(' / ')}`);
+chk(links.length === 3 && links[0] === 'map/index.html' && links[1] === 'sms/index.html'
+    && links[2] === 'res/index.html', `링크 순서 대피장소→문자→방제: ${links.join(' / ')}`);
 const nos = await P.$$eval('.pn-no', ns => ns.map(n => n.textContent.trim()));
 chk(nos.join('') === '010203', `번호 01·02·03 (실제 ${nos.join('·')})`);
 /* 번호 배지는 세 장 모두 같은 색 — 도구마다 다른 원색을 쓰지 않습니다
@@ -131,7 +131,9 @@ chk(rest.every(s => s.m === false), '자료 기준일도 평소에는 비켜 있
 chk(rest.every(s => s.metaIn), '자료 기준일은 설명 판 안에 들어 있다');
 chk(rest.every(s => s.hh > 20), '도구 이름은 처음부터 보인다');
 
-await P.hover('.tools > li:nth-child(1) > a'); await P.waitForTimeout(420);
+/* force — Playwright 1.63 이 이 카드를 '움직이는 중'으로 보고 30초를 기다리다 멈췄습니다
+   (차례를 바꾸기 전에도 같았음). 카드 자리를 직접 재면 120ms 간격 여섯 번이 모두 같습니다. */
+await P.hover('.tools > li:nth-child(1) > a', { force: true }); await P.waitForTimeout(420);
 const hov = await P.evaluate(() => {
   const li = document.querySelector('.tools > li');
   const cs = getComputedStyle(li.querySelector('.pn-ov'));
@@ -287,7 +289,7 @@ chk(/matrix\(1\.0[3-9]/.test(press.img), `누르면 사진이 커진다 (${press
 chk(/matrix\(1, 0, 0, 1, [1-9]/.test(press.hd), `누르면 제목 줄이 밀린다 (${press.hd})`);
 chk(!/rgba\(0, 0, 0, 0\)/.test(press.go), `누르면 화살표가 채워진다 (${press.go})`);
 await M.tap('.tools > li > a'); await M.waitForTimeout(600);
-chk(M.url().includes('res/index.html'), '손가락으로 눌러 도구로 이동 (첫 카드 = 방제 물품·장비)');
+chk(M.url().includes('map/index.html'), '손가락으로 눌러 도구로 이동 (첫 카드 = 주민 대피장소)');
 await M.close();
 
 // ══ 11. 모션 감소 — 되풀이되는 움직임은 멈추고, 멈춘 채로 다 보인다 ══
@@ -314,11 +316,11 @@ const N = await B.newPage({ javaScriptEnabled: false, viewport: { width: 1440, h
 await N.goto(PAGE); await N.waitForTimeout(300);
 chk((await N.$$eval('.tools > li > a', as => as.length)) === 3, 'JS 꺼도 링크 살아 있음');
 chk((await N.$$('.modebtn')).length === 0, 'JS 꺼지면 고대비 단추는 안 만들어진다');
-await N.hover('.tools > li:nth-child(1) > a'); await N.waitForTimeout(400);
+await N.hover('.tools > li:nth-child(1) > a', { force: true }); await N.waitForTimeout(400);
 chk(+(await N.$eval('.pn-ov', o => getComputedStyle(o).opacity)) > 0.95,
   'JS 꺼도 올리면 설명이 나온다 (CSS 로만 그린다)');
 await N.click('.tools > li > a'); await N.waitForTimeout(400);
-chk(N.url().includes('res/index.html'), 'JS 꺼도 진입 가능');
+chk(N.url().includes('map/index.html'), 'JS 꺼도 진입 가능');
 await N.close();
 
 // ══ 13. 인쇄 — 고대비로 보고 있어도 흰 종이에 검정 ══

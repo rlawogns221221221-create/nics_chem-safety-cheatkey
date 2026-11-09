@@ -82,7 +82,7 @@ table.d td.n{text-align:right}
 
 <tr><th>설치·실행 절차<small>심사위원 구동 순서</small></th><td>
   <ol>
-    <li><b>가장 쉬운 길 — 휴대전화</b>: 휴대전화 카메라로 시연영상 끝의 QR을 비추거나 <b class="nb">{{접속주소}}</b> 열기 → 첫 화면 카드 <b>01·02·03</b> 중 하나를 누름</li>
+    <li><b>가장 쉬운 길 — 휴대전화</b>: 휴대전화 카메라로 시연영상 끝의 QR을 비추거나 <b class="nb">{{접속주소}}</b> 열기 → 첫 화면 카드 <b>01 대피장소 · 02 문자 · 03 방제</b> 중 하나를 누름</li>
     <li><b>PC</b>: 브라우저 주소창에 <span class="nb">{{접속주소}}</span> 입력 (넓은 화면에서도 같은 기능)</li>
     <li><b>공공 GitLab 소스로 직접</b>: 저장소 내려받기 → 뿌리의 <code>index.html</code> 더블클릭(파일로 바로 열림)
       <span class="g">또는</span> 그 폴더에서 <code class="nb">python3 -m http.server 8000</code> 실행 후 <span class="nb">http://localhost:8000</span></li>
@@ -111,14 +111,43 @@ table.d td.n{text-align:right}
     <tr><td>재난문자 문안</td><td class="n">—</td><td>주민대피 재난문자 표준문안(안)</td><td>—</td></tr>
     <tr><td>행정경계선</td><td class="n">—</td><td>통계청 센서스용 행정구역경계(2018) 단순화</td><td>—</td></tr>
   </table>
-  <p class="g">시연 예시(영상과 같음): <b>가상 상황</b> — 전남 여수 주삼동 ○○화학 염산 누출 (실제 사고 아님 · 실제 회사 이름을 쓰지 않음)</p>
+  <p class="g">시연 예시(영상과 같음): 전남 여수 주삼동 ○○화학 암모니아 누출 — 예시 상황(실제 사고 아님 · 실제 회사 이름을 쓰지 않음)</p>
 </td></tr>
 
 <tr><th>기능 사용 순서<small>핵심 흐름 3개</small></th><td>
   <div class="flow">
-    <div><h3><span>흐름 1</span> 방제 물품·장비 찾기 — "흡착포, 어디에 있지?"</h3>
+    <div><h3><span>흐름 1</span> 주민 대피장소 찾기 — "주민을 어디로?"</h3>
       <ol>
-        <li>첫 화면 카드 <b>01</b> → <b>방제물품 찾기</b>(업체를 부를 때는 '업체 섭외')</li>
+        <li>카드 <b>01</b> → 주소 입력(예: 여수시 주삼동) → 고른 뒤 <b>지도를 한 번 눌러 사고지점 확정</b>(동 단위는 어림 좌표라 자동 확정하지 않음)</li>
+        <li>한 줄 요약: <b>가장 가까운 곳 · 반경 1·2·5km 안 개수</b></li>
+        <li><b>화학사고 대피장소 / 이재민 임시주거시설</b> 층을 나눠 켜고 끔</li>
+        <li>목록: 거리 · 도보시간 · 수용인원 · 관할부서 전화 → 한 곳을 고름</li>
+        <li><b>「이 내용으로 문자 만들기」</b> → 시·군·구와 대피장소를 채운 채 흐름 2로</li>
+      </ol></div>
+    <div class="shots">
+      <figure><img src="../모바일설명서/23-결과.png" alt=""><figcaption>요약·반경별 개수</figcaption></figure>
+      <figure><img src="../모바일설명서/24-층고르기.png" alt=""><figcaption>두 층 나눠 보기</figcaption></figure>
+      <figure><img src="../모바일설명서/26-문자로.png" alt=""><figcaption>문자로 넘기기</figcaption></figure>
+    </div>
+  </div>
+  <div class="flow">
+    <div><h3><span>흐름 2</span> 주민대피 문자생성기 — "주민에게 알리기"</h3>
+      <ol>
+        <li>카드 <b>02</b>(또는 흐름 1에서 넘어옴) → 알림 종류: 실내대피 · 도로 우회 · <b>주민소산(대피명령)</b></li>
+        <li><b>한 화면에 한 묶음씩</b>: 사고유형 → 발송 정보 → 사고 위치 → 문자 받을 지역 → 사고물질(460종에서 찾기) → 대피장소</li>
+        <li>필수 칸이 다 차면 <b>승인 표준문안 그대로</b> 문안이 나오고 글자수(긴급재난문자 90자 기준)를 함께 표시</li>
+        <li><b>복사</b> → 문자 발송시스템에 붙여 넣기. 빈 필수 칸이 있으면 문안을 만들지 않고 채울 칸을 알려 줌</li>
+      </ol></div>
+    <div class="shots">
+      <figure><img src="../모바일설명서/31-알림고르기.png" alt=""><figcaption>알림 고르기</figcaption></figure>
+      <figure><img src="../모바일설명서/32-칸채우기.png" alt=""><figcaption>한 묶음씩 채우기</figcaption></figure>
+      <figure><img src="../모바일설명서/36-복사.png" alt=""><figcaption>문안·복사</figcaption></figure>
+    </div>
+  </div>
+  <div class="flow">
+    <div><h3><span>흐름 3</span> 방제 물품·장비 찾기 — "흡착포, 어디에 있지?"</h3>
+      <ol>
+        <li>카드 <b>03</b> → <b>업체 섭외</b>(폐기물·폐수를 맡길 곳 · 중장비 · 독성가스 회수) 또는 <b>방제물품 찾기</b></li>
         <li>필요한 물품 <b>흡착포</b> 누르고 다음</li>
         <li>사고지점: 주소·사업장 이름·지도 찍기·<b>지금 내가 있는 곳</b> 중 하나</li>
         <li>지도와 <b>가까운 순 목록</b> — 아래 「아래로 내려 목록 보기」 안내를 누르면 목록으로</li>
@@ -128,35 +157,6 @@ table.d td.n{text-align:right}
       <figure><img src="../모바일설명서/12-물품고르기.png" alt=""><figcaption>물품 고르기</figcaption></figure>
       <figure><img src="../모바일설명서/14-지도.png" alt=""><figcaption>지도·목록 안내</figcaption></figure>
       <figure><img src="../모바일설명서/16-세부창.png" alt=""><figcaption>연락처·수량</figcaption></figure>
-    </div>
-  </div>
-  <div class="flow">
-    <div><h3><span>흐름 2</span> 주민 대피장소 찾기 — "주민을 어디로?"</h3>
-      <ol>
-        <li>카드 <b>02</b> → 주소 입력(예: 여수시 주삼동) → 고른 뒤 <b>지도를 한 번 눌러 사고지점 확정</b>(동 단위는 어림 좌표라 자동 확정하지 않음)</li>
-        <li>한 줄 요약: <b>가장 가까운 곳 · 반경 1·2·5km 안 개수</b></li>
-        <li><b>화학사고 대피장소 / 이재민 임시주거시설</b> 층을 나눠 켜고 끔</li>
-        <li>목록: 거리 · 도보시간 · 수용인원 · 관할부서 전화 → 한 곳을 고름</li>
-        <li><b>「이 내용으로 문자 만들기」</b> → 시·군·구와 대피장소를 채운 채 흐름 3으로</li>
-      </ol></div>
-    <div class="shots">
-      <figure><img src="../모바일설명서/23-결과.png" alt=""><figcaption>요약·반경별 개수</figcaption></figure>
-      <figure><img src="../모바일설명서/24-층고르기.png" alt=""><figcaption>두 층 나눠 보기</figcaption></figure>
-      <figure><img src="../모바일설명서/26-문자로.png" alt=""><figcaption>문자로 넘기기</figcaption></figure>
-    </div>
-  </div>
-  <div class="flow">
-    <div><h3><span>흐름 3</span> 주민대피 문자생성기 — "주민에게 알리기"</h3>
-      <ol>
-        <li>카드 <b>03</b>(또는 흐름 2에서 넘어옴) → 알림 종류: 실내대피 · 도로 우회 · <b>주민소산(대피명령)</b></li>
-        <li><b>한 화면에 한 묶음씩</b>: 사고유형 → 발송 정보 → 사고 위치 → 문자 받을 지역 → 사고물질(460종에서 찾기) → 대피장소</li>
-        <li>필수 칸이 다 차면 <b>승인 표준문안 그대로</b> 문안이 나오고 글자수(긴급재난문자 90자 기준)를 함께 표시</li>
-        <li><b>복사</b> → 문자 발송시스템에 붙여 넣기. 빈 필수 칸이 있으면 문안을 만들지 않고 채울 칸을 알려 줌</li>
-      </ol></div>
-    <div class="shots">
-      <figure><img src="../모바일설명서/31-알림고르기.png" alt=""><figcaption>알림 고르기</figcaption></figure>
-      <figure><img src="../모바일설명서/32-칸채우기.png" alt=""><figcaption>한 묶음씩 채우기</figcaption></figure>
-      <figure><img src="../모바일설명서/36-복사.png" alt=""><figcaption>문안·복사</figcaption></figure>
     </div>
   </div>
 </td></tr>
@@ -173,10 +173,10 @@ table.d td.n{text-align:right}
 </td></tr>
 
 <tr><th>개발 경위 요약</th><td>
-  <p><b>문제 인식</b> — 화학사고가 나면 지자체 담당자는 짧은 시간 안에 <b>① 방제 물품·장비를 구하고 ② 주민 대피장소를 정하고 ③ 재난문자를 보내야</b> 합니다. 그런데 필요한 자료가 기관마다 엑셀·한글·PDF·스캔 허가증으로 흩어져 있어(방제자원 원자료만 3,865곳 · 8,266줄) 사고 현장에서 바로 찾기 어렵습니다.</p>
+  <p><b>문제 인식</b> — 화학사고가 나면 지자체 담당자는 짧은 시간 안에 <b>① 주민 대피장소를 정하고 ② 재난문자를 보내고 ③ 방제 물품·장비를 구해야</b> 합니다. 그런데 필요한 자료가 기관마다 엑셀·한글·PDF·스캔 허가증으로 흩어져 있어(방제자원 원자료만 3,865곳 · 8,266줄) 사고 현장에서 바로 찾기 어렵습니다.</p>
   <p><b>접근 방식</b></p>
   <ul>
-    <li><b>사고지점 하나로 세 가지를</b> — 같은 사고지점에서 방제자원·대피장소를 가까운 순으로 찾고, 고른 대피장소는 문자로 바로 넘깁니다</li>
+    <li><b>사고지점 하나로 세 가지를</b> — 같은 사고지점에서 대피장소를 찾아 고른 곳을 문자로 바로 넘기고, 방제자원도 가까운 순으로 찾습니다</li>
     <li><b>휴대전화 먼저</b> — 현장에서 꺼내 쓰는 도구. 손가락 크기 단추, 한 화면에 한 가지씩, 링크·QR 하나로 열기</li>
     <li><b>AI 신뢰성 — 판단은 사람이</b> — 자료를 모아 보여 줄 뿐 단정하지 않고, 어림값은 어림값이라 적고, 없는 값은 지어내지 않습니다</li>
     <li><b>개인정보 제외</b> — 업체 담당자 실명·휴대전화를 걷어내고 대표번호만. 배포 폴더를 만들 때 기계로 다시 검사</li>
@@ -188,6 +188,6 @@ table.d td.n{text-align:right}
 </td></tr>
 
 </tbody></table>
-<p class="foot">※ 시연영상 [시연영상]_{{기관명}}_{{팀명}}.mp4 — 위 흐름 1·2·3을 휴대전화 화면으로 이어서 보여 줍니다(가상 상황).</p>
+<p class="foot">※ 시연영상 [시연영상]_{{기관명}}_{{팀명}}.mp4 — 위 흐름 1·2·3을 휴대전화 화면으로 이어서 보여 줍니다(예시 상황 · 업체명·전화번호는 흐리게 가림).</p>
 </body>
 </html>
