@@ -1799,6 +1799,33 @@ function init() {
   setMode("pick");
   showSrc();
   refresh(true);
+  takeSafeSeed();
+}
+
+/* ── 04 현장 안전거리 확인에서 넘어온 것 받기 ──────────────────
+   사고지점·물질·바람과 **초기이격거리**만 받습니다. 이 화면의 '영향 참고
+   반경'은 전 방향 원이라 초기이격거리와 뜻이 같지만, 방호활동거리는
+   바람 쪽으로만 뻗는 구역이라 원으로 받으면 뜻이 달라집니다.
+   한 번만 씁니다 — 새로고침해도 다시 덮지 않게 바로 지웁니다. */
+var SAFE_SEED = "nics.map.seed.v1";
+function takeSafeSeed() {
+  var raw = null, o = null;
+  try { raw = sessionStorage.getItem(SAFE_SEED); sessionStorage.removeItem(SAFE_SEED); }
+  catch (e) { return; }
+  if (!raw) return;
+  try { o = JSON.parse(raw); } catch (e) { return; }
+  if (!o || o.v !== 1 || !o.acc || !isFinite(o.acc.lat) || !isFinite(o.acc.lon)) return;
+  if (o.mat) { st.mat = String(o.mat); $("#mMat").value = st.mat; }
+  if (o.wind !== "" && o.wind != null && WIND_DIRS.some(function (d) { return d.deg === +o.wind; })) {
+    st.wind = String(+o.wind);
+    updateWindUI();
+  }
+  if (o.radius > 0) st.radius = +o.radius;
+  pickedPlace = null;
+  setAcc(+o.acc.lat, +o.acc.lon, true);
+  renderRad();
+  toast("<b>현장 안전거리 확인에서 정한 사고지점을 가져왔습니다.</b>"
+    + (st.radius ? " 영향 참고 반경은 초기이격거리 " + fmtDist(st.radius) + " 입니다." : ""));
 }
 
 document.addEventListener("DOMContentLoaded", init);

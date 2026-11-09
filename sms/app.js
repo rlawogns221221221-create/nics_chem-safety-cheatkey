@@ -116,13 +116,16 @@ function takeSeed() {
     filled.push(k);
   });
   if (!filled.length) return;
-  seedInfo = { keys: filled, acc: o.acc || null, 어림: !!o.어림 };
+  /* 어디서 넘어왔는지 — ② 대피장소 찾기와 04 현장 안전거리 확인 두 곳에서 옵니다.
+     알림 띠가 "대피장소 찾기에서 넘어왔다"고 잘못 말하지 않게 출처를 함께 둡니다. */
+  seedInfo = { keys: filled, acc: o.acc || null, 어림: !!o.어림,
+               from: o.from === "safe" ? "현장 안전거리 확인" : "주민 대피장소 찾기" };
   /* 좌표는 state 에 남긴다 — 6걸음(대피장소)에서 '지도에서 찾기'를 누를 때
      이 자리에서 열어 주려는 것이다. 알림 띠를 닫거나 새로고침해도 남아야
      하므로 seedInfo 가 아니라 state 에 둔다. */
   if (o.acc && o.acc.lat != null && o.acc.lon != null) {
     state.acc = { lat: +o.acc.lat, lon: +o.acc.lon, 어림: !!o.어림,
-                  근거: "주민 대피장소 찾기에서 찍은 사고지점" };
+                  근거: o.근거 || "주민 대피장소 찾기에서 찍은 사고지점" };
   }
   save();
 }
@@ -153,9 +156,9 @@ function renderSeedBar() {
   el.hidden = !seedInfo;
   if (!seedInfo) return;
   var names = { 시군: "사고 시·군·구", 읍면동: "사고 읍·면·동",
-                사업장: "사업장·장소명", 대피소: "대피소" };
+                사업장: "사업장·장소명", 대피소: "대피소", 물질: "사고물질" };
   el.innerHTML = '<div class="wrap"><span class="sb-t">'
-    + "<b>주민 대피장소 찾기에서 넘어왔습니다.</b> "
+    + "<b>" + esc(seedInfo.from) + "에서 넘어왔습니다.</b> "
     + seedInfo.keys.map(function (k) {
         return '<i><em>' + esc(names[k] || k) + "</em>" + esc(state.data[k]) + "</i>";
       }).join("")

@@ -35,6 +35,8 @@ PAGES = [
     (ROOT / "sms" / "index.html", "화학사고_주민대피문자_생성기.html", None),
     (ROOT / "map" / "index.html", "화학사고_주민대피장소_찾기.html", None),
     (ROOT / "res" / "index.html", "화학사고_방제물품장비_찾기.html", None),
+    # 04 현장 안전거리 확인(2026-11-09) — 내 위치는 브라우저 기능이라 인터넷 없이도 됩니다
+    (ROOT / "safe" / "index.html", "화학사고_현장안전거리_확인.html", None),
 ]
 # ⚠ 방제자원 '내부판' 단일 파일은 더 만들지 않습니다(2026-09-07).
 # ③ 이 읽는 자료가 data/resources2.js(두 갈래)로 바뀌었고, 그 자료에는
@@ -175,6 +177,9 @@ def build(page: pathlib.Path, out: pathlib.Path, swap=None) -> None:
     # (map/app.js 의 renderToSms 는 단추가 없으면 그냥 넘어갑니다)
     html = re.sub(r'[ \t]*<button[^>]*id="btnToSms"[^>]*>.*?</button>\n?', "",
                   html, flags=re.S)
+    # ④ → ①② 이어 가기 줄도 같은 까닭으로 통째로 뺍니다(safe/app.js 는 줄이 없으면 넘어감)
+    html = re.sub(r'[ \t]*<nav class="sf-next[^"]*" id="sfNext".*?</nav>\n?', "",
+                  html, flags=re.S)
     # 인터넷 기능이 빠졌으므로 '도보 경로' 켜고 끄기도 뺍니다 (눌러도 할 일이 없음)
     html = re.sub(r'[ \t]*<label class="mapchk" title="고른 (?:대피장소까지|자원이)[^>]*>.*?</label>\n?',
                   "", html, flags=re.S)
@@ -205,6 +210,7 @@ PORTAL_LINKS = {
     "map/index.html": "https://claude.ai/code/artifact/c10d00e5-8ad9-454e-9caf-b4f010f00ef8",
     "sms/index.html": "https://claude.ai/code/artifact/a42de0d3-9c73-4d67-b048-b4bf9c9c2c53",
     "res/index.html": "https://claude.ai/code/artifact/26c97527-e8ce-4629-8c12-0790afdceb87",
+    "safe/index.html": "https://claude.ai/artifact/1AfwreaztHLfTiu7iSU3CY",
 }
 PORTAL_BANNER = """<!-- ────────────────────────────────────────────────────────────
      진입 화면 — 사용자 확인용 한 파일 (build/build_single.py 가 만듦)

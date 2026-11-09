@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>화학사고 현장 안전거리 확인</title>
+<!-- 웹앱 설치용 줄 — 다른 도구 화면과 같습니다(map/index.html 머리말 참고).
+     file:// 와 망분리용 단일 파일에서는 쓰이지 않습니다. -->
+<link rel="manifest" href="../manifest.webmanifest">
+<meta name="theme-color" content="#256ef4">
+<link rel="apple-touch-icon" href="../assets/img/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="화학사고 초동대응">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='96' fill='%231d2129'/><path d='M256 92 L402 146 V264 C402 342 334 402 256 428 C178 402 110 342 110 264 V146 Z' fill='%23ffcc01'/><circle cx='256' cy='218' r='66' fill='none' stroke='%231d2129' stroke-width='26'/><circle cx='256' cy='218' r='27' fill='%231d2129'/><g fill='%231d2129'><path d='M16 380 h44 l58 -70 h-44 Z'/><path d='M104 380 h44 l58 -70 h-44 Z'/><path d='M192 380 h44 l58 -70 h-44 Z'/><path d='M280 380 h44 l58 -70 h-44 Z'/><path d='M368 380 h44 l58 -70 h-44 Z'/><path d='M456 380 h44 l58 -70 h-44 Z'/></g></svg>">
+
+<link rel="stylesheet" href="../assets/krds/krds_tokens.css">
+<link rel="stylesheet" href="../assets/shell.css">
+<script src="../assets/theme.js"></script>
+</head>
+<!-- ══ 04 현장 안전거리 확인 (2026-11-09 사용자 결정) ═══════════════
+     현장에 나간 근무자가 **자기 자리**가 ERG 초기이격거리·방호활동 구역
+     안인지 바로 확인하는 화면입니다. ② 대피장소 찾기가 "주민을 어디로"를
+     보는 화면이라면, 이 화면은 "나는 지금 어디에 서 있나"를 봅니다.
+     · 화면에는 **사실만** 적습니다 — "초기이격거리 안/밖" (사용자 결정 —
+       "위험·안전" 같은 단정은 쓰지 않습니다).
+     · 거리는 물질정보 460종의 ERG 원문에서 읽고, 원문을 늘 함께 보여 줍니다.
+     · 바람은 나침반으로 고릅니다(사용자 결정). 인터넷이 없어도 돕니다. -->
+<body class="safeapp">
+
+<div class="top">
+  <div class="wrap">
+    <h1><span class="h-pre">화학사고 </span>현장 안전거리 확인</h1>
+    <div class="act noprint">
+      <button id="btnSrc" type="button">자료 출처</button>
+      <button id="btnClear" type="button">초기화</button>
+    </div>
+  </div>
+</div>
+
+<div class="sf">
+
+  <!-- ── 조건 — 위에서부터 고르는 차례입니다 ──────────────────── -->
+  <section class="sf-q noprint" aria-label="조건">
+
+    <div class="sf-row">
+      <label class="sf-lb" for="sfMat">물질</label>
+      <div class="sf-in">
+        <input type="text" id="sfMat" data-matpicker autocomplete="off"
+               placeholder="물질 이름 · CAS 번호" data-ph-s="물질 이름">
+        <!-- 사고가 잦은 물질 — 화학사고 통계(2015~2025)에서 세어 넣습니다 -->
+        <div class="sf-chips" id="sfChips" role="group" aria-label="사고가 잦은 물질"></div>
+      </div>
+    </div>
+
+    <div class="sf-row">
+      <span class="sf-lb" id="sfAccLb">사고지점</span>
+      <div class="sf-in">
+        <div class="sf-accbtns" role="group" aria-labelledby="sfAccLb">
+          <button type="button" class="sm" id="btnPick">지도에서 찍기</button>
+          <button type="button" class="sm" id="btnHereAcc">내 위치로 찍기</button>
+        </div>
+        <div class="sf-addr">
+          <input type="text" id="sfAddr" autocomplete="off"
+                 placeholder="사업장 이름 · 시군구 · 읍면동으로 찾기" data-ph-s="사업장·지역으로 찾기"
+                 aria-label="사고지점을 사업장 이름이나 지역으로 찾기">
+        </div>
+      </div>
+    </div>
+
+    <!-- 유출 규모·낮밤·바람 — ERG 표를 읽는 세 열쇠입니다 -->
+    <div class="sf-row sf-opts">
+      <div class="sf-opt">
+        <span class="sf-lb" id="lbSize">유출 규모</span>
+        <div class="sf-seg" id="segSize" role="group" aria-labelledby="lbSize">
+          <button type="button" data-v="s" aria-pressed="false">소규모</button>
+          <button type="button" data-v="l" aria-pressed="false">대규모</button>
+        </div>
+      </div>
+      <div class="sf-opt">
+        <span class="sf-lb" id="lbTime">시간</span>
+        <div class="sf-seg" id="segTime" role="group" aria-labelledby="lbTime">
+          <button type="button" data-v="day" aria-pressed="false">낮</button>
+          <button type="button" data-v="night" aria-pressed="false">밤</button>
+        </div>
+      </div>
+      <div class="sf-opt sf-wind">
+        <span class="sf-lb" id="lbWind">바람</span>
+        <button type="button" id="windBtn" class="windbtn" aria-haspopup="dialog"
+                aria-expanded="false" aria-labelledby="lbWind windBtnTxt">
+          <svg class="windbtn-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"/><path d="M12 7v10M8.5 13.5 12 17l3.5-3.5"/>
+          </svg>
+          <span id="windBtnTxt">고르기</span>
+        </button>
+      </div>
+    </div>
+    <p class="sf-time" id="sfTime" hidden></p>
+
+    <!-- 물질에 따라 원문이 상태별로 나뉜 경우(육지·수계, 기체·액체 …)에만 나옵니다 -->
+    <div class="sf-row" id="sfVarRow" hidden>
+      <span class="sf-lb" id="lbVar">구분</span>
+      <div class="sf-in">
+        <div class="sf-seg" id="segVar" role="group" aria-labelledby="lbVar"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 지금 상태 — 이 화면의 답입니다. 사실만 적습니다 ───────── -->
+  <section class="sf-stat" id="sfStat" aria-live="polite" aria-label="확인 결과"></section>
+
+  <!-- ── 지도 ─────────────────────────────────────────────── -->
+  <div class="mmap sf-map">
+    <svg id="map" role="img" aria-label="초기이격거리·방호활동 구역 지도"></svg>
+    <div class="mapctl noprint">
+      <button id="zIn" type="button" title="확대">＋</button>
+      <button id="zOut" type="button" title="축소">−</button>
+      <button id="zFit" type="button" title="구역 전체 보기">⤢</button>
+    </div>
+    <div class="mapleft"><div class="maplegend" id="mLeg"></div></div>
+    <div class="mapscale"><i id="scaleBar"></i><b id="scaleTxt"></b></div>
+    <div class="mtoast noprint" id="mToast" hidden></div>
+  </div>
+
+  <!-- ── 자세히 — 표 · 원문 · 증상과 응급조치 · 이어 가기 ─────── -->
+  <section class="sf-more" id="sfMore" aria-label="자세히"></section>
+
+  <!-- 이어 가기 — 같은 사고지점·물질을 들고 다른 도구로 갑니다.
+       망분리용 단일 파일에는 옆 도구가 없어 build_single.py 가 이 줄을 통째로
+       뺍니다(② 의 '문자 만들기' 단추와 같은 방식). -->
+  <nav class="sf-next noprint" id="sfNext" aria-label="다른 도구로 이어 가기" hidden>
+    <button type="button" class="sf-go" id="goMap"><span>01</span>이 사고지점으로 주민 대피장소 찾기</button>
+    <button type="button" class="sf-go" id="goSms"><span>02</span>이 물질로 주민대피 문자 만들기</button>
+  </nav>
+
+</div>
+
+<!-- 주소·장소 검색 결과 / 바람 나침반 — ② 와 같은 창입니다 -->
+<div class="mpk noprint" id="addrPop" hidden></div>
+<div class="windpop noprint" id="windPop" hidden role="dialog" aria-label="바람 방향 고르기"></div>
+
+<!-- ── 자료 출처 창 ─────────────────────────────────────── -->
+<div class="cbx-back" id="srcModal" hidden>
+  <div class="cbx">
+    <header><b>자료 출처 · 읽는 법</b>
+      <button type="button" class="cbx-x" id="btnSrcClose" aria-label="닫기">✕</button></header>
+    <div class="alert w cbx-alert"><b>참고도구</b>이 화면의 구역은 물질정보에 적힌
+      ERG 참고 거리를 그린 것입니다. <b>확산 모델링 결과가 아니며</b>, 바람·지형·
+      용기 크기에 따라 실제와 다를 수 있습니다. 거리는 지형·건물을 고려하지 않은
+      직선거리입니다.</div>
+    <div class="cbx-body" id="ver"></div>
+  </div>
+</div>
+
+<script src="../data/version.js"></script>
+<script src="../data/basemap.js"></script>
+<script src="../data/materials.js"></script>
+<script src="../data/stats.js"></script>
+<!-- 대피장소 자료는 여기서 지도에 찍지 않습니다 — 시·군·구·읍·면·동 이름으로
+     사고지점을 찾을 때 그 주소만 씁니다(② 와 같은 검색 색인). -->
+<script src="../data/shelters.js"></script>
+<script src="../data/places.js"></script>
+<script src="../data/boundaries.js"></script>
+<script src="../assets/matpicker.js"></script>
+<script src="../assets/mapcore.js"></script>
+<script src="../assets/erg.js"></script>
+<!-- 인터넷 장소 검색 — 없어도(망분리 단일 파일) 화면은 그대로 돕니다 -->
+<script src="../assets/online.js"></script>
+<script src="app.js"></script>
+<script src="../assets/pwa.js"></script>
+</body>
+</html>

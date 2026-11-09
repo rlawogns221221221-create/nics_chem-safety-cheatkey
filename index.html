@@ -125,8 +125,8 @@
          제외시키자"). 건수는 자료를 갈아 끼울 때마다 낡아 버립니다. -->
     <div class="hero-leads">
       <p class="hero-lead s1">사고가 나면 <b>어디로 대피시킬지</b>,
-        <b>무엇을 문자로 보낼지</b>, <b>무엇을 부를지</b> —
-        세 가지를 이 화면에서 시작합니다.</p>
+        <b>무엇을 문자로 보낼지</b>, <b>무엇을 부를지</b>,
+        <b>현장이 어디까지인지</b> — 이 화면에서 시작합니다.</p>
       <p class="hero-lead s2">사고지점을 찍으면 주변 대피장소를
         <b>가까운 순으로</b> 찾습니다.</p>
       <p class="hero-lead s3">사고정보를 넣으면 <b>재난문자 표준문안</b>이
@@ -151,7 +151,7 @@
        띠 사이에 틈을 만들었고, 사용자가 "그 갭 없이 딱 붙어 있으면 좋겠다"고
        했습니다. 문서에는 남겨 둡니다(.sr-only) — 화면낭독기가 읽어야 하고
        제목 계단(h1 → h2 → h3)도 끊기면 안 됩니다. -->
-  <h2 class="sr-only">업무도구 3종</h2>
+  <h2 class="sr-only">업무도구 4종</h2>
 
   <div class="wrap">
     <!-- 업무도구 세 장 — 자리는 그대로, **가득 찬 사진 위**에 앉습니다.
@@ -162,7 +162,7 @@
            세 칸이 한 화면에 들어와야 해서 사이를 벌릴 여유가 없습니다.
          화면 끝까지 늘려 봤다가 되돌렸습니다 — 한 칸이 620px 을 넘으면
          사진이 커지고 글자가 흩어져 오히려 읽기 나빠집니다(사용자 지적). -->
-    <ul class="tools" id="tools" aria-label="업무도구 3종">
+    <ul class="tools" id="tools" aria-label="업무도구 4종">
 
       <!-- ⚠ 순서는 사용자가 정합니다 — 지금은
            `01 주민 대피장소 찾기 → 02 주민대피 문자생성기 → 03 방제 물품·장비 찾기`
@@ -277,6 +277,48 @@
           <div class="pn-hd">
             <span class="pn-no" aria-hidden="true">03</span>
             <h3>방제 물품·장비 찾기</h3>
+            <span class="pn-go" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+                   stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                <path d="M5 12h13M12 5.5 18.5 12 12 18.5"/>
+              </svg>
+            </span>
+          </div>
+        </a>
+      </li>
+
+      <!-- 04 현장 안전거리 확인 (2026-11-09 사용자 결정 — 카드는 맨 뒤 4번).
+           사용자가 고른 사진이 아직 없어 머리띠 ④(공단 수직 항공)를 잘라 쓰고,
+           그 위에 이 도구가 그리는 두 구역(초기이격 원 · 방호활동 정사각형)을
+           얹었습니다 — 사진만으로는 이 도구가 무엇을 하는지 보이지 않습니다.
+           구역은 사진 **위쪽 절반**에 둡니다 — 휴대전화에서는 카드 아래쪽을
+           이름 띠가 덮습니다.
+           그림은 장식이라 aria-hidden 이고, 수치는 적지 않습니다(딱지 규칙). -->
+      <li class="pn t4">
+        <a href="safe/index.html">
+          <div class="pn-ph">
+            <div class="pn-art" aria-hidden="true">
+              <img src="assets/img/site/card-safe.jpg" alt="" width="1200" height="675" loading="lazy">
+              <svg class="pn-zone" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice" focusable="false">
+                <path class="z-pad" d="M56 14 L102 14 L102 60 L56 60 Z"/>
+                <circle class="z-iso" cx="56" cy="37" r="8"/>
+                <path class="z-acc" d="M52 37h8M56 33v8"/>
+              </svg>
+              <div class="pn-lbs">
+                <b class="pn-lb l1">사고지점</b>
+                <b class="pn-lb l2">초기이격</b>
+                <b class="pn-lb l3">방호활동</b>
+              </div>
+            </div>
+            <div class="pn-ov">
+              <p class="pn-d">물질과 사고지점을 넣으면 ERG 초기이격거리와 방호활동 구역을
+                지도에 그리고, 내 위치가 그 안인지 알려 줍니다.</p>
+              <p class="pn-meta">물질정보 2026년판 · ERG 기준</p>
+            </div>
+          </div>
+          <div class="pn-hd">
+            <span class="pn-no" aria-hidden="true">04</span>
+            <h3>현장 안전거리 확인</h3>
             <span class="pn-go" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
                    stroke-linecap="round" stroke-linejoin="round" focusable="false">

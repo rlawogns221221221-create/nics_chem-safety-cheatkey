@@ -43,12 +43,12 @@ chk(h1.fs >= 24, `제목이 KRDS heading 크기 (${h1.fs}px)`);
 chk((await P.$$('header.top')).length === 1 && (await P.$$('footer')).length === 1,
   '헤더·푸터 시맨틱 요소');
 chk((await P.$$('main#main')).length === 1, 'main 영역 하나');
-chk(await P.$eval('.tools', u => u.tagName === 'UL'), '도구 3종이 목록(ul)');
-chk((await P.$$('.tools > li')).length === 3, '도구 카드 3장');
-/* 제목 계단 — h1(서비스) → h2(업무도구 3종) → h3(도구 이름). 건너뛰지 않는다 */
+chk(await P.$eval('.tools', u => u.tagName === 'UL'), '도구 4종이 목록(ul)');
+chk((await P.$$('.tools > li')).length === 4, '도구 카드 4장 (04 현장 안전거리 확인 · 2026-11-09)');
+/* 제목 계단 — h1(서비스) → h2(업무도구 4종) → h3(도구 이름). 건너뛰지 않는다 */
 const hs = await P.$$eval('h1,h2,h3', es => es.map(e => e.tagName));
-chk(hs[0] === 'H1' && hs[1] === 'H2' && hs.filter(t => t === 'H3').length === 3,
-  `제목 계단 h1→h2→h3×3 (${hs.join('>')})`);
+chk(hs[0] === 'H1' && hs[1] === 'H2' && hs.filter(t => t === 'H3').length === 4,
+  `제목 계단 h1→h2→h3×4 (${hs.join('>')})`);
 chk(ext.length === 0, `외부 요청 0건 (실제 ${ext.length}건)`);
 counting = false;
 
@@ -83,17 +83,19 @@ chk(Math.abs(ratio - 1) < 0.02, `로고 비율 그대로 (원본 대비 ${ratio.
 chk(logo.x < 260, `로고가 머리띠 왼쪽에 (x=${Math.round(logo.x)})`);
 
 // ══ 4. 도구 링크 — 카드 전체가 링크이고 차례가 정해져 있다 ══
-//    주민 대피장소 → 주민대피 문자 → 방제 물품·장비. **차례는 사용자가 정합니다.**
+//    주민 대피장소 → 주민대피 문자 → 방제 물품·장비 → 현장 안전거리. **차례는 사용자가 정합니다.**
 //    2026-11-09 사용자 지시(공모전 형태)로 바뀌었습니다(네 번 오간 자리).
+//    04 현장 안전거리 확인은 같은 날 사용자가 "카드는 4번 맨 뒤로" 라고 정했습니다.
 const links = await P.$$eval('.tools > li > a', as => as.map(a => a.getAttribute('href')));
-chk(links.length === 3 && links[0] === 'map/index.html' && links[1] === 'sms/index.html'
-    && links[2] === 'res/index.html', `링크 순서 대피장소→문자→방제: ${links.join(' / ')}`);
+chk(links.length === 4 && links[0] === 'map/index.html' && links[1] === 'sms/index.html'
+    && links[2] === 'res/index.html' && links[3] === 'safe/index.html',
+    `링크 순서 대피장소→문자→방제→현장 안전거리: ${links.join(' / ')}`);
 const nos = await P.$$eval('.pn-no', ns => ns.map(n => n.textContent.trim()));
-chk(nos.join('') === '010203', `번호 01·02·03 (실제 ${nos.join('·')})`);
+chk(nos.join('') === '01020304', `번호 01·02·03·04 (실제 ${nos.join('·')})`);
 /* 번호 배지는 세 장 모두 같은 색 — 도구마다 다른 원색을 쓰지 않습니다
    (KRDS: 색은 역할로 쓴다. 개선(안)에서도 배지 셋이 같은 파랑입니다) */
 const noBg = await P.$$eval('.pn-no', ns => ns.map(n => getComputedStyle(n).backgroundColor));
-chk(new Set(noBg).size === 1, `번호 배지 색이 세 장 모두 같다 (${[...new Set(noBg)].join(' / ')})`);
+chk(new Set(noBg).size === 1, `번호 배지 색이 네 장 모두 같다 (${[...new Set(noBg)].join(' / ')})`);
 const hit = await P.evaluate(() => {
   const a = document.querySelector('.tools > li > a'), li = a.parentElement;
   const ar = a.getBoundingClientRect(), lr = li.getBoundingClientRect();
@@ -211,7 +213,8 @@ const taps = await P.evaluate(() => [...document.querySelectorAll('.top .act a, 
 chk(taps.every(h => h >= 40), `머리띠 단추가 40px 이상 (${taps.map(Math.round).join('/')})`);
 
 // ══ 9. 반응형 ══
-for (const [w, cols] of [[1440, 3], [1000, 3], [760, 1], [390, 1]]) {
+/* 2026-11-09 카드가 넷 — 넓은 화면은 한 줄 넷, 1100px 아래는 두 줄 둘씩 */
+for (const [w, cols] of [[1440, 4], [1000, 2], [760, 1], [390, 1]]) {
   await P.setViewportSize({ width: w, height: 900 }); await P.waitForTimeout(300);
   const info = await P.evaluate(() => {
     const li = [...document.querySelectorAll('.tools > li')];
@@ -314,7 +317,7 @@ await P.emulateMedia({ reducedMotion: 'no-preference' }); await P.waitForTimeout
 // ══ 12. JS 없이 — 고대비 단추만 없고, 나머지는 그대로 ══
 const N = await B.newPage({ javaScriptEnabled: false, viewport: { width: 1440, height: 900 } });
 await N.goto(PAGE); await N.waitForTimeout(300);
-chk((await N.$$eval('.tools > li > a', as => as.length)) === 3, 'JS 꺼도 링크 살아 있음');
+chk((await N.$$eval('.tools > li > a', as => as.length)) === 4, 'JS 꺼도 링크 살아 있음');
 chk((await N.$$('.modebtn')).length === 0, 'JS 꺼지면 고대비 단추는 안 만들어진다');
 await N.hover('.tools > li:nth-child(1) > a', { force: true }); await N.waitForTimeout(400);
 chk(+(await N.$eval('.pn-ov', o => getComputedStyle(o).opacity)) > 0.95,
@@ -372,7 +375,10 @@ const art = await P.evaluate(() => {
     imgFit: cards.every(i => getComputedStyle(i).objectFit === 'cover'),
     /* 사진은 장식입니다 — 무엇을 하는 도구인지는 제목·설명이 말합니다 */
     imgAlt: cards.every(i => i.getAttribute('alt') === ''),
-    svgN: document.querySelectorAll('.pn-art svg').length,
+    /* 04 카드는 사진 위에 그 도구가 그리는 구역(.pn-zone)을 얹습니다 —
+       그것은 사진을 대신하는 선 그림이 아니라 사진 위의 표시입니다 */
+    svgN: document.querySelectorAll('.pn-art svg:not(.pn-zone)').length,
+    zoneN: document.querySelectorAll('.pn.t4 .pn-art svg.pn-zone').length,
     boxes: [...document.querySelectorAll('.pn-ph')].map(box),
     hidden: at.every(e => e.getAttribute('aria-hidden') === 'true'),
     /* 설명(.pn-ov)은 사진 칸 밖에 있어야 화면낭독기가 읽습니다 */
@@ -395,10 +401,11 @@ const art = await P.evaluate(() => {
 chk(art.hero && art.heroLoaded, '머리띠 사진이 실제로 불러와졌다');
 chk(art.heroFit === 'cover', `머리띠 사진이 칸을 채운다 (object-fit:${art.heroFit})`);
 chk(art.veil, '머리띠 사진 위에 글자용 막(.hero-veil)이 있다');
-chk(art.n === 3 && art.imgN === 3, `카드 세 장에 사진이 하나씩 (칸 ${art.n} · 사진 ${art.imgN})`);
-chk(art.imgLoaded, '카드 사진 세 장이 모두 실제로 불러와졌다');
+chk(art.n === 4 && art.imgN === 4, `카드 네 장에 사진이 하나씩 (칸 ${art.n} · 사진 ${art.imgN})`);
+chk(art.imgLoaded, '카드 사진 네 장이 모두 실제로 불러와졌다');
 chk(art.imgFit, '카드 사진이 칸을 채운다 (object-fit:cover)');
 chk(art.svgN === 0, '카드 그림 칸은 선 그림이 아니라 사진이다');
+chk(art.zoneN === 1, '04 카드 사진 위에 구역 표시가 얹혀 있다');
 const spread = Math.max(...art.boxes.map(b => b.h)) - Math.min(...art.boxes.map(b => b.h));
 chk(spread < 2, `카드 사진 칸 높이가 모두 같다 (${art.boxes.map(b => Math.round(b.h)).join('/')}px)`);
 chk(art.boxes.every(b => Math.abs(b.w / b.h - 16 / 9) < 0.03),
@@ -412,11 +419,11 @@ chk(art.lbIn, '딱지가 사진 칸 밖으로 삐져나오지 않는다');
 /* 딱지에 지어낸 수치가 없는가 — 숫자가 들어가면 자료처럼 읽힙니다 */
 const flat = art.lbs.reduce((a, b) => a.concat(b), []);
 chk(flat.every(t => !/\d/.test(t)), `딱지에 지어낸 수치가 없다 (${flat.join(' / ')})`);
-/* 쓰는 그림 파일 — 기관 로고 + 사진 8장(머리띠 5 · 카드 3) */
+/* 쓰는 그림 파일 — 기관 로고 + 사진 9장(머리띠 5 · 카드 4) */
 const imgs = await P.evaluate(() => [...document.images].map(i => i.getAttribute('src')));
-chk(imgs.length === 9 && imgs.filter(u => /gov-logo/.test(u)).length === 1
-    && imgs.filter(u => /img\/site\//.test(u)).length === 8,
-  `그림 파일은 로고 1 + 사진 8 (${imgs.length}개)`);
+chk(imgs.length === 10 && imgs.filter(u => /gov-logo/.test(u)).length === 1
+    && imgs.filter(u => /img\/site\//.test(u)).length === 9,
+  `그림 파일은 로고 1 + 사진 9 (${imgs.length}개)`);
 /* 사진 위 제목이 읽히는가 — 글자가 앉는 자리를 덮는 막(--veil)과 견줍니다.
    사진은 자리마다 밝기가 달라서, 막의 색으로 대비를 고정해 둔 것입니다. */
 const rgba = s => { const m = s.match(/[\d.]+/g).map(Number);
@@ -458,7 +465,7 @@ for (const w of [1440, 1863]) {
       /* 한 장씩 또렷한 테두리 — 두께와, 카드 바탕과 다른 색인지 */
       bw: parseFloat(as.borderTopWidth), bc: as.borderTopColor, bg: as.backgroundColor,
       /* 사진이 카드 자리를 지나 꼬리 앞까지 내려오는가 */
-      phTop: ph.top, phBottom: ph.bottom, cardsBottom: li[2].bottom, footTop: ft.top
+      phTop: ph.top, phBottom: ph.bottom, cardsBottom: li[li.length - 1].bottom, footTop: ft.top
     };
   });
   chk(strip.gaps.every(g => g >= 8 && g <= 28) &&
@@ -511,8 +518,9 @@ for (const [w, h, 이름] of [[390, 664, '작은 화면'], [390, 750, '실제 �
     const ph = document.querySelector('.pn-ph').getBoundingClientRect();
     const hr = hd.getBoundingClientRect(), hs = getComputedStyle(hd);
     return { card: li[0].height,
-             seen3: Math.min(li[2].bottom, innerHeight) - li[2].top,
-             full3: li[2].bottom <= innerHeight,
+             /* 마지막 칸(04 · 2026-11-09 부터 넷째) 기준 */
+             seen3: Math.min(li[li.length - 1].bottom, innerHeight) - li[li.length - 1].top,
+             full3: li[li.length - 1].bottom <= innerHeight,
              spread: Math.max(...li.map(r => r.height)) - Math.min(...li.map(r => r.height)),
              /* 이름 — 크기 · 한 줄로 들어오는가 · 사진 안에 앉았는가 */
              titleSize: parseFloat(getComputedStyle(h3).fontSize),
@@ -525,11 +533,11 @@ for (const [w, h, 이름] of [[390, 664, '작은 화면'], [390, 750, '실제 �
   });
   chk(m.card <= 175, `${이름} — 한 칸 높이가 175px 이하 (${Math.round(m.card)}px)`);
   chk(m.card >= 120, `${이름} — 한 칸이 지나치게 얇은 띠가 되지 않았다 (${Math.round(m.card)}px)`);
-  chk(m.spread < 2, `${이름} — 세 칸 높이가 같다 (차이 ${Math.round(m.spread)}px)`);
-  chk(m.seen3 >= 110, `${이름} — 셋째 칸도 보인다 (보이는 높이 ${Math.round(m.seen3)}px)`);
+  chk(m.spread < 2, `${이름} — 네 칸 높이가 같다 (차이 ${Math.round(m.spread)}px)`);
+  chk(m.seen3 >= 110, `${이름} — 넷째 칸도 보인다 (보이는 높이 ${Math.round(m.seen3)}px)`);
   /* 2026-10-27 부터 390×664 에서도 세 칸이 온전히 들어와야 합니다 — 머리띠를
      제목 한 줄로 줄였습니다(휴대전화 다듬기). */
-  chk(m.full3, `${이름} — 세 칸이 온전히 한 화면에 들어온다`);
+  chk(m.full3, `${이름} — 네 칸이 온전히 한 화면에 들어온다`);
   chk(m.titleSize >= 22, `${이름} — 도구 이름이 충분히 크다 (${m.titleSize}px)`);
   chk(m.titleLines === 1, `${이름} — 도구 이름이 한 줄에 들어온다 (${m.titleLines}줄)`);
   chk(m.inPhoto, `${이름} — 이름 띠가 사진 안에 앉아 칸을 높이지 않는다`);

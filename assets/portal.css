@@ -444,7 +444,10 @@ main{padding:0 0 3.2rem}
 
    자리는 그대로입니다 — 머리띠 글 바로 아래, 가운데 상자(120rem) 안. */
 @media (min-width:800px){
-  .tools{grid-template-columns:repeat(3,1fr);
+  /* 카드가 넷이 되었습니다(2026-11-09 · 04 현장 안전거리 확인). 넓은 화면은
+     한 줄에 넷, 그보다 좁으면 두 줄 둘씩 — 한 줄 넷을 1100px 아래로 끌고 가면
+     한 칸이 230px 안팎으로 좁아져 이름이 두 줄로 꺾입니다. */
+  .tools{grid-template-columns:repeat(2,1fr);
     gap:1.6rem; background:none; border:0; border-radius:0; overflow:visible}
   .pn a{border:.2rem solid var(--pn-line); border-radius:1rem; overflow:hidden;
     box-shadow:0 .2rem .4rem rgba(0,0,0,.10), 0 1.6rem 3.2rem -1.2rem rgba(0,0,0,.42);
@@ -460,6 +463,7 @@ main{padding:0 0 3.2rem}
   /* 사진이 카드 자리까지 내려옵니다 — 첫째 줄부터 마지막 줄까지 */
   .cover > .hero-ph{grid-row:1 / -1}
 }
+@media (min-width:1100px){ .tools{grid-template-columns:repeat(4,1fr)} }
 
 /* 카드 세 장이 차례로 올라옵니다 — 열 때 한 번만. 화면이 통째로 나타나는
    것보다 '무엇이 몇 장 있는지'가 눈에 들어옵니다. 멈춘 상태가 곧 다 보이는
@@ -468,6 +472,7 @@ main{padding:0 0 3.2rem}
 .pn{display:flex; animation:pnIn .5s var(--ease) both}
 .pn:nth-child(2){animation-delay:.09s}
 .pn:nth-child(3){animation-delay:.18s}
+.pn:nth-child(4){animation-delay:.27s}
 .pn a{
   display:flex; flex-direction:column; gap:1.6rem; width:100%;
   padding:0 0 2rem; text-decoration:none; color:inherit;
@@ -539,7 +544,17 @@ main{padding:0 0 3.2rem}
 .pn.t1 .l1{left:14%; top:24%}    /* 휴대전화 왼쪽 흐린 자리 */
 .pn.t1 .l2{left:79%; top:19%}    /* 휴대전화 오른쪽 흐린 자리 */
 .pn.t3 .l1{left:79%; top:26%}    /* 장비를 실은 차량 쪽 */
-.pn.t3 .l2{left:58%; top:83%}    /* 보호복 대응인력 아래 */
+.pn.t3 .l2{left:58%; top:76%}    /* 보호복 대응인력 아래 — 카드가 넷이 되어 칸이 낮아져 83% 에서 3px 삐져나왔습니다 */
+.pn.t4 .l1{left:33%; top:50%}    /* 사고지점 십자 왼쪽 아래 */
+.pn.t4 .l2{left:22%; top:24%}    /* 초기이격 원 왼쪽 위 */
+.pn.t4 .l3{left:72%; top:72%}    /* 방호활동 구역 아래쪽 */
+/* 04 카드 — 사진 위에 이 도구가 그리는 두 구역을 얹습니다(장식 · aria-hidden).
+   사진과 같은 비율로 잘리도록 slice 로 맞춥니다. 색은 도구 화면과 같은 역할 —
+   빨강 = 초기이격, 경고색 = 방호활동. */
+.pn-zone{position:absolute; inset:0; width:100%; height:100%; pointer-events:none}
+.pn-zone .z-pad{fill:var(--warn); fill-opacity:.30; stroke:var(--warn-l); stroke-width:.9}
+.pn-zone .z-iso{fill:var(--err); fill-opacity:.45; stroke:var(--on-deep); stroke-width:.8}
+.pn-zone .z-acc{fill:none; stroke:var(--on-deep); stroke-width:1.2; stroke-linecap:round}
 /* 설명이 올라오면 딱지는 비켜 줍니다 */
 .pn a:hover .pn-lbs{opacity:0}
 .pn a:focus-visible .pn-lbs{opacity:0}
@@ -652,7 +667,10 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
 
   .pn a{position:relative; display:block; padding:0; background:none;
     -webkit-tap-highlight-color:transparent}
-  .pn-ph{aspect-ratio:7/3; border-bottom:0}
+  /* 7:3(153px) 이던 칸을 8:3(134px)으로 낮췄습니다 — 카드가 넷이 되면서
+     (2026-11-09 · 04 현장 안전거리 확인) 390×664 에서 넷째 칸이 66px
+     화면 밖으로 밀렸습니다. 이름 띠(52px)는 그대로라 글자 크기는 같습니다. */
+  .pn-ph{aspect-ratio:8/3; border-bottom:0}
   /* 사진 아래쪽을 부드럽게 어둡게 — 아래 유리 띠의 위 경계가 사진과
      끊기지 않게 이어 줍니다. 글자를 읽히게 하는 일은 띠가 합니다. */
   .pn-ph::after{content:""; position:absolute; inset:0; z-index:1;

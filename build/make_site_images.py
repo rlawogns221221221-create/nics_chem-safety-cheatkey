@@ -87,6 +87,12 @@ CROP = [
     dict(src="card-res.webp", out="card-res.jpg",
          ratio=16 / 9, width=1200, anchor=(0.5, 0.56), q=80,
          note="차량 + 노란 보호복 인력이 함께 보여야 함"),
+    # 04 현장 안전거리 확인(2026-11-09) — 사용자가 고른 사진이 아직 없어 머리띠 ④
+    # (수변 공단 수직 항공)를 16:9 로 잘라 씁니다. 그 위에 초기이격 원·방호활동
+    # 구역을 portal.css 가 그려 얹습니다. 사용자가 사진을 주면 src 만 바꾸세요.
+    dict(src="hero-4.webp", out="card-safe.jpg",
+         ratio=16 / 9, width=1200, anchor=(0.5, 0.5), q=80,
+         note="공단 항공 — 가운데에 구역 그림이 얹힘"),
 ]
 
 
