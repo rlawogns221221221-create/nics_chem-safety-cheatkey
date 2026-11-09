@@ -4,6 +4,11 @@ node_modules/
 # 개발 자리에서는 미리 깔린 playwright 를 이 이름의 바로가기로 씁니다
 node_modules
 .DS_Store
+# 공모전 참가신청서 — 성명·휴대전화·이메일이 들어갑니다(CLAUDE.md 2절 4항).
+# 값은 저장소 밖 파일에서만 읽고, 구운 PDF 도 올리지 않습니다.
+docs/공모전/참가정보.local.json
+docs/공모전/\[참가신청서\]*
+docs/공모전/.임시_*
 # 시연영상을 굽는 동안만 쓰는 장면 그림들(끝나면 지워집니다)
 .contest-tmp/
 .demo-tmp/

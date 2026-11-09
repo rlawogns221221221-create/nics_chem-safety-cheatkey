@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>[참가신청서] 화학사고 초동대응 지원 서비스</title>
+<!--
+  2026 공공 AI 대전환 챌린지 — [양식 1-1] 참가신청서 (세션 1·2) 원본.
+  PDF 는 build/make_contest_docs.mjs 가 굽습니다.
+  ⚠ 성명·연락처·이메일은 이 파일에 적지 않습니다 — 저장소 밖
+    docs/공모전/참가정보.local.json 에서 채웁니다(CLAUDE.md 2절 4항).
+    값이 없으면 빈칸으로 두어 손으로 적을 수 있게 합니다.
+-->
+<style>
+@font-face{font-family:"Pretendard GOV";font-weight:400;src:url("../../assets/fonts/PretendardGOV-Regular.subset.woff2") format("woff2")}
+@font-face{font-family:"Pretendard GOV";font-weight:700;src:url("../../assets/fonts/PretendardGOV-Bold.subset.woff2") format("woff2")}
+/* 원래 양식처럼 한 장에 — 넘치면 빌드가 알립니다 */
+@page{size:A4;margin:12mm 14mm 11mm}
+*{box-sizing:border-box}
+html,body{margin:0;background:#fff}
+body{font-family:"Pretendard GOV","Noto Sans CJK KR","Noto Sans KR",sans-serif;color:#1d1d1d;font-size:9.3pt;
+  line-height:1.45;word-break:keep-all}
+h1{margin:0 0 .5mm;font-size:17pt;text-align:center;letter-spacing:.3em}
+.sub{text-align:center;font-size:9pt;color:#464c53;margin-bottom:3mm}
+h2{font-size:10.6pt;margin:3.2mm 0 1.2mm}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+th,td{border:.7pt solid #555;padding:1.5mm 2.2mm;vertical-align:middle}
+th{background:#eef1f5;font-weight:700;text-align:center}
+.mem th,.mem td{font-size:8.6pt;padding:1.2mm 1.2mm;text-align:center;height:8.4mm}
+.ov td{line-height:1.42}
+.ck{display:inline-block;width:3.6mm;height:3.6mm;border:.8pt solid #333;vertical-align:-.6mm;margin-right:1.2mm;
+  text-align:center;line-height:3.2mm;font-size:8pt;font-weight:700}
+.agree{margin-top:3mm;border:.7pt solid #555;padding:2.2mm 3.2mm;font-size:8.5pt}
+.agree p{margin:.9mm 0;padding-left:5mm;text-indent:-5mm}
+.agree .t{font-weight:700;margin:0 0 1mm;padding:0;text-indent:0}
+.agree small{color:#555}
+.sign{margin-top:3mm;text-align:center;font-size:10pt;line-height:1.85}
+.sign .who{display:inline-block;text-align:left}
+.to{margin-top:3mm;text-align:center;font-size:14pt;font-weight:700;letter-spacing:.2em}
+.g{color:#5a6573;font-size:8.4pt}
+</style>
+</head>
+<body>
+<h1>참가신청서</h1>
+<div class="sub">2026 공공 AI 대전환 챌린지 · [양식 1-1] 세션 1·2</div>
+
+<h2>❶ 참가 정보</h2>
+<table>
+  <colgroup><col style="width:16%"><col style="width:20%"><col></colgroup>
+  <tr><th rowspan="2">참가 구분</th><td colspan="2"><span class="ck"></span>개인 &nbsp; <span class="ck">✓</span>팀 &nbsp;(팀명: <b>{{팀명}}</b>)</td></tr>
+  <tr><td colspan="2"><span class="ck">✓</span><b>세션 1 자유주제</b><br>
+    <span class="ck"></span>세션 2 지정과제 중 선택 1 — 과제: <span class="ck"></span>업무바통(인수인계) <span class="ck"></span>서무비서 <span class="ck"></span>규정 제·개정 에이전트</td></tr>
+  <tr><th rowspan="2">기관 정보</th><th>기관명</th><td>{{기관명}}</td></tr>
+  <tr><th>AI 담당부서명</th><td>{{AI담당부서명}}</td></tr>
+</table>
+
+<h2>❷ 참가자(팀/개인) 정보</h2>
+<table class="mem">
+  <colgroup><col style="width:11%"><col style="width:11%"><col style="width:15%"><col style="width:9%"><col style="width:11%"><col style="width:15%"><col style="width:19%"><col style="width:9%"></colgroup>
+  <tr><th>구분</th><th>성명</th><th>부서</th><th>직급</th><th>직위(호칭)</th><th>연락처</th><th>이메일</th><th>역할</th></tr>
+  {{팀원줄}}
+</table>
+
+<h2>❸ 개발물 개요</h2>
+<table class="ov">
+  <colgroup><col style="width:22%"><col></colgroup>
+  <tr><th>과제명(도구 이름)</th><td><b>{{과제명}}</b></td></tr>
+  <tr><th>결과물 형태<br><span class="g">(웹·데스크톱·문서형 등)</span></th>
+    <td>웹 — <b>휴대전화 우선</b>(PC 겸용) · 설치·회원가입 없이 링크·QR로 열림<br>
+      + 인터넷이 안 되는 업무망 PC용 단일 HTML 파일 3개</td></tr>
+  <tr><th>사용 모델명 /<br>교체 가능여부</th>
+    <td>실행 중 LLM 미사용 — 모델 연결·키 없이 구동(특정 모델에 종속되지 않음)<br>
+      <span class="g">개발 단계에서 AI 코딩 도구(Claude Code)로 직접 개발하고 원자료 정리에 활용</span></td></tr>
+  <tr><th>공공 GitLab<br>프로젝트 링크</th><td>{{gitlab}}</td></tr>
+  <tr><th>개요 및 주요 기능<br><span class="g">(핵심 요약)</span></th>
+    <td>화학사고가 나면 지자체 담당자가 <b>휴대전화 하나로, 사고지점에서 가까운 순으로</b> 찾고 만드는 초동대응 서비스
+      <br>① <b>방제 물품·장비 찾기</b> — 흡착포·보호구 등을 가진 곳과 보유 수량·연락처, 폐기물·폐수를 맡길 업체
+      <br>② <b>주민 대피장소 찾기</b> — 화학사고 대피장소와 이재민 임시주거시설, 반경별 개수·수용인원·도보시간
+      <br>③ <b>주민대피 문자생성기</b> — 한 화면에 한 가지씩 채우면 승인 표준문안 그대로, 글자수까지 → 복사
+      <br>기관마다 흩어진 원자료(방제자원 3,865곳 · 대피장소 1,849곳 · 임시주거시설 15,905곳 · 물질 460종)를 AI로 정리해 담았고,
+      <b>판단은 담당자에게</b> 맡기는 원칙(어림값 표시 · 없는 값 비움 · 개인정보 제외)으로 설계.
+      시범운영 만족도 조사(61명) 만족 72.1% · 실제 사고 대응 활용 5명.</td></tr>
+</table>
+
+<div class="agree">
+  <p class="t">■ 개인정보 수집·이용 동의(심사·시상·연락 목적) <small>※ 미동의 시 신청 불가합니다.</small></p>
+  <p><span class="ck">{{동의표}}</span>신청인은 개인정보(성명·연락처·이메일 등) 수집·이용에 동의합니다.
+    <small>(수집·이용기관: 행정안전부 / 대회 운영·심사 목적, 종료 후 1년 내 폐기)</small></p>
+  <p><span class="ck">{{동의표}}</span>신청인은 수상 시 행정안전부에 산출물의 복제·수정·배포·2차적저작물 작성·범정부 공동활용 구축(위탁업체 사용 허락 포함)에 대한 무상 사용권을 기간 제한 없이 부여하며, 정식활용 시 다른 수상작과 통합·보완 재구성될 수 있음에 동의합니다.</p>
+  <p><span class="ck">{{동의표}}</span>대회 관련 사진·영상이 홍보 목적(언론 배포 포함)으로 활용될 수 있음에 동의합니다.</p>
+  <p><span class="ck">{{동의표}}</span>신청인은 본 대회 제반 규정을 준수하며, 표절·도용·저작권 침해 등 부정행위 시 심사 제외 및 수상 취소·환수에 동의합니다.</p>
+</div>
+
+<div class="sign">2026년 &nbsp;&nbsp;{{월}}&nbsp;&nbsp;월 &nbsp;&nbsp;{{일}}&nbsp;&nbsp;일<br>
+  <span class="who">{{서명줄}}</span></div>
+<div class="to">행정안전부장관 귀하</div>
+</body>
+</html>
