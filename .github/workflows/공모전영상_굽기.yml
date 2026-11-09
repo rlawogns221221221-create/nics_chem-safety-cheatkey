@@ -163,5 +163,9 @@ jobs:
           개발 자리는 타일 서버·음성 모델 저장소가 막혀 있습니다(CLAUDE.md 6절).
           인터넷이 되는 액션 러너에서 같은 스크립트(build/make_contest_video.mjs)를
           돌려 영상을 다시 만들었습니다."
-          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          # 그사이 다른 판(먼저 돌다 취소된 판 등)이 영상을 올려 두었으면 같은 mp4 가
+          # 부딪힙니다. 그때 예전에는 '|| true' 로 넘어가 **방금 구운 영상이 버려졌습니다**
+          # (2026-11-09 — 나레이션이 든 판이 저장소에 못 들어감). 되감는 동안 부딪히면
+          # 이 단계가 만든 쪽(-X theirs = 되감아 얹는 커밋)을 남깁니다.
+          git pull --rebase -X theirs origin "${GITHUB_REF_NAME}"
           git push origin "HEAD:${GITHUB_REF_NAME}"
