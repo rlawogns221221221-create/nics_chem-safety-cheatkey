@@ -102,7 +102,7 @@ for (const [rel, want] of [['assets/img/icon-192.png', 192],
 }
 
 /* ══ 2. 네 화면의 머리 태그 ══════════════════════════════════ */
-const PAGES = ['index.html', 'sms/index.html', 'map/index.html', 'res/index.html'];
+const PAGES = ['index.html', 'sms/index.html', 'map/index.html', 'res/index.html', 'safe/index.html'];
 for (const rel of PAGES) {
   const html = readFileSync(`${RPATH}/${rel}`, 'utf8');
   const up = rel === 'index.html' ? './' : '../';
@@ -146,16 +146,17 @@ for (const [BASEx, 이름] of [[BASE, '평범한 서버'],
   const page = await ctx.newPage();
   await page.goto(`${BASEx}/`);
   await page.waitForLoadState('load');
-  chk(await page.evaluate(() => document.querySelectorAll('.pn').length) === 3,
-    `${이름} — 진입 화면에 카드 세 장이 뜬다`);
+  chk(await page.evaluate(() => document.querySelectorAll('.pn').length) === 4,
+    `${이름} — 진입 화면에 카드 네 장이 뜬다`);
 
   /* 카드를 실제로 눌러 들어가 본다 — 사용자가 겪은 그 동작 그대로 */
   for (const [n, sel, what] of [
-  /* 카드 차례는 사용자가 정합니다 — 지금은 대피장소 → 문자 → 방제
-     (2026-11-09). 차례가 바뀌면 여기 n 도 함께 고쳐야 합니다. */
+  /* 카드 차례는 사용자가 정합니다 — 지금은 대피장소 → 문자 → 방제 →
+     현장 안전거리(2026-11-09). 차례가 바뀌면 여기 n 도 함께 고쳐야 합니다. */
     [1, '#map', '주민 대피장소 찾기'],
     [2, '.stepbar', '주민대피 문자생성기'],
     [3, '.rz', '방제 물품·장비 찾기'],
+    [4, '#sfStat', '현장 안전거리 확인'],
   ]) {
     await page.goto(`${BASEx}/`);
     await page.waitForLoadState('load');
@@ -287,6 +288,7 @@ const DIST = [
   'dist/화학사고_주민대피문자_생성기.html',
   'dist/화학사고_주민대피장소_찾기.html',
   'dist/화학사고_방제물품장비_찾기.html',
+  'dist/화학사고_현장안전거리_확인.html',
   'preview/진입화면_한파일.html',
 ];
 for (const rel of DIST) {
@@ -307,8 +309,8 @@ p4.on('pageerror', e => errs.push(String(e)));
 await p4.goto(`${ROOT}index.html`);
 await p4.waitForLoadState('load');
 chk(errs.length === 0, `file:// 로 열어도 오류가 없다 (${errs.join(' / ') || '없음'})`);
-chk(await p4.evaluate(() => document.querySelectorAll('.pn').length) === 3,
-  'file:// 로 열어도 카드 세 장이 그대로 뜬다');
+chk(await p4.evaluate(() => document.querySelectorAll('.pn').length) === 4,
+  'file:// 로 열어도 카드 네 장이 그대로 뜬다');
 chk(await p4.$('.inst') === null,
   'file:// 에서는 설치 안내를 띄우지 않는다(설치할 수 없는 상태이므로)');
 await c4.close();
