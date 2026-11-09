@@ -1,19 +1,23 @@
 # ═══════════════════════════════════════════════════════════════
-#  공모전 시연영상 굽기 (배경지도까지 나오게)
+#  공모전 시연영상 굽기 (배경지도 · 나레이션 · 배경음악까지)
 #
 #  ── 왜 필요한가 ───────────────────────────────────────────
 #  2026 공공 AI 대전환 챌린지 세션1 에 낼 시연영상입니다(5분 안 · mp4).
-#  개발 자리는 배경지도 타일 서버로 못 나가(CONNECT 403) 지도에 행정경계선만
-#  나옵니다(CLAUDE.md 6절). 그래서 인터넷이 되는 러너에서 굽습니다 —
-#  모바일설명서_굽기.yml 과 같은 이유입니다.
+#  개발 자리는 배경지도 타일 서버와 음성 모델 저장소로 못 나가(CLAUDE.md 6절)
+#  인터넷이 되는 러너에서 굽습니다 — 모바일설명서_굽기.yml 과 같은 이유입니다.
 #
-#  ── 무엇을 하나 ───────────────────────────────────────────
-#  `build/make_contest_video.mjs` 가 build/영상무대.html 을 열고, 가운데
-#  휴대전화 안에서 실제 서비스를 눌러 가며 녹화해 `docs/공모전_시연영상.mp4`
-#  를 만듭니다. 그것을 **이 가지에 커밋**합니다. 배포는 안 합니다.
+#  ── 두 단계로 나눈 까닭 ──────────────────────────────────
+#  ① narrate — 여성 나레이션(MeloTTS 한국어 · MIT 공개 모델)을 만듭니다.
+#     **바깥 저장소의 코드를 받아 돌리는 단계라 읽기 권한만** 줍니다
+#     (permissions: contents: read). 받는 코드는 **커밋 하나로 못 박았습니다** —
+#     저쪽이 바뀌어도 우리가 확인한 그 판만 돕니다. 이 단계가 넘기는 것은
+#     **음성 파일(wav)과 길이 표뿐**입니다.
+#  ② bake — 받은 음성 파일만 들고 녹화·음악 합성·섞기를 하고, 결과 영상을
+#     이 가지에 커밋합니다(쓰기 권한은 이 단계에만). 바깥 코드는 돌리지 않습니다.
+#  나레이션 단계가 실패해도 영상은 굽습니다(그때는 음악만) — 기록을 보고 고칩니다.
 #
 #  ── 언제 도나 ─────────────────────────────────────────────
-#  · 영상 스크립트·무대를 이 가지에 올리면 저절로 돕니다(push).
+#  · 영상 스크립트·무대·대본을 이 가지에 올리면 저절로 돕니다(push).
 #  · 결과(mp4)는 아래 paths 에 없어 커밋해도 다시 돌지 않습니다.
 # ═══════════════════════════════════════════════════════════════
 name: 공모전 시연영상 굽기
@@ -24,11 +28,14 @@ on:
     paths:
       - build/make_contest_video.mjs
       - build/영상무대.html
+      - build/영상대본.json
+      - build/make_narration.py
+      - build/make_music.py
       - .github/workflows/공모전영상_굽기.yml
   workflow_dispatch:
 
 permissions:
-  contents: write        # 구운 영상을 커밋하기 위해서만 씁니다
+  contents: read           # 기본은 읽기만 — 쓰기는 bake 단계에서만 엽니다
 
 concurrency:
   group: contest-video-bake
@@ -36,26 +43,81 @@ concurrency:
 
 jobs:
   # ⚠ 잡 id 는 영문·숫자·_·- 만 됩니다(한국어를 쓰면 워크플로가 안 돕니다).
+  narrate:
+    name: 나레이션 만들기 (여성 음성)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      # MeloTTS 가 묶어 둔 transformers 4.27 은 3.12 용 바퀴(wheel)가 없어 3.10 으로 둡니다
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: MeloTTS 설치 (커밋 고정)
+        run: |
+          python -m pip install --upgrade pip wheel
+          # CPU 판 torch 를 먼저 — 그냥 두면 GPU 판(수 GB)을 받습니다
+          pip install torch==2.3.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cpu
+          pip install "numpy<2" "git+https://github.com/myshell-ai/MeloTTS.git@209145371cff8fc3bd60d7be902ea69cbdb7965a"
+          python -m unidic download
+          python -c "import nltk; [nltk.download(x, quiet=True) for x in ('averaged_perceptron_tagger_eng','averaged_perceptron_tagger','cmudict')]" || true
+
+      - name: 대본을 음성으로
+        run: |
+          set -o pipefail
+          python build/make_narration.py 2>&1 | tee .narr-기록.txt
+
+      - name: 음성 넘기기
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 나레이션
+          include-hidden-files: true
+          path: |
+            .narr/*.wav
+            .narr/길이.json
+            .narr-기록.txt
+
   bake:
     name: 시연영상 녹화하고 mp4 굽기
+    needs: narrate
+    if: ${{ always() }}
     # ⚠ ubuntu-latest 를 쓰지 마세요 — 26.04 를 가리키는데 Playwright 1.56.1 이
     #   그 판을 몰라 크로미움 설치에서 멈춥니다(모바일설명서_굽기.yml 첫 실행).
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    permissions:
+      contents: write      # 구운 영상을 커밋하기 위해서만 씁니다
     steps:
       - uses: actions/checkout@v4
+
+      - name: 나레이션 받기
+        continue-on-error: true
+        uses: actions/download-artifact@v4
+        with:
+          name: 나레이션
+          path: .narr
 
       - name: 배경지도 타일이 받아지는지 확인
         run: |
           R=$(curl -sS -o /tmp/tile.png -w '%{http_code} %{size_download}바이트 %{content_type}' \
               --max-time 25 "https://tile.openstreetmap.org/12/3510/1720.png" 2>&1 || echo "받지 못함")
           echo "OpenStreetMap → $R (200 · image/png 이면 영상에 도로·건물이 나옵니다)"
+          ls -la .narr 2>/dev/null || echo "나레이션 없음 — 음악만 넣습니다"
 
       - uses: actions/setup-node@v4
         with:
           node-version: "22"
 
-      - name: 크로미움 · 한글 글꼴 · ffmpeg 준비
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 크로미움 · 한글 글꼴 · ffmpeg · 음악용 numpy 준비
         run: |
           npm install --no-save playwright@1.56.1
           npx playwright install --with-deps chromium
@@ -63,10 +125,12 @@ jobs:
           # 저장소의 Pretendard GOV 는 부분집합이라 없는 글자가 두부(□)로 나올 수
           # 있어 시스템 한글 글꼴을 깔아 둡니다. ffmpeg 은 장면을 mp4 로 굽는 데 씁니다.
           sudo apt-get install -y --no-install-recommends fonts-noto-cjk ffmpeg
+          python -m pip install numpy
 
       - name: 녹화하고 굽기
         env:
           FFPRESET: medium
+          PYTHON: python
         run: |
           # ⚠ `set -o pipefail` 이 없으면 tee 의 성공이 node 의 실패를 덮습니다.
           set -o pipefail
@@ -90,9 +154,9 @@ jobs:
             echo "바뀐 것이 없습니다 — 커밋하지 않습니다."
             exit 0
           fi
-          git commit -m "공모전 시연영상을 배경지도가 나오는 자리에서 구웠습니다
+          git commit -m "공모전 시연영상을 배경지도·나레이션·음악까지 넣어 구웠습니다
 
-          개발 자리는 타일 서버가 막혀(CONNECT 403) 지도에 경계선만 나왔습니다.
+          개발 자리는 타일 서버·음성 모델 저장소가 막혀 있습니다(CLAUDE.md 6절).
           인터넷이 되는 액션 러너에서 같은 스크립트(build/make_contest_video.mjs)를
           돌려 영상을 다시 만들었습니다."
           git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
