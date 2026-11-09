@@ -168,14 +168,27 @@ chk((await P.$$('.sf-pt.me')).length === 0, '내 위치 확인을 끄면 그 줄
 await ctx.setGeolocation({ ...ACC, accuracy: 15 });
 
 /* 원문·표 */
-chk((await P.textContent('.sf-raw')).includes('소규모 반경 30m / 대규모 반경 300m'), '원문을 그대로 보여 준다');
+/* 물질 정보는 접혀 있고(필요할 때만 펼침 · 2026-11-09 사용자), 펼치면 물질정보의
+   글이 고치지 않은 채로 나온다. 내 위치를 받아 다시 그려도 펼친 채로 남아야
+   한다(읽는 중에 닫히면 안 됨). 화면에 '원문'이라는 말은 쓰지 않는다. */
+chk(await P.$eval('#sfInfo', d => !d.open), '물질 정보는 처음에 접혀 있다');
+await P.click('#sfInfo summary'); await P.waitForTimeout(200);
+chk((await P.textContent('#sfInfo')).includes('소규모 반경 30m / 대규모 반경 300m'), '펼치면 물질정보의 글이 그대로 나온다');
+await P.click('#btnWatch'); await P.waitForTimeout(900);
+await ctx.setGeolocation(near(80, 0)); await P.waitForTimeout(1200);
+chk(await P.$eval('#sfInfo', d => d.open), '내 위치가 바뀌어 다시 그려도 펼친 채로 남는다');
+await P.click('#btnWatch'); await P.waitForTimeout(300);
+await ctx.setGeolocation({ ...ACC, accuracy: 15 });
+const 원문 = await P.evaluate(() => ['.sf-q', '#sfStat', '#sfMore', '#mLeg']
+  .map(s => document.querySelector(s).textContent).join(' ') + document.title);
+chk(!/원문/.test(원문), "화면에 '원문' 이라는 말이 없다");
 chk((await P.$$('.sf-tbl td.hit')).length >= 2, '거리 표에서 지금 고른 칸을 짚는다');
 
 // ══ 5. 자료가 없는 물질 · 구분이 있는 물질 ══
 await P.fill('#sfMat', '붕산'); await P.waitForTimeout(400);
 s = await P.textContent('#sfStat');
-chk(s.includes('적혀 있지 않습니다') && (await P.$$('#map .ziso, #map .zpad')).length === 0,
-  '원문에 거리가 없는 물질은 그렇다고 적고 그리지 않는다');
+chk(s.includes('자료가 없습니다') && (await P.$$('#map .ziso, #map .zpad')).length === 0,
+  '거리 자료가 없는 물질은 그렇다고 적고 그리지 않는다');
 await P.fill('#sfMat', '염화티오닐'); await P.waitForTimeout(400);
 chk(await P.isVisible('#sfVarRow'), '원문이 육지·수계로 나뉜 물질은 구분을 묻는다');
 chk(await P.$eval('#segVar', e => e.classList.contains('need')), '구분도 도구가 미리 고르지 않는다');

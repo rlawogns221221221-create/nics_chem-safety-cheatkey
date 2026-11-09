@@ -3536,6 +3536,8 @@ body.safeapp{background:var(--bg)}
 .sf-src{margin:6px 0 0;font-size:var(--fs-xs);color:var(--ink3)}
 .sf-aid summary{display:flex;align-items:center;min-height:var(--h-s);font-size:var(--fs-m);font-weight:700;cursor:pointer}
 .sf-aid[open] summary{margin-bottom:6px}
+.sf-h3{margin:10px 0 4px;font-size:var(--fs-s);font-weight:800;color:var(--ink)}
+.sf-aid .sf-h3:first-of-type{margin-top:0}
 .sf-next{display:flex;flex-direction:column;gap:8px;padding:0 12px 16px}
 .sf-next[hidden]{display:none}
 .sf-go{display:flex;align-items:center;gap:10px;min-height:var(--h-m);padding:0 14px;
@@ -3740,7 +3742,9 @@ window.addEventListener("storage", function (e) {
      보는 화면이라면, 이 화면은 "나는 지금 어디에 서 있나"를 봅니다.
      · 화면에는 **사실만** 적습니다 — "초기이격거리 안/밖" (사용자 결정 —
        "위험·안전" 같은 단정은 쓰지 않습니다).
-     · 거리는 물질정보 460종의 ERG 원문에서 읽고, 원문을 늘 함께 보여 줍니다.
+     · 거리는 물질정보 460종에 적힌 ERG 값에서 읽습니다. 물질정보의 글(거리 설명·
+       증상·응급조치)은 「물질 정보 더 보기」에 접어 두고 필요할 때만 펼칩니다.
+       화면에 '원문'이라는 말은 쓰지 않습니다(2026-11-09 사용자).
      · 바람은 나침반으로 고릅니다(사용자 결정). 인터넷이 없어도 돕니다. -->
 <body class="safeapp">
 
@@ -3839,7 +3843,7 @@ window.addEventListener("storage", function (e) {
     <div class="mtoast noprint" id="mToast" hidden></div>
   </div>
 
-  <!-- ── 자세히 — 표 · 원문 · 증상과 응급조치 · 이어 가기 ─────── -->
+  <!-- ── 자세히 — 안전거리 표 · (접어 둔) 물질 정보 ──────────── -->
   <section class="sf-more" id="sfMore" aria-label="자세히"></section>
 
   <!-- 이어 가기 — 같은 사고지점·물질을 들고 다른 도구로 갑니다.
@@ -5576,8 +5580,8 @@ function renderStat() {
   }
 
   if (st.mat && st.inf && !st.inf.any) {
-    html += '<p class="sf-none">‘' + esc(st.mat.n) + "’은(는) 물질정보에 초기이격거리·방호활동거리가 "
-      + "<b>적혀 있지 않습니다.</b> 아래 원문을 확인하세요.</p>";
+    html += '<p class="sf-none">‘' + esc(st.mat.n) + "’은(는) 초기이격거리·방호활동거리 "
+      + "<b>자료가 없습니다.</b></p>";
   }
 
   /* 거리 요약 — 고른 조건에서 읽은 값 */
@@ -5661,7 +5665,7 @@ function renderOpts() {
     b.disabled = !!inf && !needSize;
   });
   $("#segSize").classList.toggle("need", needSize && !st.size);
-  $("#segSize").title = inf && !needSize ? "이 물질은 원문에 유출 규모 구분이 없습니다" : "";
+  $("#segSize").title = inf && !needSize ? "이 물질은 유출 규모 구분이 없습니다" : "";
 
   /* 낮·밤 */
   var night = isNight(), hasDN = !!(inf && inf.hasDN);
@@ -5669,7 +5673,7 @@ function renderOpts() {
     b.setAttribute("aria-pressed", String((b.dataset.v === "night") === night));
     b.disabled = !!inf && !hasDN;
   });
-  $("#segTime").title = inf && !hasDN ? "이 물질은 원문에 낮·밤 구분이 없습니다" : "";
+  $("#segTime").title = inf && !hasDN ? "이 물질은 낮·밤 구분이 없습니다" : "";
   var tEl = $("#sfTime");
   var p = sunPoint(), s = ERG.sun(p.lat, p.lon, new Date());
   if (hasDN && s) {
@@ -5700,11 +5704,24 @@ function hhmm(d) {
   return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m;
 }
 
-/* ── 자세히 — 표 · 원문 · 증상과 응급조치 · 이어 가기 ───────────── */
+/* ── 자세히 — 안전거리 표 · (접어 둔) 물질 정보 ──────────────────
+   이 화면의 중심은 **현장 안전거리**입니다(2026-11-09 사용자 — "물질에 대한
+   내용이 글로 나온 것은 필요할 때만 볼 수 있게 하고, 우리의 근본인 현장
+   안전거리만 집중할 수 있게"). 그래서 늘 보이는 것은 거리 표 하나이고,
+   물질정보의 글(거리 설명·증상·응급조치)은 「물질 정보 더 보기」 한 곳에
+   접어 둡니다. 화면에 '원문'이라는 말도 쓰지 않습니다(같은 날 사용자).
+
+   ‼ 내 위치를 받을 때마다 다시 그리면 펼쳐 둔 것이 저절로 접힙니다(읽는
+   중에 닫힘). 그래서 물질·조건이 바뀔 때만 다시 그리고, 펼침 상태는
+   기억해 둡니다. */
+var moreKey = "", moreOpen = false;
 function renderMore() {
   var el = $("#sfMore");
   var m = st.mat;
-  if (!m) { el.hidden = true; el.innerHTML = ""; return; }
+  if (!m) { el.hidden = true; el.innerHTML = ""; moreKey = ""; return; }
+  var key = [m.n, st.size, st.v, isNight()].join("|");
+  if (key === moreKey && !el.hidden) return;
+  moreKey = key;
   el.hidden = false;
   var h = "";
 
@@ -5736,29 +5753,33 @@ function renderMore() {
       return "<tr><th>" + rowName + "</th>" + cell(dz.iso ? fmtDist(dz.iso.m) : "–", on)
         + cell(dz.pad ? padLabel(dz.pad) : "–", on) + "</tr>";
     }).join("");
-    h += '<div class="sf-blk"><h2>거리 표' + (st.v ? " <i>" + esc(st.v) + "</i>" : "") + "</h2>"
+    h += '<div class="sf-blk"><h2>안전거리 <i>' + esc(m.n) + (st.v ? " · " + esc(st.v) : "") + "</i></h2>"
       + '<table class="sf-tbl">' + head + body + "</table>"
-      + '<p class="sf-src">‘–’ 는 원문에 그 값이 없는 칸입니다. 방호활동은 사고지점에서 '
-      + "바람이 불어가는 쪽으로 잰 거리입니다.</p></div>";
+      + '<p class="sf-src">– 는 자료에 없는 값 · 방호활동은 바람이 불어가는 쪽 거리</p></div>';
   }
 
-  /* 원문 — 숫자를 어떻게 읽었는지 사람이 대조할 수 있게 그대로 */
-  var raw = [["초기이격거리", m.d1], ["방호활동거리", m.d2], ["화재 시 대피거리", m.d3]]
-    .filter(function (x) { return x[1]; });
-  h += '<div class="sf-blk"><h2>원문 <i>' + esc(m.n) + "</i></h2><dl class=\"sf-raw\">"
-    + raw.map(function (x) { return "<dt>" + x[0] + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("")
-    + "</dl><p class=\"sf-src\">" + esc(VERSION.물질정보_출처) + "</p></div>";
-
-  /* 증상·응급조치 — 현장 근무자 자신을 위한 것. 물질정보 원문 그대로 */
+  /* 물질 정보 — 필요할 때만 펼쳐 봅니다. 숫자를 어떻게 읽었는지 사람이
+     대조할 수 있도록 물질정보의 글을 고치지 않고 그대로 싣습니다. */
+  var dist = [["초기이격거리", m.d1], ["방호활동거리", m.d2], ["화재 시 대피거리", m.d3]];
   var aid = [["흡입 시 증상", m.sy], ["흡입 시 응급조치", m.e1],
-             ["피부 접촉 시", m.e2], ["눈 접촉 시", m.e3]].filter(function (x) { return x[1]; });
-  if (aid.length)
-    h += '<details class="sf-blk sf-aid"><summary>증상 · 응급조치 <i>물질정보 원문</i></summary>'
-      + '<dl class="sf-raw">'
-      + aid.map(function (x) { return "<dt>" + x[0] + "</dt><dd>" + esc(x[1]) + "</dd>"; }).join("")
-      + "</dl></details>";
+             ["피부에 닿았을 때", m.e2], ["눈에 들어갔을 때", m.e3]];
+  var dl = function (rows) {
+    rows = rows.filter(function (x) { return x[1]; });
+    return rows.length ? '<dl class="sf-raw">' + rows.map(function (x) {
+      return "<dt>" + x[0] + "</dt><dd>" + esc(x[1]) + "</dd>";
+    }).join("") + "</dl>" : "";
+  };
+  var distH = dl(dist), aidH = dl(aid);
+  if (distH || aidH)
+    h += '<details class="sf-blk sf-aid" id="sfInfo"' + (moreOpen ? " open" : "") + ">"
+      + "<summary>물질 정보 더 보기 <i>거리 설명 · 증상 · 응급조치</i></summary>"
+      + (distH ? '<h3 class="sf-h3">거리 설명</h3>' + distH : "")
+      + (aidH ? '<h3 class="sf-h3">증상 · 응급조치</h3>' + aidH : "")
+      + '<p class="sf-src">' + esc(VERSION.물질정보_출처) + "</p></details>";
 
   el.innerHTML = h;
+  var d = $("#sfInfo");
+  if (d) d.addEventListener("toggle", function () { moreOpen = d.open; });
 }
 
 /* 이어 가기 — 단일 파일에는 이 줄이 없습니다(build_single.py 가 뺌) */
@@ -6318,9 +6339,10 @@ function bindMap() {
 
 function initSrc() {
   $("#ver").innerHTML =
-    "<p><b>거리</b> — " + esc(VERSION.물질정보_출처) + " 의 초기이격거리·방호활동거리 원문을 "
-    + "읽어 그렸습니다. 원문에 없는 조합(예: 대규모 초기이격거리가 없는 물질)은 "
-    + "<b>자료에 없음</b>으로 적고 그리지 않습니다. 화면 아래 ‘원문’ 에서 읽은 값과 대조할 수 있습니다.</p>"
+    "<p><b>거리</b> — " + esc(VERSION.물질정보_출처) + " 에 적힌 초기이격거리·방호활동거리를 "
+    + "읽어 그렸습니다. 자료에 없는 조합(예: 대규모 초기이격거리가 없는 물질)은 "
+    + "<b>자료에 없음</b>으로 적고 그리지 않습니다. 화면 아래 ‘물질 정보 더 보기’ 에서 "
+    + "물질정보의 글과 대조할 수 있습니다.</p>"
     + "<p><b>초기이격</b> — 사고지점을 가운데 둔 원입니다.</p>"
     + "<p><b>방호활동</b> — 사고지점에서 바람이 불어가는 쪽으로 그 거리만큼, 폭도 같은 "
     + "정사각형으로 그립니다. 바람 방향을 고르지 않으면 방향을 정할 수 없어 같은 거리의 "
