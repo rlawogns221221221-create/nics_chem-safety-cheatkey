@@ -75,29 +75,6 @@ function findMaterial(name) {
   return q ? (MATIDX[q] || null) : null;
 }
 
-/* 사고가 잦은 물질 넷 — 화학사고 통계(data/stats.js)에서 셉니다. 손으로
-   고른 목록을 두지 않습니다(통계가 바뀌면 칩도 따라 바뀌어야 합니다). */
-function topMaterials() {
-  var f = (window.STATS && STATS.물질빈도) || {};
-  return Object.keys(f).sort(function (a, b) { return (f[b].n || 0) - (f[a].n || 0); })
-    .map(function (k) { return { label: k, m: findMaterial(k) }; })
-    .filter(function (x) { return x.m; })
-    .slice(0, 4);
-}
-function renderChips() {
-  var el = $("#sfChips");
-  el.innerHTML = topMaterials().map(function (x) {
-    return '<button type="button" class="sf-chip" data-n="' + esc(x.m.n) + '" aria-pressed="'
-      + (st.mat === x.m ? "true" : "false") + '">' + esc(x.label) + "</button>";
-  }).join("");
-  $$(".sf-chip", el).forEach(function (b) {
-    b.onclick = function () {
-      $("#sfMat").value = b.dataset.n;
-      setMat(b.dataset.n);
-    };
-  });
-}
-
 function setMat(txt) {
   var m = findMaterial(txt);
   if (m === st.mat) return;
@@ -107,7 +84,7 @@ function setMat(txt) {
      구분이 하나뿐이면 물을 것이 없으니 그것으로 둡니다. */
   var vs = st.inf ? st.inf.variants : [];
   if (vs.indexOf(st.v) < 0) st.v = vs.length === 1 ? vs[0] : "";
-  renderChips(); renderOpts(); update(true);
+  renderOpts(); update(true);
 }
 
 /* ── 지금 고른 조건의 거리 ─────────────────────────────────── */
@@ -166,9 +143,21 @@ function judge(p, z) {
   return r;
 }
 
+/* 받침에 맞춰 조사 하나만 붙입니다 — "구분을(를)" · "유출 규모을(를)" 처럼
+   두 꼴을 함께 적었더니 틀린 쪽이 그대로 읽혔습니다(2026-11-09 글자 검토).
+   한글이 아닌 글자(숫자·영문·괄호)로 끝나면 어느 쪽인지 몰라 두 꼴을 둡니다. */
+function josa(w, a, b) {
+  w = String(w);
+  var c = w.charCodeAt(w.length - 1);
+  if (c >= 0xAC00 && c <= 0xD7A3) return (c - 0xAC00) % 28 ? a : b;
+  return a + "(" + b + ")";
+}
+/* 한 덩어리로 읽어야 하는 토막 — 줄이 그 가운데서 바뀌지 않게 묶습니다 */
+function nb(s) { return '<span class="nb">' + s + "</span>"; }
+
 /* ── 지금 상태 ──────────────────────────────────────────────── */
 function stepHint(n, txt, done) {
-  return '<li class="' + (done ? "done" : "") + '"><b>' + n + "</b>" + txt + "</li>";
+  return '<li class="' + (done ? "done" : "") + '"><b>' + n + '</b><div class="st">' + txt + "</div></li>";
 }
 function renderStat() {
   var el = $("#sfStat");
@@ -180,14 +169,17 @@ function renderStat() {
   if (!st.mat || !st.acc || need.length) {
     html += '<ol class="sf-steps">'
       + stepHint(1, st.mat ? "물질 — <span>" + esc(st.mat.n) + "</span>" : "물질을 고르세요", !!st.mat)
+      /* 찍는 방법 셋은 아랫줄에 따로 — 괄호로 이어 붙였더니 "이름으로 / 찾기)" 로
+         갈라졌습니다. 이름은 위 단추 글자와 같게 씁니다. */
       + stepHint(2, st.acc ? "사고지점 — <span>" + esc(accText()) + "</span>"
-                            : "사고지점을 정하세요 (지도에서 찍기 · 내 위치 · 이름으로 찾기)", !!st.acc)
-      + (need.length ? stepHint(3, esc(need.join("·")) + "을(를) 고르세요", false) : "")
+                            : "사고지점을 정하세요<small>" + nb("지도에서 찍기") + " · " + nb("내 위치로 찍기")
+                              + " · " + nb("이름으로 찾기") + "</small>", !!st.acc)
+      + (need.length ? stepHint(3, esc(need.join("·")) + josa(need[need.length - 1], "을", "를") + " 고르세요", false) : "")
       + "</ol>";
   }
 
   if (st.mat && st.inf && !st.inf.any) {
-    html += '<p class="sf-none">‘' + esc(st.mat.n) + "’은(는) 초기이격거리·방호활동거리 "
+    html += '<p class="sf-none">‘' + esc(st.mat.n) + "’" + josa(st.mat.n, "은", "는") + " 초기이격거리·방호활동거리 "
       + "<b>자료가 없습니다.</b></p>";
   }
 
@@ -204,7 +196,8 @@ function renderStat() {
       + (cond ? '<span class="zc">' + esc(cond) + "</span>" : "")
       + "</div>";
     if (z.pad && z.pad.kind !== "ring" && st.wind === "")
-      html += '<p class="sf-wnote">바람 방향을 고르면 방호활동 구역이 그려지고, 그 안인지 알려 드립니다.</p>';
+      html += '<p class="sf-wnote">' + nb("바람 방향을 고르면") + " " + nb("방호활동 구역이 그려지고")
+        + " " + nb("그 안인지 알려 드립니다.") + "</p>";
   }
 
   /* 내 위치 · 누른 곳 */
@@ -240,9 +233,11 @@ function pointRow(name, cls, r, z, closable) {
     txt = z.iso && z.pad ? "두 구역 밖" : (z.iso ? "초기이격거리 밖" : "방호활동 구역 밖");
   } else { lv = "out"; txt = "구역 정보 없음"; }
 
-  var sub = ["사고지점에서 " + fmtDist(r.d) + " " + dirName(r.b) + "쪽"];
+  /* 10m 안이면 방향이 뜻이 없습니다 — "사고지점에서 0m 북쪽" 으로 읽혔습니다 */
+  var sub = [r.d < 10 ? "사고지점에서 10m 안" : "사고지점에서 " + fmtDist(r.d) + " " + dirName(r.b) + "쪽"];
   if (r.iso && z.iso) sub.push("초기이격 경계까지 " + fmtDist(Math.max(0, z.iso.m - r.d)));
-  if (r.pad === "in" && r.side != null) sub.push("구역 옆 경계까지 " + fmtDist(r.side));
+  /* '구역 옆 경계' 만으로는 어느 구역인지 몰라 이름을 붙입니다 */
+  if (r.pad === "in" && r.side != null) sub.push("방호활동 옆 경계까지 " + fmtDist(r.side));
   if (r.pad === "near") sub.push("바람 방향 모름");
   if (name === "내 위치" && st.me && st.me.stale) sub.push("신호 끊김 — 마지막으로 받은 자리");
   else if (name === "내 위치" && st.me && st.me.acc > 0) sub.push("위치 오차 ±" + fmtDist(st.me.acc));
@@ -250,7 +245,8 @@ function pointRow(name, cls, r, z, closable) {
   return '<div class="sf-pt ' + cls + " " + lv + '">'
     + '<b class="pk">' + name + "</b>"
     + '<span class="pv">' + esc(txt) + "</span>"
-    + '<span class="pd">' + esc(sub.join(" · ")) + "</span>"
+    /* 토막마다 묶어 둡니다 — "위치 / 오차 ±20m" 처럼 갈라지지 않게 */
+    + '<span class="pd">' + sub.map(function (s) { return nb(esc(s)); }).join(" · ") + "</span>"
     + (closable ? '<button type="button" class="px" aria-label="누른 곳 지우기">×</button>' : "")
     + "</div>";
 }
@@ -339,8 +335,11 @@ function renderMore() {
     var rows = [["s", "소규모"], ["l", "대규모"]].filter(function (x) {
       return st.inf.needSize || x[0] === "s";
     });
+    /* 낮·밤이 있으면 머리를 두 줄로 — '방호활동 낮' 을 한 칸에 적었더니 좁은
+       화면에서 "방호활동 / 낮" 으로 갈라졌습니다. 방호활동 아래에 낮·밤을 둡니다. */
     var head = st.inf.hasDN
-      ? "<tr><th></th><th>초기이격</th><th>방호활동 낮</th><th>방호활동 밤</th></tr>"
+      ? '<tr><th rowspan="2"></th><th rowspan="2">초기이격</th><th colspan="2">방호활동</th></tr>'
+        + "<tr><th>낮</th><th>밤</th></tr>"
       : "<tr><th></th><th>초기이격</th><th>방호활동</th></tr>";
     var body = rows.map(function (x) {
       var dz = ERG.pick(st.inf, { size: x[0], v: st.v, night: false });
@@ -385,7 +384,9 @@ function renderMore() {
   var distH = dl(dist), aidH = dl(aid);
   if (distH || aidH)
     h += '<details class="sf-blk sf-aid" id="sfInfo"' + (moreOpen ? " open" : "") + ">"
-      + "<summary>물질 정보 더 보기 <i>거리 설명 · 증상 · 응급조치</i></summary>"
+      /* 제목과 곁말을 따로 묶습니다 — 좁은 화면에서 "물질 정보 더 / 보기" 로
+         갈라졌습니다. 곁말은 자리가 모자라면 통째로 아랫줄로 갑니다. */
+      + "<summary><span>물질 정보 더 보기</span> <i>거리 설명 · 증상 · 응급조치</i></summary>"
       + (distH ? '<h3 class="sf-h3">거리 설명</h3>' + distH : "")
       + (aidH ? '<h3 class="sf-h3">증상 · 응급조치</h3>' + aidH : "")
       + '<p class="sf-src">' + esc(VERSION.물질정보_출처) + "</p></details>";
@@ -476,7 +477,7 @@ function toggleWatch() {
     if (firstFix) {
       firstFix = false;
       toast("<b>내 위치를 계속 확인합니다.</b> 움직이면 결과도 따라 바뀝니다."
-        + (st.me.acc > 300 ? " 오차가 ±" + fmtDist(st.me.acc) + " 로 큽니다(실내일 수 있음)." : ""),
+        + (st.me.acc > 300 ? " 오차가 ±" + fmtDist(st.me.acc) + "로 큽니다(실내일 수 있음)." : ""),
         st.me.acc > 300);
       renderOpts();
       update(true);
@@ -605,7 +606,7 @@ function drawAddrPop() {
   });
   addrSel = -1;
   if (!addrRows.length && !busy) {
-    pop.innerHTML = '<div class="mpk-none">' + (t ? "‘" + esc(t) + "’ 과 맞는 곳이 없습니다."
+    pop.innerHTML = '<div class="mpk-none">' + (t ? "‘" + esc(t) + "’" + josa(t, "과", "와") + " 맞는 곳이 없습니다."
       : "사업장 이름, 시·군·구, 읍·면·동으로 찾습니다.") + "</div>";
   } else {
     pop.innerHTML = '<div class="mpk-list">' + addrRows.map(function (p, i) {
@@ -630,7 +631,7 @@ function pickAddr(p) {
   $("#sfAddr").value = p.label;
   if (p.exact) {
     setAcc(p.lat, p.lon, p.label);
-    toast("<b>‘" + esc(p.label) + "’ 을(를) 사고지점으로 찍었습니다.</b> 자리가 다르면 지도에서 다시 찍으세요.");
+    toast("<b>‘" + esc(p.label) + "’" + josa(p.label, "을", "를") + " 사고지점으로 찍었습니다.</b> 자리가 다르면 지도에서 다시 찍으세요.");
     return;
   }
   if (!st.view) fit();
@@ -860,6 +861,10 @@ function draw() {
       + fmtDist(distM(acc.lat, acc.lon, st.probe.lat, st.probe.lon)) + "</text>");
   }
 
+  /* 내 위치가 사고지점 바로 위(30px 안)면 두 이름표가 겹쳐 둘 다 안 읽혔습니다
+     ('내 위치로 찍기' 를 누르면 늘 그렇습니다). 그때는 한 줄로 함께 적습니다. */
+  var meOnAcc = !!(acc && st.me) && Math.sqrt(Math.pow(pX(st.me.lon) - ax, 2) + Math.pow(pY(st.me.lat) - ay, 2)) < 30;
+
   /* 사고지점 — 십자 */
   if (acc) {
     var K = 13;
@@ -867,7 +872,8 @@ function draw() {
       + '" y2="' + ay.toFixed(1) + '"/><line class="acc" x1="' + ax.toFixed(1) + '" y1="' + (ay - K).toFixed(1)
       + '" x2="' + ax.toFixed(1) + '" y2="' + (ay + K).toFixed(1) + '"/>');
     g.push('<circle class="accdot" cx="' + ax.toFixed(1) + '" cy="' + ay.toFixed(1) + '" r="6"/>');
-    g.push('<text class="acclbl" x="' + ax.toFixed(1) + '" y="' + (ay + K + 16).toFixed(1) + '" font-size="12">사고지점</text>');
+    g.push('<text class="acclbl" x="' + ax.toFixed(1) + '" y="' + (ay + K + 16).toFixed(1) + '" font-size="12">'
+      + (meOnAcc ? "사고지점 · 내 위치" : "사고지점") + "</text>");
   }
 
   /* 내 위치 — 맨 나중에(무엇에도 가리지 않게). 오차 범위도 함께 */
@@ -880,7 +886,8 @@ function draw() {
     }
     g.push('<circle class="mepulse" cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="19"/>');
     g.push('<circle class="me" cx="' + mx.toFixed(1) + '" cy="' + my.toFixed(1) + '" r="6.6"/>');
-    g.push('<text class="melbl" x="' + mx.toFixed(1) + '" y="' + (my + 21).toFixed(1) + '" font-size="11.5">내 위치</text>');
+    if (!meOnAcc)
+      g.push('<text class="melbl" x="' + mx.toFixed(1) + '" y="' + (my + 21).toFixed(1) + '" font-size="11.5">내 위치</text>');
   }
 
   SVG.setAttribute("viewBox", "0 0 " + vb.sw + " " + vb.sh);
@@ -952,9 +959,9 @@ function bindMap() {
 
 function initSrc() {
   $("#ver").innerHTML =
-    "<p><b>거리</b> — " + esc(VERSION.물질정보_출처) + " 에 적힌 초기이격거리·방호활동거리를 "
+    "<p><b>거리</b> — " + esc(VERSION.물질정보_출처) + "에 적힌 초기이격거리·방호활동거리를 "
     + "읽어 그렸습니다. 자료에 없는 조합(예: 대규모 초기이격거리가 없는 물질)은 "
-    + "<b>자료에 없음</b>으로 적고 그리지 않습니다. 화면 아래 ‘물질 정보 더 보기’ 에서 "
+    + "<b>자료에 없음</b>으로 적고 그리지 않습니다. 화면 아래 ‘물질 정보 더 보기’에서 "
     + "물질정보의 글과 대조할 수 있습니다.</p>"
     + "<p><b>초기이격</b> — 사고지점을 가운데 둔 원입니다.</p>"
     + "<p><b>방호활동</b> — 사고지점에서 바람 따라 퍼지는 쪽으로 그 거리만큼, 폭도 같은 "
@@ -988,7 +995,6 @@ function init() {
   bindMap();
   bindWind();
   bindAddr();
-  renderChips();
 
   $("#sfMat").oninput = function () { setMat(this.value); };
   if ($("#goMap")) { $("#goMap").onclick = goMap; $("#goSms").onclick = goSms; }
@@ -1006,7 +1012,7 @@ function init() {
     st.acc = null; st.accName = ""; st.me = null; st.watchId = null; st.probe = null;
     pendingName = "";
     $("#sfMat").value = ""; $("#sfAddr").value = "";
-    updateWindUI(); renderChips(); renderOpts(); setMode("pick"); toast("");
+    updateWindUI(); renderOpts(); setMode("pick"); toast("");
     update(true);
   };
 

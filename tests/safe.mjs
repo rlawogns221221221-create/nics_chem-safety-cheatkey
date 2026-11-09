@@ -92,14 +92,15 @@ const sun = await P.evaluate(() => {
 chk(Math.abs(sun.r - (6 * 60 + 57)) <= 6 && Math.abs(sun.s - (17 * 60 + 29)) <= 6,
   `일출·일몰 계산 (여수 11/9 — ${Math.floor(sun.r / 60)}:${sun.r % 60} · ${Math.floor(sun.s / 60)}:${sun.s % 60})`);
 
-// ══ 2. 처음 화면 — 무엇을 하면 되는지 · 사고가 잦은 물질 ══
+// ══ 2. 처음 화면 — 무엇을 하면 되는지 ══
 chk(await P.isVisible('.sf-steps'), '처음에는 할 일을 차례로 보여 준다');
-const chips = await P.$$eval('.sf-chip', b => b.map(x => x.textContent.trim()));
-chk(chips.join('·') === '염산·황산·암모니아·질산', `사고가 잦은 물질 칩 (통계에서 셈 — ${chips.join('·')})`);
+/* 사고가 잦은 물질 칩은 두었다가 뺐습니다(2026-11-09 사용자 — "오히려 헷갈린다").
+   되살아나면 여기서 걸립니다. */
+chk((await P.$$('.sf-chip, #sfChips')).length === 0, '사고가 잦은 물질 칩이 없다(물질은 입력칸 하나로)');
 chk((await P.$$('#map .ziso, #map .zpad')).length === 0, '물질·사고지점 전에는 구역을 그리지 않는다');
 
 // ══ 3. 암모니아 · 내 위치로 사고지점 · 규모 ══
-await P.click('.sf-chip:has-text("암모니아")');
+await P.fill('#sfMat', '암모니아');
 await P.click('#btnHereAcc'); await P.waitForTimeout(1200);
 chk((await P.textContent('#sfStat')).includes('유출 규모'), '규모를 고르라고 한다');
 chk(await P.$eval('#segSize', e => e.classList.contains('need')), '고를 칸이 눈에 띈다(.need)');
@@ -203,6 +204,17 @@ chk(s.includes('자료가 없습니다') && (await P.$$('#map .ziso, #map .zpad'
 await P.fill('#sfMat', '염화티오닐'); await P.waitForTimeout(400);
 chk(await P.isVisible('#sfVarRow'), '원문이 육지·수계로 나뉜 물질은 구분을 묻는다');
 chk(await P.$eval('#segVar', e => e.classList.contains('need')), '구분도 도구가 미리 고르지 않는다');
+/* 구분은 가짓수만큼만 — 줄 끝까지 늘어나지 않습니다(사용자 — "2개면 2개만 딱 딱") */
+const vb = await P.evaluate(() => {
+  const seg = document.querySelector('#segVar').getBoundingClientRect();
+  const row = document.querySelector('#sfVarRow .sf-in').getBoundingClientRect();
+  return { n: document.querySelectorAll('#segVar button').length, w: seg.width, row: row.width };
+});
+chk(vb.n === 2 && vb.w < vb.row * 0.7, `구분 칸이 두 칸 폭만큼만 (${Math.round(vb.w)} / 줄 ${Math.round(vb.row)}px)`);
+await P.fill('#sfMat', '황산'); await P.waitForTimeout(300);
+chk((await P.$$eval('#segVar button', b => b.map(x => x.textContent.trim()).join('·'))) === '액체·흄',
+  '황산은 액체·흄 두 칸');
+await P.fill('#sfMat', '염화티오닐'); await P.waitForTimeout(300);
 await P.click('#segVar button[data-v="수계"]'); await P.click('#segTime button[data-v="night"]'); await P.waitForTimeout(400);
 chk(/방호활동\s*11km/.test(await P.textContent('#sfStat')), '염화티오닐 수계·대규모·밤 = 11km');
 await P.fill('#sfMat', '과산화수소'); await P.waitForTimeout(400);
@@ -233,7 +245,7 @@ chk(mp.mat === '암모니아' && Math.abs(+mp.lat - ACC.latitude) < 1e-4,
 chk(mp.r === '300m', `영향 참고 반경은 초기이격거리만 넘긴다 (${mp.r})`);
 chk(mp.toast.includes('현장 안전거리 확인'), '어디서 왔는지 알려 준다');
 await P.goto(`file://${RPATH}/safe/index.html`); await P.waitForTimeout(500);
-await P.click('.sf-chip:has-text("암모니아")'); await P.waitForTimeout(200);
+await P.fill('#sfMat', '암모니아'); await P.waitForTimeout(200);
 await P.click('#goSms'); await P.waitForURL(/sms\/index\.html/); await P.waitForTimeout(900);
 const sb = await P.textContent('#seedBar');
 chk(/현장 안전거리 확인에서 넘어왔습니다/.test(sb) && sb.includes('암모니아'),
@@ -257,7 +269,7 @@ const dd = await D.evaluate(() => ({ next: !!document.querySelector('#sfNext'),
     .filter(u => u && !/^data:/.test(u)) }));
 chk(!dd.next, '단일 파일에는 이어 가기 줄이 없다(옆 도구가 없음)');
 chk(dd.ext.length === 0, `단일 파일이 바깥 파일을 부르지 않는다 (${dd.ext.join(', ')})`);
-await D.click('.sf-chip:has-text("염산")');
+await D.fill('#sfMat', '염산');
 await D.locator('#map').scrollIntoViewIfNeeded(); await D.waitForTimeout(300);
 const db = await D.locator('#map').boundingBox();
 await D.touchscreen.tap(db.x + db.width / 2, db.y + db.height / 2); await D.waitForTimeout(500);
