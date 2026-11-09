@@ -121,6 +121,44 @@ await ctx.addInitScript(() => {
     document.head.appendChild(s);
   };
   붙이기();
+  /* 전화번호는 **글자 꼴로** 찾아 흐립니다. 처음에는 클래스(tel 링크·.rkd-tel)로만
+     집었는데, ② 목록의 관리기관 번호(.l3 — 「산단환경관리과 061-…」)는 링크가 아닌
+     맨글자라 영상에 그대로 찍혔습니다(2026-11-09 확인). 화면을 고쳐 번호가 새
+     자리에 나와도 빠지지 않게 꼴로 잡습니다. SVG 안 글자는 건드리지 않습니다
+     (<i> 를 넣으면 SVG 가 깨집니다 — 지도 이름은 위에서 따로 숨깁니다). */
+  const 번호꼴 = /0\d{1,2}-\d{3,4}-\d{4}|1[5-9]\d{2}-\d{4}/g;
+  const 번호가림 = (뿌리) => {
+    if (!뿌리 || !document.body) return;
+    const 걸음 = document.createTreeWalker(뿌리, NodeFilter.SHOW_TEXT);
+    const 고칠것 = [];
+    for (let n = 걸음.nextNode(); n; n = 걸음.nextNode()) {
+      const 위 = n.parentNode;
+      if (!위 || 위.namespaceURI !== 'http://www.w3.org/1999/xhtml') continue;
+      if (/^(SCRIPT|STYLE|TEXTAREA|OPTION)$/.test(위.nodeName) || 위.classList.contains('__번호')) continue;
+      번호꼴.lastIndex = 0;
+      if (번호꼴.test(n.textContent)) 고칠것.push(n);
+    }
+    고칠것.forEach((n) => {
+      if (!n.parentNode) return;
+      const 조각 = document.createDocumentFragment();
+      let 끝 = 0;
+      n.textContent.replace(번호꼴, (m, at) => {
+        if (at > 끝) 조각.appendChild(document.createTextNode(n.textContent.slice(끝, at)));
+        const i = document.createElement('i');
+        i.className = '__번호'; i.textContent = m;
+        i.style.cssText = 'filter:blur(7px);font-style:normal';
+        조각.appendChild(i);
+        끝 = at + m.length;
+        return m;
+      });
+      if (끝 < n.textContent.length) 조각.appendChild(document.createTextNode(n.textContent.slice(끝)));
+      n.parentNode.replaceChild(조각, n);
+    });
+  };
+  new MutationObserver((목록) => 목록.forEach((m) => {
+    if (m.type === 'characterData') 번호가림(m.target.parentNode);
+    else m.addedNodes.forEach((n) => 번호가림(n.nodeType === 3 ? n.parentNode : n));
+  })).observe(document, { childList: true, subtree: true, characterData: true });
   /* 요약 띠의 '가장 가까운 곳 ○○○' 은 이름이 태그 없이 글자로만 들어 있어
      CSS 로는 그 이름만 집을 수 없습니다 — 그 글자를 감싸서 흐립니다. */
   if (방제) {
@@ -568,7 +606,9 @@ if (넣을말.length && 음악됨) {
 }
 if (소리) {
   execFileSync(ff, ['-y', '-hide_banner', '-loglevel', 'error', ...입력, '-filter_complex', 필터,
-    '-map', '0:v', '-map', 소리, '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-shortest',
+    // loudnorm 은 속에서 192kHz 로 올려 다루고 그대로 내보내 96kHz AAC 가 됐습니다 —
+    // 낡은 재생기·업로드 사이트가 못 읽을 수 있어 영상 표준인 48kHz 로 맞춥니다.
+    '-map', '0:v', '-map', 소리, '-c:v', 'copy', '-c:a', 'aac', '-ar', '48000', '-b:a', '160k', '-shortest',
     '-movflags', '+faststart', 낼], { stdio: ['ignore', 'inherit', 'inherit'] });
 } else {
   execFileSync(ff, ['-y', '-hide_banner', '-loglevel', 'error', '-i', 무음, '-c', 'copy', 낼]);
