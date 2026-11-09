@@ -100,14 +100,17 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: 나레이션
-          path: .narr
+          # 올릴 때 '.narr/…' 와 '.narr-기록.txt' 를 함께 올려 묶음 안에 .narr/ 가
+          # 이미 들어 있습니다 — 저장소 뿌리에 풀어야 .narr/길이.json 이 제자리에
+          # 옵니다(처음에 path: .narr 로 두었더니 .narr/.narr/ 로 풀려 못 찾았습니다).
+          path: .
 
       - name: 배경지도 타일이 받아지는지 확인
         run: |
           R=$(curl -sS -o /tmp/tile.png -w '%{http_code} %{size_download}바이트 %{content_type}' \
               --max-time 25 "https://tile.openstreetmap.org/12/3510/1720.png" 2>&1 || echo "받지 못함")
           echo "OpenStreetMap → $R (200 · image/png 이면 영상에 도로·건물이 나옵니다)"
-          ls -la .narr 2>/dev/null || echo "나레이션 없음 — 음악만 넣습니다"
+          ls .narr/길이.json 2>/dev/null && ls .narr/*.wav | wc -l || echo "나레이션 없음 — 음악만 넣습니다"
 
       - uses: actions/setup-node@v4
         with:
