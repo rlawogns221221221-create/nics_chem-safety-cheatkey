@@ -3,11 +3,12 @@
 #
 #      https://rlawogns221221221-create.github.io/nics_chem-safety-cheatkey/
 #
-#  ⚠⚠ 지금은 **닫혀 있습니다**(SITE_OPEN: "no").
-#     시범운영 안내 전에 링크가 여러 곳으로 퍼져 접속이 늘어나서,
-#     사용자 요청으로 닫았습니다(2026-09-03).
-#     이 주소에는 깃허브 계정 이름이 그대로 보이기도 해서, 어차피
-#     지자체에 나눠 줄 링크로는 맞지 않는 주소였습니다.
+#  ★ 지금은 **열려 있습니다**(SITE_OPEN: "yes" · 2026-11-09 사용자 결정).
+#     사용자 — "예전에 잠가 놨던 웹페이지를 다시 열어서 상사에게 새로 추가한
+#     기능까지 4개의 도구를 다 쓸 수 있는 링크를 보내야 돼".
+#     (2026-09-03 에는 시범운영 안내 전에 링크가 퍼져 사용자 요청으로 닫았었습니다.
+#      이 주소에는 깃허브 계정 이름이 보입니다 — 지자체에 널리 나눠 줄 링크로는
+#      Cloudflare 주소가 맞고, 이 주소는 사용자가 정한 사람에게 보내는 용도입니다.)
 #
 #  ── 다시 여는 법 ──────────────────────────────────────────
 #     아래 SITE_OPEN 을 "yes" 로 바꾸고 푸시하면 됩니다. 그것뿐입니다.
@@ -36,13 +37,16 @@ on:
     branches:
       - claude/chemical-accident-evacuation-sms-hsgoit
       - main
+      # 04 현장 안전거리까지 든 판은 이 가지에서 만들고 있습니다(2026-11-09).
+      # 여기서 올려야 상사에게 보낼 링크에 도구 넷이 다 들어갑니다.
+      - claude/affectionate-mendel-gvdnjk
   workflow_dispatch:        # 화면에서 손으로 다시 돌릴 수 있게
 
 env:
   # ── 여기 한 줄이 열림/닫힘을 정합니다 ──────────────────────
   #   "yes" → 도구 전체를 올립니다
   #   "no"  → build/닫힘안내.html 한 장만 올립니다(도구는 안 올라감)
-  SITE_OPEN: "no"
+  SITE_OPEN: "yes"
 
 permissions:
   contents: read
@@ -108,7 +112,16 @@ jobs:
           # sw.js 는 지금 아무 일도 하지 않고 예전에 깔린 것을 지우는
           # 파일입니다(지우면 안 됩니다).
           cp manifest.webmanifest sw.js _site/
-          cp -r assets data sms map res _site/
+          # safe/ = 04 현장 안전거리 확인(2026-11-09) — 빠뜨리면 진입 화면의
+          # 넷째 카드를 눌렀을 때 404 가 납니다.
+          cp -r assets data sms map res safe _site/
+          # 진입 화면이 부르는 도구 넷이 다 들어갔는지 — 하나라도 없으면 올리지 않습니다
+          for d in map sms res safe; do
+            if [ ! -f "_site/$d/index.html" ]; then
+              echo "::error::$d/index.html 이 없습니다 — 진입 화면의 카드가 끊깁니다."
+              exit 1
+            fi
+          done
           # 망분리 PC로 옮길 단일 파일도 함께 올린다 — 내부망 담당자가
           # 이 주소에서 내려받아 USB·공유폴더로 옮길 수 있게.
           cp -r dist _site/
