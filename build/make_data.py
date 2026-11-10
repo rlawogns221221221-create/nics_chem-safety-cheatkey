@@ -119,6 +119,33 @@ def build_cases() -> int:
     return len(cases)
 
 
+# ── 원자료 오타 고침표 (2026-11-10 사용자 — "원자료 오타는 고치는게 맞는것 같다") ──
+# 원본 hwpx 는 받은 그대로 두고, 화면에 나가는 글에서만 고칩니다 — 무엇을 왜 고쳤는지가
+# 여기 남습니다. 찾은 방법: 흔히 쓰지 않는 한글(완성형 2,350자 밖)을 기계로 훑어
+# 문맥을 보고 뜻이 분명한 것만 골랐습니다(PC 최종 점검 때 서체에 없는 글자로 드러남).
+# 띄어쓰기("오염된의복을벗고다량의")는 오타가 아니라 고치지 않습니다.
+# 원본이 고쳐져 더는 찾을 것이 없으면 알려 주므로 그때 그 줄을 지우세요.
+물질오타 = [
+    ("불곷", "불꽃"),                 # 화재폭발 — 열, 스파크, 불꽃에 의해 쉽게 점화
+    ("과염소산포타슙", "과염소산포타슘"),  # 유사명 (CAS 7778-74-7 · 과염소산칼륨)
+    ("3-에톡시-에틸 에트섵", "3-에톡시-에틸 에스터"),  # 유사명 — 같은 물질의 첫 유사명이 「…에틸 에스터」
+]
+
+
+def 오타고치기(값, 고침표, 센것):
+    if isinstance(값, str):
+        for 틀린, 맞는 in 고침표:
+            if 틀린 in 값:
+                센것[틀린] = 센것.get(틀린, 0) + 값.count(틀린)
+                값 = 값.replace(틀린, 맞는)
+        return 값
+    if isinstance(값, list):
+        return [오타고치기(x, 고침표, 센것) for x in 값]
+    if isinstance(값, dict):
+        return {k: 오타고치기(v, 고침표, 센것) for k, v in 값.items()}
+    return 값
+
+
 def build_materials() -> int:
     """물질정보 hwpx → data/materials.js
     주민 안내에 참고할 수 있는 항목만 남기고, 개인보호구·탐지장비·중화방법 등
@@ -175,6 +202,14 @@ def build_materials() -> int:
         out.append({k: v for k, v in d.items() if v not in ("", None, [])})
 
     out.sort(key=lambda x: x.get("i", 9999))
+
+    센것 = {}
+    out = 오타고치기(out, 물질오타, 센것)
+    for 틀린, 맞는 in 물질오타:
+        if 틀린 in 센것:
+            print(f"  오타 고침 {센것[틀린]}곳: {틀린} → {맞는}")
+        else:
+            print(f"  ⚠ 원자료에 「{틀린}」 이 더는 없습니다 — make_data.py 의 물질오타에서 그 줄을 지우세요")
 
     with open(OUT / "materials.js", "w", encoding="utf-8") as f:
         f.write("/* 화학사고 현장대응 물질정보 460종 — 원자료: 화학물질안전원 「화학사고 현장대응 물질정보」(2026)\n")

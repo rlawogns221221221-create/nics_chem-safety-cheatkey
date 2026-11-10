@@ -106,10 +106,31 @@ def fail(msg):
 사용자정의글자 = re.compile("[-]")
 
 
+# 원자료 오타 고침표 (2026-11-10 사용자 — "원자료 오타는 고치는게 맞는것 같다").
+# 통합 csv 는 받은 그대로 두고 화면에 나가는 자료에서만 고칩니다. 흔히 쓰지 않는 한글
+# (완성형 2,350자 밖)을 기계로 훑어 문맥으로 뜻이 분명한 것만 골랐습니다.
+# 원본이 고쳐져 더는 찾을 것이 없으면 알려 주므로 그때 그 줄을 지우세요.
+자원오타 = [
+    ("군청앞긾", "군청앞길"),          # 양평군청 주소 — 양평읍 군청앞길 2
+    ("퍠합성고무류", "폐합성고무류"),  # 처리가능 폐기물 목록
+]
+자원오타_센것 = {}
+
+
+def 고친글(v):
+    if not isinstance(v, str):
+        return v
+    v = 사용자정의글자.sub("·", v)
+    for 틀린, 맞는 in 자원오타:
+        if 틀린 in v:
+            자원오타_센것[틀린] = 자원오타_센것.get(틀린, 0) + v.count(틀린)
+            v = v.replace(틀린, 맞는)
+    return v
+
+
 def read(name):
     with (SRC / name).open(encoding="utf-8-sig", newline="") as f:
-        return [{k: (사용자정의글자.sub("·", v) if isinstance(v, str) else v) for k, v in r.items()}
-                for r in csv.DictReader(f)]
+        return [{k: 고친글(v) for k, v in r.items()} for r in csv.DictReader(f)]
 
 
 def 시도뽑기(주소):
@@ -410,6 +431,11 @@ def main():
     print("  좌표 정확도 —", " · ".join(f"{k} {v:,}" for k, v in anchor.stat.items() if v))
     print(f"  좌표를 못 잡은 자리 {좌표없음:,}곳 (지도에 찍지 않습니다)")
     print(f"  미리 협의된 곳 {meta['협의된곳']}줄")
+    for 틀린, 맞는 in 자원오타:
+        if 틀린 in 자원오타_센것:
+            print(f"  원자료 오타 고침 {자원오타_센것[틀린]}곳: {틀린} → {맞는}")
+        else:
+            print(f"  ⚠ 원자료에 「{틀린}」 이 더는 없습니다 — 자원오타에서 그 줄을 지우세요")
     print(f"\n  {OUT.relative_to(ROOT)}  {OUT.stat().st_size / 1024:.0f} KB\n")
 
 
