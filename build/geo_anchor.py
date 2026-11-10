@@ -235,13 +235,19 @@ class Anchor:
 
         rs, es = _keys(addr)
         if key:
-            for k in sorted(rs, key=len, reverse=True):
+            # 고르는 차례를 못 박습니다(2026-11-10). 예전에는 길이만 보고 골라, 길이가 같은
+            # 이름(「오천읍」·「문덕리」)은 집합(set)의 차례 — 파이썬이 돌 때마다 섞는 차례 —
+            # 를 따랐습니다. 그래서 스크립트를 다시 돌릴 때마다 어림 좌표가 몇 km 씩 옮겨
+            # 다녔습니다(공모전 묶음 안에서 다시 돌려 보다 발견). 같은 길이면 이름 차례로.
+            for k in sorted(rs, key=lambda x: (-len(x), x)):
                 hit = self.road.get((sido, key, k))
                 if hit:
                     self.stat["road"] += 1
                     la, lo = self._avg(hit)
                     return la, lo, "road"
-            for k in sorted(es, key=len, reverse=True):
+            # 읍·면·동·리 — 더 작은 단위(리·동)가 먼저입니다. 「오천읍 문덕리」 면 문덕리가
+            # 그 업체에 더 가깝습니다. 그다음 긴 이름, 그다음 이름 차례.
+            for k in sorted(es, key=lambda x: (0 if x[-1] in "리동" else 1, -len(x), x)):
                 hit = self.emd.get((sido, key, k))
                 if hit:
                     self.stat["emd"] += 1

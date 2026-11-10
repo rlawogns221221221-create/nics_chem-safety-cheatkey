@@ -16,6 +16,14 @@
   스크립트에는 심사와 상관없는 내부 문구·연락처가 들어 있을 수 있어서입니다.
 · 사이트 부분은 make_release.py 로 먼저 만듭니다 — 그 스크립트가 개인 휴대전화
   번호·담당자 이름을 기계로 검사하고, 걸리면 멈춥니다(CLAUDE.md 2절 4항).
+
+── 심사에서 보는 것 (2026-11-10 다시 짬 · 사용자 — "점수를 잘 받아야 해") ────────
+· README 가 심사 기준(필요성·창의성·활용성·완성도·확산가능성) 순서로 읽히게
+  docs/공모전/GitLab_README.md 를 다시 썼고, 근거 문서 둘(검증결과 · 자료 정리와
+  AI 활용)과 화면 사진을 docs/ 에 함께 넣습니다. **숫자는 자료·검사 기록에서만.**
+· README 가 약속한 것은 묶음 안에서 **실제로 돌아야** 합니다 — 예전 묶음에는
+  make_resources2.py 가 있는데 그것이 읽는 통합 표와 geo_anchor.py 가 빠져 있어,
+  심사위원이 돌리면 멈췄습니다. 둘을 넣었고, 통합 표도 휴대전화 번호 검사를 받습니다.
 """
 import pathlib
 import re
@@ -34,7 +42,7 @@ ZIP = ROOT / "release" / "공모전_GitLab.zip"
     "build_single.py", "make_release.py", "make_data.py", "make_resources2.py",
     "make_tempshelters.py", "fetch_tempshelter.py", "fetch_tempshelter.html",
     "make_boundary.py", "make_icons.mjs", "icon.svg", "make_site_images.py",
-    "xlsx읽기.py", "hwp읽기.py",
+    "xlsx읽기.py", "hwp읽기.py", "geo_anchor.py",   # geo_anchor — make_resources2 가 부름
     # 설명서 · 시연영상 · 공모전 서류 · 이 묶음
     "make_mobile_guide.mjs", "make_contest_video.mjs", "영상무대.html",
     "make_contest_docs.mjs", "make_qr.py", "make_contest_package.py",
@@ -78,8 +86,15 @@ def main():
             글, k = 키꼴.subn("", 글)
             print(f"  build/{n}: 인증키 {k}곳을 지웠습니다(받는 사람이 자기 키를 넣습니다)")
         (PKG / "build" / n).write_text(글, encoding="utf-8")
-    shutil.copytree(ROOT / "tests", PKG / "tests",
-                    ignore=shutil.ignore_patterns("*.png", "__pycache__", "node_modules"))
+    # 검사가 찍은 사진(.out · tests/*.png)은 빼되 **검사에 쓰는 그림(fixtures/)은 남깁니다** —
+    # 예전에는 *.png 를 통째로 빼서 fixtures/tile.png 가 없어 묶음 안에서 t8 이 멈췄습니다
+    # (2026-11-10 묶음 복사본에서 20묶음을 돌려 보다 발견).
+    def 검사무시(d, names):
+        out = {n for n in names if n in (".out", "node_modules", "__pycache__")}
+        if pathlib.Path(d).name != "fixtures":
+            out |= {n for n in names if n.endswith(".png")}
+        return out
+    shutil.copytree(ROOT / "tests", PKG / "tests", ignore=검사무시)
 
     # ④ 안내 — 심사위원이 먼저 읽는 것
     shutil.copy2(ROOT / "docs" / "공모전" / "GitLab_README.md", PKG / "README.md")
@@ -89,10 +104,31 @@ def main():
     shutil.copy2(안내서[-1], PKG / "구동안내서.pdf")
     shutil.copy2(ROOT / "docs" / "모바일_사용설명서.pdf", PKG / "휴대전화_사용설명서.pdf")
 
-    # ⑤ 마지막 검사 — 인증키·개인 휴대전화가 묶음 어디에도 없어야 합니다
+    # ⑤ 근거 문서 · 화면 사진 · 방제자원 통합 표 — README 가 가리키는 것들
+    (PKG / "docs" / "화면").mkdir(parents=True)
+    for n in ("검증결과.md", "자료_정리와_AI활용.md"):
+        shutil.copy2(ROOT / "docs" / "공모전" / n, PKG / "docs" / n)
+    사진 = {  # 휴대전화 사용설명서의 사진(배경지도가 나오는 러너에서 구운 것)을 그대로 씁니다
+        "00-첫화면.png": "00-첫화면.png", "23-결과.png": "01-대피장소.png",
+        "36-복사.png": "02-문자.png", "16-세부창.png": "03-방제.png",
+        "44-내위치.png": "04-안전거리.png", "46-공유.png": "04-상황공유.png",
+    }
+    for a, b in 사진.items():
+        shutil.copy2(ROOT / "docs" / "모바일설명서" / a, PKG / "docs" / "화면" / b)
+    통합 = PKG / "docs" / "방제자원_정리" / "통합"
+    통합.mkdir(parents=True)
+    for n in ("업체.csv", "물품.csv"):
+        shutil.copy2(ROOT / "docs" / "방제자원_정리" / "통합" / n, 통합 / n)
+    # README 의 사진·문서 연결이 끊기지 않았는지
+    readme = (PKG / "README.md").read_text(encoding="utf-8")
+    for 길 in re.findall(r'(?:src="|\]\()((?:docs|dist|build|tests)/[^")#]+)', readme):
+        if not (PKG / 길).exists():
+            멈춤(f"README 가 가리키는 {길} 이 묶음에 없습니다")
+
+    # ⑥ 마지막 검사 — 인증키·개인 휴대전화가 묶음 어디에도 없어야 합니다
     문제 = []
     for f in PKG.rglob("*"):
-        if not f.is_file() or f.suffix.lower() not in {".html", ".js", ".mjs", ".py", ".md", ".json", ".sh", ".css", ".svg"}:
+        if not f.is_file() or f.suffix.lower() not in {".html", ".js", ".mjs", ".py", ".md", ".json", ".sh", ".css", ".svg", ".csv"}:
             continue
         t = f.read_text(encoding="utf-8", errors="ignore")
         if 키꼴.search(t):
@@ -106,7 +142,7 @@ def main():
         print("\n".join("  · " + m for m in 문제[:30]))
         멈춤("묶음에 넣으면 안 되는 값이 있습니다")
 
-    # ⑥ 한 파일로
+    # ⑦ 한 파일로
     ZIP.unlink(missing_ok=True)
     with zipfile.ZipFile(ZIP, "w", zipfile.ZIP_DEFLATED) as z:
         for f in sorted(PKG.rglob("*")):

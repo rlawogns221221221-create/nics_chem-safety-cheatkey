@@ -292,6 +292,9 @@ const DIST = [
   'preview/진입화면_한파일.html',
 ];
 for (const rel of DIST) {
+  /* preview/ 는 개발 저장소에만 있는 확인용 사본이라 공모전 묶음에는 없습니다 —
+     묶음 안에서 돌릴 때는 그 한 줄만 건너뜁니다(dist 넷은 늘 검사). */
+  if (rel.startsWith('preview/') && !existsSync(`${RPATH}/${rel}`)) continue;
   const t = readFileSync(`${RPATH}/${rel}`, 'utf8');
   const name = rel.split('/').pop();
   chk(!/<link rel="manifest"/.test(t), `${name} — 매니페스트를 부르지 않는다`);
