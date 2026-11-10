@@ -73,6 +73,29 @@ iframe#app{display:block;border:0;width:390px;height:700px;background:#fff}
 #ext.on{transform:none}
 #ext img{display:block;width:390px;height:700px;object-fit:cover;object-position:top}
 
+/* 받은 문자 — 04 「상황 공유」 장면(2026-11-10 사용자 — "링크가 공유되어서 누르면 열리는
+   것까지"). 받은 사람 휴대전화의 문자 화면입니다. **특정 메신저를 흉내 내지 않습니다** —
+   이름·로고·고유한 색 없이 밋밋한 말풍선만. 말풍선 안 글과 링크는 서비스가 공유 창에
+   실제로 넘긴 그대로입니다(녹화 스크립트가 받아 넣음). */
+#msg{position:absolute;left:0;top:40px;width:390px;height:700px;background:#eef1f6;color:#111;
+  transform:translateX(102%);transition:transform .55s var(--ease);z-index:3;
+  display:flex;flex-direction:column;font-family:"Pretendard GOV","Noto Sans CJK KR",sans-serif;letter-spacing:0}
+#msg.on{transform:none}
+#msg header{flex:none;height:58px;display:flex;align-items:center;gap:10px;padding:0 14px;background:#fff;
+  border-bottom:1px solid #dde2ea}
+#msg header .bk{font-size:30px;line-height:1;color:#555;margin-right:2px}
+#msg header .av{width:36px;height:36px;border-radius:50%;background:#c9d3e3;display:grid;place-items:center;
+  font-size:15px;font-weight:700;color:#3a4a66}
+#msg header b{font-size:17px}
+#msg header .who{margin-left:auto;padding:4px 10px;border-radius:999px;background:#fff4c2;border:1px solid #f0c94a;
+  font-size:13px;font-weight:700;color:#6b5200}
+#msg .day{align-self:center;margin:16px 0 10px;padding:3px 12px;border-radius:999px;background:rgba(0,0,0,.08);
+  font-size:12.5px;color:#555}
+#msg .bub{margin:0 52px 0 14px;padding:12px 14px;background:#fff;border-radius:18px 18px 18px 6px;
+  box-shadow:0 1px 2px rgba(0,0,0,.08);font-size:14.5px;line-height:1.55;white-space:pre-wrap;word-break:keep-all;
+  animation:sayIn .5s .35s var(--ease) both}
+#msg .bub a{display:block;margin-top:6px;color:#1a5fd8;text-decoration:underline;word-break:break-all;white-space:normal}
+
 /* ── 누름 표시 — 손가락 자리 ── */
 #taps{position:absolute;inset:0;pointer-events:none;z-index:30}
 .tap{position:absolute;width:64px;height:64px;margin:-32px 0 0 -32px;border-radius:50%;
@@ -178,6 +201,7 @@ iframe#app{display:block;border:0;width:390px;height:700px;background:#fff}
     <span class="r"><span>5G</span><span class="bat"></span></span></div>
   <iframe id="app" name="app" title="실제 서비스 화면"></iframe>
   <div id="ext"><img alt=""></div>
+  <div id="msg"></div>
 </div></div></div>
 
 <div id="side">
@@ -325,6 +349,33 @@ window.무대 = {
     e.classList.add('on');
   },
   바깥닫기() { $('#ext').classList.remove('on'); },
+
+  /* 받은 문자 — 글과 링크를 받아 문자 화면을 밀어 넣습니다. 글은 서비스가 만든 그대로
+     (줄바꿈 포함), 링크도 그대로 한 덩어리로 둡니다. */
+  받은문자(글, 주소) {
+    const 막 = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    $('#msg').innerHTML = `<header><span class="bk">‹</span><span class="av">현</span><b>현장 근무자</b>`
+      + `<span class="who">받은 사람</span></header><span class="day">오늘</span>`
+      + `<div class="bub">${막(글)}<a>${막(주소)}</a></div>`;
+    $('#msg').classList.add('on');
+  },
+  /* 링크를 누르면 — 휴대전화 화면을 그 주소로 새로 열고, 다 열리면 문자 화면을 걷습니다 */
+  async 받은문자열기(url) {
+    const f = $('#app');
+    await new Promise((r) => { f.onload = () => { f.onload = null; r(); }; f.src = url; setTimeout(r, 5000); });
+    await 쉼(300);
+    $('#msg').classList.remove('on');
+  },
+
+  /* 위 띠 시계 — 녹화하는 시각 그대로 갑니다. 「상황 공유」 글의 '보낸 시각' 이
+     실제 시각이라, 시계를 14:21 로 박아 두면 두 시각이 어긋나 보입니다(2026-11-10). */
+  시계() {
+    const 놓기 = () => {
+      const d = new Date();
+      $('#status span').textContent = String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+    };
+    놓기(); setInterval(놓기, 5000);
+  },
 
   /* ── 마무리 (약 13초) ── */
   async 마무리() {
