@@ -98,15 +98,9 @@ def main():
 
     # ④ 안내 — 심사위원이 먼저 읽는 것
     shutil.copy2(ROOT / "docs" / "공모전" / "GitLab_README.md", PKG / "README.md")
-    # 구동안내서 — 주최 측 한글 양식(양식 2-1)을 그대로 채운 것(build/make_contest_hwpx.py).
-    # 사용자가 한글에서 「PDF로 저장」 한 것을 docs/공모전/ 에 두면 그것도 함께 넣습니다.
-    한글판 = sorted((ROOT / "docs" / "공모전").glob("[[]구동안내서[]]_*.hwpx"))
-    if not 한글판:
-        멈춤("구동안내서 한글 파일이 없습니다 — python3 build/make_contest_hwpx.py 를 먼저 돌리세요")
-    shutil.copy2(한글판[-1], PKG / "구동안내서.hwpx")
-    한글pdf = sorted((ROOT / "docs" / "공모전").glob("[[]구동안내서[]]_*.pdf"))
-    if 한글pdf:
-        shutil.copy2(한글pdf[-1], PKG / "구동안내서.pdf")
+    # 구동안내서는 넣지 않습니다(2026-11-10 사용자). 공고상 메일 제출물이고, 최종본은 팀원이
+    # 따로 만듭니다. 우리 초안이 GitLab 에 남으면 메일로 낸 최종본과 어긋나는데, 마감 뒤에는
+    # GitLab 을 고칠 수 없습니다. 아래 ⑥ 에서 그 이름의 파일이 끼어들지 않았는지도 봅니다.
     shutil.copy2(ROOT / "docs" / "모바일_사용설명서.pdf", PKG / "휴대전화_사용설명서.pdf")
 
     # ⑤ 근거 문서 · 화면 사진 · 방제자원 통합 표 — README 가 가리키는 것들
@@ -131,7 +125,8 @@ def main():
             멈춤(f"README 가 가리키는 {길} 이 묶음에 없습니다")
 
     # ⑥ 마지막 검사 — 인증키·개인 휴대전화가 묶음 어디에도 없어야 합니다
-    문제 = []
+    문제 = [f"{f.relative_to(PKG)}: 구동안내서는 메일로만 냅니다(위 ④)"
+          for f in PKG.rglob("*구동안내서*")]
     for f in PKG.rglob("*"):
         if not f.is_file() or f.suffix.lower() not in {".html", ".js", ".mjs", ".py", ".md", ".json", ".sh", ".css", ".svg", ".csv"}:
             continue
