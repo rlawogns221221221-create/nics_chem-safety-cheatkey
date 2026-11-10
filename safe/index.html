@@ -161,6 +161,21 @@
   </div>
 </div>
 
+<!-- ── 상황 공유 — 직접 복사 창 ───────────────────────────────
+     공유 창도, 자동 복사도 막힌 브라우저(확인용 사본 · 오래된 PC 브라우저)에서만
+     뜹니다. 글과 링크를 그대로 보여 주고 사람이 골라 복사합니다. -->
+<div class="cbx-back sf-shbox" id="shareModal" hidden>
+  <div class="cbx" role="dialog" aria-modal="true" aria-labelledby="shareTtl">
+    <header><b id="shareTtl">상황 공유</b>
+      <button type="button" class="cbx-x" id="btnShareClose" aria-label="닫기">✕</button></header>
+    <div class="cbx-body">
+      <p class="sf-shhow">자동으로 복사하지 못했습니다. 아래 글을 모두 골라 복사한 뒤
+        문자·메신저에 붙여 넣으세요.</p>
+      <textarea id="shareText" readonly rows="9" aria-labelledby="shareTtl"></textarea>
+    </div>
+  </div>
+</div>
+
 <script src="../data/version.js"></script>
 <script src="../data/basemap.js"></script>
 <script src="../data/materials.js"></script>

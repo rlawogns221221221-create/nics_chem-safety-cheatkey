@@ -3518,11 +3518,28 @@ body.safeapp{background:var(--bg)}
 .sf-pt .px{position:absolute;right:6px;top:6px;width:32px;height:32px;min-height:0;padding:0;
   font-size:var(--fs-m);line-height:1}
 .sf-acts{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
-.sf-watch{display:inline-flex;align-items:center;gap:7px;min-height:var(--h-m);padding:0 16px;
+.sf-watch,.sf-share{display:inline-flex;align-items:center;gap:7px;min-height:var(--h-m);padding:0 16px;
   font-weight:800;color:var(--brand-d);border-color:var(--brand)}
-.sf-watch svg{width:20px;height:20px;flex:none}
+.sf-watch svg,.sf-share svg{width:20px;height:20px;flex:none}
 .sf-watch.on{background:var(--me);border-color:var(--me-d);color:var(--on-brand)}
 .sf-tap{font-size:var(--fs-xs);color:var(--ink3)}
+/* 상황 공유 — 복사했다는 알림 · 공유받은 링크로 열었다는 딱지 (2026-11-10) */
+.sf-shnote{margin:0;font-size:var(--fs-s);color:var(--ok);word-break:keep-all}
+.sf-recv{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:7px 11px;
+  border:1px solid var(--brand);border-left:6px solid var(--brand);border-radius:var(--r-l);
+  background:var(--brand-l);font-size:var(--fs-s);color:var(--ink2);word-break:keep-all}
+.sf-recv b{color:var(--brand-d);font-weight:800}
+.sf-recv.err{display:block;border-color:var(--err-b);border-left-color:var(--err);background:var(--err-l);color:var(--ink)}
+.sf-recv.err b{color:var(--err)}
+.sf-shhow{margin:12px 0 8px;font-size:var(--fs-s);color:var(--ink2);word-break:keep-all}
+.sf-shbox textarea{display:block;width:100%;box-sizing:border-box;padding:9px 11px;resize:vertical;
+  font:inherit;font-size:var(--fs-s);line-height:1.55;color:var(--ink);background:var(--card);
+  border:1px solid var(--line-d);border-radius:var(--r)}
+/* 휴대전화에서도 화면을 다 덮지 않습니다 — 글 몇 줄이면 됩니다 */
+@media (max-width:560px){
+  .sf-shbox{padding:12px;align-items:flex-start}
+  .sf-shbox .cbx{height:auto;border-radius:var(--r-l)}
+}
 
 /* ── 지도 ── */
 .sf-map{height:62vh;min-height:300px;border-right:0}
@@ -3919,6 +3936,21 @@ window.addEventListener("storage", function (e) {
       바람·지형·용기 크기에 따라 실제와 다를 수 있습니다. 거리는 지형·건물을
       고려하지 않은 직선거리입니다.</div>
     <div class="cbx-body" id="ver"></div>
+  </div>
+</div>
+
+<!-- ── 상황 공유 — 직접 복사 창 ───────────────────────────────
+     공유 창도, 자동 복사도 막힌 브라우저(확인용 사본 · 오래된 PC 브라우저)에서만
+     뜹니다. 글과 링크를 그대로 보여 주고 사람이 골라 복사합니다. -->
+<div class="cbx-back sf-shbox" id="shareModal" hidden>
+  <div class="cbx" role="dialog" aria-modal="true" aria-labelledby="shareTtl">
+    <header><b id="shareTtl">상황 공유</b>
+      <button type="button" class="cbx-x" id="btnShareClose" aria-label="닫기">✕</button></header>
+    <div class="cbx-body">
+      <p class="sf-shhow">자동으로 복사하지 못했습니다. 아래 글을 모두 골라 복사한 뒤
+        문자·메신저에 붙여 넣으세요.</p>
+      <textarea id="shareText" readonly rows="9" aria-labelledby="shareTtl"></textarea>
+    </div>
   </div>
 </div>
 
@@ -5591,7 +5623,11 @@ var st = {
   watchId: null,             // 내 위치를 계속 받는 중이면 그 번호
   probe: null,               // 지도를 눌러 확인한 곳 {lat, lon}
   mode: "pick",              // "acc" = 다음 누름이 사고지점
-  view: null
+  view: null,
+  timeFrom: "",              // "share" = 낮·밤을 공유받은 링크가 정함(보낸 사람 기준)
+  sharedKey: "",             // 공유받은 상황 그대로인 동안의 조건 열쇠 — 바꾸면 딱지가 사라짐
+  shareAt: "",               // 보낸 시각 (YYYYMMDDHHmm)
+  recvErr: ""                // 공유받은 링크에서 못 읽은 것
 };
 var SVG = null, VB = null;
 var CAM = MC.camera(function () { return st.view; }, function (v) { st.view = v; }, draw);
@@ -5620,6 +5656,7 @@ function setMat(txt) {
   var m = findMaterial(txt);
   if (m === st.mat) return;
   st.mat = m;
+  st.recvErr = "";
   st.inf = m ? ERG.info(m) : null;
   /* 구분은 물질마다 다르므로 새 물질에 없는 구분이면 지웁니다.
      구분이 하나뿐이면 물을 것이 없으니 그것으로 둡니다. */
@@ -5706,6 +5743,13 @@ function renderStat() {
   var z = zones();
   var html = "";
 
+  /* 공유받은 링크로 열었으면 맨 위에 — 보낸 사람이 정한 조건 그대로인 동안만.
+     받은 사람이 하나라도 바꾸면 더는 '받은 상황'이 아니므로 딱지를 내립니다. */
+  if (st.recvErr) html += '<p class="sf-recv err" role="alert">' + st.recvErr + "</p>";
+  if (st.sharedKey && st.sharedKey === shareKey())
+    html += '<p class="sf-recv"><b>공유받은 상황</b>'
+      + (st.shareAt ? "<span>" + nb(esc(stampKo(st.shareAt))) + "에 보냄</span>" : "") + "</p>";
+
   /* 아직 그릴 것이 없으면 무엇을 하면 되는지 차례로 */
   if (!st.mat || !st.acc || need.length) {
     html += '<ol class="sf-steps">'
@@ -5754,12 +5798,21 @@ function renderStat() {
     + ' stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3.4"/><circle cx="12" cy="12" r="8.4"/>'
     + '<path d="M12 1.4v3M12 19.6v3M1.4 12h3M19.6 12h3"/></svg>'
     + (st.watchId != null ? "내 위치 확인 끄기" : "내 위치 확인") + "</button>"
+    /* 상황 공유 — 그릴 조건이 다 갖춰졌을 때만(반쪽 상황을 보내면 받은 쪽이
+       무엇을 더 골라야 하는지 모릅니다) */
     + (st.acc && st.mat && !need.length
-        ? '<span class="sf-tap">지도를 누르면 그 자리도 확인합니다</span>' : "")
-    + "</div>";
+        ? '<button type="button" class="sf-share" id="btnShare">'
+          + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"'
+          + ' stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/>'
+          + '<circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>상황 공유</button>'
+          + '<span class="sf-tap">지도를 누르면 그 자리도 확인합니다</span>' : "")
+    + "</div>"
+    + (shareNote ? '<p class="sf-shnote" role="status">' + shareNote + "</p>" : "");
 
   el.innerHTML = html;
   $("#btnWatch").onclick = toggleWatch;
+  var bs = $("#btnShare");
+  if (bs) bs.onclick = shareNow;
   var px = $(".sf-pt .px", el);
   if (px) px.onclick = function () { st.probe = null; update(false); };
 }
@@ -5826,10 +5879,13 @@ function renderOpts() {
     tEl.innerHTML = (st.time === "auto"
         ? "<b>" + (night ? "밤" : "낮") + "</b> · 일출 " + hhmm(s.rise) + " · 일몰 " + hhmm(s.set)
           + " 기준으로 저절로 정함(대략" + (st.acc ? "" : " · 사고지점을 정하면 그 자리 기준") + ")"
-        : "<b>" + (night ? "밤" : "낮") + "</b> — 직접 고름 · "
+        /* 공유받은 링크는 보낸 사람 화면의 낮·밤을 그대로 씁니다 — 몇 시간 뒤에
+           열어도 같은 거리를 보게. 받은 사람이 고른 것처럼 적으면 틀립니다. */
+        : "<b>" + (night ? "밤" : "낮") + "</b> — "
+          + (st.timeFrom === "share" ? "보낸 사람 기준" : "직접 고름") + " · "
           + '<button type="button" class="sf-auto" id="btnTimeAuto">일출·일몰로 다시 정하기</button>');
     var ba = $("#btnTimeAuto");
-    if (ba) ba.onclick = function () { st.time = "auto"; renderOpts(); update(false); };
+    if (ba) ba.onclick = function () { st.time = "auto"; st.timeFrom = ""; renderOpts(); update(false); };
   } else tEl.hidden = true;
 
   /* 구분 */
@@ -5969,6 +6025,191 @@ function goSms() {
   location.href = "../sms/index.html";
 }
 
+/* ── 상황 공유 (2026-11-10 사용자가 고른 아이디어 — "공유용 링크") ─────────
+   현장에서 정한 상황(물질·사고지점·유출 규모·구분·바람·낮밤)을 **주소 뒤 # 에**
+   글자로 담아 보냅니다. 서버가 없습니다 — 받은 사람이 링크를 누르면 이 화면이
+   그 글자를 읽어 같은 구역을 그립니다. 인터넷이 되는 휴대전화면 어디서든 열리고,
+   우리 쪽 어디에도 남지 않습니다(# 뒤는 브라우저가 서버로 보내지도 않습니다).
+   · **내 위치는 넣지 않습니다** — 자료 출처 창에 "위치는 이 화면 밖으로 보내지
+     않습니다" 라고 적어 두었습니다. 받은 사람은 자기 「내 위치 확인」을 켭니다.
+     「내 위치로 찍기」로 정한 사고지점은 사고지점이라 넣지만, 그 이름표
+     ("내 위치에서 찍음")는 받은 쪽에서 뜻이 틀려지므로 뺍니다.
+   · 낮·밤은 **보낸 사람 화면 그대로** 넘깁니다 — 몇 시간 뒤에 열면 일출·일몰로
+     다시 정해져 거리가 달라 보일 수 있습니다. 받은 쪽에는 "보낸 사람 기준" 이라고
+     적고, 일출·일몰로 다시 정하는 단추는 그대로 둡니다.
+   · 링크가 가리키는 곳 — 이 화면이 웹 주소(…/safe/)로 열렸으면 그 주소 그대로,
+     파일(file:// · 망분리용 단일 파일)이나 확인용 사본(Artifact)으로 열렸으면
+     SHARE_HOME. ⚠ 그 사이트를 닫으면(pages.yml 의 SITE_OPEN "no") 파일에서 보낸
+     링크는 열리지 않습니다. 사이트 주소를 바꾸면 이 한 줄도 고치세요. */
+var SHARE_HOME = "https://rlawogns221221221-create.github.io/nics_chem-safety-cheatkey/safe/";
+var NAME_HERE = "내 위치에서 찍음";        // hereAsAcc 가 붙이는 이름 — 공유에서는 뺍니다
+var shareNote = "", shareTimer = null;
+
+function shareBase() {
+  var l = window.location;
+  if (/^https?:$/.test(l.protocol) && /\/safe\/(index\.html)?$/.test(l.pathname))
+    return l.protocol + "//" + l.host + l.pathname;
+  return SHARE_HOME;
+}
+function pad2(n) { return (n < 10 ? "0" : "") + n; }
+function stamp(d) {
+  return "" + d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate()) + pad2(d.getHours()) + pad2(d.getMinutes());
+}
+function stampKo(s) {
+  return (+s.slice(4, 6)) + "월 " + (+s.slice(6, 8)) + "일 " + s.slice(8, 10) + ":" + s.slice(10, 12);
+}
+/* 받은 상황 그대로인가를 가르는 열쇠 — 하나라도 바뀌면 '공유받은 상황' 딱지를 내립니다 */
+function shareKey() {
+  return [st.mat ? st.mat.n : "", st.acc ? st.acc.lat + "," + st.acc.lon : "",
+          st.size, st.v, st.wind, st.time].join("|");
+}
+
+/* 보낼 것 — 주소와, 링크를 못 여는 사람도 읽을 수 있는 짧은 글.
+   글에는 화면에 적힌 사실만 옮깁니다(물질·조건·사고지점·바람·두 거리). */
+function sharePack() {
+  var night = isNight(), at = stamp(new Date());
+  var named = st.accName && st.accName !== NAME_HERE ? st.accName : "";
+  var q = ["m=" + encodeURIComponent(st.mat.n), "la=" + st.acc.lat, "lo=" + st.acc.lon];
+  if (st.size) q.push("z=" + st.size);
+  if (st.v) q.push("v=" + encodeURIComponent(st.v));
+  if (st.wind !== "") q.push("w=" + st.wind);
+  q.push("t=" + (night ? "n" : "d"));
+  if (named) q.push("n=" + encodeURIComponent(named));
+  q.push("at=" + at);
+
+  var z = zones();
+  var cond = [st.size ? SIZE_KO[st.size] : "", st.v,
+              st.inf && st.inf.hasDN ? (night ? "밤" : "낮") : ""].filter(Boolean).join(" · ");
+  var lines = ["[화학사고 현장 안전거리 확인]",
+    "물질: " + st.mat.n + (cond ? " (" + cond + ")" : ""),
+    "사고지점: " + (named || accRegion()) + "위도 " + st.acc.lat + ", 경도 " + st.acc.lon,
+    "바람: " + (st.wind !== "" ? windKo(st.wind) + "풍" : "방향 모름"),
+    z && st.inf.any
+      ? "초기이격 " + (z.iso ? fmtDist(z.iso.m) : "자료에 없음") + " · 방호활동 "
+        + (z.pad ? padLabel(z.pad) : "자료에 없음") + " (물질정보의 ERG 참고 거리)"
+      : "초기이격·방호활동 거리: 자료 없음",
+    "보낸 시각: " + stampKo(at),
+    "링크를 누르면 같은 구역이 지도에 그려집니다."];
+  return { title: "현장 안전거리 확인", text: lines.join("\n"), url: shareBase() + "#" + q.join("&") };
+}
+
+/* 이름 없이 찍은 사고지점 — 시·군·구 이름을 앞에 붙입니다(행정경계로 잡은 것이라 '대략').
+   "내 위치에서 찍음" 은 받은 사람에게는 틀린 말이라 쓰지 않습니다. */
+function accRegion() {
+  var h = MC.sggAt(st.acc.lat, st.acc.lon);
+  return h ? (h.sido + " " + (h.sgg && h.sgg !== "null" ? h.sgg : "")).trim() + "(대략) · " : "";
+}
+function shareSay(msg) {
+  shareNote = msg;
+  if (shareTimer) clearTimeout(shareTimer);
+  shareTimer = setTimeout(function () { shareNote = ""; shareTimer = null; renderStat(); }, 7000);
+  renderStat();
+}
+/* 휴대전화 — 공유 창(카카오톡·문자 …)을 엽니다. 못 쓰는 곳(대부분의 PC 브라우저 ·
+   확인용 사본)은 글과 링크를 복사하고, 복사도 막혀 있으면 직접 복사할 창을 띄웁니다.
+   공유 창을 사람이 닫은 것(AbortError)은 실패가 아니라 아무것도 하지 않습니다. */
+function shareNow() {
+  if (!st.mat || !st.acc) return;
+  var p = sharePack();
+  if (navigator.share) {
+    try {
+      navigator.share({ title: p.title, text: p.text, url: p.url }).then(null, function (e) {
+        if (!e || e.name !== "AbortError") shareCopy(p);
+      });
+      return;
+    } catch (e) { /* 아래 복사로 */ }
+  }
+  shareCopy(p);
+}
+function shareCopy(p) {
+  var all = p.text + "\n" + p.url;
+  var manual = function () { openShareBox(all); };
+  var old = function () {
+    var ta = document.createElement("textarea"), ok = false;
+    ta.value = all; ta.setAttribute("readonly", "");
+    ta.style.position = "fixed"; ta.style.top = "-1000px"; ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try { ta.setSelectionRange(0, all.length); ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    if (ok) shareSay("<b>링크를 복사했습니다.</b> " + nb("문자·메신저에 붙여 넣으세요."));
+    else manual();
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    try {
+      navigator.clipboard.writeText(all).then(function () {
+        shareSay("<b>링크를 복사했습니다.</b> " + nb("문자·메신저에 붙여 넣으세요."));
+      }, old);
+      return;
+    } catch (e) { /* 아래로 */ }
+  }
+  old();
+}
+function openShareBox(all) {
+  var box = $("#shareModal"), ta = $("#shareText");
+  ta.value = all;
+  box.hidden = false; document.body.style.overflow = "hidden";
+  ta.focus();
+  try { ta.select(); ta.setSelectionRange(0, all.length); } catch (e) {}
+}
+function closeShareBox() {
+  $("#shareModal").hidden = true; document.body.style.overflow = "";
+  var b = $("#btnShare");
+  if (b) b.focus();                       // 키보드·화면낭독기 — 누른 자리로 돌아갑니다
+}
+
+/* 받기 — 주소 # 뒤의 글자를 읽어 같은 상황을 세웁니다. 링크는 사람 손을 거쳐
+   오므로(메신저가 자르거나 바꿀 수 있음) **하나씩 따져 보고** 맞는 것만 씁니다.
+   못 읽은 것은 지어 메우지 않고 맨 위에 그렇다고 적습니다. */
+function readShare(hash) {
+  var h = String(hash || "").replace(/^#/, "");
+  if (!/(^|&)(m|la)=/.test(h)) return null;
+  var o = {};
+  h.split("&").forEach(function (kv) {
+    var i = kv.indexOf("=");
+    if (i < 1) return;
+    try { o[kv.slice(0, i)] = decodeURIComponent(kv.slice(i + 1).replace(/\+/g, " ")); } catch (e) {}
+  });
+  return o;
+}
+function applyShare(o) {
+  var m = o.m ? findMaterial(o.m) : null;
+  var lat = parseFloat(o.la), lon = parseFloat(o.lo);
+  /* 우리나라 언저리(제주 남쪽 바다 ~ 휴전선 · 백령도 ~ 독도)를 벗어난 좌표는 잘린 링크입니다 */
+  var okP = isFinite(lat) && isFinite(lon) && lat > 32.5 && lat < 39 && lon > 124 && lon < 132;
+
+  st.mat = m; st.inf = m ? ERG.info(m) : null;
+  $("#sfMat").value = m ? m.n : "";
+  var vs = st.inf ? st.inf.variants : [];
+  st.v = vs.indexOf(o.v) >= 0 ? o.v : (vs.length === 1 ? vs[0] : "");
+  st.size = st.inf && st.inf.needSize && (o.z === "s" || o.z === "l") ? o.z : "";
+  st.wind = "";
+  WIND_DIRS.forEach(function (d) { if (String(d.deg) === o.w) st.wind = String(d.deg); });
+  st.time = o.t === "n" ? "night" : (o.t === "d" ? "day" : "auto");
+  st.timeFrom = st.time === "auto" ? "" : "share";
+  st.acc = okP ? { lat: Math.round(lat * 1e5) / 1e5, lon: Math.round(lon * 1e5) / 1e5 } : null;
+  st.accName = okP && o.n ? String(o.n).slice(0, 60) : "";
+  st.probe = null; pendingName = "";
+  $("#sfAddr").value = "";
+  st.shareAt = /^\d{12}$/.test(o.at || "") ? o.at : "";
+  /* 둘 다 못 읽었으면 '받은 상황'이라 할 것이 없습니다 — 딱지 없이 알림만 */
+  st.sharedKey = m || okP ? shareKey() : "";
+
+  var bad = [];
+  if (!m) bad.push("물질");
+  if (!okP) bad.push("사고지점");
+  st.recvErr = bad.length
+    ? "<b>공유받은 링크에서 " + bad.join("·") + josa(bad[bad.length - 1], "을", "를") + " 읽지 못했습니다.</b> "
+      + nb("링크가 잘렸는지 확인하거나") + " " + nb("직접 골라 주세요.")
+    : "";
+  updateWindUI(); renderOpts(); setMode("pick");
+  update(true);
+}
+function clearShareHash() {
+  if (!/(^|&|#)(m|la)=/.test(location.hash)) return;
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (e) {}
+}
+
 /* ── 사고지점 ──────────────────────────────────────────────── */
 function setMode(m) {
   st.mode = m;
@@ -5981,6 +6222,7 @@ function setAcc(lat, lon, name) {
   st.acc = { lat: Math.round(lat * 1e5) / 1e5, lon: Math.round(lon * 1e5) / 1e5 };
   st.accName = name || "";
   st.probe = null;
+  st.recvErr = "";
   setMode("pick");
   renderOpts();                         // 낮·밤이 그 자리의 일출·일몰로 바뀝니다
   update(true);
@@ -6513,6 +6755,8 @@ function initSrc() {
     + "<p><b>유출 규모·구분</b> — 현장이 정하는 것이라 도구가 미리 고르지 않습니다.</p>"
     + "<p><b>내 위치</b> — 이 기기의 위치 기능을 씁니다(인터넷이 없어도 됩니다). "
     + "위치는 이 화면 밖으로 보내지 않습니다. 실내에서는 오차가 커질 수 있습니다.</p>"
+    + "<p><b>상황 공유</b> — 물질·사고지점·유출 규모·구분·바람·낮밤만 링크에 담습니다. "
+    + "내 위치는 넣지 않습니다. 받은 사람이 링크를 열면 같은 구역이 그려집니다.</p>"
     + "<p><b>배경지도</b> — " + esc(VERSION.배경지도) + ". 인터넷이 되는 환경에서만 표시됩니다.</p>"
     + "<p><b>행정경계</b> — " + esc(VERSION.경계_출처) + ". 위치를 가늠하기 위한 배경선입니다.</p>"
     + "<p class=\"src\">도구 버전 " + esc(VERSION.도구버전) + " · 반영일 " + esc(VERSION.반영일) + "</p>";
@@ -6523,7 +6767,8 @@ function initSrc() {
   $("#srcModal").onclick = function (e) { if (e.target.id === "srcModal") close(); };
   document.addEventListener("keydown", function (e) {
     if (e.key !== "Escape") return;
-    if (!$("#srcModal").hidden) close();
+    if (!$("#shareModal").hidden) closeShareBox();
+    else if (!$("#srcModal").hidden) close();
     else if (!$("#windPop").hidden) { $("#windPop").hidden = true; $("#windBtn").setAttribute("aria-expanded", "false"); }
     else if (!$("#addrPop").hidden) closeAddrPop();
     else if (st.mode === "acc") setMode("pick");
@@ -6543,7 +6788,7 @@ function init() {
     b.onclick = function () { st.size = b.dataset.v; renderOpts(); update(true); };
   });
   $$("#segTime button").forEach(function (b) {
-    b.onclick = function () { st.time = b.dataset.v; renderOpts(); update(true); };
+    b.onclick = function () { st.time = b.dataset.v; st.timeFrom = ""; renderOpts(); update(true); };
   });
   $("#btnPick").onclick = function () { setMode(st.mode === "acc" ? "pick" : "acc"); };
   $("#btnHereAcc").onclick = hereAsAcc;
@@ -6551,15 +6796,29 @@ function init() {
     if (st.watchId != null) navigator.geolocation.clearWatch(st.watchId);
     st.mat = null; st.inf = null; st.size = ""; st.v = ""; st.time = "auto"; st.wind = "";
     st.acc = null; st.accName = ""; st.me = null; st.watchId = null; st.probe = null;
+    st.timeFrom = ""; st.sharedKey = ""; st.shareAt = ""; st.recvErr = "";
     pendingName = "";
     $("#sfMat").value = ""; $("#sfAddr").value = "";
+    /* 공유받은 주소(#…)도 지웁니다 — 남겨 두면 새로고침했을 때 지운 상황이 되살아납니다 */
+    clearShareHash();
     updateWindUI(); renderOpts(); setMode("pick"); toast("");
     update(true);
   };
 
+  /* 상황 공유 — 직접 복사 창 */
+  $("#btnShareClose").onclick = closeShareBox;
+  $("#shareModal").onclick = function (e) { if (e.target.id === "shareModal") closeShareBox(); };
+
   setMode("pick");
   renderOpts();
-  update(true);
+  /* 공유받은 링크로 열었으면 그 상황부터. 같은 창에서 다른 링크를 눌러 # 만
+     바뀌면 화면을 새로 읽지 않으므로 hashchange 도 듣습니다. */
+  var recv = readShare(location.hash);
+  if (recv) applyShare(recv); else update(true);
+  window.addEventListener("hashchange", function () {
+    var o = readShare(location.hash);
+    if (o) applyShare(o);
+  });
 }
 
 document.addEventListener("DOMContentLoaded", init);

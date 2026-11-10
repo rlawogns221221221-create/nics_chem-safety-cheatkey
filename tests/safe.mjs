@@ -8,8 +8,13 @@
    · 화면이 **사실만** 말하는가 — "초기이격거리 안/밖" · "방호활동 구역 안".
      "위험합니다·안전합니다" 같은 단정이 들어가면 실패입니다(사용자 결정).
    · 내 위치가 움직이면 결과가 따라 바뀌는가(watchPosition).
-   · 휴대전화가 먼저 — 390px 에서 가로로 밀리지 않고, 누르는 것은 40px 이상. */
+   · 휴대전화가 먼저 — 390px 에서 가로로 밀리지 않고, 누르는 것은 40px 이상.
+   · 상황 공유(2026-11-10) — 링크 하나로 같은 상황이 서는가, **내 위치가 링크에
+     들어가지 않는가**, 잘린 링크에서 지어 메우지 않는가. */
 import { chromium } from 'playwright';
+import http from 'node:http';
+import fs from 'node:fs';
+import path from 'node:path';
 const ROOT = import.meta.url.replace(/[^/]*$/, '').replace(/tests\/$/, '');
 const RPATH = decodeURIComponent(ROOT.replace(/\/$/, '').replace(/^file:\/\//, ''));
 const B = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium' });
@@ -324,7 +329,148 @@ const db = await D.locator('#map').boundingBox();
 await D.touchscreen.tap(db.x + db.width / 2, db.y + db.height / 2); await D.waitForTimeout(500);
 await D.click('#segSize button[data-v="s"]'); await D.waitForTimeout(500);
 chk((await D.$$('#map circle.ziso')).length === 1, '단일 파일에서도 구역을 그린다');
+chk(await D.isVisible('#btnShare') && (await D.$$('#shareModal')).length === 1,
+  '단일 파일에도 상황 공유가 있다(링크는 사이트 주소로)');
 await D.close();
+
+// ══ 10. 상황 공유 — 링크 하나로 같은 상황을 보내고 받기 (2026-11-10) ══
+/* 서버가 없습니다 — 상황을 주소 뒤 # 에 담고, 받은 화면이 그것을 읽습니다.
+   휴대전화의 공유 창(navigator.share)은 이 검사에서 가짜로 바꿔 넘긴 것을 받습니다. */
+const SHARE_HOME = 'https://rlawogns221221221-create.github.io/nics_chem-safety-cheatkey/safe/';
+const 폰 = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true,
+  timezoneId: 'Asia/Seoul', locale: 'ko-KR' };
+const sc = await B.newContext({ ...폰, permissions: ['geolocation'], geolocation: { ...ACC, accuracy: 15 } });
+await sc.addInitScript(() => { navigator.share = d => { window.__shared = d; return Promise.resolve(); }; });
+const 채우기 = async (pg, mat, size) => {
+  await pg.fill('#sfMat', mat); await pg.keyboard.press('Escape');
+  await pg.click('#btnHereAcc'); await pg.waitForTimeout(1200);
+  if (size) await pg.click(`#segSize button[data-v="${size}"]`);
+  await pg.waitForTimeout(400);
+};
+const S1 = await sc.newPage(); watch(S1);
+await S1.goto(`file://${RPATH}/safe/index.html`); await S1.waitForTimeout(500);
+chk(!(await S1.$('#btnShare')), '물질·사고지점 전에는 공유 단추가 없다');
+await S1.fill('#sfMat', '암모니아'); await S1.keyboard.press('Escape');
+await S1.click('#btnHereAcc'); await S1.waitForTimeout(1200);
+chk(!(await S1.$('#btnShare')), '유출 규모를 고르기 전에도 없다(반쪽 상황을 보내지 않음)');
+await S1.click('#segSize button[data-v="l"]'); await S1.click('#segTime button[data-v="night"]');
+await S1.click('#windBtn'); await S1.click('#windPop .wr-b[data-deg="225"]'); await S1.waitForTimeout(400);
+/* 내 위치를 사고지점에서 옮겨 둡니다 — 링크나 글에 내 위치가 들어가면 여기서 걸립니다 */
+const ME2 = near(400, 300);
+await sc.setGeolocation(ME2);
+await S1.click('#btnWatch'); await S1.waitForTimeout(1200);
+chk(await S1.isVisible('#btnShare'), '조건이 다 갖춰지면 상황 공유 단추');
+await S1.click('#btnShare'); await S1.waitForTimeout(300);
+const sh = await S1.evaluate(() => window.__shared);
+const su = new URL(sh.url), hp = new URLSearchParams(su.hash.slice(1));
+chk(sh.url.startsWith(SHARE_HOME + '#'), `파일로 열었으면 사이트 주소로 링크를 만든다 (${sh.url.slice(0, 64)})`);
+chk(hp.get('m') === '암모니아' && hp.get('la') === '34.7905' && hp.get('lo') === '127.652' && hp.get('z') === 'l'
+  && hp.get('w') === '225' && hp.get('t') === 'n' && /^\d{12}$/.test(hp.get('at') || ''),
+  `링크에 물질·사고지점·규모·바람·낮밤·보낸 시각이 담긴다 (${decodeURIComponent(su.hash)})`);
+chk(!hp.has('n'), '"내 위치에서 찍음" 이름표는 링크에 넣지 않는다(받은 쪽에서 뜻이 틀려짐)');
+const meLat = ME2.latitude.toFixed(4), meLon = ME2.longitude.toFixed(4);
+chk(![meLat, meLon].some(x => sh.url.includes(x) || sh.text.includes(x)),
+  `내 위치는 링크에도 글에도 없다 (${meLat}, ${meLon})`);
+chk(/물질: 암모니아 \(대규모 · 밤\)/.test(sh.text) && sh.text.includes('바람: 남서풍')
+  && /초기이격 300m · 방호활동 4\.5km/.test(sh.text) && sh.text.includes('전라남도 여수시(대략)'),
+  '함께 보내는 글에 화면의 사실이 그대로(물질·조건·바람·두 거리·지역)');
+chk(!/위험합니다|안전합니다|대피하세요|안전한|위험한|원문|풍하/.test(sh.text), '함께 보내는 글도 사실만(단정·어려운 말 없음)');
+await S1.close();
+
+/* 받는 쪽 — 위치 권한도 없는 다른 휴대전화 */
+const rc = await B.newContext(폰);
+const S2 = await rc.newPage(); watch(S2);
+await S2.goto(`file://${RPATH}/safe/index.html` + su.hash); await S2.waitForTimeout(900);
+const rv = await S2.evaluate(() => ({ mat: document.querySelector('#sfMat').value,
+  stat: document.querySelector('#sfStat').textContent, time: document.querySelector('#sfTime').textContent,
+  night: document.querySelector('#segTime button[data-v="night"]').getAttribute('aria-pressed'),
+  big: document.querySelector('#segSize button[data-v="l"]').getAttribute('aria-pressed'),
+  wind: document.querySelector('#windBtnTxt').textContent,
+  iso: document.querySelectorAll('#map circle.ziso').length, pad: document.querySelectorAll('#map path.zpad').length,
+  me: !!document.querySelector('.sf-pt.me') }));
+chk(rv.mat === '암모니아' && rv.big === 'true' && rv.night === 'true' && rv.wind === '남서풍',
+  `받으면 같은 조건이 선다 (${rv.mat} · 대규모 ${rv.big} · 밤 ${rv.night} · ${rv.wind})`);
+chk(rv.iso === 1 && rv.pad === 1, '받으면 같은 구역을 그린다(초기이격 원 · 방호활동 정사각형)');
+chk(/공유받은 상황/.test(rv.stat) && /\d+월 \d+일 \d\d:\d\d에 보냄/.test(rv.stat), '맨 위에 공유받은 상황 · 보낸 시각');
+chk(/방호활동\s*4\.5km/.test(rv.stat) && rv.time.includes('보낸 사람 기준'),
+  '낮·밤은 보낸 사람 화면 그대로(밤 4.5km) · "보낸 사람 기준" 이라고 적는다');
+chk(!rv.me, '받은 쪽에 내 위치를 지어 넣지 않는다');
+await S2.click('#segSize button[data-v="s"]'); await S2.waitForTimeout(300);
+chk(!/공유받은 상황/.test(await S2.textContent('#sfStat')), "조건을 바꾸면 '공유받은 상황' 딱지를 내린다");
+/* 같은 창에서 다른 링크 — # 만 바뀌면 화면을 새로 읽지 않습니다 */
+await S2.evaluate(h => { location.hash = h; }, '#m=' + encodeURIComponent('염산') + '&la=35.5&lo=129.3&z=s&t=d');
+await S2.waitForTimeout(700);
+chk((await S2.inputValue('#sfMat')).includes('염산') && /공유받은 상황/.test(await S2.textContent('#sfStat')),
+  '같은 창에서 다른 링크를 열어도 새 상황을 읽는다');
+await S2.$eval('#btnClear', b => b.click()); await S2.waitForTimeout(300);
+chk(!/m=/.test(await S2.evaluate(() => location.hash)), '처음부터를 누르면 주소의 # 도 지운다(새로고침해도 안 되살아남)');
+/* 잘린 링크 — 지어 메우지 않고 못 읽었다고 적습니다 */
+await S2.goto(`file://${RPATH}/safe/index.html#m=%ZZ&la=999&lo=x`); await S2.reload(); await S2.waitForTimeout(700);
+const bad1 = await S2.textContent('#sfStat');
+chk(/물질·사고지점을 읽지 못했습니다/.test(bad1) && !/공유받은 상황/.test(bad1)
+  && (await S2.$$('#map .ziso, #map .zpad')).length === 0, '잘린 링크 — 못 읽었다고 적고 아무것도 그리지 않는다');
+await S2.goto(`file://${RPATH}/safe/index.html#m=${encodeURIComponent('암모니아')}&la=91&lo=127`);
+await S2.reload(); await S2.waitForTimeout(700);
+chk(await S2.inputValue('#sfMat') === '암모니아' && /사고지점을 읽지 못했습니다/.test(await S2.textContent('#sfStat')),
+  '읽은 것(물질)만 쓰고 못 읽은 것(사고지점)은 그렇다고 적는다');
+await rc.close();
+
+/* 공유 창이 없는 브라우저(대부분의 PC) — 글과 링크를 복사합니다 */
+const cc = await B.newContext({ ...폰, permissions: ['geolocation', 'clipboard-read', 'clipboard-write'],
+  geolocation: { ...ACC, accuracy: 15 } });
+await cc.addInitScript(() => { try { delete Navigator.prototype.share; } catch (e) {} });
+const S3 = await cc.newPage(); watch(S3);
+await S3.goto(`file://${RPATH}/safe/index.html`); await S3.waitForTimeout(500);
+await 채우기(S3, '염산', 's');
+await S3.click('#btnShare'); await S3.waitForTimeout(500);
+const clip = await S3.evaluate(() => navigator.clipboard.readText().catch(e => 'ERR ' + e.message));
+chk(clip.startsWith('[화학사고 현장 안전거리 확인]') && clip.includes(SHARE_HOME + '#m='),
+  `공유 창이 없으면 글과 링크를 복사한다 (${clip.split('\n').pop().slice(0, 50)})`);
+chk((await S3.textContent('#sfStat')).includes('링크를 복사했습니다'), '복사했다고 알려 준다');
+await cc.close();
+
+/* 복사까지 막힌 곳(확인용 사본 등) — 직접 복사할 창 */
+const mc = await B.newContext({ ...폰, permissions: ['geolocation'], geolocation: { ...ACC, accuracy: 15 } });
+await mc.addInitScript(() => {
+  try { delete Navigator.prototype.share; } catch (e) {}
+  Object.defineProperty(navigator, 'clipboard', { value: { writeText: () => Promise.reject(new Error('막힘')) } });
+  document.execCommand = () => false;
+});
+const S4 = await mc.newPage(); watch(S4);
+await S4.goto(`file://${RPATH}/safe/index.html`); await S4.waitForTimeout(500);
+await 채우기(S4, '염산', 's');
+await S4.click('#btnShare'); await S4.waitForTimeout(400);
+chk(await S4.isVisible('#shareModal') && (await S4.inputValue('#shareText')).includes(SHARE_HOME + '#m='),
+  '공유·복사가 다 막히면 직접 복사할 창에 글과 링크를 보여 준다');
+await S4.keyboard.press('Escape'); await S4.waitForTimeout(200);
+chk(!(await S4.isVisible('#shareModal')), 'Esc 로 그 창을 닫는다');
+await mc.close();
+
+/* 웹 주소로 열었으면 그 주소로 — 사이트를 어디에 올리든(Cloudflare · 다른 기관) 맞게 */
+const 종류 = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.png': 'image/png',
+  '.jpg': 'image/jpeg', '.woff2': 'font/woff2', '.webmanifest': 'application/manifest+json' };
+const srv = http.createServer((q, r) => {
+  const f = path.join(RPATH, decodeURIComponent(q.url.split(/[?#]/)[0]));
+  fs.readFile(f, (e, b) => {
+    if (e) { r.writeHead(404); r.end(); return; }
+    r.writeHead(200, { 'content-type': 종류[path.extname(f)] || 'application/octet-stream' }); r.end(b);
+  });
+});
+await new Promise(res => srv.listen(0, '127.0.0.1', res));
+const 웹 = `http://127.0.0.1:${srv.address().port}/safe/index.html`;
+await sc.setGeolocation({ ...ACC, accuracy: 15 });
+const S5 = await sc.newPage(); watch(S5);
+await S5.goto(웹); await S5.waitForTimeout(600);
+await 채우기(S5, '암모니아', 'l');
+await S5.click('#btnShare'); await S5.waitForTimeout(300);
+const wurl = (await S5.evaluate(() => window.__shared)).url;
+chk(wurl.startsWith(웹 + '#m='), `웹 주소로 열었으면 그 주소로 링크를 만든다 (${wurl.slice(0, 50)})`);
+const S6 = await (await B.newContext(폰)).newPage(); watch(S6);
+await S6.goto(wurl); await S6.waitForTimeout(900);
+chk(await S6.inputValue('#sfMat') === '암모니아' && (await S6.$$('#map circle.ziso')).length === 1,
+  '그 링크를 다른 휴대전화에서 열면 같은 구역이 선다');
+await sc.close(); srv.close();
 
 console.log('PASS ' + ok.length + ' / FAIL ' + bad.length + '\n');
 ok.forEach(m => console.log('  ok  ' + m));

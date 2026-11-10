@@ -2705,11 +2705,28 @@ body.safeapp{background:var(--bg)}
 .sf-pt .px{position:absolute;right:6px;top:6px;width:32px;height:32px;min-height:0;padding:0;
   font-size:var(--fs-m);line-height:1}
 .sf-acts{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
-.sf-watch{display:inline-flex;align-items:center;gap:7px;min-height:var(--h-m);padding:0 16px;
+.sf-watch,.sf-share{display:inline-flex;align-items:center;gap:7px;min-height:var(--h-m);padding:0 16px;
   font-weight:800;color:var(--brand-d);border-color:var(--brand)}
-.sf-watch svg{width:20px;height:20px;flex:none}
+.sf-watch svg,.sf-share svg{width:20px;height:20px;flex:none}
 .sf-watch.on{background:var(--me);border-color:var(--me-d);color:var(--on-brand)}
 .sf-tap{font-size:var(--fs-xs);color:var(--ink3)}
+/* 상황 공유 — 복사했다는 알림 · 공유받은 링크로 열었다는 딱지 (2026-11-10) */
+.sf-shnote{margin:0;font-size:var(--fs-s);color:var(--ok);word-break:keep-all}
+.sf-recv{margin:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 10px;padding:7px 11px;
+  border:1px solid var(--brand);border-left:6px solid var(--brand);border-radius:var(--r-l);
+  background:var(--brand-l);font-size:var(--fs-s);color:var(--ink2);word-break:keep-all}
+.sf-recv b{color:var(--brand-d);font-weight:800}
+.sf-recv.err{display:block;border-color:var(--err-b);border-left-color:var(--err);background:var(--err-l);color:var(--ink)}
+.sf-recv.err b{color:var(--err)}
+.sf-shhow{margin:12px 0 8px;font-size:var(--fs-s);color:var(--ink2);word-break:keep-all}
+.sf-shbox textarea{display:block;width:100%;box-sizing:border-box;padding:9px 11px;resize:vertical;
+  font:inherit;font-size:var(--fs-s);line-height:1.55;color:var(--ink);background:var(--card);
+  border:1px solid var(--line-d);border-radius:var(--r)}
+/* 휴대전화에서도 화면을 다 덮지 않습니다 — 글 몇 줄이면 됩니다 */
+@media (max-width:560px){
+  .sf-shbox{padding:12px;align-items:flex-start}
+  .sf-shbox .cbx{height:auto;border-radius:var(--r-l)}
+}
 
 /* ── 지도 ── */
 .sf-map{height:62vh;min-height:300px;border-right:0}
