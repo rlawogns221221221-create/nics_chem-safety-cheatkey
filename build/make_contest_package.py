@@ -98,10 +98,15 @@ def main():
 
     # ④ 안내 — 심사위원이 먼저 읽는 것
     shutil.copy2(ROOT / "docs" / "공모전" / "GitLab_README.md", PKG / "README.md")
-    안내서 = sorted((ROOT / "docs" / "공모전").glob("[[]구동안내서[]]_*.pdf"))
-    if not 안내서:
-        멈춤("구동안내서 PDF 가 없습니다 — node build/make_contest_docs.mjs 를 먼저 돌리세요")
-    shutil.copy2(안내서[-1], PKG / "구동안내서.pdf")
+    # 구동안내서 — 주최 측 한글 양식(양식 2-1)을 그대로 채운 것(build/make_contest_hwpx.py).
+    # 사용자가 한글에서 「PDF로 저장」 한 것을 docs/공모전/ 에 두면 그것도 함께 넣습니다.
+    한글판 = sorted((ROOT / "docs" / "공모전").glob("[[]구동안내서[]]_*.hwpx"))
+    if not 한글판:
+        멈춤("구동안내서 한글 파일이 없습니다 — python3 build/make_contest_hwpx.py 를 먼저 돌리세요")
+    shutil.copy2(한글판[-1], PKG / "구동안내서.hwpx")
+    한글pdf = sorted((ROOT / "docs" / "공모전").glob("[[]구동안내서[]]_*.pdf"))
+    if 한글pdf:
+        shutil.copy2(한글pdf[-1], PKG / "구동안내서.pdf")
     shutil.copy2(ROOT / "docs" / "모바일_사용설명서.pdf", PKG / "휴대전화_사용설명서.pdf")
 
     # ⑤ 근거 문서 · 화면 사진 · 방제자원 통합 표 — README 가 가리키는 것들
