@@ -37,6 +37,14 @@ var esc = function (s) {
 function mtxt(s) {
   return window.MatPicker && MatPicker.textHtml ? MatPicker.textHtml(s) : esc(s);
 }
+/* 날짜·허가번호는 한 덩어리로 — 목록 줄의 허가현황에서 "2026- / 01-27",
+   "제10- / 3호" 처럼 붙임표 자리에서 줄이 갈라졌습니다(2026-11-10 PC 최종 점검).
+   가운뎃점은 앞 낱말에 붙여 둡니다(&nbsp;) — 줄이 "· 영산강유역환경청" 처럼 점으로
+   시작하지 않고, 점은 늘 줄 끝에 남습니다. 이미 이스케이프한 글에 씁니다. */
+function nbDate(h) {
+  return String(h).replace(/\d{4}-\d{1,2}-\d{1,2}|제\s?\d+(?:-\d+)+호/g, function (d) { return '<span class="nb">' + d + "</span>"; })
+    .replace(/ · /g, "&nbsp;· ");
+}
 
 var MC = window.MAPCORE;
 var wx = MC.wx, wy = MC.wy, wxInv = MC.wxInv, wyInv = MC.wyInv;
@@ -831,10 +839,20 @@ function renderSummary() {
    잘못된 동원 안내가 됩니다. */
 function renderNear() {
   var el = $("#mNear");
-  if (!st.acc || !st.all.length) { el.hidden = true; return; }
+  /* 지도 칸에 '펼친 카드가 왼쪽에 있다'고 알려 둡니다 — 넓은 화면에서 고른 곳 카드
+     (#mAddr · 왼쪽 아래)를 그 오른쪽으로 비켜 놓는 데 씁니다(shell.css .near-open).
+     지도가 낮은 노트북(1366×768)에서 이 카드가 고른 곳 카드를 통째로 덮었습니다
+     (2026-11-10 PC 최종 점검). */
+  var 칸 = $(".mmap");
+  if (!st.acc || !st.all.length) {
+    el.hidden = true;
+    if (칸) 칸.classList.remove("near-open");
+    return;
+  }
   var top = st.all.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 3);
   el.hidden = false;
   el.classList.toggle("folded", st.nearFold);
+  if (칸) 칸.classList.toggle("near-open", !st.nearFold);
 
   /* 머리표는 접기·펴기 단추 자체입니다 — 닫아 놓고 되돌릴 방법이 없으면 안 됩니다 */
   var head = '<button type="button" class="mnear-h" id="mNearH" aria-expanded="'
@@ -1598,7 +1616,7 @@ function renderList() {
       + "</div>" + bar
       + (acc ? '<div class="l6">' + tripLine(s) + "</div>" : "")
       + '<div class="l2">' + esc(placeOf(s)) + accTag(s) + "</div>"
-      + (s.c ? '<div class="l7">' + esc(contentLine(s)) + "</div>" : "")
+      + (s.c ? '<div class="l7">' + nbDate(esc(contentLine(s))) + "</div>" : "")
       + (s.nc ? '<div class="l8">확인 못 한 것 — ' + esc(s.nc) + "</div>" : "")
       + (s.inRing || s.lee
           ? '<div class="l5">'

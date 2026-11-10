@@ -99,9 +99,17 @@ def fail(msg):
     sys.exit("\n중단: " + msg + "\n")
 
 
+# 엑셀에서 옮겨 온 「사용자 정의 영역」 글자(U+E000–F8FF) — 원본에서 윙딩 같은 기호
+# 글꼴로 찍은 나눔 점이 글자 번호만 남은 것입니다. 우리 서체에도 PC 의 어느 서체에도
+# 없어 화면에 네모(□)로 나옵니다(2026-11-10 PC 최종 점검 — 처리가능 폐기물 목록
+# "폐가구류□폐도장목□…"). 뜻은 나눔 점이므로 「·」 로 바꿉니다. 다른 글자는 그대로입니다.
+사용자정의글자 = re.compile("[-]")
+
+
 def read(name):
     with (SRC / name).open(encoding="utf-8-sig", newline="") as f:
-        return list(csv.DictReader(f))
+        return [{k: (사용자정의글자.sub("·", v) if isinstance(v, str) else v) for k, v in r.items()}
+                for r in csv.DictReader(f)]
 
 
 def 시도뽑기(주소):

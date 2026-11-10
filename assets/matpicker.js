@@ -131,9 +131,14 @@ function place() {
   var 한계 = Math.min(340, Math.round(vH * 0.45));
   var 칸 = (below > 220 ? below : above) - 16;
   var maxH = Math.max(Math.min(120, 칸), Math.min(한계, 칸));
-  var w = Math.max(r.width, Math.min(360, window.innerWidth - 24));
+  /* 넓은 화면(PC)에서는 칸이 좁아도 목록을 480px 까지 폅니다 — 360px 이던 때
+     04 의 왼쪽 칸에서 영문명·CAS·사고 건수에 밀려 물질 이름이 "수산화나트 / 륨"
+     처럼 낱말 가운데서 꺾였습니다(2026-11-10 PC 최종 점검). 휴대전화는 그대로
+     360px 입니다(화면 폭이 그보다 좁으면 화면 폭까지). */
+  var 바닥 = window.innerWidth >= 900 ? 480 : 360;
+  var w = Math.max(r.width, Math.min(바닥, window.innerWidth - 24));
   pop.style.left = Math.round(Math.max(8, Math.min(r.left, window.innerWidth - w - 8))) + "px";
-  pop.style.width = Math.round(Math.max(r.width, Math.min(360, window.innerWidth - 24))) + "px";
+  pop.style.width = Math.round(w) + "px";
   listEl.style.maxHeight = maxH + "px";
   if (below > 220 || below > above) {
     pop.style.top = Math.round(r.bottom + 4) + "px";
@@ -320,8 +325,11 @@ function textHtml(s) {
   });
   /* 「밤: 4.5km 이내」 같은 거리 한 토막은 한 줄에 — 좁은 화면에서 "밤: / 4.5km"
      로 갈라져 어느 숫자가 낮·밤인지 읽기 어려웠습니다(글자는 그대로, 묶기만) */
+  /* 날짜(2026-01-27)·허가번호(제10-3호)도 한 덩어리 — 허가현황 글에서 "2026- / 01-27"
+     로 붙임표에서 갈라졌습니다(2026-11-10 PC 최종 점검). 이것들을 먼저 묶어야 거리
+     규칙이 그 안의 숫자를 건드리지 않습니다. */
   var e = function (x) {
-    return esc(x).replace(/(?:(?:낮|밤|반경|육지|수계)\s*:?\s*)?\d[\d.]*\s*k?m\+?(?:\s*(?:이내|이상))?/g,
+    return esc(x).replace(/\d{4}[-.]\d{1,2}[-.]\d{1,2}|제\s?\d+(?:-\d+)+호|(?:(?:낮|밤|반경|육지|수계)\s*:?\s*)?\d[\d.]*\s*k?m\+?(?:\s*(?:이내|이상))?/g,
       function (k) { return '<span class="mtx-k">' + k + "</span>"; });
   };
   var inner = function (it) {

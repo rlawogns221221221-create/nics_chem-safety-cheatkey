@@ -628,10 +628,20 @@ function renderSummary() {
    잘못된 대피 안내가 됩니다. */
 function renderNear() {
   var el = $("#mNear");
-  if (!st.acc || !st.all.length) { el.hidden = true; return; }
+  /* 지도 칸에 '펼친 카드가 왼쪽에 있다'고 알려 둡니다 — 넓은 화면에서 고른 곳 카드
+     (#mAddr · 왼쪽 아래)를 그 오른쪽으로 비켜 놓는 데 씁니다(shell.css .near-open).
+     지도가 낮은 노트북(1366×768)에서 이 카드가 고른 곳 카드를 통째로 덮었습니다
+     (2026-11-10 PC 최종 점검). */
+  var 칸 = $(".mmap");
+  if (!st.acc || !st.all.length) {
+    el.hidden = true;
+    if (칸) 칸.classList.remove("near-open");
+    return;
+  }
   var top = st.all.slice().sort(function (a, b) { return a.d - b.d; }).slice(0, 3);
   el.hidden = false;
   el.classList.toggle("folded", st.nearFold);
+  if (칸) 칸.classList.toggle("near-open", !st.nearFold);
 
   /* 머리표는 접기·펴기 단추 자체입니다 — 닫아 놓고 되돌릴 방법이 없으면 안 됩니다 */
   var head = '<button type="button" class="mnear-h" id="mNearH" aria-expanded="'
@@ -656,7 +666,8 @@ function renderNear() {
           + '<span class="mnear-r"><i class="mnear-n">' + (n + 1) + "</i>"
           + "<b>" + esc(s.name) + '</b><span class="mnear-d">' + fmtDist(s.d) + "</span></span>"
           + '<span class="mnear-t"><em>' + t.label + "</em> · " + dirName(s.b) + "쪽"
-          + (s.cap ? " · 수용 " + Number(s.cap).toLocaleString() + "명" : "") + "</span>"
+          /* 「수용 / 453명」 으로 갈라지지 않게 묶습니다(2026-11-10 PC 최종 점검) */
+          + (s.cap ? ' · <span class="nb">수용 ' + Number(s.cap).toLocaleString() + "명</span>" : "") + "</span>"
           + "</button>";
       }).join("")
     + '<p class="mnear-note">직선거리를 도로 사정에 맞춰 늘려 잡은 어림값입니다. '
@@ -743,7 +754,7 @@ function renderList() {
       + "</div>" + bar
       + (acc ? '<div class="l6">' + tripLine(s) + "</div>" : "")
       + '<div class="l2">' + esc(placeOf(s))
-      + (s.cap ? " · 수용 " + Number(s.cap).toLocaleString() + "명" : "")
+      + (s.cap ? ' · <span class="nb">수용 ' + Number(s.cap).toLocaleString() + "명</span>" : "")
       + (s.kind ? " · " + esc(s.kind) : "") + "</div>"
       + (s.inRing || s.lee
           ? '<div class="l5">'
