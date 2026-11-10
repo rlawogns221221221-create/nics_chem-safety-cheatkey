@@ -14,7 +14,9 @@
    하나와 **한 줄 설명**만 둡니다. 아래 검사가 그 약속을 기계로 지킵니다.
      · 원본 글과 **사진 속 글자**에 「걸음」이 있으면 멈춥니다.
      · 「도구는 …」 「판단」 「○개 도구 / 세 가지」 같은 말이 있으면 멈춥니다.
-     · 쪽수가 다섯 장(QR 첫 장 + 사용법 넉 장)이 아니면 멈춥니다.
+     · 쪽수가 여섯 장(QR 첫 장 + 첫 화면·차례 + 도구 넷)이 아니면 멈춥니다.
+       (04 현장 안전거리 확인 쪽을 2026-11-10 더했습니다 — 공모전 GitLab 묶음에
+        설명서가 들어가는데, 영상에는 04 가 나오고 설명서에는 없어 어긋났습니다.)
 
    ── 배경지도 ───────────────────────────────────────────────────
    개발 자리는 타일 서버로 못 나가 지도에 행정경계선만 찍힙니다(CLAUDE.md 6절).
@@ -35,7 +37,10 @@ const PDF = `${RPATH}/docs/모바일_사용설명서.pdf`;
 mkdirSync(IMG, { recursive: true });
 
 /* 아이폰 13 — 사파리 주소창을 뺀 높이(664)보다 조금 길게 잡아 한 장에 더 담습니다 */
-const 폰 = { ...devices['iPhone 13'], viewport: { width: 390, height: 700 }, deviceScaleFactor: 2 };
+/* 시간대를 한국으로 — 없으면 러너 시각(UTC)으로 그려 04 의 일출·일몰이 "일출 22:00" 처럼
+   찍혔습니다(2026-11-10). */
+const 폰 = { ...devices['iPhone 13'], viewport: { width: 390, height: 700 }, deviceScaleFactor: 2,
+  timezoneId: 'Asia/Seoul', locale: 'ko-KR' };
 const 금지말 = [/걸음/, /도구는/, /판단/, /[0-9세네]\s*(개|가지)\s*(의\s*)?도구/, /도구\s*[0-9세네]\s*(개|가지|종)/];
 const 문제 = [];
 
@@ -282,6 +287,71 @@ if (!process.argv.includes('--pdf')) {
     await 찍기(p, '36-복사', '#out button[data-c]');
     await ctx.close();
   }
+
+  /* ── 04 현장 안전거리 확인 ──────────────────────────────────
+     공모전 영상과 같은 장면입니다 — 여수 주삼동에 선 근무자(내 위치)에게서
+     남서쪽으로 약 700m 떨어진 곳이 사고지점, 물질 암모니아 · 대규모 · 남서풍.
+     그러면 방호활동 구역이 내 쪽으로 퍼져 「방호활동 구역 안」 이 실제로 나옵니다.
+     사고지점은 「내 위치로 찍기」로 정합니다 — 그때만 위치를 사고지점 자리에 두고,
+     「내 위치 확인」을 켤 때 근무자 자리로 옮깁니다(영상은 지도를 눌러 찍음). */
+  {
+    const 나 = { latitude: 34.7905, longitude: 127.6520, accuracy: 15 };
+    const 사고 = { latitude: 34.7905 - 495 / 111000, longitude: 127.6520 - 495 / 91180, accuracy: 15 };
+    const ctx = await browser.newContext({ ...폰, permissions: ['geolocation'], geolocation: 사고 });
+    /* 휴대전화의 공유 창은 기기마다 달라 찍지 않습니다 — 넘긴 링크만 받아 둡니다 */
+    await ctx.addInitScript(() => { navigator.share = (d) => { window.__공유 = d; return Promise.resolve(); }; });
+    const p = await ctx.newPage();
+    await p.goto(`${ROOT}safe/index.html`);
+    await p.waitForTimeout(1100);
+    await p.click('#sfMat');
+    await p.type('#sfMat', '암모', { delay: 60 });
+    await p.waitForTimeout(800);
+    /* 물질 목록 — 주소 찾기 창(#addrPop)도 같은 .mpk 를 써서 그것을 빼고 집습니다 */
+    await 찍기(p, '41-물질', ['#sfMat', '.mpk:not(#addrPop)']);
+    await p.locator('.mpk:not(#addrPop) .mpk-row', { hasText: '암모니아' }).first().click();
+    await p.waitForTimeout(600);
+    await 맨위(p);
+    await 찍기(p, '42-사고지점', ['#btnPick', '#btnHereAcc']);
+    await p.click('#btnHereAcc');
+    await p.waitForTimeout(1500);
+    await p.click('#segSize button[data-v="l"]');
+    await p.click('#windBtn');
+    await p.waitForTimeout(500);
+    await 찍기(p, '43-규모바람', ['#segSize', '#windPop']);
+    await p.click('#windPop .wr-b[data-deg="225"]');
+    await p.waitForTimeout(600);
+    await ctx.setGeolocation(나);
+    await p.click('#btnWatch');
+    await p.waitForTimeout(1800);
+    /* 「내 위치를 계속 확인합니다」 알림이 지도·표를 덮습니다 — 몇 초 뒤 저절로
+       사라지는 것이라, 기다리지 않고 미리 닫고 찍습니다. */
+    await p.evaluate(() => { const t = document.getElementById('mToast'); if (t) t.hidden = true; });
+    await 붙이기(p, '#sfStat', 4);
+    await p.waitForTimeout(600);
+    if (!(await p.$('#sfStat .sf-pt.me.pad'))) 문제.push('04: 내 위치가 방호활동 구역 안으로 나오지 않음');
+    await 찍기(p, '44-내위치', '#sfStat .sf-pt.me');
+    await 붙이기(p, '.sf-tbl', 120);
+    await p.waitForTimeout(500);
+    await 찍기(p, '45-표', '.sf-tbl');
+    await 맨위(p);
+    await p.click('#btnShare');
+    await p.waitForTimeout(400);
+    const 공유 = await p.evaluate(() => window.__공유 || null);
+    await ctx.close();
+    /* 받은 사람 — 위치를 켜지 않은 다른 휴대전화로 그 링크를 엽니다 */
+    if (!공유) 문제.push('04: 상황 공유가 링크를 넘기지 않음');
+    else {
+      const 받는 = await browser.newContext(폰);
+      const q = await 받는.newPage();
+      await q.goto(`${ROOT}safe/index.html` + 공유.url.slice(공유.url.indexOf('#')));
+      await q.waitForTimeout(1500);
+      if (!(await q.$('#sfStat .sf-recv'))) 문제.push('04: 받은 링크에서 「공유받은 상황」 이 안 나옴');
+      await 붙이기(q, '#sfStat', 4);
+      await q.waitForTimeout(500);
+      await 찍기(q, '46-공유', ['#sfStat .sf-recv', '#btnShare']);
+      await 받는.close();
+    }
+  }
 }
 
 /* ── PDF ─────────────────────────────────────────────────────── */
@@ -305,7 +375,7 @@ if (!process.argv.includes('--pdf')) {
   넘침.forEach(([i, mm]) => 문제.push(`${i}쪽이 ${mm}mm — A4(297mm)를 넘습니다`));
   const 쪽 = (readFileSync(PDF, 'latin1').match(/\/Type\s*\/Page[^s]/g) || []).length;
   console.log(`\n  docs/모바일_사용설명서.pdf  ${쪽}쪽`);
-  if (쪽 !== 5) 문제.push(`쪽수가 ${쪽} — 다섯 장(QR 첫 장 + 사용법 넉 장)이어야 합니다`);
+  if (쪽 !== 6) 문제.push(`쪽수가 ${쪽} — 여섯 장(QR 첫 장 + 첫 화면·차례 + 도구 넷)이어야 합니다`);
   await ctx.close();
 }
 await browser.close();
