@@ -28,6 +28,17 @@ TAG_PARA_TEXT = 67                 # HWPTAG_BEGIN(16) + 51
 
 
 # ══ hwpx — XML 을 담은 zip ═══════════════════════════════════════
+def t글(t):
+    """<hp:t> 한 개의 글자. 칸 안 줄바꿈(<hp:lineBreak/>)·탭 뒤의 글자는 그 요소의 tail 에
+    있어서 t.text 만 읽으면 줄바꿈 뒤가 통째로 빠집니다(팀원 구동안내서에서 실제로 빠졌음).
+    줄바꿈은 띄어쓰기 하나로 읽습니다 — 화면에서 줄을 바꾼 자리라 낱말이 갈리는 자리입니다."""
+    조각 = [t.text or '']
+    for 아이 in t:
+        조각.append(' ')
+        조각.append(아이.tail or '')
+    return re.sub(r' {2,}', ' ', ''.join(조각))
+
+
 def hwpx_문단들(경로):
     z = zipfile.ZipFile(경로)
     낸다 = []
@@ -35,7 +46,7 @@ def hwpx_문단들(경로):
                      if re.match(r'Contents/section\d+\.xml$', n)):
         for p in ET.fromstring(z.read(이름)).iter():
             if p.tag.endswith('}p') or p.tag == 'p':
-                글 = ''.join(t.text or '' for t in p.iter()
+                글 = ''.join(t글(t) for t in p.iter()
                             if t.tag.endswith('}t') or t.tag == 't').strip()
                 if 글:
                     낸다.append(글)
