@@ -174,7 +174,11 @@ def 검사(원래, 새, gitlab=""):
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("받은", nargs="?", default=str(기본받은))
-    ap.add_argument("--gitlab", default=(값.get("gitlab") or "").strip())
+    # 2026-11-11 — 사용자가 GitLab 주소를 한글에서 직접 넣었습니다(메일로 낸 것은 그 판).
+    # 주소가 길어 이 칸 한 줄을 넘쳐(어림 39,127 > 32,148) 여기서는 넣지 못합니다 — 줄을 새로
+    # 나눠야 하는데 이 스크립트는 줄배치를 다시 짓지 않습니다. 그래서 참가정보.json 의 주소를
+    # 저절로 읽지 않고, --gitlab 으로 줄 때만 넣어 봅니다(넘치면 멈춤).
+    ap.add_argument("--gitlab", default="")
     a = ap.parse_args()
     if not Path(a.받은).exists():
         sys.exit(f"받은 파일이 없습니다: {a.받은}\n  팀원 파일을 docs/공모전/받은/ 에 두세요(저장소에 올라가지 않음).")
