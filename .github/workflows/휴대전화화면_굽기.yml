@@ -1,0 +1,91 @@
+# ═══════════════════════════════════════════════════════════════
+#  휴대전화 화면 사진 굽기 — 보고서에 싣는 깨끗한 사진(붉은 고리 없음)
+#
+#  ── 왜 필요한가 ───────────────────────────────────────────
+#  개발 자리는 배경지도 타일 서버로 못 나가 지도에 행정경계선만 찍힙니다
+#  (CLAUDE.md 6절). 보고서에 싣는 사진은 인터넷이 되는 러너에서 굽습니다.
+#  설명서 사진(docs/모바일설명서)은 누를 곳에 붉은 고리가 있어 따로 찍습니다
+#  — build/make_phone_shots.mjs 머리말.
+#
+#  ── 언제 도나 ─────────────────────────────────────────────
+#  · 그 스크립트나 이 파일을 이 가지에 올리면 저절로 돕니다(push).
+#  · 결과(docs/휴대전화화면)는 아래 paths 에 없어 커밋해도 다시 돌지 않습니다.
+#  · 성과이미지_굽기.yml 을 쓰지 않는 까닭 — 그것은 이미 낸 성과요약서까지 다시 굽습니다.
+# ═══════════════════════════════════════════════════════════════
+name: 휴대전화 화면 사진 굽기
+
+on:
+  push:
+    branches: [claude/affectionate-mendel-gvdnjk]
+    paths:
+      - build/make_phone_shots.mjs
+      - .github/workflows/휴대전화화면_굽기.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write        # 찍은 사진을 커밋하기 위해서만 씁니다
+
+concurrency:
+  group: phone-shots-bake
+  cancel-in-progress: true
+
+jobs:
+  bake:
+    name: 휴대전화 화면 찍기
+    # ⚠ ubuntu-latest 를 쓰지 마세요 — 26.04 를 가리켜 Playwright 1.56.1 이 크로미움을 못 깝니다.
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 배경지도 타일이 받아지는지 확인
+        run: |
+          KEY=$(sed -n 's/.*인증키: *"\([^"]*\)".*/\1/p' data/basemap.js | head -1)
+          probe() {
+            R=$(curl -sS -o /tmp/tile.png -w '%{http_code} %{size_download}바이트 %{content_type}' \
+                --max-time 25 "$2" 2>&1 || echo "받지 못함")
+            echo "  $1 → $R"
+          }
+          probe "브이월드     " "https://api.vworld.kr/req/wmts/1.0.0/$KEY/Base/12/1720/3510.png"
+          probe "OpenStreetMap" "https://tile.openstreetmap.org/12/3510/1720.png"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 크로미움 · 한글 글꼴 준비
+        run: |
+          npm install --no-save playwright@1.56.1
+          npx playwright install --with-deps chromium
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends fonts-noto-cjk
+
+      - name: 사진 찍기
+        run: |
+          set -o pipefail
+          node build/make_phone_shots.mjs 2>&1 | tee 사진기록.txt
+
+      - name: 사진 올려 두기 (내려받기용)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: 휴대전화화면
+          path: |
+            docs/휴대전화화면
+            사진기록.txt
+
+      - name: 저장소에 넣기
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/휴대전화화면
+          if git diff --cached --quiet; then
+            echo "바뀐 것이 없습니다 — 커밋하지 않습니다."
+            exit 0
+          fi
+          git commit -m "휴대전화 화면 사진을 배경지도가 나오는 자리에서 찍었습니다
+
+          개발 자리는 타일 서버가 막혀 지도에 경계선만 나옵니다. 러너에서
+          build/make_phone_shots.mjs 를 돌려 고리 없는 사진을 다시 찍었습니다."
+          git pull --rebase --autostash origin "${GITHUB_REF_NAME}" || true
+          git push origin "HEAD:${GITHUB_REF_NAME}"
