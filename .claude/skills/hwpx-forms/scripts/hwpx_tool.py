@@ -646,10 +646,11 @@ def 표시(앞, 뒤, 색="#0000FF"):
                     칠[(y[0], y[1])] = 자리
             continue
         for y in B[j1:j2]:
-            후보 = A[i1:i2]
-            if 후보:
-                x = max(후보, key=lambda x: difflib.SequenceMatcher(a=x[3], b=y[3], autojunk=False).ratio())
-                자리 = 견주기(x, y)
+            # 가장 닮은 앞 문단과 글자끼리 견줍니다. 반도 안 닮았으면 새로 넣은 문단으로 봅니다 —
+            # 새 표 칸(「안전거리 확인」)을 옆 설명 줄과 견주어 「지운 글」로 잘못 알렸습니다(2026-11-12).
+            닮음 = [(difflib.SequenceMatcher(a=x[3], b=y[3], autojunk=False).ratio(), k) for k, x in enumerate(A[i1:i2])]
+            if 닮음 and max(닮음)[0] >= 0.5:
+                자리 = 견주기(A[i1 + max(닮음)[1]], y)
             else:
                 자리 = set(range(len(y[3])))
             if 자리:
