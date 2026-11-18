@@ -1018,6 +1018,10 @@ var ICONS = {
         + '<path d="M3.8 20.4c0-3 2.3-5.2 5.2-5.2s5.2 2.2 5.2 5.2"/>'
         + '<circle cx="17" cy="8.6" r="2.2"/>'
         + '<path d="M14.6 20.4c0-2.4 1.2-4.2 3.4-4.2 1.4 0 2.4.8 2.4.8"/>',
+  /* 방제물품 판매 — 장바구니(손잡이 + 바구니 + 바퀴 둘). 업체 섭외의
+     '방제물품 판매' 갈래와 물품의 '판매업체' 가 같은 뜻이라 같은 그림입니다. */
+  cart: '<path d="M2.8 4.2h2.6l2.4 10.6h10.4l2-7.4H6.6"/>'
+      + '<circle cx="9.4" cy="19" r="1.5"/><circle cx="16.8" cy="19" r="1.5"/>',
   /* 대량 비축 — 창고에 쌓인 상자 */
   stock: '<rect x="8.5" y="3.6" width="7" height="7" rx="1"/>'
        + '<rect x="3.2" y="13.4" width="7" height="7" rx="1"/>'
@@ -1029,15 +1033,21 @@ var ICON_OF = {
   local: "local", capsule: "capsule", toxgas: "gas", waste: "waste",
   marine: "marine", water: "water",
   car: "car", gear: "gear", chem: "chem", gas: "gas", stock: "stock",
-  /* 업체 섭외의 갈래 7 — 자료의 ic 값과 같습니다(RES2_CATS) */
+  /* 업체 섭외의 갈래 8 — 자료의 ic 값과 같습니다(RES2_CATS) */
   carry: "car", mid: "burn", recy: "recycle", land: "bury", heavy: "dig",
+  sell: "cart",
   /* 물품을 가진 곳 5 + 못 가린 것 */
-  gov: "local", plant: "burn", envbox: "stock", nat: "marine", shop: "car",
+  gov: "local", plant: "burn", envbox: "stock", nat: "marine", shop: "cart",
   etc: "stock",
   /* 두 갈래 카드·물품 분류 */
   phone: "phone", burn: "burn", recycle: "recycle", bury: "bury", dig: "dig",
   tool: "tool", people: "people", caps: "capsule"
 };
+
+/* 긴급동원체계 업체의 비상연락망(담당자 휴대전화)은 개인정보라 화면에 넣지
+   않고, 화학물질안전원 상황실이 가지고 있습니다(2026-11-18 사용자 — "짧고
+   임팩트 있게"). 상황실 번호는 받은 적이 없어 적지 않습니다(2절 3항). */
+var EMG_LINE = '<p class="rk-emg"><b>비상연락망(휴대전화)</b> ▶ 안전원 상황실로</p>';
 
 /* cls 로 색을 입힙니다(.rk-local … — 지도 마커와 같은 색).
    그림은 늘 이름과 함께 나오므로 화면낭독기에서는 뺍니다. */
@@ -1591,7 +1601,7 @@ function renderList() {
       + (s.first ? '<div class="l0"><span class="tag first">먼저 연락 · 미리 협의된 곳</span>'
           + (s.fg && s.fg.length
               ? '<span class="l0-g">맡기로 한 권역 ' + esc(s.fg.join(" · ")) + "</span>" : "")
-          + "</div>" : "")
+          + EMG_LINE + "</div>" : "")
       + '<div class="l1">' + icon(s.t, "rk-" + esc(s.t)) + '<b>' + esc(s.name) + "</b>"
       + (s.detail ? '<span class="dt">' + esc(s.detail) + "</span>" : "")
       + (acc ? '<span class="d">' + fmtDist(s.d) + " " + dirName(s.b) + "</span>" : "")
@@ -1737,7 +1747,9 @@ function rkDetOpen(i) {
      허가마다 줄을 바꿉니다. 글자는 그대로입니다(2026-11-09 사용자 댓글). */
   var 허가 = "";
   if (s.lic || s.wst || s.eq) {
-    허가 = '<div class="rkd-sec"><h4>맡길 수 있는 것</h4><dl class="rkd-dl">'
+    /* 방제물품 판매(2026-11-18)는 맡기는 곳이 아니라 물품을 구할 곳입니다 */
+    허가 = '<div class="rkd-sec"><h4>' + (s.t === "sell" ? "업체 정보" : "맡길 수 있는 것")
+      + '</h4><dl class="rkd-dl">'
       + (s.wst ? "<dt>처리가능 지정폐기물</dt><dd>" + mtxt(s.wst) + "</dd>" : "")
       + (s.lic ? "<dt>허가현황</dt><dd>" + mtxt(s.lic) + "</dd>" : "")
       + (s.eq ? "<dt>보유 장비</dt><dd>" + esc(s.eq) + "</dd>" : "")
@@ -1749,6 +1761,7 @@ function rkDetOpen(i) {
       + esc(s.tel) + "</a>"
     : '<div class="rkd-tel none">' + (s.agency
         ? "대표번호 없음 — " + esc(s.agency) + " 문의"
+        : s.first ? "대표번호 없음 — 안전원 상황실 문의"
         : "번호 확인 필요 — 원자료에 사업장 번호가 없습니다") + "</div>";
 
   /* 같은 이름·주소에 번호가 여럿 적혀 있던 곳(한 부서의 여러 자리)입니다.
@@ -1771,7 +1784,8 @@ function rkDetOpen(i) {
     + '<button type="button" class="rkd-x" aria-label="닫기">✕</button></header>'
     + '<div class="rkd-body">'
     + (s.first ? '<div class="rkd-first"><span class="tag first">먼저 연락 · 미리 협의된 곳</span>'
-        + (s.fg && s.fg.length ? " 맡기로 한 권역 " + esc(s.fg.join(" · ")) : "") + "</div>" : "")
+        + (s.fg && s.fg.length ? " 맡기로 한 권역 " + esc(s.fg.join(" · ")) : "")
+        + EMG_LINE + "</div>" : "")
     + 전화
     + 물품 + 허가
     + '<div class="rkd-sec"><h4>주소</h4><p class="rkd-addr">' + esc(placeOf(s))

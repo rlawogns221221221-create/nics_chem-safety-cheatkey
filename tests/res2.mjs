@@ -80,7 +80,11 @@ const cats = await P.$$eval('#rzNeeds .rz-need', bs => bs.map(b => ({
   n: b.querySelector('.rz-need-n').textContent.trim(),
   ic: b.querySelectorAll('.rk-ic path,.rk-ic circle,.rk-ic rect').length,
   hidden: b.querySelector('.rk-ic').getAttribute('aria-hidden') })));
-chk(cats.length === 7, `갈래 일곱 (${cats.length})`);
+/* 2026-11-18 — 광역별 긴급방제지원체계의 방제물품 판매업체로 '방제물품 판매'
+   갈래가 더해져 여덟입니다. */
+chk(cats.length === 8, `갈래 여덟 (${cats.length})`);
+chk(cats.some(c => c.id === 'sell' && /방제물품 판매/.test(c.t) && c.ic > 0),
+  '방제물품 판매 갈래가 그림과 함께 있다');
 /* ⚠ 중간처분은 소각·중화를 나누지 않고 하나입니다(2026-09-07 사용자 —
    "중간처분은 다 합치도록 하자"). 다시 쪼개면 여기서 실패합니다. */
 chk(cats.filter(c => /중간처분/.test(c.t)).length === 1,
@@ -229,7 +233,7 @@ chk((await P.$$('#shList .l8')).length > 0 || true, '확인 못 한 것이 있�
    전화할지가 드러납니다. */
 await P.click('#rbToggle'); await P.waitForTimeout(700);
 chk((await P.$$('#rKinds .rk-chip')).length === 5, '권역 칩 다섯 (수도·강원·충청·경상·전라)');
-chk((await P.$$('#rNeeds .rk-chip')).length === 7, '업체 갈래 칩 일곱');
+chk((await P.$$('#rNeeds .rk-chip')).length === 8, '업체 갈래 칩 여덟');
 chk(/맡길 갈래/.test(await P.textContent('#rbT1')),
   `조건 줄 이름표가 갈래를 말한다 (${await P.textContent('#rbT1')})`);
 await P.evaluate(() => {
@@ -370,7 +374,7 @@ chk(ni2 >= ni, `물품을 더 고르면 결과가 늘어난다 (${ni} → ${ni2}
 await P.click('#btnClear'); await P.waitForTimeout(900);
 chk(!(await P.isHidden('#rzP0')), '초기화하면 걸음 1 로 돌아간다');
 await P.click('#rzBr .rz-br[data-b="biz"]'); await P.waitForTimeout(600);
-chk((await P.$$('#rzNeeds .rz-need')).length === 7, '갈래를 바꾸면 걸음 2 의 칸도 바뀐다');
+chk((await P.$$('#rzNeeds .rz-need')).length === 8, '갈래를 바꾸면 걸음 2 의 칸도 바뀐다');
 chk((await P.$$('#rzNeeds .rz-item')).length === 0, '앞 갈래의 물품 칩이 남지 않는다');
 
 /* "무엇이 필요한지 모르겠어요 — 전부 보기" — 막다른 길에 세우지 않는다 */
