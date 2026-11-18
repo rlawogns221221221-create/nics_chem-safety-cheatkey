@@ -283,6 +283,18 @@ await P.click('#shList button[data-mob] >> nth=0'); await P.waitForTimeout(700);
 chk(!(await P.isHidden('#rMob')), '동원 목록에 담으면 띠가 뜬다');
 chk(/동원 목록 1곳/.test((await P.textContent('#rMob')).replace(/\s+/g, ' ')), '담은 개수가 보인다');
 chk(!!(await P.$('#mobCopy')), '동원 목록에 복사 단추가 있다');
+/* 펼쳐서 전화하기 — 연락 결과를 담당자가 직접 누르고, 비상연락망은 상황실로 (2026-11-18) */
+await P.click('#mobOpen'); await P.waitForTimeout(300);
+chk(await P.$$eval('#rMob .mob-card', e => e.length) === 1, '펼치면 담은 곳이 카드로 나온다');
+chk(await P.$$eval('#rMob .mob-st button', e => e.length) === 3, '연락 결과 단추가 셋(전화 전·가능·안 됨)');
+await P.click('#rMob .mob-st button[data-ms="1"]'); await P.waitForTimeout(200);
+chk(await P.getAttribute('#rMob .mob-st button[data-ms="1"]', 'aria-pressed') === 'true', '‘가능’을 누르면 표시가 남는다');
+chk(/가능 1/.test(await P.textContent('#rMob')), '띠에 가능·안 됨 수가 나온다');
+const note = await P.textContent('#rMob .mob-note');
+chk(/상황실에 비상연락망/.test(note) && /휴대전화는 개인정보/.test(note), '비상연락망은 상황실 안내 문구로 대신한다');
+chk(!/01[016789]-?\d{3,4}-?\d{4}/.test(await P.textContent('#rMob')), '동원 목록에 휴대전화 꼴 번호가 없다');
+await P.click('#mobOpen'); await P.waitForTimeout(200);
+chk(await P.$$eval('#rMob .mob-it.s1', e => e.length) === 1, '접어도 연락 결과가 칩에 남는다');
 await P.click('#mobClear'); await P.waitForTimeout(500);
 chk(await P.isHidden('#rMob'), '비우면 띠가 사라진다');
 

@@ -305,6 +305,8 @@ var st = {
      "전부를 고른 것이다"를 갈라 두어야 걸음 3 으로 넘어가도 되는지 압니다. */
   needAll: false,
   mob: {},                         // 동원 목록에 담은 것 (key → 자원)
+  mobSt: {},                       // 동원 목록 연락 결과 (key → 0 전화 전 · 1 가능 · 2 안 됨)
+  mobOpen: false,                  // 동원 목록을 펼쳐 한 곳씩 보는 중인가
   begun: false,                    // 시작 화면을 벗어났는가
   walk: true,                      // 도보 경로를 길찾기로 받아올까 (인터넷 필요)
   route: null,                     // 받아 온 경로 {key, path, dist}
@@ -1487,7 +1489,7 @@ function renderFilters() {
    이름·번호·거리를 한 번에 복사해 상황실 기록으로 넘깁니다. */
 function toggleMob(s) {
   if (!s) return;
-  if (st.mob[s.key]) delete st.mob[s.key];
+  if (st.mob[s.key]) { delete st.mob[s.key]; delete st.mobSt[s.key]; }
   else st.mob[s.key] = s;
   renderMob(); renderList();
 }
@@ -1496,27 +1498,86 @@ function mobList() {
   return Object.keys(st.mob).map(function (k) { return st.mob[k]; });
 }
 
+/* 연락 결과 — 여러 곳에 차례로 전화를 돌리다 보면 어디까지 걸었는지,
+   누가 된다고 했는지를 놓칩니다(2026-11-18 사용자 요구로 더함).
+   도구가 판단하는 값이 아니라 **담당자가 직접 누른 표시**입니다. */
+var MOB_ST = ["전화 전", "가능", "안 됨"];
+
+/* 비상연락망 안내 — 업체·기관 담당자 휴대전화는 개인정보라 싣지 않습니다
+   (2절 4번 · 2026-11-18 사용자 — "비상연락망은 개인 핸드폰 번호이니 넣지
+   말고 상황실에서 안내할 수 있게"). 대표번호가 안 받을 때 갈 곳만 적습니다. */
+var MOB_CALL_NOTE = "대표번호가 안 받거나 업무시간 밖이면 상황실에 비상연락망을 요청하세요. "
+  + "담당자 휴대전화는 개인정보라 이 도구에 싣지 않습니다.";
+
+function telHref(t) { return "tel:" + String(t || "").replace(/[^0-9]/g, ""); }
+
 function renderMob() {
   var el = $("#rMob");
   if (!el) return;
   var rows = mobList();
   el.hidden = !rows.length;
-  if (!rows.length) return;
-  el.innerHTML = '<span class="mob-n">동원 목록 <b>' + rows.length + "</b>곳</span>"
-    + rows.map(function (s) {
-        return '<span class="mob-it">' + esc(s.name)
-          + '<button type="button" class="mob-x" data-k="' + esc(s.key)
-          + '" aria-label="빼기">✕</button></span>';
-      }).join("")
+  if (!rows.length) { st.mobOpen = false; el.innerHTML = ""; return; }
+  var ok = 0, no = 0;
+  rows.forEach(function (s) {
+    if (st.mobSt[s.key] === 1) ok++;
+    else if (st.mobSt[s.key] === 2) no++;
+  });
+  var head = '<span class="mob-n">동원 목록 <b>' + rows.length + "</b>곳</span>"
+    + (ok || no ? '<span class="mob-sum">가능 ' + ok + " · 안 됨 " + no + "</span>" : "")
     + '<span class="mob-act">'
+    + '<button type="button" class="sm' + (st.mobOpen ? " p" : "") + '" id="mobOpen" aria-expanded="'
+    + st.mobOpen + '">' + (st.mobOpen ? "접기" : "펼쳐서 전화하기") + "</button>"
     + '<button type="button" class="sm p" id="mobCopy">목록 복사</button>'
     + '<button type="button" class="sm" id="mobClear">비우기</button></span>';
 
+  var body;
+  if (!st.mobOpen) {
+    body = rows.map(function (s) {
+      var stt = st.mobSt[s.key] || 0;
+      return '<span class="mob-it' + (stt ? " s" + stt : "") + '">' + esc(s.name)
+        + '<button type="button" class="mob-x" data-k="' + esc(s.key)
+        + '" aria-label="' + esc(s.name) + ' 빼기">✕</button></span>';
+    }).join("");
+  } else {
+    body = '<div class="mob-pan">'
+      + rows.slice().sort(function (a, b) { return (a.d || 0) - (b.d || 0); }).map(function (s) {
+        var stt = st.mobSt[s.key] || 0;
+        var tel = s.tel
+          ? '<a class="mob-tel" href="' + esc(telHref(s.tel)) + '">' + icon("phone") + " " + esc(s.tel) + "</a>"
+          : '<span class="mob-tel none">대표번호 없음 — 상황실에 문의</span>';
+        return '<div class="mob-card' + (stt ? " s" + stt : "") + '">'
+          + '<div class="mob-ch"><b>' + esc(s.name) + "</b>"
+          + '<button type="button" class="mob-x" data-k="' + esc(s.key)
+          + '" aria-label="' + esc(s.name) + ' 빼기">✕</button></div>'
+          + '<div class="mob-cs">' + esc(s.kind)
+          + (s.d != null ? " · 사고지점에서 직선 " + fmtDist(s.d) : "") + "</div>"
+          + (s.c ? '<div class="mob-cc">' + esc(s.c) + "</div>" : "")
+          + tel
+          + '<div class="mob-st" role="group" aria-label="' + esc(s.name) + ' 연락 결과">'
+          + MOB_ST.map(function (t, j) {
+              return '<button type="button" class="st' + j + '" data-mk="' + esc(s.key)
+                + '" data-ms="' + j + '" aria-pressed="' + (stt === j) + '">' + t + "</button>";
+            }).join("")
+          + "</div></div>";
+      }).join("")
+      + '<p class="mob-note">' + esc(MOB_CALL_NOTE) + "</p></div>";
+  }
+  el.innerHTML = head + body;
+
   $$("#rMob .mob-x").forEach(function (b) {
-    b.onclick = function () { delete st.mob[b.dataset.k]; renderMob(); renderList(); draw(); };
+    b.onclick = function () {
+      delete st.mob[b.dataset.k]; delete st.mobSt[b.dataset.k];
+      renderMob(); renderList(); draw();
+    };
   });
+  $$("#rMob button[data-ms]").forEach(function (b) {
+    b.onclick = function () { st.mobSt[b.dataset.mk] = +b.dataset.ms; renderMob(); };
+  });
+  $("#mobOpen").onclick = function () { st.mobOpen = !st.mobOpen; renderMob(); };
   $("#mobCopy").onclick = function () { copyText(mobText(), $("#mobCopy")); };
-  $("#mobClear").onclick = function () { st.mob = {}; renderMob(); renderList(); draw(); };
+  $("#mobClear").onclick = function () {
+    st.mob = {}; st.mobSt = {}; renderMob(); renderList(); draw();
+  };
 }
 
 function mobText() {
@@ -1529,10 +1590,10 @@ function mobText() {
   L.push("");
   mobList().sort(function (a, b) { return (a.d || 0) - (b.d || 0); })
     .forEach(function (s, i) {
-      L.push((i + 1) + ". " + s.name + " (" + s.kind + ")");
+      L.push((i + 1) + ". " + s.name + " (" + s.kind + ") — 연락 결과: " + MOB_ST[st.mobSt[s.key] || 0]);
       L.push("   " + placeOf(s));
       L.push("   " + (s.tel ? "대표 " + s.tel
-                            : s.agency ? s.agency + " 문의" : "번호 확인 필요"));
+                            : s.agency ? s.agency + " 문의" : "대표번호 없음 — 상황실에 문의"));
       L.push("   보유 " + s.c);
       if (s.d != null) L.push("   사고지점에서 " + fmtDist(s.d) + " "
                               + dirName(s.b) + "쪽 · " + MC.tripPair(s.d).label);
@@ -1540,6 +1601,7 @@ function mobText() {
     });
   L.push("※ 거리는 직선거리 어림값이고 보유 수량은 원자료 제출 시점의 것입니다.");
   L.push("   동원 전 전화로 가동 여부와 보유 상태를 확인하세요.");
+  L.push("※ " + MOB_CALL_NOTE);
   return L.join("\n");
 }
 
