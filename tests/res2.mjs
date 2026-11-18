@@ -486,6 +486,13 @@ await P.screenshot({ path: 'res_2.png' });
   chk((await P.$$('#rkDet .rkd-items li')).length === 0,
     '업체 갈래에는 물품 목록 자리를 두지 않는다 (그 자료가 없다)');
 
+  /* 미리 협의된 곳 — 비상연락망(휴대전화)은 안전원 상황실에 있습니다.
+     누르면 바로 걸려야 합니다(2026-11-18 사용자 — 043-830-4120). */
+  const emg = await P.$$eval('#shList .ms-it.first .rk-emg-tel, #rkDet .rk-emg-tel',
+    e => e.map(a => [a.getAttribute('href'), a.textContent.trim()]));
+  chk(emg.length > 0 && emg.every(([h, t]) => h === 'tel:0438304120' && /043-830-4120/.test(t)),
+    `미리 협의된 곳에 상황실 전화가 눌러 걸린다 (${emg.length}곳 · ${emg[0] ? emg[0][0] : '없음'})`);
+
   /* ── 번호가 여럿이던 곳 ────────────────────────────────────
      같은 이름·주소에 번호만 다른 줄이 여럿이던 곳입니다. 자리는 하나로
      합쳤으니 **번호는 하나도 없어지지 않아야** 합니다 — 안 받으면 다음

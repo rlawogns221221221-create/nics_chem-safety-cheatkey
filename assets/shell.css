@@ -1775,6 +1775,12 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 .rk-emg{flex-basis:100%;margin:2px 0 0;font-size:1.4rem;font-weight:700;
   color:var(--err);line-height:1.45;word-break:keep-all}
 .rk-emg b{color:inherit}
+/* 누르면 바로 상황실로 걸립니다 — 전화번호처럼 보이게 밑줄 + 굵게 */
+.rk-emg a.rk-emg-tel{color:inherit;text-decoration:underline;text-underline-offset:3px;
+  white-space:nowrap}
+@media (pointer: coarse){
+  .rk-emg a.rk-emg-tel{display:inline-flex;align-items:center;min-height:40px}
+}
 .rkd-first{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 /* 원자료에서 확인하지 못한 것 — 지어내지 않고 무엇을 못 채웠는지 적습니다 */
 .ms-it .l8{margin-top:4px;font-size:1.3rem;color:var(--warn);line-height:1.5}

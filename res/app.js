@@ -1046,8 +1046,15 @@ var ICON_OF = {
 
 /* 긴급동원체계 업체의 비상연락망(담당자 휴대전화)은 개인정보라 화면에 넣지
    않고, 화학물질안전원 상황실이 가지고 있습니다(2026-11-18 사용자 — "짧고
-   임팩트 있게"). 상황실 번호는 받은 적이 없어 적지 않습니다(2절 3항). */
-var EMG_LINE = '<p class="rk-emg"><b>비상연락망(휴대전화)</b> ▶ 안전원 상황실로</p>';
+   임팩트 있게"). 상황실 번호는 사용자가 2026-11-18 알려 준 그대로이고,
+   누르면 바로 걸리게 tel: 링크로 둡니다(사용자 — "누르면 바로 상황실 연결").
+   ⚠ 링크 안에 다른 태그를 넣지 마세요 — 목록 줄의 클릭 처리가 눌린 것이
+   A 인지로 링크를 가립니다(아니면 줄 고르기가 함께 일어납니다). */
+var EMG_TEL = "043-830-4120";
+var EMG_LINE = '<p class="rk-emg"><b>비상연락망(휴대전화)</b> ▶ '
+  + '<a class="rk-emg-tel" href="tel:' + EMG_TEL.replace(/[^0-9]/g, "") + '"'
+  + ' aria-label="화학물질안전원 상황실 ' + EMG_TEL + ' 전화 걸기">'
+  + '안전원 상황실 ' + EMG_TEL + '</a></p>';
 
 /* cls 로 색을 입힙니다(.rk-local … — 지도 마커와 같은 색).
    그림은 늘 이름과 함께 나오므로 화면낭독기에서는 뺍니다. */
@@ -1638,6 +1645,8 @@ function renderList() {
       select(i, false);
     };
     el.onkeydown = function (e) {
+      /* 줄 안의 링크(상황실 전화 등)에서 누른 Enter 는 그 링크의 몫입니다 */
+      if (e.target !== el) return;
       if (e.key === "Enter" || e.key === " ") { e.preventDefault(); select(i, false); }
     };
     el.onmouseenter = function () { st.hover = i; draw(); showAddr(); };
