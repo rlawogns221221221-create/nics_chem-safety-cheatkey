@@ -208,7 +208,7 @@ python3 build/hwp읽기.py 파일.hwp  # hwp·hwpx 에서 글자 뽑기 (한 번
 | (예전 진입 화면 · 카드 셋 · **다른 조직 계정**이라 이 세션에서 갱신 못 함) | 〃 | https://claude.ai/code/artifact/df4be102-cc11-4bbe-b160-7270e50d9826 |
 | ① 문자생성기 | `dist/화학사고_주민대피문자_생성기.html` | https://claude.ai/artifact/5gk8Mr9KdjuRRN31iqkNdz (2026-11-09 새로 · 예전 `code/artifact/a42de0d3-…` 는 다른 조직 계정이라 갱신 못 함) |
 | ② 주민 대피장소 찾기 | `dist/화학사고_주민대피장소_찾기.html` | https://claude.ai/artifact/GyS4bczn5auvbhrqnDTw22 (2026-11-09 새로 · 예전 `code/artifact/c10d00e5-…`) |
-| ③ 방제 물품·장비 찾기 | `dist/화학사고_방제물품장비_찾기.html` | https://claude.ai/artifact/ELSRgTEet3cEArJeXrANVe (2026-11-09 새로 · 예전 `code/artifact/26c97527-…`) |
+| ③ 방제 물품·장비 찾기 | `dist/화학사고_방제물품장비_찾기.html` | https://claude.ai/artifact/BgHgf8U9e2phdsnkFfAoXK (2026-11-18 새로 — 긴급동원체계 반영 · 예전 `artifact/ELSRgTEet3cEArJeXrANVe` 는 이 세션에서 못 열어 갱신 못 함) |
 | ④ 현장 안전거리 확인 | `dist/화학사고_현장안전거리_확인.html` | https://claude.ai/artifact/1AfwreaztHLfTiu7iSU3CY |
 | 디자인 방향 3안 (고르는 중) | `preview/design.html` | https://claude.ai/code/artifact/270fca8b-6a22-47b3-8dd1-58c66f0216bf |
 | 방제자원 원자료 정리 (검토용) | `docs/방제자원_정리/한눈에보기.html` | https://claude.ai/code/artifact/a4d7613d-8a20-4384-966e-3442d5edf5f3 |
