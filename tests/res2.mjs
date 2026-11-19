@@ -38,6 +38,9 @@ chk(brs.every(b => b.d.length > 8), '카드마다 무슨 일을 하는 자리인
 chk(brs.every(b => b.ic > 0), '카드마다 그림이 그려진다');
 /* 건수는 지어내지 않고 자료에서 센 값이어야 합니다 */
 const real = await P.evaluate(() => ({ biz: RES2_BIZ.length, item: RES2_ITEM.length }));
+/* 단위 칸에 수량이 들어간 줄(「6EA」)은 만들 때 나눕니다 — 세부 창의 '수량 없음' 버그(2026-11-19) */
+const 숫자단위 = await P.evaluate(() => RES2_ITEM.filter(r => r.q == null && /^[\d,.]+\s*\D*$/.test(r.u || '')).length);
+chk(숫자단위 === 0, `개수가 단위 칸에만 있는 물품 줄이 없다 (${숫자단위}줄)`);
 chk(brs[0].n === real.biz.toLocaleString() + '건'
     && brs[1].n === real.item.toLocaleString() + '건',
   `카드의 건수가 자료와 같다 (${brs.map(b => b.n).join(' / ')})`);
