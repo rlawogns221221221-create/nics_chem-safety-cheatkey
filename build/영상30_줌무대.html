@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>결선 30초 영상 무대 — 줌인 판</title>
+<!--
+  결선 발표용 30초 영상 「줌인 판」의 한 장면 한 장면을 그리는 무대입니다
+  (build/make_short_video_zoom.mjs 가 엶). 첫 판(영상30_무대.html)은 그대로 둡니다.
+
+  왜 이렇게 짰나 (2026-11-20 사용자 — "첫화면에 4가지 도구가 보이고 거기서 한개씩
+  줌인 되듯이 들어가서 각 도구를 설명하는 방식"):
+  · 중심(허브)은 **실제 첫 화면**입니다 — 휴대전화 크기로 index.html 을 찍은 사진
+    (만드는 스크립트가 찍어 넘김). 카드 자리도 그때 실제 요소를 재어 넘깁니다.
+    좌표를 손으로 적어 두면 첫 화면을 고친 날 엉뚱한 곳으로 들어갑니다.
+  · 한 도구는 6초(120 BPM 의 세 마디)입니다 —
+      들어가기 0.5초(앞 도구 끝에 붙음) → 제목 0.75초 → 시연 3.5초
+      → 나오기 0.5초 → 첫 화면에서 다음 카드 짚기·누르기 0.75초.
+    마디 첫 박(4·10·16·22초)마다 음악의 큰 북과 함께 제목이 뜹니다
+    (build/make_short_music_zoom.py 와 같은 시각 — 한쪽만 바꾸지 마세요).
+  · 들어갈 때 카드 사진을 그대로 키우면 첫 화면 사진의 화소가 모자라 뭉개집니다.
+    그래서 카메라가 카드로 빨려 들어가는 동안 흐림을 키우고, 큰 북 자리에서
+    **원본 사진**(source/photos)으로 갈아 끼웁니다(흔히 쓰는 '빨려 들기' 넘김).
+  · 시간 t 를 받아 그 순간의 모습을 계산해 그립니다 — CSS 애니메이션에 맡기면
+    찍는 속도에 따라 장면이 밀려 큰 북과 화면 넘김이 어긋납니다.
+  · 차림은 첫 판·최종 발표 자료(’26.9.22.)와 같게 — 검정 바탕 · 주황 번호 · 금색 제목.
+  · 화면 글은 첫 판에서 쓴 문장 그대로입니다(새 주장을 얹지 않음 · CLAUDE.md 2절 5항).
+-->
+<style>
+@font-face { font-family: 'PGOV'; src: url('../assets/fonts/PretendardGOV-Regular.subset.woff2') format('woff2'); font-weight: 400; }
+@font-face { font-family: 'PGOV'; src: url('../assets/fonts/PretendardGOV-Bold.subset.woff2') format('woff2'); font-weight: 700; }
+:root { --or: #E7A23D; --gold: #FFC20E; --gray: #A9AFBA; --red: #E0322A; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #07080A; }
+body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
+.abs { position: absolute; }
+
+/* ── 허브(첫 화면) — 카메라가 이 한 덩어리를 움직임 ── */
+#hub { left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+#hbg { left: -1920px; top: -1080px; width: 5760px; height: 3240px;
+  background: radial-gradient(ellipse 1500px 1100px at 3400px 1620px, #151A25 0%, #07080A 70%); }
+#ht { left: 150px; top: 132px; font-weight: 700; font-size: 96px; line-height: 1.2; color: var(--gold); letter-spacing: -2px; transform-origin: 0 0; white-space: nowrap; }
+#hs { left: 154px; top: 392px; font-size: 42px; font-weight: 700; color: #fff; opacity: 0; }
+#hl { left: 150px; top: 500px; width: 1000px; }
+.row { position: relative; display: flex; align-items: center; height: 84px; margin-bottom: 14px; padding-left: 30px; opacity: 0; }
+.row i { position: absolute; left: 0; top: 14px; width: 8px; height: 56px; border-radius: 4px; background: var(--or); opacity: 0; }
+.row b { font-size: 44px; color: var(--or); width: 92px; }
+.row span { font-size: 54px; font-weight: 700; color: #8A909A; letter-spacing: -1px; }
+.row svg { width: 44px; height: 44px; margin-left: 22px; opacity: 0; }
+#hs2 { left: 154px; top: 912px; font-size: 36px; color: var(--gray); opacity: 0; }
+#hphone { left: 1290px; top: 78px; width: 470px; height: 895px; border: 14px solid #23262D; border-radius: 64px; overflow: hidden; background: #0c2a6b;
+  box-shadow: 0 0 0 2px #3A3E47, 0 30px 90px rgba(0,0,0,.7), 0 0 120px rgba(231,162,61,.16); opacity: 0; }
+#hphone > img { position: absolute; left: 0; top: 0; width: 470px; height: 895px; display: block; }
+.cd { position: absolute; box-sizing: border-box; border-radius: 6px; transform-origin: 50% 50%; }
+.cd .v { position: absolute; inset: 0; background: #000; opacity: 0; border-radius: 6px; }
+.cd .o { position: absolute; inset: -5px; border: 5px solid var(--or); border-radius: 10px; opacity: 0; box-shadow: 0 0 26px rgba(231,162,61,.55); }
+.cd svg { position: absolute; right: 54px; top: 50%; width: 48px; height: 48px; margin-top: -24px; opacity: 0; }
+#rip { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 4px solid #fff; opacity: 0; box-sizing: border-box; }
+
+/* ── 도구 장면 — 원본 사진을 화면 가득 · 제목 · 시연 휴대전화 ── */
+#tl { left: 0; top: 0; width: 1920px; height: 1080px; opacity: 0; overflow: hidden; }
+#phw { left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 50% 50%; }
+#phw img { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; object-fit: cover; display: none; }
+#zone { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; display: none; }
+#zone .z-pad { fill: #8a5c00; fill-opacity: .30; stroke: #fff3db; stroke-width: .5; }
+#zone .z-iso { fill: #bd2c0f; fill-opacity: .45; stroke: #fff; stroke-width: .45; }
+#zone .z-acc { fill: none; stroke: #fff; stroke-width: .7; stroke-linecap: round; }
+#veil { left: 0; top: 0; width: 1920px; height: 1080px; background: linear-gradient(90deg, rgba(0,0,0,.78) 0%, rgba(0,0,0,.45) 45%, rgba(0,0,0,0) 75%); }
+#tt { left: 0; top: 0; transform-origin: 0 0; }
+#tn { font-size: 200px; font-weight: 700; color: var(--or); line-height: 1; letter-spacing: -6px; }
+#tname { font-size: 112px; font-weight: 700; margin-top: 14px; letter-spacing: -2px; white-space: nowrap; text-shadow: 0 4px 30px rgba(0,0,0,.6); }
+#tline { left: 150px; top: 520px; width: 960px; font-size: 48px; color: #E2E5EA; line-height: 1.4; opacity: 0; }
+#dphone { left: 1262px; top: 74px; width: 481px; height: 916px; border: 14px solid #23262D; border-radius: 66px; overflow: hidden; background: #fff;
+  box-shadow: 0 0 0 2px #3A3E47, 0 30px 90px rgba(0,0,0,.7), 0 0 120px rgba(231,162,61,.18); opacity: 0; }
+#dphone img { width: 481px; height: 916px; display: block; }
+
+#flash { left: 0; top: 0; width: 1920px; height: 1080px; background: #fff; opacity: 0; }
+#fade { left: 0; top: 0; width: 1920px; height: 1080px; background: #000; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="hub" class="abs">
+  <div id="hbg" class="abs"></div>
+  <div id="ht" class="abs">화학사고 초동대응<br>지원 서비스</div>
+  <div id="hs" class="abs">사고지점 하나로, 네 가지를 한 화면에서</div>
+  <div id="hl" class="abs"></div>
+  <div id="hs2" class="abs">설치·회원가입 없이 · 휴대전화와 PC</div>
+  <div id="hphone" class="abs"><img id="himg" alt=""><div id="rip"></div></div>
+</div>
+<div id="tl" class="abs">
+  <div id="phw" class="abs">
+    <img data-k="0" alt=""><img data-k="1" alt=""><img data-k="2" alt=""><img data-k="3" alt="">
+    <!-- 04 카드와 같은 그림(index.html 의 .pn-zone) — 원본 사진에는 구역이 없어 같은 자리에 얹음 -->
+    <svg id="zone" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
+      <path class="z-pad" d="M56 14 L102 14 L102 60 L56 60 Z"/>
+      <circle class="z-iso" cx="56" cy="37" r="8"/>
+      <path class="z-acc" d="M52 37h8M56 33v8"/>
+    </svg>
+  </div>
+  <div id="veil" class="abs"></div>
+  <div id="tt" class="abs"><div id="tn">01</div><div id="tname"></div></div>
+  <div id="tline" class="abs"></div>
+  <div id="dphone" class="abs"><img id="scr" alt=""></div>
+</div>
+<div id="flash" class="abs"></div>
+<div id="fade" class="abs"></div>
+<script>
+// ── 시각 — 120 BPM(한 박 0.5초 · 한 마디 2초). make_short_music_zoom.py 와 같은 값 ──
+var T = [4, 10, 16, 22];                 // 도구마다 제목이 뜨는 순간(큰 북)
+var 끝북 = 28;                            // 마지막 큰 북
+var 들어감 = 0.5, 나옴 = 0.5;
+function 들(k) { return T[k] - 들어감; }  // 카드로 들어가기 시작
+function 나(k) { return T[k] + 4.25; }    // 카드에서 나오기 시작
+function 짚(k) { return 들(k) - 0.5; }    // 다음 카드를 주황 테두리로 짚음
+function 누(k) { return 들(k) - 0.25; }   // 누름(물결)
+function 끝냄(k) { return 나(k) + 나옴; }  // 첫 화면에 돌아와 '했음' 표시
+var 켜짐 = [2.0, 2.25, 2.5, 2.75];       // 처음에 카드가 하나씩 켜지는 순간
+var 다켜짐 = [27.0, 27.25, 27.5, 27.75];  // 끝에서 넷이 다시 켜지는 순간
+
+var 도구 = [
+  { n: '01', name: '주민 대피장소 찾기', line: '사고지점에서 가까운 대피장소와 가는 길' },
+  // 02 사진은 휴대전화 화면의 글자가 제목 자리에 겹쳐, 왼쪽 막을 더 짙게 깖(사진은 만드는 스크립트가 오른쪽으로 옮김)
+  { n: '02', name: '주민대피 문자생성기', line: '표준문안에 빈칸 없이 채워, 바로 복사',
+    veil: 'linear-gradient(90deg, rgba(0,0,0,.9) 0%, rgba(0,0,0,.74) 44%, rgba(0,0,0,.2) 72%, rgba(0,0,0,0) 86%)' },
+  { n: '03', name: '방제 물품·장비 찾기', line: '미리 협의된 업체와 방제물품을 가까운 순으로' },
+  { n: '04', name: '현장 안전거리 확인', line: 'ERG 구역을 지도에, 내 위치가 그 안인지' },
+];
+
+function clamp(x) { return Math.max(0, Math.min(1, x)); }
+function easeOut(x) { x = clamp(x); return 1 - Math.pow(1 - x, 3); }
+function easeIn(x) { x = clamp(x); return x * x * x; }
+function easeInOut(x) { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+function 사이(t, a, d) { return clamp((t - a) / d); }
+function lerp(a, b, x) { return a + (b - a) * x; }
+function $(s) { return document.querySelector(s); }
+function 번쩍(t, 자리, 세기, 길이) { var d = t - 자리; 길이 = 길이 || 0.22; return d >= 0 && d < 길이 ? 세기 * (1 - d / 길이) : 0; }
+
+var 판 = null;   // 준비()가 채움: 휴대전화 화면 위 카드 자리(무대 좌표)
+var 체크 = '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#E7A23D"/><path d="M14 25 l7 7 l13 -15" fill="none" stroke="#111" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+// 만드는 스크립트가 첫 화면 사진·카드 자리·원본 사진을 넘겨 줌
+window.준비 = function (o) {
+  var 폭 = 470, 배율 = 폭 / o.css폭;          // 휴대전화 화면 css px → 무대 px
+  $('#himg').src = o.허브;
+  판 = o.카드.map(function (r, i) {
+    var d = document.createElement('div');
+    d.className = 'cd';
+    d.style.left = (r[0] * 배율) + 'px'; d.style.top = (r[1] * 배율) + 'px';
+    d.style.width = (r[2] * 배율) + 'px'; d.style.height = (r[3] * 배율) + 'px';
+    d.innerHTML = '<div class="v"></div><div class="o"></div>' + 체크;
+    $('#hphone').insertBefore(d, $('#rip'));
+    // 무대 위 카드 가운데(카메라가 향할 곳) — 휴대전화 테두리 14px 를 더함
+    return { el: d, cx: 1290 + 14 + (r[0] + r[2] / 2) * 배율, cy: 78 + 14 + (r[1] + r[3] / 2) * 배율, h: r[3] * 배율,
+      lx: (r[0] + r[2] / 2) * 배율, ly: (r[1] + r[3] / 2) * 배율 };
+  });
+  도구.forEach(function (d) {
+    var r = document.createElement('div');
+    r.className = 'row';
+    r.innerHTML = '<i></i><b>' + d.n + '</b><span>' + d.name + '</span>' + 체크;
+    $('#hl').appendChild(r);
+  });
+  document.querySelectorAll('#phw img').forEach(function (im, k) {
+    im.src = o.사진[k].src; im.style.objectPosition = o.사진[k].pos;
+    if (o.사진[k].move) im.style.transform = o.사진[k].move;
+  });
+  var 다 = [].slice.call(document.querySelectorAll('img')).filter(function (im) { return im.getAttribute('src'); });
+  return Promise.all(다.map(function (im) { return im.decode().catch(function () {}); })).then(function () { return document.fonts.ready; });
+};
+
+// 지금 카메라가 몇 번 카드를 향해 얼마나 들어가 있나 (0 = 첫 화면 그대로, 1 = 카드가 화면 가득)
+function 카메라(t) {
+  for (var k = 0; k < 4; k++) {
+    if (t >= 들(k) && t < T[k]) return { k: k, p: easeIn(사이(t, 들(k), 들어감)) };
+    if (t >= T[k] && t < 나(k)) return { k: k, p: 1 };
+    if (t >= 나(k) && t < 끝냄(k)) return { k: k, p: 1 - easeOut(사이(t, 나(k), 나옴)) };
+  }
+  return { k: -1, p: 0 };
+}
+
+window.장면 = function (t) {
+  if (!판) return;
+  var F = { x: 960, y: 540 };
+
+  // ── 카메라: 보이는 네모의 크기를 지수로 줄이면서, 그 가운데를 카드 쪽으로 같은 비율로 옮김 ──
+  // (크기와 자리를 따로 움직이면 카드가 휘어 들어가 보임)
+  var cam = 카메라(t), s = 1, tx = 0, ty = 0, 흐림 = 0;
+  if (cam.k >= 0 && cam.p > 0) {
+    var c = 판[cam.k], S = 1080 / c.h * 1.06;       // 카드 높이가 화면을 채울 만큼
+    var w0 = 1920, w1 = 1920 / S, w = 1920 * Math.pow(S, -cam.p);
+    s = Math.pow(S, cam.p);
+    var a = (w - w1) / (w0 - w1);
+    var vx = c.cx + (F.x - c.cx) * a, vy = c.cy + (F.y - c.cy) * a;
+    tx = F.x - vx * s; ty = F.y - vy * s;
+    흐림 = 14 * Math.pow(cam.p, 1.6);
+  }
+  // 마지막 큰 북 뒤에는 아주 천천히 다가감
+  var 끝밀 = 1 + 0.035 * easeOut(사이(t, 끝북, 2));
+  if (끝밀 > 1) { s = 끝밀; tx = F.x * (1 - 끝밀); ty = F.y * (1 - 끝밀); }
+  $('#hub').style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + s + ')';
+  $('#hub').style.filter = 흐림 > 0.05 ? 'blur(' + 흐림.toFixed(2) + 'px)' : 'none';
+
+  // ── 여는 1.5초: 서비스 이름이 가운데 크게 → 왼쪽 자리로 ──
+  var ht = $('#ht');
+  var 가운데x = 960 - ht.offsetWidth * 1.25 / 2 - 150, 가운데y = 540 - ht.offsetHeight * 1.25 / 2 - 132;
+  var 옮 = easeInOut(사이(t, 1.35, 0.6));
+  var 처음 = 1 + 0.08 * (1 - easeOut(사이(t, 0.15, 0.6)));
+  ht.style.opacity = easeOut(사이(t, 0.15, 0.4));
+  ht.style.transform = 'translate(' + lerp(가운데x, 0, 옮) + 'px,' + lerp(가운데y, 0, 옮) + 'px) scale(' + lerp(1.25 * 처음, 1, 옮) + ')';
+  $('#hs').style.opacity = easeOut(사이(t, 1.85, 0.35));
+  $('#hs2').style.opacity = easeOut(사이(t, 끝북 + 0.2, 0.4));
+  var 폰 = easeOut(사이(t, 1.45, 0.6));
+  $('#hphone').style.opacity = 폰;
+  $('#hphone').style.transform = 'translateY(' + (200 * (1 - 폰)) + 'px)';
+
+  // ── 카드와 왼쪽 목록의 상태 ──
+  var rows = document.querySelectorAll('.row');
+  판.forEach(function (c, i) {
+    var 켜 = 사이(t, 켜짐[i], 0.25);
+    var 짚음 = t >= 짚(i) && t < 끝냄(i) ? easeOut(사이(t, 짚(i), 0.15)) : 0;
+    var 했음 = t >= 끝냄(i) ? easeOut(사이(t, 끝냄(i), 0.2)) : 0;
+    var 다 = t >= 다켜짐[i] ? easeOut(사이(t, 다켜짐[i], 0.2)) : 0;
+    // 카드: 켜지기 전엔 어둡게 · 켜지는 순간 주황 테두리가 번쩍 · 짚으면 주황 테두리 · 했으면 체크
+    c.el.querySelector('.v').style.opacity = 0.72 * (1 - 켜) + 0.42 * 했음 * (1 - 다);
+    var 테 = Math.max(번쩍(t, 켜짐[i], 0.9, 0.4), 짚음, 다 * (t >= 끝북 ? 0.55 + 0.45 * (1 - 사이(t, 끝북, 0.5)) : 1));
+    c.el.querySelector('.o').style.opacity = 테;
+    var 체 = c.el.querySelector('svg');
+    체.style.opacity = 했음;
+    체.style.transform = 'scale(' + (0.4 + 0.6 * easeOut(사이(t, 끝냄(i), 0.18)) + 0.25 * 번쩍(t, 끝냄(i) + 0.12, 1, 0.2)) + ')';
+    var 눌 = 번쩍(t, 누(i), 1, 0.2);
+    c.el.style.transform = 'scale(' + (1 - 0.035 * 눌 + 0.03 * 번쩍(t, 다켜짐[i], 1, 0.25)) + ')';
+    // 왼쪽 목록: 켜지면 나타남 · 짚은 줄은 흰 글자 + 주황 막대 · 했으면 흐리게 + 체크 · 끝에서 다 흰 글자
+    var r = rows[i];
+    r.style.opacity = easeOut(사이(t, 켜짐[i], 0.25)) * (1 - 0.55 * 했음 * (1 - 다));
+    r.style.transform = 'translateX(' + (-50 * (1 - easeOut(사이(t, 켜짐[i], 0.3)))) + 'px)';
+    r.querySelector('span').style.color = 짚음 > 0.5 || 다 > 0.5 ? '#fff' : (했음 > 0.5 ? '#C9CCD2' : '#8A909A');
+    r.querySelector('i').style.opacity = 짚음;
+    r.querySelector('svg').style.opacity = 했음;
+  });
+  // 누름 물결 — 카드 가운데에서 퍼짐
+  var rip = $('#rip'), 물 = -1;
+  for (var k = 0; k < 4; k++) if (t >= 누(k) && t < 누(k) + 0.4) 물 = k;
+  if (물 >= 0) {
+    var q = 사이(t, 누(물), 0.4);
+    rip.style.left = 판[물].lx + 'px'; rip.style.top = 판[물].ly + 'px';
+    rip.style.transform = 'scale(' + (1 + 13 * easeOut(q)) + ')';
+    rip.style.opacity = 0.9 * (1 - q);
+  } else rip.style.opacity = 0;
+
+  // ── 도구 장면 ──
+  var tk = -1;
+  for (k = 0; k < 4; k++) if (t >= T[k] - 0.15 && t < 나(k) + 0.25) tk = k;
+  if (tk >= 0) {
+    var u = t - T[tk], d = 도구[tk];
+    document.querySelectorAll('#phw img').forEach(function (im, j) { im.style.display = j === tk ? 'block' : 'none'; });
+    $('#zone').style.display = tk === 3 ? 'block' : 'none';
+    // 사진: 큰 북 직전에 흐린 채 나타나 → 큰 북 뒤 0.45초에 또렷해짐 → 시연 동안 흐리고 어둡게 뒤로
+    var 보임 = 사이(u, -0.15, 0.15) * (1 - 사이(u, 4.25, 0.12));
+    $('#tl').style.opacity = 보임;
+    var 크기 = u < 0.45 ? 1.25 - 0.21 * easeOut(u / 0.45) : 1.04 - 0.04 * 사이(u, 0.45, 3.8);
+    if (u >= 4.25) 크기 = lerp(1.0, 0.82, easeOut(사이(u, 4.25, 0.15)));
+    var 시연 = easeInOut(사이(u, 0.75, 0.5));
+    var ph흐림 = (u < 0.45 ? 16 * (1 - easeOut(u / 0.45)) : 0) + 18 * 시연;
+    var 밝기 = lerp(0.9, 0.34, 시연);
+    $('#phw').style.transform = 'scale(' + 크기 + ')';
+    $('#phw').style.filter = 'blur(' + ph흐림.toFixed(2) + 'px) brightness(' + 밝기.toFixed(3) + ')';
+    $('#veil').style.background = d.veil || '';
+    $('#veil').style.opacity = 1 - 0.5 * 시연;
+    // 제목: 큰 북과 함께 크게 → 시연이 시작되면 줄어 왼쪽 위로
+    $('#tn').textContent = d.n; $('#tname').textContent = d.name; $('#tline').textContent = d.line;
+    var 켜 = easeOut(사이(u, 0.04, 0.3));
+    var 가 = 1 - 사이(u, 4.05, 0.2);
+    var tt = $('#tt');
+    var 큰y = 540 - tt.offsetHeight / 2;
+    tt.style.opacity = 켜 * 가;
+    tt.style.transform = 'translate(' + (150 - 60 * (1 - 켜)) + 'px,' + lerp(큰y, 210, 시연) + 'px) scale(' + lerp(1 + 0.06 * (1 - 켜), 0.62, 시연) + ')';
+    $('#tline').style.top = (210 + tt.offsetHeight * 0.62 + 34) + 'px';
+    $('#tline').style.opacity = easeOut(사이(u, 1.1, 0.3)) * 가;
+    $('#tline').style.transform = 'translateY(' + (24 * (1 - easeOut(사이(u, 1.1, 0.3)))) + 'px)';
+    // 시연 휴대전화: 오른쪽에서 밀려 들어옴
+    var 폰들 = easeOut(사이(u, 0.8, 0.45));
+    var 폰가 = 1 - 사이(u, 4.05, 0.2);
+    $('#dphone').style.opacity = 폰들 * 폰가;
+    $('#dphone').style.transform = 'translateX(' + (260 * (1 - 폰들)) + 'px) scale(' + (1 - 0.04 * (1 - 폰가)) + ')';
+  } else {
+    $('#tl').style.opacity = 0;
+  }
+
+  // ── 번쩍임(큰 북 자리) · 끝 어둡게 ──
+  var f = 0;
+  T.forEach(function (x) { f = Math.max(f, 번쩍(t, x, 0.32, 0.25)); });
+  f = Math.max(f, 번쩍(t, 끝북, 0.28, 0.3));
+  $('#flash').style.opacity = f;
+  $('#fade').style.opacity = clamp((t - 29.55) / 0.45) + (1 - easeOut(사이(t, 0, 0.15)));
+};
+
+// 시연 휴대전화 화면 한 장을 갈아 끼움 — 다 그려질 때까지 기다려야 찍힌 장면이 비지 않음
+window.화면 = function (src) {
+  var img = $('#scr');
+  if (!src) return Promise.resolve();
+  if (img.getAttribute('src') === src) return Promise.resolve();
+  img.setAttribute('src', src);
+  return img.decode().catch(function () {});
+};
+</script>
+</body>
+</html>
