@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>결선 30초 영상 무대</title>
+<!--
+  결선 발표용 30초 영상의 한 장면 한 장면을 그리는 무대입니다(build/make_short_video.mjs 가 엶).
+  왜 이 방식인가 — 시간 t 를 넘겨 받아 그 순간의 모습을 계산해 그리고, 그것을 한 장씩
+  찍습니다. CSS 애니메이션에 맡기면 찍는 속도에 따라 장면이 밀려 음악의 큰 북과 화면
+  넘김이 어긋납니다. 계산으로 그리면 언제 찍어도 같은 영상이 나옵니다.
+  차림은 최종 발표 자료(’26.9.22.)와 같게 — 검정 바탕 · 주황 번호 · 금색 제목.
+  나레이션이 없으므로 화면 글자는 한 장면에 한 줄 — 5초 안에 읽혀야 합니다.
+-->
+<style>
+@font-face { font-family: 'PGOV'; src: url('../assets/fonts/PretendardGOV-Regular.subset.woff2') format('woff2'); font-weight: 400; }
+@font-face { font-family: 'PGOV'; src: url('../assets/fonts/PretendardGOV-Bold.subset.woff2') format('woff2'); font-weight: 700; }
+:root { --or: #E7A23D; --gold: #FFC20E; --gray: #A9AFBA; --red: #E0322A; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #07080A; }
+body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
+.abs { position: absolute; }
+#bg { left: 0; top: 0; width: 1920px; height: 1080px; background: radial-gradient(ellipse at 70% 50%, #141822 0%, #07080A 70%); }
+#glow { left: 0; top: 0; width: 1920px; height: 1080px; background: radial-gradient(circle at 50% 50%, rgba(224,50,42,.55) 0%, rgba(224,50,42,.12) 45%, rgba(0,0,0,0) 70%); opacity: 0; }
+.ring { left: 960px; top: 540px; width: 600px; height: 600px; margin: -300px 0 0 -300px; border: 6px solid var(--red); border-radius: 50%; opacity: 0; box-sizing: border-box; }
+#alert { left: 0; top: 380px; width: 1920px; text-align: center; font-weight: 700; font-size: 160px; letter-spacing: -2px; opacity: 0; }
+#alert2 { left: 0; top: 610px; width: 1920px; text-align: center; font-size: 46px; color: #E6E8EC; opacity: 0; }
+.q { left: 220px; width: 1500px; display: flex; align-items: baseline; gap: 44px; opacity: 0; }
+.q b { font-size: 70px; color: var(--or); width: 110px; }
+.q span { font-size: 104px; font-weight: 700; letter-spacing: -1px; }
+#title { left: 150px; top: 300px; width: 1050px; font-weight: 700; font-size: 116px; line-height: 1.22; color: var(--gold); letter-spacing: -2px; opacity: 0; }
+#sub { left: 156px; top: 618px; width: 1000px; font-size: 48px; color: #fff; font-weight: 700; opacity: 0; }
+#sub2 { left: 156px; top: 700px; width: 1000px; font-size: 36px; color: var(--gray); opacity: 0; }
+#brand { left: 96px; top: 56px; font-size: 30px; font-weight: 700; color: #fff; opacity: 0; display: flex; align-items: center; gap: 14px; }
+#brand i { width: 16px; height: 16px; border-radius: 50%; background: var(--or); display: inline-block; }
+#chips { left: 96px; top: 112px; display: flex; gap: 14px; opacity: 0; }
+.chip { font-size: 28px; font-weight: 700; color: #C9CCD2; border: 2px solid #3A3E47; border-radius: 999px; padding: 8px 24px; }
+.chip.on { background: var(--or); border-color: var(--or); color: #111; }
+#tool { left: 150px; top: 300px; width: 1000px; opacity: 0; }
+#tn { font-size: 220px; font-weight: 700; color: var(--or); line-height: 1; letter-spacing: -6px; }
+#tname { font-size: 100px; font-weight: 700; margin-top: 18px; letter-spacing: -2px; }
+#tline { font-size: 46px; color: #D6D9DF; margin-top: 26px; line-height: 1.4; }
+#phone { left: 1262px; top: 74px; width: 481px; height: 916px; border: 14px solid #23262D; border-radius: 66px; overflow: hidden; background: #fff;
+  box-shadow: 0 0 0 2px #3A3E47, 0 30px 90px rgba(0,0,0,.7), 0 0 120px rgba(231,162,61,.18); opacity: 0; }
+#phone img { width: 481px; height: 916px; display: block; }
+#flash { left: 0; top: 0; width: 1920px; height: 1080px; background: #fff; opacity: 0; }
+#fade { left: 0; top: 0; width: 1920px; height: 1080px; background: #000; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="bg" class="abs"></div>
+<div id="glow" class="abs"></div>
+<div class="ring abs"></div><div class="ring abs"></div><div class="ring abs"></div>
+<div id="alert" class="abs">화학사고 발생</div>
+<div id="alert2" class="abs">그 순간, 담당자에게 네 가지 질문이 한꺼번에</div>
+<div class="q abs" style="top:190px"><b>01</b><span>어디로 대피시킬까</span></div>
+<div class="q abs" style="top:385px"><b>02</b><span>무엇을 알릴까</span></div>
+<div class="q abs" style="top:580px"><b>03</b><span>무엇으로 막을까</span></div>
+<div class="q abs" style="top:775px"><b>04</b><span>내가 선 자리는 안전한가</span></div>
+<div id="title" class="abs">화학사고 초동대응<br>지원 서비스</div>
+<div id="sub" class="abs">사고지점 하나로, 네 가지를 한 화면에서</div>
+<div id="sub2" class="abs">설치·회원가입 없이 · 휴대전화와 PC</div>
+<div id="brand" class="abs"><i></i>화학사고 초동대응 지원 서비스</div>
+<div id="chips" class="abs"><span class="chip">01 대피장소</span><span class="chip">02 주민대피 문자</span><span class="chip">03 방제 물품·장비</span><span class="chip">04 현장 안전거리</span></div>
+<div id="tool" class="abs"><div id="tn">01</div><div id="tname"></div><div id="tline"></div></div>
+<div id="phone" class="abs"><img id="scr" alt=""></div>
+<div id="flash" class="abs"></div>
+<div id="fade" class="abs"></div>
+<script>
+// 장면 시각 — 144 BPM 의 박(0.41667초)에 맞춤. make_short_music.py 와 같은 값이어야 함
+var 박 = 60 / 144;
+var 질문시각 = [6 * 박, 8 * 박, 10 * 박, 12 * 박];
+var 답시각 = 16 * 박;
+var 도구 = [
+  { t: 10, n: '01', name: '주민 대피장소 찾기', line: '사고지점에서 가까운 대피장소와 가는 길' },
+  { t: 15, n: '02', name: '주민대피 문자생성기', line: '표준문안에 빈칸 없이 채워, 바로 복사' },
+  { t: 20, n: '03', name: '방제 물품·장비 찾기', line: '미리 협의된 업체와 방제물품을 가까운 순으로' },
+  { t: 25, n: '04', name: '현장 안전거리 확인', line: 'ERG 구역을 지도에, 내 위치가 그 안인지' },
+];
+function clamp(x) { return Math.max(0, Math.min(1, x)); }
+function easeOut(x) { x = clamp(x); return 1 - Math.pow(1 - x, 3); }
+function 들어옴(t, t0, d) { return easeOut((t - t0) / d); }
+function 나감(t, t1, d) { return 1 - clamp((t - (t1 - d)) / d); }
+function $(s) { return document.querySelector(s); }
+function 번쩍(t, 자리, 세기) { var d = t - 자리; return d >= 0 && d < 0.2 ? 세기 * (1 - d / 0.2) : 0; }
+
+window.장면 = function (t) {
+  // ── 0 ~ 2.5초 : 경보 ──
+  var 경보 = t < 질문시각[0] ? 1 : 0;
+  var 박동 = 0.5 + 0.5 * Math.cos(2 * Math.PI * (t / (2 * 박)));
+  $('#glow').style.opacity = 경보 * (0.35 + 0.45 * 박동) * 나감(t, 질문시각[0], 0.25);
+  document.querySelectorAll('.ring').forEach(function (r, j) {
+    var p = ((t - j * 0.55) % 1.65 + 1.65) % 1.65 / 1.65;
+    var on = t >= j * 0.55 && t < 질문시각[0] ? 1 : 0;
+    r.style.transform = 'scale(' + (0.25 + 2.2 * p) + ')';
+    r.style.opacity = on * (1 - p) * 0.7;
+  });
+  var a = 들어옴(t, 0.2, 0.3) * 나감(t, 질문시각[0], 0.18);
+  $('#alert').style.opacity = a;
+  $('#alert').style.transform = 'scale(' + (1.12 - 0.12 * 들어옴(t, 0.2, 0.35)) + ')';
+  $('#alert2').style.opacity = 들어옴(t, 1.0, 0.35) * 나감(t, 질문시각[0], 0.18);
+
+  // ── 2.5 ~ 6.67초 : 네 가지 질문 ──
+  document.querySelectorAll('.q').forEach(function (q, i) {
+    var 켜 = 들어옴(t, 질문시각[i], 0.25);
+    var 다음 = i < 3 && t >= 질문시각[i + 1] ? 0.4 : 1;          // 앞 질문은 흐리게 — 지금 질문에 눈이 가게
+    q.style.opacity = 켜 * 다음 * 나감(t, 답시각, 0.2);
+    q.style.transform = 'translateX(' + (-70 * (1 - 켜)) + 'px)';
+  });
+
+  // ── 6.67 ~ 10초 : 서비스 이름 + 첫 화면 ──
+  var 답 = t >= 답시각 && t < 10 ? 1 : 0;
+  $('#title').style.opacity = 답 * 들어옴(t, 답시각, 0.4) * 나감(t, 10, 0.15);
+  $('#title').style.transform = 'translateY(' + (30 * (1 - 들어옴(t, 답시각, 0.4))) + 'px)';
+  $('#sub').style.opacity = 답 * 들어옴(t, 답시각 + 0.45, 0.35) * 나감(t, 10, 0.15);
+  $('#sub2').style.opacity = 답 * 들어옴(t, 답시각 + 0.9, 0.35) * 나감(t, 10, 0.15);
+  var 폰 = t >= 답시각 ? 들어옴(t, 답시각, 0.5) : 0;
+  $('#phone').style.opacity = 폰;
+  var 폰y = 160 * (1 - 폰);
+
+  // ── 10 ~ 30초 : 도구 넷 ──
+  var 지금 = -1;
+  도구.forEach(function (d, i) { if (t >= d.t) 지금 = i; });
+  $('#brand').style.opacity = 들어옴(t, 10, 0.3);
+  $('#chips').style.opacity = 들어옴(t, 10, 0.3);
+  document.querySelectorAll('.chip').forEach(function (c, i) { c.className = 'chip' + (i === 지금 ? ' on' : ''); });
+  if (지금 >= 0) {
+    var d = 도구[지금];
+    $('#tn').textContent = d.n; $('#tname').textContent = d.name; $('#tline').textContent = d.line;
+    var 켜 = 들어옴(t, d.t + 0.04, 0.35);
+    var 끝 = 지금 < 3 ? 나감(t, d.t + 5, 0.14) : 1;
+    $('#tool').style.opacity = 켜 * 끝;
+    $('#tool').style.transform = 'translateX(' + (-60 * (1 - 켜)) + 'px)';
+    폰y += 0;
+    var 튐 = 1 + 0.035 * (1 - 들어옴(t, d.t, 0.3));               // 화면이 바뀌는 순간 살짝 튀어나옴
+    $('#phone').style.transform = 'translateY(' + 폰y + 'px) scale(' + 튐 + ')';
+  } else {
+    $('#tool').style.opacity = 0;
+    $('#phone').style.transform = 'translateY(' + 폰y + 'px)';
+  }
+
+  // ── 번쩍임(큰 북 자리) · 끝 어둡게 ──
+  var f = 0;
+  질문시각.forEach(function (q) { f = Math.max(f, 번쩍(t, q, 0.10)); });
+  f = Math.max(f, 번쩍(t, 답시각, 0.16));
+  도구.forEach(function (d) { f = Math.max(f, 번쩍(t, d.t, 0.22)); });
+  $('#flash').style.opacity = f;
+  $('#fade').style.opacity = clamp((t - 29.55) / 0.45);
+};
+
+// 휴대전화 화면 한 장을 갈아 끼움 — 다 그려질 때까지 기다려야 찍힌 장면이 비지 않음
+window.화면 = function (src) {
+  var img = $('#scr');
+  if (!src) return Promise.resolve();
+  if (img.getAttribute('src') === src) return Promise.resolve();
+  img.setAttribute('src', src);
+  return img.decode().catch(function () {});
+};
+</script>
+</body>
+</html>
