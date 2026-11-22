@@ -1,6 +1,7 @@
 // 결선 발표용 30초 영상 「줌인 판」 — 첫 화면의 카드 넷에서 하나씩 들어가 도구를 보여 줍니다
 //
 //   node build/make_short_video_zoom.mjs [나갈파일.mp4]   # 기본 docs/공모전_결선_30초_줌.mp4
+//   node build/make_short_video_zoom.mjs --소리만          # 화면은 그대로 두고 음악만 다시 합성해 갈아 끼움
 //
 // ── 왜 만드나 (2026-11-20 사용자) ──
 // "영상 여러 버젼으로 만들어 갈거야 … 첫화면에 4가지 도구가 보이고 거기서 한개씩 줌인
@@ -21,13 +22,15 @@
 // 4) 음악은 build/make_short_music_zoom.py(120 BPM) — 무대의 시각과 맞물려 있습니다.
 import { chromium } from 'playwright';
 import path from 'path';
-import { existsSync, mkdirSync, rmSync, readdirSync } from 'fs';
+import { existsSync, mkdirSync, rmSync, readdirSync, copyFileSync } from 'fs';
 import { execFileSync } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const 원본 = path.join(ROOT, 'docs/공모전_시연영상.mp4');
-const 나감 = process.argv[2] ? path.resolve(process.argv[2]) : path.join(ROOT, 'docs/공모전_결선_30초_줌.mp4');
+const 인자 = process.argv.slice(2).filter((a) => !a.startsWith('--'));
+const 소리만 = process.argv.includes('--소리만');
+const 나감 = 인자[0] ? path.resolve(인자[0]) : path.join(ROOT, 'docs/공모전_결선_30초_줌.mp4');
 const 작업 = path.join(ROOT, '.narr/영상30줌');
 const FPS = 30;
 const 길이 = 30;
@@ -68,6 +71,27 @@ const 사진 = [
 ];
 
 function ff(args) { execFileSync('ffmpeg', ['-v', 'error', '-y', ...args], { stdio: 'inherit' }); }
+
+/* 음악 손질 — 살짝 울림 · 크기 고르게 · -14 LUFS.
+   울림은 짧은 되울림(45·95ms) 대신 넓게 퍼지는 네 겹(60~270ms)입니다 — 짧은 되울림은 북소리
+   뒤에 '딱' 을 한 번 더 붙여 총소리처럼 들리게 했습니다(2026-11-22 사용자). */
+const 소리손질 = '[1:a]aecho=0.8:0.7:60|120|190|270:0.12|0.09|0.06|0.04,'
+  + 'acompressor=threshold=-20dB:ratio=3:attack=4:release=140:makeup=4,loudnorm=I=-14:TP=-1.5:LRA=8[a]';
+const 음악만들기 = (파일) => execFileSync('python3', [path.join(ROOT, 'build/make_short_music_zoom.py'), 파일], { stdio: 'inherit' });
+
+/* --소리만 — 화면(900장)을 다시 찍지 않고 이미 구운 영상의 화면에 새 음악만 얹습니다.
+   화면은 다시 압축하지 않고 그대로 옮깁니다(-c:v copy). */
+if (소리만) {
+  if (!existsSync(나감)) throw new Error('갈아 끼울 영상이 없습니다: ' + 나감);
+  mkdirSync(작업, { recursive: true });
+  const 새음악 = path.join(작업, '음악30줌.wav'), 임시 = path.join(작업, '소리만.mp4');
+  음악만들기(새음악);
+  ff(['-i', 나감, '-i', 새음악, '-filter_complex', 소리손질, '-map', '0:v', '-map', '[a]', '-c:v', 'copy',
+    '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-t', String(길이), '-movflags', '+faststart', 임시]);
+  copyFileSync(임시, 나감);
+  console.log('소리만 갈아 끼움', 나감);
+  process.exit(0);
+}
 
 if (!existsSync(원본)) throw new Error('원본 시연영상이 없습니다: ' + 원본);
 rmSync(작업, { recursive: true, force: true });
@@ -111,7 +135,7 @@ for (const [, 이름, a, b, d] of 조각) {
 
 // 3) 배경음악
 const 음악 = path.join(작업, '음악30줌.wav');
-execFileSync('python3', [path.join(ROOT, 'build/make_short_music_zoom.py'), 음악], { stdio: 'inherit' });
+음악만들기(음악);
 
 // 4) 무대를 한 장씩 찍음
 const 화면파일 = (t) => {
@@ -140,9 +164,9 @@ for (let k = 0; k < 장수; k++) {
 }
 await browser.close();
 
-// 5) 사진 + 음악 → mp4. 음악은 첫 판과 같은 손질(살짝 울림 · 크기 고르게 · -14 LUFS)
+// 5) 사진 + 음악 → mp4 (음악 손질은 위 `소리손질`)
 ff(['-framerate', String(FPS), '-i', path.join(작업, '장면', 'f%04d.jpg'), '-i', 음악,
-  '-filter_complex', '[1:a]aecho=0.8:0.55:45|95:0.16|0.09,acompressor=threshold=-20dB:ratio=3:attack=4:release=140:makeup=4,loudnorm=I=-14:TP=-1.5:LRA=8[a]',
+  '-filter_complex', 소리손질,
   '-map', '0:v', '-map', '[a]', '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p',
   '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-t', String(길이), '-movflags', '+faststart', 나감]);
 console.log('만듦', 나감);
