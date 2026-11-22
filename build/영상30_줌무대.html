@@ -24,6 +24,10 @@
     찍는 속도에 따라 장면이 밀려 큰 북과 화면 넘김이 어긋납니다.
   · 차림은 첫 판·최종 발표 자료(’26.9.22.)와 같게 — 검정 바탕 · 주황 번호 · 금색 제목.
   · 화면 글은 첫 판에서 쓴 문장 그대로입니다(새 주장을 얹지 않음 · CLAUDE.md 2절 5항).
+  · 「판 2」(2026-11-22 사용자 — "각 카드별 설명이 … 한 2줄 정도로" · "상황실로 바로 전화를
+    할 수 있는 기능이 … 시연 화면에 표현이 될 수 있었으면"): 만드는 스크립트가 `줄`(도구마다
+    두 줄)과 `돋`(03 의 상황실 줄 확대 · 누름)을 넘기면 그것을 그립니다. 안 넘기면 첫 줌인 판
+    그대로입니다 — 두 판이 같은 무대 · 같은 시각 · 같은 음악을 씁니다.
 -->
 <style>
 @font-face { font-family: 'PGOV'; src: url('../assets/fonts/PretendardGOV-Regular.subset.woff2') format('woff2'); font-weight: 400; }
@@ -68,9 +72,25 @@ body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
 #tn { font-size: 200px; font-weight: 700; color: var(--or); line-height: 1; letter-spacing: -6px; }
 #tname { font-size: 112px; font-weight: 700; margin-top: 14px; letter-spacing: -2px; white-space: nowrap; text-shadow: 0 4px 30px rgba(0,0,0,.6); }
 #tline { left: 150px; top: 520px; width: 960px; font-size: 48px; color: #E2E5EA; line-height: 1.4; opacity: 0; }
+/* 판 2 — 두 줄. 줄마다 한 줄로 못 박음(낱말 가운데서 꺾이면 읽다 멈춤) */
+#tline.두줄 { width: 1080px; font-size: 46px; line-height: 1.45; }
+#tline .l { display: block; white-space: nowrap; }
+#tline .em { color: var(--or); font-weight: 700; }
+/* 판 2 · 03 — 휴대전화 속 상황실 줄을 왼쪽에 크게(돋보기) · 누름 자국 · 전화 거는 표시 */
+#lens { left: 150px; top: 640px; overflow: hidden; border-radius: 16px; background: #fff; border: 4px solid var(--or);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6); opacity: 0; }
+#lens img { position: absolute; left: 0; top: 0; }
+.tp { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 4px solid var(--or);
+  box-sizing: border-box; background: rgba(231,162,61,.35); opacity: 0; pointer-events: none; }
+#dmark { position: absolute; border: 3px solid var(--or); border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0,0,0,.22);
+  opacity: 0; pointer-events: none; }
+#lcall { width: 88px; height: 88px; opacity: 0; }
+#lcall .c { position: absolute; inset: 0; border-radius: 50%; background: var(--or); }
+#lcall .r { position: absolute; inset: 0; border-radius: 50%; border: 4px solid var(--or); box-sizing: border-box; opacity: 0; }
+#lcall svg { position: absolute; left: 22px; top: 22px; width: 44px; height: 44px; }
 #dphone { left: 1262px; top: 74px; width: 481px; height: 916px; border: 14px solid #23262D; border-radius: 66px; overflow: hidden; background: #fff;
   box-shadow: 0 0 0 2px #3A3E47, 0 30px 90px rgba(0,0,0,.7), 0 0 120px rgba(231,162,61,.18); opacity: 0; }
-#dphone img { width: 481px; height: 916px; display: block; }
+#dphone > img { width: 481px; height: 916px; display: block; }
 
 #flash { left: 0; top: 0; width: 1920px; height: 1080px; background: #fff; opacity: 0; }
 #fade { left: 0; top: 0; width: 1920px; height: 1080px; background: #000; opacity: 0; }
@@ -98,7 +118,10 @@ body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
   <div id="veil" class="abs"></div>
   <div id="tt" class="abs"><div id="tn">01</div><div id="tname"></div></div>
   <div id="tline" class="abs"></div>
-  <div id="dphone" class="abs"><img id="scr" alt=""></div>
+  <div id="dphone" class="abs"><img id="scr" alt=""><div id="dmark"></div><div id="dtap" class="tp"></div></div>
+  <div id="lens" class="abs"><img id="lensi" alt=""><div id="ltap" class="tp"></div></div>
+  <div id="lcall" class="abs"><div class="r"></div><div class="r"></div><div class="c"></div>
+    <svg viewBox="0 0 24 24" fill="#111"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg></div>
 </div>
 <div id="flash" class="abs"></div>
 <div id="fade" class="abs"></div>
@@ -134,6 +157,7 @@ function $(s) { return document.querySelector(s); }
 function 번쩍(t, 자리, 세기, 길이) { var d = t - 자리; 길이 = 길이 || 0.22; return d >= 0 && d < 길이 ? 세기 * (1 - d / 길이) : 0; }
 
 var 판 = null;   // 준비()가 채움: 휴대전화 화면 위 카드 자리(무대 좌표)
+var 두줄 = false, 돋 = null;   // 판 2 에서만 — 준비()가 받음
 var 체크 = '<svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="22" fill="#E7A23D"/><path d="M14 25 l7 7 l13 -15" fill="none" stroke="#111" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 // 만드는 스크립트가 첫 화면 사진·카드 자리·원본 사진을 넘겨 줌
@@ -157,6 +181,14 @@ window.준비 = function (o) {
     r.innerHTML = '<i></i><b>' + d.n + '</b><span>' + d.name + '</span>' + 체크;
     $('#hl').appendChild(r);
   });
+  // 판 2 — 도구마다 두 줄 설명. [첫 줄, 둘째 줄, 둘째 줄에서 주황으로 띄울 말]
+  if (o.줄) {
+    두줄 = true;
+    o.줄.forEach(function (z, k) { 도구[k].line2 = z; });
+    $('#tline').className = 'abs 두줄';
+  }
+  // 판 2 · 03 — 상황실 줄 확대(시각은 무대 초 · 자리는 휴대전화 css px)
+  if (o.돋) 돋 = o.돋;
   document.querySelectorAll('#phw img').forEach(function (im, k) {
     im.src = o.사진[k].src; im.style.objectPosition = o.사진[k].pos;
     if (o.사진[k].move) im.style.transform = o.사진[k].move;
@@ -264,7 +296,13 @@ window.장면 = function (t) {
     $('#veil').style.background = d.veil || '';
     $('#veil').style.opacity = 1 - 0.5 * 시연;
     // 제목: 큰 북과 함께 크게 → 시연이 시작되면 줄어 왼쪽 위로
-    $('#tn').textContent = d.n; $('#tname').textContent = d.name; $('#tline').textContent = d.line;
+    $('#tn').textContent = d.n; $('#tname').textContent = d.name;
+    if (두줄) {
+      var z2 = d.line2, 둘 = z2[1].replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; });
+      if (z2[2]) 둘 = 둘.replace(z2[2], '<span class="em">' + z2[2] + '</span>');
+      var 쓸 = '<span class="l">' + z2[0] + '</span><span class="l l2">' + 둘 + '</span>';
+      if ($('#tline').getAttribute('data-k') !== String(tk)) { $('#tline').innerHTML = 쓸; $('#tline').setAttribute('data-k', tk); }
+    } else $('#tline').textContent = d.line;
     var 켜 = easeOut(사이(u, 0.04, 0.3));
     var 가 = 1 - 사이(u, 4.05, 0.2);
     var tt = $('#tt');
@@ -272,13 +310,25 @@ window.장면 = function (t) {
     tt.style.opacity = 켜 * 가;
     tt.style.transform = 'translate(' + (150 - 60 * (1 - 켜)) + 'px,' + lerp(큰y, 210, 시연) + 'px) scale(' + lerp(1 + 0.06 * (1 - 켜), 0.62, 시연) + ')';
     $('#tline').style.top = (210 + tt.offsetHeight * 0.62 + 34) + 'px';
-    $('#tline').style.opacity = easeOut(사이(u, 1.1, 0.3)) * 가;
-    $('#tline').style.transform = 'translateY(' + (24 * (1 - easeOut(사이(u, 1.1, 0.3)))) + 'px)';
+    if (두줄) {
+      // 두 줄 — 첫 줄 뒤 0.2초에 둘째 줄이 올라옴
+      $('#tline').style.opacity = 가;
+      $('#tline').style.transform = 'none';
+      [].forEach.call(document.querySelectorAll('#tline .l'), function (el, j) {
+        var a = easeOut(사이(u, 1.1 + 0.2 * j, 0.3));
+        el.style.opacity = a;
+        el.style.transform = 'translateY(' + (24 * (1 - a)) + 'px)';
+      });
+    } else {
+      $('#tline').style.opacity = easeOut(사이(u, 1.1, 0.3)) * 가;
+      $('#tline').style.transform = 'translateY(' + (24 * (1 - easeOut(사이(u, 1.1, 0.3)))) + 'px)';
+    }
     // 시연 휴대전화: 오른쪽에서 밀려 들어옴
     var 폰들 = easeOut(사이(u, 0.8, 0.45));
     var 폰가 = 1 - 사이(u, 4.05, 0.2);
     $('#dphone').style.opacity = 폰들 * 폰가;
     $('#dphone').style.transform = 'translateX(' + (260 * (1 - 폰들)) + 'px) scale(' + (1 - 0.04 * (1 - 폰가)) + ')';
+    돋보기(t, tk, 폰가);
   } else {
     $('#tl').style.opacity = 0;
   }
@@ -291,13 +341,66 @@ window.장면 = function (t) {
   $('#fade').style.opacity = clamp((t - 29.55) / 0.45) + (1 - easeOut(사이(t, 0, 0.15)));
 };
 
+/* 판 2 · 03 — 휴대전화 속 「비상연락망(휴대전화) ▶ 안전원 상황실 …」 줄을 설명 아래에 크게 띄우고,
+   그 줄의 링크를 누르는 순간 휴대전화와 확대 화면 두 곳에 누름 자국을, 확대 화면 오른쪽에
+   전화 거는 표시(퍼지는 고리)를 그립니다. 누른 뒤 휴대전화에 뜨는 전화 화면은 기기마다 달라
+   그리지 않습니다(흐름 판과 같은 까닭) — 링크가 정말 상황실 번호로 걸리는지는 녹화가 확인합니다. */
+function 돋보기(t, tk, 폰가) {
+  var lens = $('#lens'), mk = $('#dmark'), dt = $('#dtap'), lt = $('#ltap'), lc = $('#lcall');
+  if (!돋 || 돋.k !== tk || !$('#scr').getAttribute('src')) {
+    lens.style.opacity = 0; mk.style.opacity = 0; dt.style.opacity = 0; lc.style.opacity = 0;
+    return;
+  }
+  var 배 = 481 / 돋.css폭;                               // 휴대전화 css px → 시연 휴대전화 무대 px
+  var z = 돋.자리, 여 = 6;
+  // 아래는 거의 띄우지 않음 — 더 내리면 다음 줄(흐린 업체명)이 확대 칸 밑에 비침
+  var x0 = Math.max(0, z.x - 여), y0 = Math.max(0, z.y - 여), w = z.w + 여 * 2, h = z.h + 여 + 1;
+  var 보임 = easeOut(사이(t, 돋.보임, 0.3)) * 폰가;
+  // 설명 두 줄 바로 아래에 둠
+  var 위 = $('#tline').offsetTop + $('#tline').offsetHeight + 46;
+  var k = Math.min(2.6, 930 / w, (1010 - 위) / h);
+  lens.style.top = 위 + 'px';
+  lens.style.width = (w * k) + 'px'; lens.style.height = (h * k) + 'px';
+  var li = $('#lensi');
+  if (li.getAttribute('src') !== $('#scr').getAttribute('src')) li.setAttribute('src', $('#scr').getAttribute('src'));
+  li.style.width = (돋.css폭 * k) + 'px'; li.style.height = (돋.css높이 * k) + 'px';
+  li.style.left = (-x0 * k) + 'px'; li.style.top = (-y0 * k) + 'px';
+  lens.style.opacity = 보임;
+  lens.style.transform = 'translateY(' + (20 * (1 - easeOut(사이(t, 돋.보임, 0.3)))) + 'px)';
+  mk.style.left = (x0 * 배) + 'px'; mk.style.top = (y0 * 배) + 'px';
+  mk.style.width = (w * 배) + 'px'; mk.style.height = (h * 배) + 'px';
+  mk.style.opacity = 보임;
+  // 누름 자국 — 휴대전화와 확대 화면 같은 자리
+  var q = 사이(t, 돋.탭, 0.45), 누 = t >= 돋.탭 && t < 돋.탭 + 0.45;
+  [[dt, 배, 0, 0], [lt, k, x0, y0]].forEach(function (a) {
+    var el = a[0];
+    el.style.left = ((돋.탭점.x - a[2]) * a[1]) + 'px'; el.style.top = ((돋.탭점.y - a[3]) * a[1]) + 'px';
+    el.style.transform = 'scale(' + (1 + 2.4 * easeOut(q) * (a[1] > 2 ? 1.6 : 1)) + ')';
+    el.style.opacity = 누 ? 1 - q : 0;
+  });
+  // 전화 거는 표시 — 누른 뒤 확대 화면 오른쪽에서 고리가 퍼짐
+  var 걸 = easeOut(사이(t, 돋.탭 + 0.08, 0.25)) * 폰가;
+  lc.style.left = (150 + w * k + 30) + 'px';
+  lc.style.top = (위 + h * k / 2 - 44) + 'px';
+  lc.style.opacity = 걸;
+  lc.style.transform = 'scale(' + (0.6 + 0.4 * easeOut(사이(t, 돋.탭 + 0.08, 0.25))) + ')';
+  [].forEach.call(lc.querySelectorAll('.r'), function (r, j) {
+    var p = ((t - 돋.탭 - 0.2 - j * 0.45) / 0.9);
+    p = p < 0 ? -1 : p - Math.floor(p);
+    r.style.opacity = p < 0 ? 0 : 0.9 * (1 - p);
+    r.style.transform = 'scale(' + (1 + 0.8 * p) + ')';
+  });
+}
+
 // 시연 휴대전화 화면 한 장을 갈아 끼움 — 다 그려질 때까지 기다려야 찍힌 장면이 비지 않음
 window.화면 = function (src) {
   var img = $('#scr');
   if (!src) return Promise.resolve();
   if (img.getAttribute('src') === src) return Promise.resolve();
   img.setAttribute('src', src);
-  return img.decode().catch(function () {});
+  var 다 = [img.decode().catch(function () {})];
+  if (돋) { $('#lensi').setAttribute('src', src); 다.push($('#lensi').decode().catch(function () {})); }
+  return Promise.all(다);
 };
 </script>
 </body>
