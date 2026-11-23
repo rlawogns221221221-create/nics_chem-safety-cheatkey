@@ -72,7 +72,7 @@ const browser = await chromium.launch();
 
 /* ══ 1. 매니페스트 — 바탕화면 아이콘에 필요한 것 ═════════════ */
 const mf = JSON.parse(readFileSync(`${RPATH}/manifest.webmanifest`, 'utf8'));
-chk(mf.name === '화학사고 초동대응 지원 서비스',
+chk(mf.name === '화학사고 초동대응 현장 지원 서비스',
   `매니페스트 이름이 정해진 서비스명이다 (${mf.name})`);
 /* 홈 화면 이름표는 기기가 열 글자쯤에서 자릅니다 — 길면 "화학사고 초…" 가 됩니다 */
 chk(mf.short_name && mf.short_name.length <= 12,
@@ -151,12 +151,12 @@ for (const [BASEx, 이름] of [[BASE, '평범한 서버'],
 
   /* 카드를 실제로 눌러 들어가 본다 — 사용자가 겪은 그 동작 그대로 */
   for (const [n, sel, what] of [
-  /* 카드 차례는 사용자가 정합니다 — 지금은 대피장소 → 문자 → 방제 →
-     현장 안전거리(2026-11-09). 차례가 바뀌면 여기 n 도 함께 고쳐야 합니다. */
-    [1, '#map', '주민 대피장소 찾기'],
-    [2, '.stepbar', '주민대피 문자생성기'],
-    [3, '.rz', '방제 물품·장비 찾기'],
-    [4, '#sfStat', '현장 안전거리 확인'],
+  /* 카드 차례는 사용자가 정합니다 — 지금은 현장 안전거리 → 대피장소 → 문자 →
+     방제(2026-11-23). 차례가 바뀌면 여기 n 도 함께 고쳐야 합니다. */
+    [1, '#sfStat', '현장 안전거리 확인'],
+    [2, '#map', '주민 대피장소 찾기'],
+    [3, '.stepbar', '주민대피 문자생성기'],
+    [4, '.rz', '방제 물품·장비 찾기'],
   ]) {
     await page.goto(`${BASEx}/`);
     await page.waitForLoadState('load');
