@@ -329,7 +329,16 @@ chk(await P.$$eval('#mLeg .rk-ic', es => es.every(e => e.getAttribute('aria-hidd
 await P.click('#btnSrc'); await P.waitForTimeout(600);
 const src = (await P.textContent('#srcModal')).replace(/\s+/g, ' ');
 chk(/어림값/.test(src), '좌표가 어림값이라고 밝힌다');
-chk(/미리 협의된 곳/.test(src), '미리 협의된 곳이 몇 곳인지 밝힌다');
+/* 미리 협의된 **업체 수**(2026-11-23 사용자 — 53개사). 줄 수(허가 갈래마다 한 줄)를 업체 수처럼 적지
+   않는지, 화면 자료에서 업체 이름을 직접 세어 대조합니다((주)·㈜·주식회사·빈칸만 걷음 — 만드는 쪽과 같은 규칙). */
+const 협의수 = await P.evaluate(() => {
+  const s = new Set();
+  window.RES2_BIZ.forEach(b => { if (b.f) s.add((window.RES2_PLACE[b.p].n || '').replace(/\(주\)|㈜|주식회사|\s/g, '')); });
+  return { 업체: s.size, 줄: window.RES2_BIZ.filter(b => b.f).length };
+});
+const 협의글 = src.match(/미리 협의된 업체 (\d+)개사\(허가 갈래로 (\d+)줄\)/);
+chk(협의글 && +협의글[1] === 협의수.업체 && +협의글[2] === 협의수.줄,
+  `미리 협의된 업체 수와 줄 수를 나눠 밝힌다 (화면 ${협의글 ? 협의글[1] + '개사·' + 협의글[2] + '줄' : '없음'} · 자료 ${협의수.업체}개사·${협의수.줄}줄)`);
 chk(/표준 이름|물품 이름/.test(src), '물품 이름을 묶은 것이라고 밝힌다');
 await P.click('#btnSrcClose'); await P.waitForTimeout(400);
 

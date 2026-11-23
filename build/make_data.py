@@ -5,7 +5,7 @@
 data/version.js 의 기준일·출처를 함께 수정하세요.
 
 생성 파일
-    data/shelters.js   대피장소        ← 화학사고대피장소_목록.xlsx
+    data/shelters.js   대피장소        ← 화학사고대피장소_목록_2026-09-23.xlsx
     data/cases.js      실제 발송 사례   ← 화학사고_재난문자_실제발송사례.xlsx
     data/materials.js  물질정보 460종   ← 화학사고_현장대응_물질정보.hwpx
     data/stats.js      사고통계        ← 화학사고_통계.xls
@@ -25,11 +25,28 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 SRC = ROOT / "source"
 OUT = ROOT / "data"
 
-SHELTER_XLSX = SRC / "화학사고대피장소_목록_2026-05-19.xlsx"
+# 2026년도 최종 지정 목록(1,863곳) — 「2026년도 화학사고 대피장소 지정 및 현행화」 결과보고(2026-09-23)의
+# 붙임 목록입니다(2026-11-23 사용자). 받은 엑셀에서 **대피장소 담당자 이름·연락처 두 칸을 비운 사본**만
+# 저장소에 둡니다 — 저장소가 공개라서입니다(CLAUDE.md 2절 4항). 예전 목록(2026-05-19 · 1,849곳)은 지웠습니다.
+SHELTER_XLSX = SRC / "화학사고대피장소_목록_2026-09-23.xlsx"
 CASE_XLSX = SRC / "화학사고_재난문자_실제발송사례.xlsx"
 MATERIAL_HWPX = SRC / "화학사고_현장대응_물질정보_460종_2026.hwpx"
 STATS_XLS = SRC / "화학사고_통계_2015-2025.xls"
-SHELTER_BASE_DATE = "2026-05-19"
+SHELTER_BASE_DATE = "2026-09-23"
+
+
+# 2026년도 목록은 전남·광주를 「전남광주통합특별시」 한 이름으로 적습니다(행정구역 개편). 화면의 지역 고르기·
+# 행정경계선·방제자원·이재민 임시주거시설은 모두 광주광역시/전라남도로 나뉘어 있어, 시·군·구로 **갈라** 넣습니다 —
+# make_tempshelters.py 의 MERGED 와 같은 규칙입니다. 광주의 구 다섯이 아니면 전라남도입니다(전남에는 구가 없어
+# 애매한 이름이 없습니다). 화면 자료가 통합 이름으로 바뀌면 이 규칙을 지우세요.
+통합시도 = "전남광주통합특별시"
+광주구 = {"동구", "서구", "남구", "북구", "광산구"}
+
+
+def 수(v) -> int:
+    """수용인원 — 2026-09 목록은 글자('1044')로 옵니다. 숫자만 남겨 셉니다(빈칸은 0)."""
+    t = "".join(ch for ch in str(v if v is not None else "") if ch.isdigit())
+    return int(t) if t else 0
 
 
 def build_shelters() -> int:
@@ -37,20 +54,29 @@ def build_shelters() -> int:
     tree: dict = collections.OrderedDict()
 
     for row in ws.iter_rows(min_row=2, values_only=True):
-        sido, sgg, kind = row[1], row[2], row[4]
+        if not row or row[0] is None:
+            continue
+        # 시·군·구가 빈 줄(세종)은 None 으로 둡니다 — 화면들이 세종의 열쇠를 "null" 로 알고 찾습니다
+        # (map/app.js · safe/app.js · build/fetch_tempshelter.html). 빈 글자 "" 로 바뀌면 세종이 통째로 안 잡힙니다.
+        sido, sgg, kind = (row[1] or "").strip(), (row[2] or "").strip() or None, row[4]
         name, detail, addr = row[5], row[6], row[7]
         lat, lon, cap = row[8], row[9], row[11]
-        dept, tel, deleted = row[12], row[13], row[19]
-        # row[14] 담당자 이름 · row[15] 담당자 연락처 → 개인정보라 제외
-        if deleted == "Y":
+        dept, tel, flag = row[12], row[13], (row[19] or "").strip()
+        # row[14] 담당자 이름 · row[15] 담당자 연락처 → 개인정보라 제외(저장소 사본에서는 이미 비움)
+        # 「추가 삭제 여부」 — 2026-05 목록은 Y(삭제)/N, 2026-09 최종 목록은 U(그대로)·A(추가)·빈칸이고
+        # 삭제된 곳은 목록에서 빠져 있습니다. 혹시 D·Y 가 오면 삭제로 봅니다.
+        if flag in ("Y", "D"):
             continue
+        원시도 = sido
+        if sido == 통합시도:
+            sido = "광주광역시" if sgg in 광주구 else "전라남도"
         addr = (addr or "").strip()
-        for prefix in (f"{sido} {sgg} ", f"{sido} "):   # 시도·시군구는 키로 이미 알고 있음
+        for prefix in (f"{원시도} {sgg} ", f"{sido} {sgg} ", f"{원시도} ", f"{sido} "):   # 시도·시군구는 키로 이미 알고 있음
             if addr.startswith(prefix):
                 addr = addr[len(prefix):]
                 break
         tree.setdefault(sido, collections.OrderedDict()).setdefault(sgg, []).append([
-            name or "", (detail or "").strip(), addr, int(cap or 0), kind or "",
+            name or "", (detail or "").strip(), addr, 수(cap), kind or "",
             round(float(lat), 5) if lat else None,      # 위도
             round(float(lon), 5) if lon else None,      # 경도
             (dept or "").strip(), (tel or "").strip(),

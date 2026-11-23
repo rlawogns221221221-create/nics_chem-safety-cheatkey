@@ -63,7 +63,9 @@ def main():
     if r.returncode != 0:
         print(r.stdout[-2000:], r.stderr[-2000:])
         멈춤("make_release.py 가 멈췄습니다 — 위 내용을 먼저 고치세요")
-    site = ROOT / "release" / "화학사고_초동대응_지원_서비스"
+    # 배포 폴더 이름은 make_release.py 가 정합니다(서비스 이름이 바뀌면 함께 바뀜). 묶음 안 폴더 이름(PKG)은
+    # 이미 제출한 GitLab 그대로 둡니다.
+    site = ROOT / "release" / "화학사고_초동대응_현장_지원_서비스"
 
     shutil.rmtree(OUT, ignore_errors=True)
     shutil.copytree(site, PKG)
