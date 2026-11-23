@@ -115,6 +115,8 @@ body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
 function $(s) { return document.querySelector(s); }
 var 배율 = 1;                                  // 휴대전화 css px → 무대 px
 var 폰w = 470, 폰h = 964;
+// 가상 사고 장면의 시각 — 만드는 스크립트가 판마다 넘김(짧은 판은 4초 안에 다 뜨고 줄어듦)
+var 때 = { 태그: 0.3, 제목: 1.0, 줄1: 1.7, 줄2: 2.3, 줄임: 4.9, 줄임길이: 0.9, QR: 5.8 };
 function clamp(x) { return Math.max(0, Math.min(1, x)); }
 function 쉬움(x) { x = clamp(x); return 1 - Math.pow(1 - x, 3); }
 function 둘다(x) { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
@@ -124,6 +126,7 @@ function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { '&'
 
 window.준비 = function (o) {
   배율 = 폰w / o.폭;
+  if (o.때) 때 = o.때;
   $('#qri').src = o.qr;
   var a = o.사고;
   $('#acc1').innerHTML = '<b>' + esc(a.시각) + '</b>&nbsp;&nbsp;' + esc(a.곳);
@@ -142,7 +145,7 @@ window.장면 = function (s) {
 
   // ── 가상 사고 카드 — 0.3초부터 하나씩 떠올라 화면 가운데 크게 → 4.9초부터 왼쪽 위로 ──
   var acc = $('#acc');
-  var 작게 = 둘다(사이(t, 4.9, 0.9));
+  var 작게 = 둘다(사이(t, 때.줄임, 때.줄임길이));
   var 크기 = { tf: [40, 26], hf: [124, 56], lf: [62, 40], pv: [34, 18], ph: [48, 28], dot: [58, 30], gap: [22, 10] };
   Object.keys(크기).forEach(function (k) { acc.style.setProperty('--' + k, lerp(크기[k][0], 크기[k][1], 작게) + 'px'); });
   var 큰top = 540 - acc.offsetHeight / 2 - 10;
@@ -151,23 +154,24 @@ window.장면 = function (s) {
   var 카드아래 = 36 + acc.offsetHeight;
   $('#lbl').style.top = (카드아래 + 30) + 'px';
   $('#cap').style.top = (카드아래 + 78) + 'px';
-  var 보임 = [쉬움(사이(t, 0.3, 0.4)), 쉬움(사이(t, 1.0, 0.35)), 쉬움(사이(t, 1.7, 0.4)), 쉬움(사이(t, 2.3, 0.4))];
+  var 보임 = [쉬움(사이(t, 때.태그, 0.35)), 쉬움(사이(t, 때.제목, 0.35)), 쉬움(사이(t, 때.줄1, 0.35)), 쉬움(사이(t, 때.줄2, 0.35))];
   acc.style.opacity = 보임[0];
   [acc.querySelector('.tag'), acc.querySelector('.h'), $('#acc1'), $('#acc2')].forEach(function (el, i) {
     el.style.opacity = i ? 보임[i] : 1;
     el.style.transform = 'translateY(' + (18 * (1 - 보임[i])) + 'px)';
   });
   // 붉은 점 — 퍼지는 고리. 처음엔 빠르게, 작아진 뒤에는 천천히
-  var 주기 = t < 5 ? 0.9 : 2.2;
+  var 주기 = t < 때.줄임 ? 0.9 : 2.2;
   [].forEach.call(acc.querySelectorAll('.dot u'), function (u, j) {
-    var p = (t - 1.0 - j * 주기 / 2) / 주기;
+    var p = (t - 때.제목 - j * 주기 / 2) / 주기;
     p = p < 0 ? -1 : p - Math.floor(p);
     u.style.opacity = p < 0 ? 0 : 0.85 * (1 - p);
     u.style.transform = 'scale(' + (1 + 1.4 * p) + ')';
   });
   // 바탕의 붉은 기운 — 사고가 뜰 때 맥박 두세 번, 줄어든 뒤에는 거의 꺼짐
-  var 맥 = t < 1.0 ? 0 : 0.55 + 0.45 * Math.cos(2 * Math.PI * (t - 1.0) / 1.1);
-  $('#alarm').style.opacity = 쉬움(사이(t, 1.0, 0.3)) * (t < 5.5 ? 0.35 + 0.65 * 맥 : 0.12 * (1 - 쉬움(사이(t, 5.5, 1.5))));
+  var 맥 = t < 때.제목 ? 0 : 0.55 + 0.45 * Math.cos(2 * Math.PI * (t - 때.제목) / 1.1);
+  var 꺼짐 = 때.줄임 + 0.6;
+  $('#alarm').style.opacity = 쉬움(사이(t, 때.제목, 0.3)) * (t < 꺼짐 ? 0.35 + 0.65 * 맥 : 0.12 * (1 - 쉬움(사이(t, 꺼짐, 1.5))));
 
   // ── 자막 — 바뀔 때 살짝 올라오며 나타남 ──
   var cap = $('#cap');
@@ -184,9 +188,9 @@ window.장면 = function (s) {
   덧.style.top = (cap.offsetTop + cap.offsetHeight + 22) + 'px';
 
   // ── QR — 접속하는 장면(인트로 끝 무렵)과 마무리 ──
-  var qr보임 = t < 인 + 0.5 ? 쉬움(사이(t, 인 - 2.1, 0.4)) * (1 - 사이(t, 인 - 0.3, 0.5)) : s.끝;
+  var qr보임 = t < 인 + 0.5 ? 쉬움(사이(t, 때.QR, 0.35)) * (1 - 사이(t, 인 - 0.1, 0.5)) : s.끝;
   $('#qr').style.opacity = qr보임;
-  var 스캔 = 사이(t, 인 - 1.8, 1.4);
+  var 스캔 = 사이(t, 때.QR + 0.2, Math.max(0.5, 인 - 때.QR - 0.35));
   $('#scan').style.top = (스캔 * 100) + '%';
   $('#scan').style.opacity = t < 인 && 스캔 > 0 && 스캔 < 1 ? 1 : 0;
   $('#url').style.opacity = s.끝;
@@ -254,7 +258,7 @@ window.장면 = function (s) {
   $('#spd').style.visibility = 빠름 ? 'visible' : 'hidden';
 
   // ── 번쩍임 — 사고가 뜨는 순간 한 번(붉은 기운과 함께) · 끝 어둡게 ──
-  var 번 = t >= 1.0 && t < 1.3 ? 0.18 * (1 - (t - 1.0) / 0.3) : 0;
+  var 번 = t >= 때.제목 && t < 때.제목 + 0.3 ? 0.18 * (1 - (t - 때.제목) / 0.3) : 0;
   $('#flash').style.opacity = 번;
   $('#fade').style.opacity = s.어둡게 + (t < 0.4 ? 1 - t / 0.4 : 0);
   var 다 = [];
