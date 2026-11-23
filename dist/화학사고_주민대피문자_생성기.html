@@ -2422,6 +2422,7 @@ a.btnlink:hover{border-color:var(--brand)}
   --rk-recy:var(--rk-marine);
   --rk-land:var(--rk-waste);
   --rk-heavy:#464c53;      /* 중장비 — 기계. 위 여섯 색과 겹치지 않게 */
+  --rk-sell:#9b2d6b;       /* 방제물품 판매 — 자주. 업체 갈래 일곱 색과 겹치지 않게 */
   --rk-plant:var(--rk-toxgas);
   --rk-envbox:var(--rk-water);
   --rk-shop:var(--rk-waste);
@@ -2455,6 +2456,7 @@ a.btnlink:hover{border-color:var(--brand)}
 .rk-ic.rk-recy{color:var(--rk-recy)}
 .rk-ic.rk-land{color:var(--rk-land)}
 .rk-ic.rk-heavy{color:var(--rk-heavy)}
+.rk-ic.rk-sell{color:var(--rk-sell)}
 .rk-ic.rk-plant{color:var(--rk-plant)}
 .rk-ic.rk-envbox{color:var(--rk-envbox)}
 .rk-ic.rk-shop{color:var(--rk-shop)}
@@ -2625,6 +2627,19 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 .ms-it .l0{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-bottom:5px}
 .ms-it .l0-g{font-size:1.3rem;color:var(--ink2)}
 .tag.first{background:var(--ok);color:var(--on-brand);font-weight:700}
+/* 비상연락망(담당자 휴대전화)은 안전원 상황실에 있습니다 — 개인정보라 화면에
+   못 넣는 대신 어디로 걸면 되는지를 한 줄로(2026-11-18 사용자 "짧고 임팩트
+   있게"). 딱지 아래 제 줄을 차지해 좁은 화면에서도 끊기지 않습니다. */
+.rk-emg{flex-basis:100%;margin:2px 0 0;font-size:1.4rem;font-weight:700;
+  color:var(--err);line-height:1.45;word-break:keep-all}
+.rk-emg b{color:inherit}
+/* 누르면 바로 상황실로 걸립니다 — 전화번호처럼 보이게 밑줄 + 굵게 */
+.rk-emg a.rk-emg-tel{color:inherit;text-decoration:underline;text-underline-offset:3px;
+  white-space:nowrap}
+@media (pointer: coarse){
+  .rk-emg a.rk-emg-tel{display:inline-flex;align-items:center;min-height:40px}
+}
+.rkd-first{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
 /* 원자료에서 확인하지 못한 것 — 지어내지 않고 무엇을 못 채웠는지 적습니다 */
 .ms-it .l8{margin-top:4px;font-size:1.3rem;color:var(--warn);line-height:1.5}
 
@@ -2813,6 +2828,7 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 #map g.rk-recy .pin-bg{fill:var(--rk-recy)}
 #map g.rk-land .pin-bg{fill:var(--rk-land)}
 #map g.rk-heavy .pin-bg{fill:var(--rk-heavy)}
+#map g.rk-sell .pin-bg{fill:var(--rk-sell)}
 #map g.rk-plant .pin-bg{fill:var(--rk-plant)}
 #map g.rk-envbox .pin-bg{fill:var(--rk-envbox)}
 #map g.rk-shop .pin-bg{fill:var(--rk-shop)}
@@ -2836,6 +2852,7 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 #map g.rk.approx.rk-recy .pin-bg{stroke:var(--rk-recy)}
 #map g.rk.approx.rk-land .pin-bg{stroke:var(--rk-land)}
 #map g.rk.approx.rk-heavy .pin-bg{stroke:var(--rk-heavy)}
+#map g.rk.approx.rk-sell .pin-bg{stroke:var(--rk-sell)}
 #map g.rk.approx.rk-plant .pin-bg{stroke:var(--rk-plant)}
 #map g.rk.approx.rk-envbox .pin-bg{stroke:var(--rk-envbox)}
 #map g.rk.approx.rk-shop .pin-bg{stroke:var(--rk-shop)}
@@ -2853,6 +2870,7 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 #map g.rk.approx.rk-recy .pin-ic{stroke:var(--rk-recy)}
 #map g.rk.approx.rk-land .pin-ic{stroke:var(--rk-land)}
 #map g.rk.approx.rk-heavy .pin-ic{stroke:var(--rk-heavy)}
+#map g.rk.approx.rk-sell .pin-ic{stroke:var(--rk-sell)}
 #map g.rk.approx.rk-plant .pin-ic{stroke:var(--rk-plant)}
 #map g.rk.approx.rk-envbox .pin-ic{stroke:var(--rk-envbox)}
 #map g.rk.approx.rk-shop .pin-ic{stroke:var(--rk-shop)}

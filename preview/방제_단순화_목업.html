@@ -1,0 +1,262 @@
+<title>방제 찾기 단순화안</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;800&display=swap">
+<style>
+/* 배치: 위에 "지금 → 바꾼 뒤" 한 줄, 아래 휴대전화 화면 넷을 나란히(좁으면 세로로) · 화면마다 아래에 이유 한 줄 */
+:root{
+  --bg:#eef1f6; --paper:#ffffff; --ink:#1d2433; --ink2:#4a5468; --ink3:#7a8396;
+  --line:#d6dbe4; --brand:#256ef4; --brand-d:#0b50d0; --brand-l:#e8f0fe;
+  --ok:#1a7a43; --ok-l:#e6f4ec; --err:#c8281e; --err-l:#fdecea; --warn:#8a5a00; --warn-l:#fff4d6;
+  --phone:#14171f; --chip:#f2f4f8;
+  --f:"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0f1218; --paper:#1a1f29; --ink:#eef1f6; --ink2:#c2c9d6; --ink3:#8f98aa;
+  --line:#333b4a; --brand:#6ea0ff; --brand-d:#9bbcff; --brand-l:#1f2c47;
+  --ok:#5cc98a; --ok-l:#16301f; --err:#ff7b70; --err-l:#3a1c1a; --warn:#ffc552; --warn-l:#3a2e12;
+  --phone:#000; --chip:#232a36; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1218; --paper:#1a1f29; --ink:#eef1f6; --ink2:#c2c9d6; --ink3:#8f98aa;
+  --line:#333b4a; --brand:#6ea0ff; --brand-d:#9bbcff; --brand-l:#1f2c47;
+  --ok:#5cc98a; --ok-l:#16301f; --err:#ff7b70; --err-l:#3a1c1a; --warn:#ffc552; --warn-l:#3a2e12;
+  --phone:#000; --chip:#232a36; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--f);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:24px 48px;word-break:keep-all}
+.wrap{max-width:1560px;margin:0 auto;display:flex;flex-direction:column;gap:28px}
+h1{font-size:26px;margin:0;font-weight:800;text-wrap:balance}
+.lead{margin:6px 0 0;color:var(--ink2);max-width:70ch}
+.tag{display:inline-block;font-size:12px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--warn-l);color:var(--warn);margin-left:6px;vertical-align:3px}
+
+/* 지금 → 바꾼 뒤 */
+.flow{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.flowbox{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.flowbox h2{font-size:15px;margin:0 0 10px;color:var(--ink2)}
+.steps{display:flex;flex-wrap:wrap;align-items:center;gap:6px}
+.step{background:var(--chip);border-radius:6px;padding:6px 10px;font-size:14px;font-weight:500}
+.step.now{background:var(--brand-l);color:var(--brand-d);font-weight:700}
+.arr{color:var(--ink3)}
+.count{margin-top:10px;font-size:13px;color:var(--ink3)}
+.count b{color:var(--ink);font-size:18px}
+
+/* 휴대전화 화면 넷 */
+.screens{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px;align-items:start}
+.scr{display:flex;flex-direction:column;gap:12px;min-width:0}
+.scr-h{font-size:14px;font-weight:700;color:var(--ink2)}
+.scr-h span{display:inline-flex;width:22px;height:22px;border-radius:50%;background:var(--brand);color:#fff;font-size:12px;align-items:center;justify-content:center;margin-right:6px}
+.phone{background:var(--phone);border-radius:30px;padding:10px;max-width:360px;width:100%;margin:0 auto}
+.dev{background:var(--bg);border-radius:22px;overflow:hidden;height:680px;display:flex;flex-direction:column}
+.bar{background:var(--paper);border-bottom:3px solid var(--brand);padding:12px 14px;display:flex;align-items:center;justify-content:space-between;flex:none}
+.bar b{font-size:16px}
+.bar i{font-style:normal;font-size:12px;color:var(--ink3);border:1px solid var(--line);border-radius:6px;padding:4px 8px}
+.body{padding:12px;display:flex;flex-direction:column;gap:10px;overflow:hidden;flex:1}
+.why{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px;color:var(--ink2)}
+.why b{color:var(--ink)}
+.why q{display:block;margin-top:6px;font-size:13px;color:var(--ink3);quotes:"“" "”"}
+
+/* 화면 안 부품 */
+.q1{font-size:21px;font-weight:800;margin:6px 2px 2px}
+.btn{display:flex;align-items:center;gap:10px;border-radius:10px;padding:0 16px;height:56px;font-weight:700;font-size:16px;border:0;font-family:inherit}
+.btn.big{background:var(--brand);color:#fff;justify-content:center}
+.btn svg{width:22px;height:22px;flex:none}
+.inp{height:48px;border:1.5px solid var(--line);border-radius:8px;background:var(--paper);display:flex;align-items:center;padding:0 12px;color:var(--ink3);font-size:15px}
+.or{text-align:center;color:var(--ink3);font-size:13px}
+.hint{font-size:13px;color:var(--ink3);margin:0 2px}
+.situ{margin-top:auto;background:var(--err-l);border-radius:10px;padding:12px;font-size:13px;color:var(--err);font-weight:700}
+.situ u{font-size:16px}
+.sum{background:var(--brand);color:#fff;border-radius:8px;padding:8px 12px;font-size:13px;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.sum b{font-size:14px}
+.sum s{text-decoration:none;opacity:.85}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--paper);border:1.5px solid var(--line);border-radius:999px;padding:5px 11px;font-size:13px;font-weight:500;color:var(--ink2)}
+.chip.on{background:var(--brand);border-color:var(--brand);color:#fff;font-weight:700}
+.chip.sub{border-style:dashed}
+.first{background:var(--ok-l);border-left:4px solid var(--ok);border-radius:8px;padding:9px 11px;display:flex;flex-direction:column;gap:6px}
+.first h4{margin:0;font-size:13px;color:var(--ok)}
+.frow{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:14px}
+.frow em{font-style:normal;font-size:12px;color:var(--ink3);display:block}
+.emg{font-size:13px;font-weight:700;color:var(--err)}
+.emg u{white-space:nowrap}
+.row{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:9px 11px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center}
+.row .n{font-weight:700;font-size:15px;min-width:0}
+.row .d{font-size:12px;color:var(--ink3);margin-left:6px;font-weight:400}
+.row .has{grid-column:1;font-size:13px;color:var(--ink2)}
+.row .has b{color:var(--ink)}
+.row .has mark{background:var(--brand-l);color:var(--brand-d);font-weight:700;padding:0 3px;border-radius:3px}
+.call{grid-row:1/3;grid-column:2;background:var(--brand-l);color:var(--brand-d);font-weight:700;font-size:13px;border-radius:8px;padding:0 12px;height:44px;display:flex;align-items:center;gap:5px}
+.call svg{width:16px;height:16px}
+.grp{font-size:13px;font-weight:700;color:var(--ink2);margin:4px 2px 0;display:flex;justify-content:space-between}
+.grp.unk{color:var(--warn)}
+.row.unk{border-style:dashed}
+.more{text-align:center;font-size:13px;color:var(--brand-d);font-weight:700;padding:6px}
+.ap{font-size:11px;color:var(--warn);background:var(--warn-l);border-radius:3px;padding:0 4px;margin-left:4px;font-weight:700}
+
+/* 결정할 것 */
+.ask{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.ask h2{font-size:17px;margin:0 0 10px}
+.ask ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;max-width:90ch}
+.note{font-size:13px;color:var(--ink3)}
+
+@media (max-width:1300px){.screens{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:760px){.screens{grid-template-columns:minmax(0,1fr)}.flow{grid-template-columns:minmax(0,1fr)}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>방제 물품·장비 찾기 — 단순화안 <span class="tag">그림만 · 아직 안 고침</span></h1>
+    <p class="lead">"물품부터 고르기"를 "가까운 곳부터 보기"로 바꾸는 안입니다. 화면 속 업체·수량은 지금 자료(여수 근처)에서 몇 줄 옮긴 <b>예시</b>이고, 거리는 주소로 잡은 대략값입니다.</p>
+  </header>
+
+  <section class="flow" aria-label="누르는 횟수 비교">
+    <div class="flowbox">
+      <h2>지금</h2>
+      <div class="steps">
+        <span class="step">업체 섭외 / 방제물품 고르기</span><span class="arr">→</span>
+        <span class="step">갈래 8개 · 물품 27개 중 고르기</span><span class="arr">→</span>
+        <span class="step">사고지점</span><span class="arr">→</span>
+        <span class="step now">결과</span>
+      </div>
+      <div class="count">결과까지 <b>3단계</b> · 허가 용어(수집·운반, 중간처분…)를 먼저 골라야 함</div>
+    </div>
+    <div class="flowbox">
+      <h2>바꾼 뒤</h2>
+      <div class="steps">
+        <span class="step">사고지점 (내 위치 한 번 누르기)</span><span class="arr">→</span>
+        <span class="step now">결과 — 가까운 곳 + 먼저 연락할 곳</span>
+      </div>
+      <div class="count">결과까지 <b>1단계</b> · 좁히기는 결과 위 칩으로, 안 골라도 됨</div>
+    </div>
+  </section>
+
+  <section class="screens" aria-label="휴대전화 화면 넷">
+
+    <!-- ① 첫 화면 -->
+    <div class="scr">
+      <div class="scr-h"><span>1</span>첫 화면 — 묻는 것은 하나</div>
+      <div class="phone"><div class="dev">
+        <div class="bar"><b>방제 물품·장비 찾기</b><i>⋯ 메뉴</i></div>
+        <div class="body">
+          <div class="q1">사고지점이 어디인가요?</div>
+          <div class="btn big"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7.5"/></svg>지금 내 위치로 찾기</div>
+          <div class="or">또는</div>
+          <div class="inp">주소 · 사업장 이름</div>
+          <div class="inp">지도에서 찍기</div>
+          <p class="hint">위치를 정하면 바로 가까운 곳이 나옵니다. 무엇이 필요한지는 그다음에 골라도 됩니다.</p>
+          <div class="situ">긴급동원 업체 비상연락망(휴대전화)<br>▶ <u>안전원 상황실 043-830-4120</u></div>
+        </div>
+      </div></div>
+      <div class="why"><b>무엇이 바뀌나</b> — 「업체 섭외 / 방제물품」 갈래 고르기가 첫 화면에서 빠지고, 「내 위치」가 가장 큰 단추가 됩니다.
+        <q>사고 지점 입력 시 현위치로 바로 뜰 수 있도록 수정하면 더 편할 거 같네요</q></div>
+    </div>
+
+    <!-- ② 결과 -->
+    <div class="scr">
+      <div class="scr-h"><span>2</span>결과 — 가까운 곳이 가진 것</div>
+      <div class="phone"><div class="dev">
+        <div class="bar"><b>방제 물품·장비 찾기</b><i>⋯ 메뉴</i></div>
+        <div class="body">
+          <div class="sum"><b>여수시 주삼동 둘레 10km</b><s>23곳 · 거리는 대략</s></div>
+          <div class="chips">
+            <span class="chip on">전체</span><span class="chip">물품</span><span class="chip">업체</span>
+            <span class="chip sub">흡착포-화학</span><span class="chip sub">흡착포-유류</span><span class="chip sub">보호구</span><span class="chip sub">중화제</span><span class="chip sub">+ 더</span>
+          </div>
+          <div class="first">
+            <h4>먼저 연락 · 긴급동원체계</h4>
+            <div class="frow"><span>(주)그린<em>폐기물 실어 가기 · 전라·충청·경상</em></span><span class="call">전화</span></div>
+            <div class="frow"><span>씨이케이(주)<em>처리 맡기기 · 전라·경상</em></span><span class="call">전화</span></div>
+            <div class="emg">비상연락망(휴대전화) ▶ <u>상황실 043-830-4120</u></div>
+          </div>
+          <div class="row"><div class="n">대정티씨 여수공장<span class="d">3.4km</span></div>
+            <div class="has">흡착포 <b>50</b> · 내산복 <b>2</b> · 모래 <b>5포</b> · 소화기 <b>1</b></div>
+            <span class="call"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2"/></svg>전화</span></div>
+          <div class="row"><div class="n">㈜로비스<span class="d">3.4km</span></div>
+            <div class="has">흡착포 <b>2박스</b> · 오일펜스 <b>15m</b> · 보호구 <b>5세트</b> · 인원 <b>5명</b></div>
+            <span class="call"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2"/></svg>전화</span></div>
+          <div class="row"><div class="n">GS칼텍스㈜<span class="d">3.4km</span></div>
+            <div class="has">방독마스크 <b>15</b> · 유독물장갑 <b>20</b> · 장화 <b>20</b> · …</div>
+            <span class="call"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 3h4l2 5-2.5 1.5a11 11 0 0 0 6 6L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 5a2 2 0 0 1 2-2"/></svg>전화</span></div>
+          <div class="more">가까운 곳 20곳 더 보기 ▾ · 지도로 보기</div>
+        </div>
+      </div></div>
+      <div class="why"><b>무엇이 바뀌나</b> — 물품 이름이 아니라 <b>"누가 무엇을 가졌나"</b>로 한 줄씩 보입니다. 맨 위는 긴급동원체계와 상황실이 늘 고정이고, 줄마다 큰 [전화] 단추가 있습니다.
+        <q>각 지자체마다 보유하는 물품이 다 다른데 물품별 항목으로 하는게 어려워요.</q></div>
+    </div>
+
+    <!-- ③ 흡착포 좁히기 -->
+    <div class="scr">
+      <div class="scr-h"><span>3</span>좁히기 — 흡착포 화학 / 유류</div>
+      <div class="phone"><div class="dev">
+        <div class="bar"><b>방제 물품·장비 찾기</b><i>⋯ 메뉴</i></div>
+        <div class="body">
+          <div class="sum"><b>여수시 주삼동 둘레 10km</b><s>흡착포-화학 · 거리는 대략</s></div>
+          <div class="chips">
+            <span class="chip">전체</span><span class="chip on">물품</span><span class="chip">업체</span>
+            <span class="chip on">흡착포-화학 ✕</span><span class="chip sub">흡착포-유류</span><span class="chip sub">보호구</span><span class="chip sub">+ 더</span>
+          </div>
+          <div class="grp"><span>화학물질용으로 적힌 곳</span><span>4곳</span></div>
+          <div class="row"><div class="n">○○화학 여수공장<span class="d">2.8km</span></div>
+            <div class="has"><mark>화학물질 흡착포(붐형) 20</mark> · 보호복 10</div>
+            <span class="call">전화</span></div>
+          <div class="row"><div class="n">○○시청 환경과<span class="d">3.1km</span><span class="ap">예시</span></div>
+            <div class="has"><mark>유독물 흡착포 5박스</mark> · 방독면 30</div>
+            <span class="call">전화</span></div>
+          <div class="grp unk"><span>종류 안 적힘 — 전화로 확인</span><span>7곳</span></div>
+          <div class="row unk"><div class="n">대정티씨 여수공장<span class="d">3.4km</span></div>
+            <div class="has">흡착포 <b>50</b> <span class="ap">화학·유류 안 적힘</span></div>
+            <span class="call">전화</span></div>
+          <div class="row unk"><div class="n">㈜로비스<span class="d">3.4km</span></div>
+            <div class="has">흡착포 <b>2박스</b> <span class="ap">화학·유류 안 적힘</span></div>
+            <span class="call">전화</span></div>
+          <div class="more">5곳 더 보기 ▾</div>
+        </div>
+      </div></div>
+      <div class="why"><b>무엇이 바뀌나</b> — 흡착포를 「화학」「유류」 두 칩으로 나눕니다. 원자료에 그냥 "흡착포"라고만 적힌 곳(흡착 관련 약 64%)은 <b>지어서 나누지 않고</b> 아래에 따로 점선으로 둡니다.
+        <q>흡착포라 하며 유흡착포, 케미칼 흡착포가 다른데, 그냥 흡착포라고 검색된 후에 그게 어떤 흡착포 인지 알수가 없어서요.</q></div>
+    </div>
+
+    <!-- ④ 업체 -->
+    <div class="scr">
+      <div class="scr-h"><span>4</span>업체가 필요할 때 — 할 일로 묻기</div>
+      <div class="phone"><div class="dev">
+        <div class="bar"><b>방제 물품·장비 찾기</b><i>⋯ 메뉴</i></div>
+        <div class="body">
+          <div class="sum"><b>여수시 주삼동 둘레 30km</b><s>업체 · 거리는 대략</s></div>
+          <div class="chips">
+            <span class="chip">전체</span><span class="chip">물품</span><span class="chip on">업체</span>
+          </div>
+          <div class="chips">
+            <span class="chip on">폐기물·폐액 실어 가기</span><span class="chip">처리 맡기기</span>
+            <span class="chip">장비 부르기</span><span class="chip">폐수 맡기기</span><span class="chip">물품 사기</span><span class="chip">독성가스 회수</span>
+          </div>
+          <div class="first">
+            <h4>먼저 연락 · 긴급동원체계</h4>
+            <div class="frow"><span>(주)그린<em>수집·운반 · 탱크로리 9대</em></span><span class="call">전화</span></div>
+            <div class="frow"><span>(주)상록<em>수집·운반 · 전라·충청</em></span><span class="call">전화</span></div>
+            <div class="emg">비상연락망(휴대전화) ▶ <u>상황실 043-830-4120</u></div>
+          </div>
+          <div class="grp"><span>그 밖의 허가 업체</span><span>41곳</span></div>
+          <div class="row"><div class="n">△△환경<span class="d">5.2km</span><span class="ap">예시</span></div>
+            <div class="has">수집·운반 허가 · 폐산·폐알칼리 …</div>
+            <span class="call">전화</span></div>
+          <div class="row"><div class="n">□□산업<span class="d">8.9km</span><span class="ap">예시</span></div>
+            <div class="has">수집·운반 허가 · 폐유·폐유기용제 …</div>
+            <span class="call">전화</span></div>
+          <div class="more">39곳 더 보기 ▾</div>
+        </div>
+      </div></div>
+      <div class="why"><b>무엇이 바뀌나</b> — 「수집·운반 · 중간처분 · 종합재활용 · 매립」 같은 허가 이름 대신 <b>할 일</b>로 고릅니다. 허가 이름은 줄 안과 세부 창에 그대로 남습니다. 자료의 속(분류)은 그대로입니다.
+        <q>방제물품찾기가 복잡합니다.</q></div>
+    </div>
+  </section>
+
+  <section class="ask">
+    <h2>정해 주셔야 할 것</h2>
+    <ol>
+      <li><b>첫 화면의 「업체 섭외 / 방제물품」 고르기를 없애도 될까요?</b> 9월 분류안(PPT)으로 정하신 구조입니다. 이 안은 두 갈래를 없애지 않고 결과 위 [물품] [업체] 칩으로 옮깁니다.</li>
+      <li><b>업체 칩 이름</b>(실어 가기 · 처리 맡기기 · 장비 부르기 · 폐수 맡기기 · 물품 사기 · 독성가스 회수) — 담당자가 쓰는 말과 맞는지 봐 주세요. "처리 맡기기"에는 중간처분·종합재활용·매립 셋이 들어갑니다.</li>
+      <li><b>「종류 안 적힘」 흡착포</b>를 이렇게 따로 보여 줄지, 아니면 자료를 낸 기관에 다시 물어 채울지 정해 주세요.</li>
+      <li><b>처음에 몇 곳을 보여 줄지</b> — 그림은 가까운 3곳 + "더 보기"입니다.</li>
+    </ol>
+    <p class="note">만족도 조사(58명 판, 10/31)에서 가장 많이 쓴 기능이 방제(45명)였고, "복잡하다"는 말도 방제에서만 나왔습니다. ○○·△△·□□ 이름과 「예시」가 붙은 줄은 그림을 위해 넣은 가짜 줄이고, 나머지 업체·수량은 지금 자료에서 옮겼습니다.</p>
+  </section>
+</div>
