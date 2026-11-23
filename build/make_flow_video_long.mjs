@@ -383,6 +383,13 @@ async function 녹화() {
   await 앱().evaluate(() => document.fonts.ready);
   const 카드차례 = await 앱().evaluate(() => [...document.querySelectorAll('li.pn a')].map((a) => a.getAttribute('href').split('/')[0]).join(','));
   if (카드차례 !== 'safe,map,sms,res') 문제.push('첫 화면 카드 차례가 최종본과 다름: ' + 카드차례);
+  /* 시계는 첫 화면이 **다 그려진 뒤**부터 — 영상의 첫 장면(재생 전 화면)에 이 화면이 그대로 걸립니다. 카드 사진이
+     풀리기 전·제목 낱말이 올라오는 중(1초 남짓)에 시계를 시작했더니 첫 장면의 휴대전화가 회색 빈 카드였습니다. */
+  await 앱().evaluate(() => Promise.race([
+    Promise.all([...document.images].map((im) => (im.complete ? Promise.resolve() : im.decode().catch(() => {})))),
+    new Promise((ok) => setTimeout(ok, 5000)),
+  ]));
+  await 잠깐(1300);
   표시('접속');
   const 접속때 = Date.now();              // 시연 시계의 0초 — 엮기의 원점(r('접속'))과 같은 자리
   /* 맞추기 — 세부 창이 「2분 57초 − 3.4초」 무렵에 뜨도록 남은 읽는 틈의 배율을 정합니다.
@@ -399,7 +406,7 @@ async function 녹화() {
     console.log(`맞추기(${이름}) — ${걸림.toFixed(1)}초 · 앞 절반의 누르고 기다린 몫 ${앞몫.toFixed(1)}초 → 남은 틈 배율 ${배율.toFixed(2)}`);
     return { 명목, 남은틈 };
   };
-  await 머묾(4200);
+  await 머묾(2400);                       // 첫 장면에서 이미 이 화면을 보여 주므로 짧게
 
   /* ② 01 현장 안전거리 확인 */
   await 누르기('li.pn a[href*="safe/"]', { 뒤: 200, 표: '안전누름' });
