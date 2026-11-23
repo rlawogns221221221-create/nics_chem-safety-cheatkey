@@ -2763,7 +2763,33 @@ body.resapp:not(.has-acc) .mmain{display:none!important}
 .mob-x{border:0;background:none;color:var(--ink3);font-size:1.5rem;line-height:1;
   padding:2px 4px;cursor:pointer;border-radius:4px}
 .mob-x:hover{background:rgba(10,40,80,.1);color:var(--ink)}
-.mob-act{display:flex;gap:5px;margin-left:auto}
+.mob-act{display:flex;gap:5px;margin-left:auto;flex-wrap:wrap}
+.mob-sum{font-size:var(--fs-xs);color:var(--ink2)}
+/* 연락 결과 표시 — 칩 테두리 색만 바꿉니다(가능 = ok · 안 됨 = err).
+   색만으로 뜻을 전하지 않도록 펼친 카드에는 글자 단추가 늘 함께 있습니다. */
+.mob-it.s1{border-color:var(--ok);font-weight:700}
+.mob-it.s2{border-color:var(--err-b);color:var(--ink3);text-decoration:line-through}
+.mob-pan{flex:1 1 100%;display:flex;flex-direction:column;gap:8px;margin-top:4px}
+.mob-card{background:var(--card);border:1px solid var(--ok-b);border-radius:var(--r);
+  padding:10px 12px;display:flex;flex-direction:column;gap:4px}
+.mob-card.s1{border-color:var(--ok)}
+.mob-card.s2{border-color:var(--err-b)}
+.mob-ch{display:flex;align-items:flex-start;justify-content:space-between;gap:6px;
+  font-size:var(--fs-m)}
+.mob-cs,.mob-cc{font-size:var(--fs-xs);color:var(--ink2);line-height:var(--lh)}
+.mob-tel{display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  min-height:var(--h-m);margin-top:4px;border:1px solid var(--brand);border-radius:var(--r);
+  color:var(--brand-d);font-weight:700;font-size:var(--fs-m);text-decoration:none}
+.mob-tel .rk-ic{width:18px;height:18px}
+.mob-tel.none{border-color:var(--line);color:var(--ink3);font-weight:400;font-size:var(--fs-s)}
+.mob-st{display:flex;gap:6px;margin-top:4px}
+.mob-st button{flex:1;min-height:var(--h-s);border:1px solid var(--line);border-radius:var(--r);
+  background:var(--card);color:var(--ink);font-size:var(--fs-s);cursor:pointer}
+.mob-st button[aria-pressed=true].st0{background:var(--bg);border-color:var(--ink3);font-weight:700}
+.mob-st button[aria-pressed=true].st1{background:var(--ok-l);border-color:var(--ok);color:var(--ok);font-weight:700}
+.mob-st button[aria-pressed=true].st2{background:var(--err-l);border-color:var(--err);color:var(--err);font-weight:700}
+.mob-note{margin:2px 0 0;font-size:var(--fs-xs);color:var(--ink2);line-height:var(--lh);
+  background:var(--warn-l);border:1px solid var(--warn-b);border-radius:var(--r-s);padding:8px 10px}
 
 /* ── 지도 마커 ──────────────────────────────────────────────
    좌표를 주소로만 잡은 곳(시·군·구 단위)은 속을 비워 "대략 위치"임을 보인다 */

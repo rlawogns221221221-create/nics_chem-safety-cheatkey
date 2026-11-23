@@ -1,5 +1,5 @@
 /* ============================================================
-   화학사고 초동대응 지원 서비스 — 진입 화면
+   화학사고 초동대응 현장 지원 서비스 — 진입 화면
 
    KRDS(대한민국 정부 디자인시스템) 표준형입니다. 색·글자·크기는 업무도구
    (assets/shell.css)와 **같은 토큰**을 씁니다 — 진입 화면에서 도구로 넘어갈 때
@@ -77,10 +77,15 @@ html{font-size:62.5%}   /* KRDS 토큰이 rem 이라 뿌리를 10px 로 (1.7rem 
   /* 머리띠 사진 위 — 글자가 앉는 자리를 덮는 옅은 막과 그 위 글자.
      사진은 뒤에 무엇이 오는지에 따라 밝기가 들쭉날쭉해서, 막을 깔아
      대비를 고정합니다(KRDS: 이미지 위 텍스트는 안정적인 overlay 를 쓴다). */
-  --veil:rgba(255,255,255,.93);
-  --veil-0:rgba(255,255,255,0);
-  --hero-ink:var(--krds-light-color-text-basic);
-  --hero-ink-2:var(--krds-light-color-text-subtle);
+  /* 2026-11-23 사용자 결정 — 머리띠를 **화학사고가 나는 느낌**(야간 공장 · 주황 경광등 빛)
+     으로 바꾸면서 막을 짙은 남색으로, 글자를 흰색으로 바꿨습니다. 밝은 머리띠
+     원본은 source/photos/_이전_밝은머리띠_20261123/ 에 남겨 두었습니다. */
+  --veil:rgba(8,14,26,.88);
+  --veil-0:rgba(8,14,26,0);
+  --hero-ink:#ffffff;
+  --hero-ink-2:rgba(255,255,255,.88);
+  /* 머리띠 안 강조 글씨와 '지금 몇 번째 사진' 점 — 짙은 막 위에서 읽히는 주황 */
+  --hero-em:#ffb547;
   /* 머리띠 아래 '몇 번째 사진인지' 점 — 아직 오지 않은 자리의 색.
      지금 자리는 --brand-d 로 물듭니다. */
   --dot:var(--krds-color-light-gray-30);
@@ -146,6 +151,7 @@ html[data-krds-mode="high-contrast"]{
   --veil-0:rgba(0,0,0,0);
   --hero-ink:var(--krds-color-high-contrast-gray-0);
   --hero-ink-2:var(--krds-color-high-contrast-gray-30);
+  --hero-em:#ffc46b;
   --dot:var(--krds-color-high-contrast-gray-60);
   --art-bg:var(--krds-color-high-contrast-gray-90);
   --lb-sh:0 .1rem .4rem rgba(0,0,0,.7);
@@ -331,7 +337,7 @@ html[data-krds-mode="high-contrast"] .logo-full{
 .hero h1 span:nth-child(4){animation-delay:.3s}
 .hero p{margin:0; font-size:1.9rem; line-height:1.65;
   color:var(--hero-ink-2)}
-.hero-lead b{font-weight:700; color:var(--brand-d)}
+.hero-lead b{font-weight:700; color:var(--hero-em, var(--brand-d))}
 
 /* ── 문구 다섯 줄 — 사진과 짝을 이뤄 함께 바뀝니다 ────────────
    다섯 줄을 **한 칸에 겹쳐** 둡니다(grid 의 같은 칸). 세로로 쌓으면 줄 수가
@@ -367,10 +373,10 @@ html[data-krds-mode="high-contrast"] .logo-full{
   background:var(--dot); transition:background .3s var(--ease)}
 @keyframes heroDot{
   0%,1%{background:var(--dot)}
-  4%,20%{background:var(--brand-d)}
+  4%,20%{background:var(--hero-em, var(--brand-d))}
   24%,100%{background:var(--dot)}
 }
-.hero-dots .d1{background:var(--brand-d)}
+.hero-dots .d1{background:var(--hero-em, var(--brand-d))}
 .hero-dots b{animation:heroDot 25s var(--ease) infinite}
 .hero-dots .d2{animation-delay:5s}
 .hero-dots .d3{animation-delay:10s}
@@ -748,7 +754,7 @@ footer .wrap{display:flex; flex-wrap:wrap; gap:.4rem 1.6rem}
   html,html[data-krds-mode]{--card:#fff;--bg:#fff;--panel:#fff;--ink:#000;--ink2:#222;--ink3:#444;
        --line:#000;--line2:#666;--art-bg:#fff;--ov:transparent;
        --deep:#fff;--on-deep:#000;--on-deep-2:#222;
-       --hero-ink:#000;--hero-ink-2:#222;--veil:#fff;--veil-0:#fff}
+       --hero-ink:#000;--hero-ink-2:#222;--hero-em:#000;--veil:#fff;--veil-0:#fff}
   .top .act,.skip{display:none}
   .hero-ph,.pn-art,.pn-go{display:none}
   /* 종이에는 넘길 수가 없으므로 첫 문구만 남기고 점·멈춤단추는 뺍니다.
