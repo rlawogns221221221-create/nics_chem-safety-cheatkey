@@ -101,8 +101,8 @@ body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
 #sm img { width: 100%; height: 100%; display: block; }
 .sb { position: absolute; border: 3px solid var(--or); border-radius: 10px; box-sizing: border-box; }
 .sb i { left: -20px; top: -22px; box-shadow: 0 4px 14px rgba(0,0,0,.6); }
-/* 자막 자리(2번)는 왼쪽 위 모서리에 이름표 글자가 있어 번호를 왼쪽 가운데 밖에 둠 */
-.sb.mid i { left: -30px; top: calc(50% - 23px); }
+/* 자막 자리(2번)는 왼쪽 위 모서리에 이름표 글자가 있어 번호를 왼쪽 가운데 **바깥**에 둠(안쪽에 걸치면 자막 첫 글자를 덮음) */
+.sb.mid i { left: -52px; top: calc(50% - 23px); }
 #so { left: 120px; top: 952px; font-size: 26px; display: flex; align-items: center; gap: 14px; white-space: nowrap; }
 #so em { font-style: normal; font-weight: 700; color: var(--or); margin-right: 8px; }
 #so b { border: 2px solid rgba(231,162,61,.6); border-radius: 999px; padding: 6px 18px; }
