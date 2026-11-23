@@ -1,20 +1,23 @@
 # ═══════════════════════════════════════════════════════════════
-#  결선 영상 「사고 흐름 판」(3분 20초 안팎) 굽기 (배경지도까지)
+#  결선 영상 「사고 흐름 판 2」(영상 49초 · 시계 3분 20초 안팎) 굽기 (배경지도까지)
 #
 #  ── 왜 필요한가 ───────────────────────────────────────────
 #  build/make_flow_video_long.mjs 가 휴대전화 화면을 실제로 눌러 가며 녹화하는데, 개발 자리는
 #  배경지도 타일 서버로 못 나가 지도에 경계선만 나옵니다(CLAUDE.md 6절). 인터넷이 되는 러너에서
 #  녹화합니다 — 결선영상_흐름_굽기.yml 과 같은 이유입니다.
 #
-#  ── 03 화면은 다른 커밋의 코드로 ───────────────────────────────
-#  「안전원 상황실로 바로 전화」 링크는 다른 작업 가지의 커밋 a869d46 에만 있습니다. 그 커밋을
-#  .narr/상황실판 으로 꺼내 `--상황실` 로 넘기면, 녹화 서버가 03 화면과 그 화면이 부르는 것만
-#  그 폴더에서 냅니다(나머지는 이 가지 그대로).
+#  ── 화면은 서비스 최종본의 코드로 ─────────────────────────────
+#  · 서비스 최종본(카드 차례 01 안전거리 → 02 대피장소 → 03 문자 → 04 방제 · 이름 「화학사고 초동대응
+#    현장 지원 서비스」)은 다른 작업 가지의 커밋 57c9c6b 입니다. .narr/최종판 으로 꺼내 `--사이트` 로 넘깁니다.
+#  · 방제 화면만 「비상연락망 ▶ 안전원 상황실」 줄이 있는 커밋 a869d46 으로(.narr/상황실판 · `--상황실`) —
+#    녹화 서버가 방제 화면과 그 화면이 부르는 것만 그 폴더에서 냅니다.
 #
 #  ── 무엇을 커밋하나 ───────────────────────────────────────
-#  · source/녹화/사고흐름_원본.mp4 · .json — 휴대전화 화면 녹화본과 장면 시각(타이머의 근거).
+#  · source/녹화/사고흐름2_원본.mp4 · .json — 휴대전화 화면 녹화본과 장면 시각(타이머의 근거).
 #    이것이 있으면 개발 자리에서 `엮기` 만 다시 돌려 자막을 고칠 수 있습니다(다시 녹화 안 함).
-#  · docs/공모전_결선_사고흐름.mp4 — 사고 카드·자막·타이머·음악까지 얹은 결과.
+#  · docs/공모전_결선_사고흐름2.mp4 — 첫 장(화면 구성)·사고 카드·자막·타이머·음악까지 얹은 결과.
+#  · docs/공모전_결선_사고흐름2_첫장.png — 영상 0초 장면(PPT 한 장으로도 씀).
+#  앞의 판(docs/공모전_결선_사고흐름.mp4 · 옛 차례)은 이 작업이 건드리지 않습니다.
 #
 #  ── 언제 도나 ─────────────────────────────────────────────
 #  · 스크립트·무대·음악을 이 가지에 올리면 저절로 돕니다(push). 결과물은 아래 paths 에 없어
@@ -42,6 +45,8 @@ concurrency:
 env:
   # 상황실 바로 전화 링크가 들어간 커밋(다른 작업 가지 · 2026-11-18)
   CALL_COMMIT: a869d460a694568b4219c4b83ddcf349cc6ddbcb
+  # 서비스 최종본(다른 작업 가지 · 2026-11-23 · 카드 차례·이름이 바뀐 판)
+  FINAL_COMMIT: 57c9c6b9d27e74a2faaa35c281ed2a595519a3cd
 
 jobs:
   # ⚠ 잡 id 는 영문·숫자·_·- 만 됩니다
@@ -55,11 +60,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 상황실 기능이 있는 03 코드를 꺼내기
+      - name: 서비스 최종본과 상황실 줄이 있는 방제 코드를 꺼내기
         run: |
           git fetch --no-tags --depth=1 origin "$CALL_COMMIT"
           git worktree add --detach .narr/상황실판 FETCH_HEAD
-          grep -q rk-emg-tel .narr/상황실판/res/app.js && echo "03 상황실 전화 링크 있음"
+          grep -q rk-emg-tel .narr/상황실판/res/app.js && echo "방제 화면 상황실 줄 있음"
+          git fetch --no-tags --depth=1 origin "$FINAL_COMMIT"
+          git worktree add --detach .narr/최종판 FETCH_HEAD
+          grep -q "초동대응 현장 지원 서비스" .narr/최종판/index.html && echo "최종본 첫 화면 확인"
 
       - name: 배경지도 타일이 받아지는지 확인
         run: |
@@ -90,29 +98,31 @@ jobs:
         run: |
           # ⚠ `set -o pipefail` 이 없으면 tee 의 성공이 node 의 실패를 덮습니다.
           set -o pipefail
-          node build/make_flow_video_long.mjs 둘다 --상황실 .narr/상황실판 2>&1 | tee 사고흐름영상기록.txt
+          node build/make_flow_video_long.mjs 둘다 --사이트 .narr/최종판 --상황실 .narr/상황실판 2>&1 | tee 사고흐름영상기록.txt
 
       - name: 결과 올려 두기 (내려받기용)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: 결선영상-사고흐름판
+          name: 결선영상-사고흐름판2
           path: |
-            docs/공모전_결선_사고흐름.mp4
-            source/녹화/사고흐름_원본.json
+            docs/공모전_결선_사고흐름2.mp4
+            docs/공모전_결선_사고흐름2_첫장.png
+            source/녹화/사고흐름2_원본.json
             사고흐름영상기록.txt
 
       - name: 저장소에 넣기
         run: |
           git worktree remove --force .narr/상황실판 || true
+          git worktree remove --force .narr/최종판 || true
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/공모전_결선_사고흐름.mp4 source/녹화/사고흐름_원본.mp4 source/녹화/사고흐름_원본.json
+          git add docs/공모전_결선_사고흐름2.mp4 docs/공모전_결선_사고흐름2_첫장.png source/녹화/사고흐름2_원본.mp4 source/녹화/사고흐름2_원본.json
           if git diff --cached --quiet; then
             echo "바뀐 것이 없습니다 — 커밋하지 않습니다."
             exit 0
           fi
-          git commit -m "결선 영상 사고흐름 판을 배경지도까지 넣어 녹화했습니다
+          git commit -m "결선 영상 사고흐름 판 2를 배경지도까지 넣어 녹화했습니다
 
           개발 자리는 타일 서버가 막혀 있어(CLAUDE.md 6절) 인터넷이 되는 액션
           러너에서 build/make_flow_video_long.mjs 를 돌려 휴대전화 화면을 녹화하고
