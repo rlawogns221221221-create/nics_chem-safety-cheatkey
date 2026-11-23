@@ -2,22 +2,22 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<title>결선 영상 무대 — 사고 흐름 판 2</title>
+<title>결선 영상 무대 — 사고 흐름 판 3</title>
 <!--
-  결선 발표용 「사고 흐름 판 2」(영상 49초 · 시계 3분 20초 안팎)의 한 장면 한 장면을 그리는 무대입니다
+  결선 발표용 「사고 흐름 판 3」(영상 46초 · 시계는 2분 57초에서 멈춤)의 한 장면 한 장면을 그리는 무대입니다
   (build/make_flow_video_long.mjs 의 `엮기` 가 엶). 36초 흐름 판의 무대(영상30_흐름무대.html)는 그대로 둡니다.
-  · **첫 장**(2026-11-23 사용자 — "ppt 파일에 위 영상을 넣어서 발표 … 영상 시작 전 설명을 하고 시작할 수
-    있도록 … 그 화면의 구조가 보여지게, 인트로 화면이 ppt 의 한 장인 것처럼"): 영상의 0초가 곧 이 장면이라
-    PPT 에서 재생 전에 보입니다. 제목 · 번호 붙인 설명 다섯 · 영상 화면의 축소판(같은 번호) · 현장 대응 순서.
-    축소판과 번호 자리는 만드는 스크립트가 실제 장면을 찍고 재어 넘깁니다(`첫장준비`).
+  · **첫 장면 = 접속 화면**(2026-11-23 저녁 사용자 — "인트로 사진이 내가 원하던 건 … 수정1 화면이야. 그냥 저
+    화면에서 QR 코드만 선명하게 보이도록, 다른 부가설명은 필요 없어"). 0초에 왼쪽 위 작은 사고 카드 · 「설치·회원가입
+    없이 QR 하나로 접속」 · **흰 바탕 QR(흐림·스캔 줄 없음)** · 휴대전화 첫 화면 · 시계 0:00.0 이 다 떠 있습니다.
+    PPT 에 넣으면 재생 전 이 화면이 보입니다. 2판의 번호 단 화면 구성(첫 장)은 걷어냈습니다.
+  · 재생하면 작은 사고 카드가 가운데로 **커졌다가**(나머지는 잠깐 물러남 · 「수정2」 장면) 다시 왼쪽 위로 갑니다.
+    붉은 딱지에 「가상 상황 · 실제 사고가 아닙니다」 를 늘 함께 둡니다.
+  · 끝에 마무리 장면이 없습니다 — 시계가 2분 57초에서 멈추는 장에서 영상이 끝납니다(사용자 — "바로 끊기는 게 좋은 것 같아").
   · 무엇을 그릴지는 만드는 스크립트가 시각마다 계산해 넘깁니다(`장면(상태)`). 여기는 받은 대로
     그리기만 합니다 — 시각 계산이 두 곳에 나뉘면 타이머와 화면이 어긋납니다.
-  · **가상 사고 카드**(2026-11-23 사용자 — "사고 사업장이나 이런걸 좀 글씨가 잘 보이게 … 사고를 가정한
-    것이라는 것이 좀 눈에 보여야"): 처음에 화면 가운데 크게 뜨고, 접속하기 전에 왼쪽 위로 줄어들어
-    끝까지 그 자리에 있습니다. 붉은 딱지에 「가상 상황 · 실제 사고가 아닙니다」 를 늘 함께 둡니다.
   · 휴대전화 안은 실제 서비스를 녹화한 화면입니다. 여기서는 테두리 · 자막 · 타이머 · 누름 자국 ·
-    확대(돋보기)만 얹습니다. 2판은 상황실 줄을 누르지 않아 전화 표시를 그리지 않습니다(사용자 — "보이기만").
-  · 차림은 앞의 판들과 같게 — 검정 바탕 · 주황 이름표 · 금색 마무리 글. 사고는 붉은색으로만.
+    확대(돋보기)만 얹습니다. 상황실 줄은 누르지 않아 전화 표시를 그리지 않습니다(사용자 — "보이기만").
+  · 차림은 앞의 판들과 같게 — 검정 바탕 · 주황 이름표. 사고는 붉은색으로만.
 -->
 <style>
 @font-face { font-family: 'PGOV'; src: url('../assets/fonts/PretendardGOV-Regular.subset.woff2') format('woff2'); font-weight: 400; }
@@ -55,9 +55,9 @@ body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
 #sub { left: 120px; top: 600px; font-size: 36px; font-weight: 700; color: #111; background: var(--or); border-radius: 12px; padding: 10px 22px; }
 
 /* QR — 접속하는 장면과 마무리 */
-#qr { left: 120px; top: 640px; width: 300px; height: 300px; background: #fff; border-radius: 22px; padding: 18px; box-sizing: border-box; overflow: hidden; }
-#qr img { width: 100%; height: 100%; display: block; }
-#scan { left: 0; width: 100%; height: 6px; background: var(--or); box-shadow: 0 0 22px 6px rgba(231,162,61,.55); }
+/* 3판 — 첫 장면에서 휴대전화로 바로 읽히게 조금 키움(340px · 흰 바탕 · 흐림·스캔 줄 없음) */
+#qr { left: 120px; top: 640px; width: 340px; height: 340px; background: #fff; border-radius: 22px; padding: 20px; box-sizing: border-box; overflow: hidden; }
+#qr img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
 #url { left: 460px; top: 760px; font-size: 40px; font-weight: 700; color: #fff; }
 #url small { display: block; font-size: 26px; font-weight: 400; color: var(--gray); margin-top: 10px; }
 #vir { left: 120px; top: 1018px; font-size: 24px; color: #9AA0AA; }
@@ -85,29 +85,6 @@ body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
 #tm .n { font-size: 20px; color: #8A909A; margin-top: 4px; }
 #spd { display: inline-block; margin-top: 16px; font-size: 24px; font-weight: 700; color: #111; background: var(--or); border-radius: 999px; padding: 6px 18px; }
 
-/* 첫 장 — PPT 한 장처럼(제목 · 설명 다섯 · 축소판 · 현장 대응 순서) */
-#slide { left: 0; top: 0; width: 1920px; height: 1080px; background: radial-gradient(ellipse 1400px 1000px at 65% 50%, #151A25 0%, #07080A 70%); }
-#sk { left: 120px; top: 118px; font-size: 30px; font-weight: 700; color: var(--or); letter-spacing: 1px; }
-#st { left: 120px; top: 168px; font-size: 70px; font-weight: 700; color: var(--gold); line-height: 1.16; letter-spacing: -2px; }
-#ss { left: 120px; top: 344px; font-size: 29px; color: #C9CED6; }
-#sl { left: 120px; top: 428px; margin: 0; padding: 0; list-style: none; width: 740px; }
-#sl li { position: relative; padding-left: 66px; height: 92px; }
-#sl li i, .sb i { position: absolute; left: 0; top: 2px; width: 46px; height: 46px; border-radius: 50%; background: var(--or);
-  color: #111; font-style: normal; font-size: 27px; font-weight: 700; text-align: center; line-height: 46px; }
-#sl li b { display: block; font-size: 33px; line-height: 1.3; }
-#sl li span { display: block; font-size: 24px; color: var(--gray); margin-top: 2px; }
-#sm { left: 900px; top: 230px; width: 920px; height: 517.5px; border-radius: 14px; overflow: hidden;
-  box-shadow: 0 0 0 3px #3A3E47, 0 30px 80px rgba(0,0,0,.65); transform-origin: 50% 50%; }
-#sm img { width: 100%; height: 100%; display: block; }
-.sb { position: absolute; border: 3px solid var(--or); border-radius: 10px; box-sizing: border-box; }
-.sb i { left: -20px; top: -22px; box-shadow: 0 4px 14px rgba(0,0,0,.6); }
-/* 자막 자리(2번)는 왼쪽 위 모서리에 이름표 글자가 있어 번호를 왼쪽 가운데 **바깥**에 둠(안쪽에 걸치면 자막 첫 글자를 덮음) */
-.sb.mid i { left: -52px; top: calc(50% - 23px); }
-#so { left: 120px; top: 952px; font-size: 26px; display: flex; align-items: center; gap: 14px; white-space: nowrap; }
-#so em { font-style: normal; font-weight: 700; color: var(--or); margin-right: 8px; }
-#so b { border: 2px solid rgba(231,162,61,.6); border-radius: 999px; padding: 6px 18px; }
-#so u { text-decoration: none; color: var(--gray); }
-
 #flash { left: 0; top: 0; width: 1920px; height: 1080px; background: #fff; opacity: 0; }
 #fade { left: 0; top: 0; width: 1920px; height: 1080px; background: #000; opacity: 0; }
 </style>
@@ -118,7 +95,7 @@ body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
 <div id="lbl" class="abs"></div>
 <div id="cap" class="abs"></div>
 <div id="sub" class="abs"></div>
-<div id="qr" class="abs"><img id="qri" alt=""><div id="scan" class="abs"></div></div>
+<div id="qr" class="abs"><img id="qri" alt=""></div>
 <div id="url" class="abs">chem-safety-kr.pages.dev<small>화학사고 초동대응 현장 지원 서비스</small></div>
 <div id="vir" class="abs">시연을 위한 가상 상황입니다 · 업체명과 업체 전화번호는 가렸습니다</div>
 <div id="phone" class="abs"><img id="scr" alt=""><div id="taps"></div><div id="mark"></div></div>
@@ -131,31 +108,14 @@ body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
   <div class="ln" id="acc2"></div>
 </div>
 <div id="tm" class="abs"><div class="k">경과 시간</div><div class="v" id="tmv">0:00.0</div><div class="n">자동 시연 기준</div><span id="spd"></span></div>
-<div id="slide" class="abs">
-  <div id="sk" class="abs">시연 영상</div>
-  <div id="st" class="abs">가상 화학사고 하나,<br>현장 대응 순서대로</div>
-  <div id="ss" class="abs">실제 서비스를 휴대전화로 직접 눌러 녹화했습니다</div>
-  <ol id="sl" class="abs">
-    <li><i>1</i><b>가상 사고 상황</b><span>실제 사고가 아닙니다</span></li>
-    <li><i>2</i><b>지금 쓰는 도구 · 하는 일</b><span>큰 자막 한 문장씩</span></li>
-    <li><i>3</i><b>작은 글씨 확대</b><span>휴대전화 속 글씨를 크게</span></li>
-    <li><i>4</i><b>휴대전화 화면</b><span>실제 서비스 · 업체명과 업체 전화번호는 가림</span></li>
-    <li><i>5</i><b>경과 시간</b><span>녹화한 실제 시각(자동 시연 기준) · 빠르게 돌린 구간은 배속 표시</span></li>
-  </ol>
-  <div id="sm" class="abs"><img id="smi" alt=""></div>
-  <div id="sbs"></div>
-  <div id="so" class="abs"><em>현장 대응 순서</em><b>01 현장 안전거리 확인</b><u>→</u><b>02 주민 대피장소 찾기</b><u>→</u><b>03 주민대피 문자생성기</b><u>→</u><b>04 방제 물품·장비 찾기</b></div>
-</div>
 <div id="flash" class="abs"></div>
 <div id="fade" class="abs"></div>
 <script>
 function $(s) { return document.querySelector(s); }
 var 배율 = 1;                                  // 휴대전화 css px → 무대 px
 var 폰w = 470, 폰h = 964;
-// 가상 사고 장면의 시각 — 만드는 스크립트가 판마다 넘김(짧은 판은 4초 안에 다 뜨고 줄어듦)
-var 때 = { 태그: 0.3, 제목: 1.0, 줄1: 1.7, 줄2: 2.3, 줄임: 4.9, 줄임길이: 0.9, QR: 5.8 };
-// 첫 장 — 재생 뒤 머묾 초만큼 그대로 있다가 사라짐 초 동안 사라집니다
-var 첫장 = { 머묾: 1.0, 사라짐: 0.8 };
+// 가상 사고 장면의 시각 — 만드는 스크립트가 넘김. 키움부터 커지고, 제목 때 맥박이 뛰고, 줄임부터 왼쪽 위로
+var 때 = { 키움: 0.8, 키움길이: 0.6, 제목: 1.4, 줄임: 3.4, 줄임길이: 0.6 };
 function clamp(x) { return Math.max(0, Math.min(1, x)); }
 function 쉬움(x) { x = clamp(x); return 1 - Math.pow(1 - x, 3); }
 function 둘다(x) { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
@@ -166,23 +126,11 @@ function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { '&'
 window.준비 = function (o) {
   배율 = 폰w / o.폭;
   if (o.때) 때 = o.때;
-  if (o.첫장) 첫장 = o.첫장;
   $('#qri').src = o.qr;
   var a = o.사고;
   $('#acc1').innerHTML = '<b>' + esc(a.시각) + '</b>&nbsp;&nbsp;' + esc(a.곳);
   $('#acc2').innerHTML = esc(a.사업장) + ' 사업장 · <b>' + esc(a.물질) + ' 누출</b>';
   return Promise.all([$('#qri').decode().catch(function () {}), document.fonts.ready]);
-};
-
-/* 첫 장의 축소판 — 대표 장면 그림과, 그 장면에서 잰 다섯 자리(사고 카드 · 자막 · 확대 · 휴대전화 · 경과 시간) */
-window.첫장준비 = function (o) {
-  var sm = $('#sm'), sc = sm.offsetWidth / 1920, x0 = sm.offsetLeft, y0 = sm.offsetTop, 여 = 6;
-  $('#smi').src = o.그림;
-  $('#sbs').innerHTML = o.자리들.map(function (z, i) {
-    return '<div class="sb' + (i === 1 ? ' mid' : '') + '" style="left:' + (x0 + (z.x - 여) * sc) + 'px;top:' + (y0 + (z.y - 여) * sc) + 'px;width:'
-      + ((z.w + 여 * 2) * sc) + 'px;height:' + ((z.h + 여 * 2) * sc) + 'px"><i>' + (i + 1) + '</i></div>';
-  }).join('');
-  return $('#smi').decode().catch(function () {});
 };
 
 function 시계(s) {
@@ -192,26 +140,27 @@ function 시계(s) {
 }
 
 window.장면 = function (s) {
-  var t = s.t, 인 = s.인트로;
+  var t = s.t;
 
-  // ── 가상 사고 카드 — 0.3초부터 하나씩 떠올라 화면 가운데 크게 → 4.9초부터 왼쪽 위로 ──
+  // ── 가상 사고 카드 — 처음엔 왼쪽 위에 작게(접속 화면) → 재생하면 가운데로 크게 → 다시 왼쪽 위로 ──
   var acc = $('#acc');
-  var 작게 = 둘다(사이(t, 때.줄임, 때.줄임길이));
+  var 작게 = t < 때.줄임 ? 1 - 둘다(사이(t, 때.키움, 때.키움길이)) : 둘다(사이(t, 때.줄임, 때.줄임길이));
   var 크기 = { tf: [40, 26], hf: [124, 56], lf: [62, 40], pv: [34, 18], ph: [48, 28], dot: [58, 30], gap: [22, 10] };
   Object.keys(크기).forEach(function (k) { acc.style.setProperty('--' + k, lerp(크기[k][0], 크기[k][1], 작게) + 'px'); });
   var 큰top = 540 - acc.offsetHeight / 2 - 10;
   acc.style.transform = 'translate(0px,' + lerp(큰top, 36, 작게) + 'px)';
-  // 이름표·자막은 줄어든 카드 바로 아래부터(카드 높이를 숫자로 못 박지 않음)
-  var 카드아래 = 36 + acc.offsetHeight;
+  // 이름표·자막은 작은 카드 바로 아래부터(카드 높이를 숫자로 못 박지 않음 · 카드가 커져 있는 동안은 물러나 있음)
+  var 작은높이 = acc.offsetHeight;
+  if (작게 < 1) {                                 // 카드가 커진 동안에도 자막 자리는 작은 카드 기준으로 그대로
+    Object.keys(크기).forEach(function (k) { acc.style.setProperty('--' + k, 크기[k][1] + 'px'); });
+    작은높이 = acc.offsetHeight;
+    Object.keys(크기).forEach(function (k) { acc.style.setProperty('--' + k, lerp(크기[k][0], 크기[k][1], 작게) + 'px'); });
+  }
+  var 카드아래 = 36 + 작은높이;
   $('#lbl').style.top = (카드아래 + 30) + 'px';
   $('#cap').style.top = (카드아래 + 78) + 'px';
-  var 보임 = [쉬움(사이(t, 때.태그, 0.35)), 쉬움(사이(t, 때.제목, 0.35)), 쉬움(사이(t, 때.줄1, 0.35)), 쉬움(사이(t, 때.줄2, 0.35))];
-  acc.style.opacity = 보임[0];
-  [acc.querySelector('.tag'), acc.querySelector('.h'), $('#acc1'), $('#acc2')].forEach(function (el, i) {
-    el.style.opacity = i ? 보임[i] : 1;
-    el.style.transform = 'translateY(' + (18 * (1 - 보임[i])) + 'px)';
-  });
-  // 붉은 점 — 퍼지는 고리. 처음엔 빠르게, 작아진 뒤에는 천천히
+  acc.style.opacity = 1;
+  // 붉은 점 — 퍼지는 고리. 커져 있는 동안 빠르게, 작아진 뒤에는 천천히(첫 장면에서는 고리 없이 깔끔하게)
   var 주기 = t < 때.줄임 ? 0.9 : 2.2;
   [].forEach.call(acc.querySelectorAll('.dot u'), function (u, j) {
     var p = (t - 때.제목 - j * 주기 / 2) / 주기;
@@ -219,39 +168,37 @@ window.장면 = function (s) {
     u.style.opacity = p < 0 ? 0 : 0.85 * (1 - p);
     u.style.transform = 'scale(' + (1 + 1.4 * p) + ')';
   });
-  // 바탕의 붉은 기운 — 사고가 뜰 때 맥박 두세 번, 줄어든 뒤에는 거의 꺼짐
+  // 바탕의 붉은 기운 — 카드가 커질 때 맥박 두세 번, 줄어든 뒤에는 거의 꺼짐
   var 맥 = t < 때.제목 ? 0 : 0.55 + 0.45 * Math.cos(2 * Math.PI * (t - 때.제목) / 1.1);
   var 꺼짐 = 때.줄임 + 0.6;
   $('#alarm').style.opacity = 쉬움(사이(t, 때.제목, 0.3)) * (t < 꺼짐 ? 0.35 + 0.65 * 맥 : 0.12 * (1 - 쉬움(사이(t, 꺼짐, 1.5))));
+  // 카드가 커져 있는 동안 나머지(자막 · QR · 휴대전화 · 시계)는 물러나 있음 — 「수정2」 장면은 카드만
+  var 바깥 = t < 때.줄임 ? 1 - 쉬움(사이(t, 때.키움, 0.35)) : 쉬움(사이(t, 때.줄임 + 0.25, 0.4));
 
   // ── 자막 — 바뀔 때 살짝 올라오며 나타남 ──
   var cap = $('#cap');
   cap.textContent = s.자막;
-  cap.className = 'abs' + (s.자막끝 ? ' end' : '') + (s.한줄 ? ' one' : '');
-  cap.style.opacity = s.자막보임;
+  cap.className = 'abs' + (s.한줄 ? ' one' : '');
+  cap.style.opacity = s.자막보임 * 바깥;
   cap.style.transform = 'translateY(' + (24 * (1 - s.자막보임)) + 'px)';
   $('#lbl').textContent = s.이름표;
-  $('#lbl').style.opacity = s.이름표 ? s.자막보임 : 0;
+  $('#lbl').style.opacity = s.이름표 ? s.자막보임 * 바깥 : 0;
   var 덧 = $('#sub');
   덧.textContent = s.덧글;
   덧.style.visibility = s.덧글 ? 'visible' : 'hidden';
-  덧.style.opacity = 쉬움((s.자막보임 - 0.4) / 0.6);
+  덧.style.opacity = 쉬움((s.자막보임 - 0.4) / 0.6) * 바깥;
   덧.style.top = (cap.offsetTop + cap.offsetHeight + 22) + 'px';
 
-  // ── QR — 접속하는 장면(인트로 끝 무렵)과 마무리 ──
-  var qr보임 = t < 인 + 0.5 ? 쉬움(사이(t, 때.QR, 0.35)) * (1 - 사이(t, 인 - 0.1, 0.5)) : s.끝;
-  $('#qr').style.opacity = qr보임;
-  var 스캔 = 사이(t, 때.QR + 0.2, Math.max(0.5, 인 - 때.QR - 0.35));
-  $('#scan').style.top = (스캔 * 100) + '%';
-  $('#scan').style.opacity = t < 인 && 스캔 > 0 && 스캔 < 1 ? 1 : 0;
-  $('#url').style.opacity = s.끝;
+  // ── QR — 첫 장면(접속 화면)부터 01 이 시작할 때까지. 흐림·반투명 없이 흰 바탕 그대로(읽히게) ──
+  $('#qr').style.opacity = 바깥 * (1 - 쉬움(사이(t, s.qr끝 - 0.1, 0.5)));
+  $('#url').style.opacity = 0;
 
   // ── 휴대전화 — 녹화 화면 · 누름 자국 ──
   var scr = $('#scr');
   if (s.폰 && scr.getAttribute('src') !== s.폰) scr.setAttribute('src', s.폰);
-  var 폰 = s.폰 ? s.폰보임 : 0;
+  var 폰 = s.폰 ? 바깥 : 0;
   $('#phone').style.opacity = 폰;
-  $('#phone').style.transform = 'translateY(' + (60 * (1 - 폰)) + 'px)';
+  $('#phone').style.transform = 'translateY(' + (30 * (1 - 폰)) + 'px)';
   $('#taps').innerHTML = s.누름.map(function (m) {
     var 크기 = 1 + 2.2 * m.a;
     return '<div class="tap" style="left:' + (m.x * 배율) + 'px;top:' + (m.y * 배율) + 'px;transform:scale(' + 크기 + ');opacity:' + (1 - m.a) + '"></div>';
@@ -287,26 +234,17 @@ window.장면 = function (s) {
   } else { lens.style.opacity = 0; mk.style.opacity = 0; lt.style.opacity = 0; }
 
   // ── 경과 시간 — 녹화된 그 장면의 실제 시각(접속한 때부터) ──
-  $('#tm').style.opacity = 쉬움(사이(t, 인 - 0.6, 0.5));
+  $('#tm').style.opacity = 바깥;
   $('#tmv').textContent = 시계(s.경과);
-  $('#tm .k').textContent = s.자막끝 ? '전체 경과 시간' : '경과 시간';
   var 빠름 = s.배 >= 1.15;
   $('#spd').textContent = 빠름 ? s.배.toFixed(1) + '배 빠르게' : '';
   $('#spd').style.visibility = 빠름 ? 'visible' : 'hidden';
 
-  // ── 번쩍임 — 사고가 뜨는 순간 한 번(붉은 기운과 함께) · 끝 어둡게 ──
+  // ── 번쩍임 — 카드가 다 커진 순간 한 번(붉은 기운과 함께) ──
   var 번 = t >= 때.제목 && t < 때.제목 + 0.3 ? 0.18 * (1 - (t - 때.제목) / 0.3) : 0;
   $('#flash').style.opacity = 번;
-  // 0초에 어둡게 시작하지 않습니다 — 0초가 곧 첫 장(PPT 에서 재생 전 보이는 화면)입니다
-  $('#fade').style.opacity = s.어둡게;
-  // 가상 상황 안내 줄은 사고 카드와 함께 뜸
-  $('#vir').style.opacity = 쉬움(사이(t, 때.태그, 0.4));
-  // ── 첫 장 — 머문 뒤 축소판이 살짝 다가오며 사라짐 ──
-  var 사라 = 쉬움(사이(t, 첫장.머묾, 첫장.사라짐));
-  $('#slide').style.opacity = 1 - 사라;
-  $('#slide').style.visibility = 사라 >= 1 ? 'hidden' : 'visible';
-  $('#sm').style.transform = 'scale(' + (1 + 0.06 * 사라) + ')';
-  $('#sbs').style.opacity = 1 - 쉬움(사이(t, 첫장.머묾, 첫장.사라짐 * 0.5));
+  $('#fade').style.opacity = 0;                 // 끝에 어둡게 하지 않음 — 시계가 멈추는 장에서 바로 끝
+  $('#vir').style.opacity = 1;                  // 가상 상황 안내 줄 — 첫 장면부터 늘
   var 다 = [];
   if (scr.getAttribute('src')) 다.push(scr.decode().catch(function () {}));
   if (s.돋 && $('#lensi').getAttribute('src')) 다.push($('#lensi').decode().catch(function () {}));
