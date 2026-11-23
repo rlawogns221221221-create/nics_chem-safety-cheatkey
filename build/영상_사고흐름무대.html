@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>결선 영상 무대 — 사고 흐름 판</title>
+<!--
+  결선 발표용 「사고 흐름 판」(3분 20초 안팎)의 한 장면 한 장면을 그리는 무대입니다
+  (build/make_flow_video_long.mjs 의 `엮기` 가 엶). 36초 흐름 판의 무대(영상30_흐름무대.html)는 그대로 둡니다.
+  · 무엇을 그릴지는 만드는 스크립트가 시각마다 계산해 넘깁니다(`장면(상태)`). 여기는 받은 대로
+    그리기만 합니다 — 시각 계산이 두 곳에 나뉘면 타이머와 화면이 어긋납니다.
+  · **가상 사고 카드**(2026-11-23 사용자 — "사고 사업장이나 이런걸 좀 글씨가 잘 보이게 … 사고를 가정한
+    것이라는 것이 좀 눈에 보여야"): 처음에 화면 가운데 크게 뜨고, 접속하기 전에 왼쪽 위로 줄어들어
+    끝까지 그 자리에 있습니다. 붉은 딱지에 「가상 상황 · 실제 사고가 아닙니다」 를 늘 함께 둡니다.
+  · 휴대전화 안은 실제 서비스를 녹화한 화면입니다. 여기서는 테두리 · 자막 · 타이머 · 누름 자국 ·
+    확대(돋보기) · 상황실 전화 표시만 얹습니다. 전화가 걸린 뒤의 화면은 기기마다 달라 그리지 않습니다.
+  · 차림은 앞의 판들과 같게 — 검정 바탕 · 주황 이름표 · 금색 마무리 글. 사고는 붉은색으로만.
+-->
+<style>
+@font-face { font-family: 'PGOV'; src: url('../assets/fonts/PretendardGOV-Regular.subset.woff2') format('woff2'); font-weight: 400; }
+@font-face { font-family: 'PGOV'; src: url('../assets/fonts/PretendardGOV-Bold.subset.woff2') format('woff2'); font-weight: 700; }
+:root { --or: #E7A23D; --gold: #FFC20E; --gray: #A9AFBA; --red: #E0322A; }
+html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #07080A; }
+body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
+.abs { position: absolute; }
+#bg { left: 0; top: 0; width: 1920px; height: 1080px; background: radial-gradient(ellipse 1400px 1000px at 65% 50%, #151A25 0%, #07080A 70%); }
+/* 사고가 났다는 것을 바탕의 붉은 기운으로 — 처음에 맥박처럼, 그 뒤로는 아주 옅게 */
+#alarm { left: 0; top: 0; width: 1920px; height: 1080px; opacity: 0;
+  background: radial-gradient(ellipse 1100px 800px at 26% 52%, rgba(224,50,42,.34) 0%, rgba(224,50,42,0) 70%); }
+
+/* 가상 사고 카드 — 크게(처음) ↔ 작게(왼쪽 위). 통째로 줄이면(scale) 작아진 뒤 사업장·물질 줄이
+   30px 안팎이 되어(사용자 — "글씨가 잘 보이게") 글자 크기를 따로 오가게 했습니다. */
+#acc { left: 120px; top: 0; padding: var(--pv) var(--ph) calc(var(--pv) + 4px) var(--ph); border-radius: 20px;
+  background: rgba(224,50,42,.12); border: 3px solid rgba(224,50,42,.55); border-left: 14px solid var(--red);
+  box-shadow: 0 20px 60px rgba(0,0,0,.45); white-space: nowrap;
+  --tf: 40px; --hf: 124px; --lf: 62px; --pv: 34px; --ph: 48px; --dot: 58px; --gap: 22px; }
+#acc .tag { display: inline-block; font-size: var(--tf); font-weight: 700; color: #fff; background: var(--red);
+  border-radius: 10px; padding: .2em .55em; letter-spacing: -.5px; }
+#acc .h { display: flex; align-items: center; gap: .26em; font-size: var(--hf); font-weight: 700; margin-top: var(--gap); letter-spacing: -.03em; line-height: 1.1; }
+#acc .dot { position: relative; width: var(--dot); height: var(--dot); flex: none; }
+#acc .dot i { position: absolute; inset: 0; border-radius: 50%; background: var(--red); }
+#acc .dot u { position: absolute; inset: 0; border-radius: 50%; border: 5px solid var(--red); box-sizing: border-box; opacity: 0; text-decoration: none; }
+#acc .ln { font-size: var(--lf); font-weight: 700; color: #ECEFF4; margin-top: calc(var(--gap) * .6); letter-spacing: -.02em; line-height: 1.25; }
+#acc .ln b { color: #FF8A80; }
+
+/* 왼쪽 — 이름표 · 자막 · 덧글 */
+#lbl { left: 120px; top: 318px; font-size: 34px; font-weight: 700; color: var(--or); letter-spacing: 1px; }
+#cap { left: 120px; top: 366px; width: 920px; font-size: 84px; font-weight: 700; line-height: 1.2; letter-spacing: -2px; white-space: pre-line; }
+#cap.end { color: var(--gold); font-size: 74px; width: 960px; }
+#sub { left: 120px; top: 600px; font-size: 36px; font-weight: 700; color: #111; background: var(--or); border-radius: 12px; padding: 10px 22px; }
+
+/* QR — 접속하는 장면과 마무리 */
+#qr { left: 120px; top: 640px; width: 300px; height: 300px; background: #fff; border-radius: 22px; padding: 18px; box-sizing: border-box; overflow: hidden; }
+#qr img { width: 100%; height: 100%; display: block; }
+#scan { left: 0; width: 100%; height: 6px; background: var(--or); box-shadow: 0 0 22px 6px rgba(231,162,61,.55); }
+#url { left: 460px; top: 760px; font-size: 40px; font-weight: 700; color: #fff; }
+#url small { display: block; font-size: 26px; font-weight: 400; color: var(--gray); margin-top: 10px; }
+#vir { left: 120px; top: 1018px; font-size: 24px; color: #9AA0AA; }
+
+/* 휴대전화 */
+#phone { left: 1090px; top: 44px; width: 470px; height: 964px; border: 14px solid #23262D; border-radius: 60px; overflow: hidden; background: #fff;
+  box-shadow: 0 0 0 2px #3A3E47, 0 30px 90px rgba(0,0,0,.7), 0 0 120px rgba(231,162,61,.16); }
+#scr { position: absolute; left: 0; top: 0; width: 470px; height: 964px; display: block; }
+#taps { position: absolute; left: 0; top: 0; width: 470px; height: 964px; pointer-events: none; }
+#mark { position: absolute; border: 3px solid var(--or); border-radius: 8px; box-shadow: 0 0 0 9999px rgba(0,0,0,.2); opacity: 0; pointer-events: none; }
+.tap { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 4px solid var(--or); box-sizing: border-box; background: rgba(231,162,61,.35); }
+#back { left: 1110px; top: 930px; font-size: 26px; font-weight: 700; color: #111; background: #fff; border-radius: 999px; padding: 8px 22px; box-shadow: 0 6px 20px rgba(0,0,0,.4); opacity: 0; }
+
+/* 돋보기 — 휴대전화 속 작은 글씨를 자막 아래에 크게 */
+#lens { left: 120px; top: 700px; overflow: hidden; border-radius: 16px; background: #fff; border: 4px solid var(--or);
+  box-shadow: 0 20px 60px rgba(0,0,0,.6); opacity: 0; }
+#lens img { position: absolute; left: 0; top: 0; }
+#ltap { position: absolute; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; border: 5px solid var(--or);
+  box-sizing: border-box; background: rgba(231,162,61,.35); opacity: 0; }
+/* 상황실 전화 — 누른 뒤 돋보기 오른쪽 끝에서 고리가 퍼짐 */
+#call { width: 96px; height: 96px; opacity: 0; }
+#call .c { position: absolute; inset: 0; border-radius: 50%; background: var(--or); box-shadow: 0 8px 26px rgba(0,0,0,.5); }
+#call .r { position: absolute; inset: 0; border-radius: 50%; border: 5px solid var(--or); box-sizing: border-box; opacity: 0; }
+#call svg { position: absolute; left: 24px; top: 24px; width: 48px; height: 48px; }
+
+/* 오른쪽 위 — 경과 시간 */
+#tm { left: 1620px; top: 60px; width: 260px; text-align: right; }
+#tm .k { font-size: 24px; color: var(--gray); font-weight: 700; }
+#tm .v { font-size: 76px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -1px; line-height: 1.05; margin-top: 6px; }
+#tm .n { font-size: 20px; color: #8A909A; margin-top: 4px; }
+#spd { display: inline-block; margin-top: 16px; font-size: 24px; font-weight: 700; color: #111; background: var(--or); border-radius: 999px; padding: 6px 18px; }
+
+#flash { left: 0; top: 0; width: 1920px; height: 1080px; background: #fff; opacity: 0; }
+#fade { left: 0; top: 0; width: 1920px; height: 1080px; background: #000; opacity: 0; }
+</style>
+</head>
+<body>
+<div id="bg" class="abs"></div>
+<div id="alarm" class="abs"></div>
+<div id="lbl" class="abs"></div>
+<div id="cap" class="abs"></div>
+<div id="sub" class="abs"></div>
+<div id="qr" class="abs"><img id="qri" alt=""><div id="scan" class="abs"></div></div>
+<div id="url" class="abs">chem-safety-kr.pages.dev<small>화학사고 초동대응 지원 서비스</small></div>
+<div id="vir" class="abs">시연을 위한 가상 상황입니다 · 업체명과 업체 전화번호는 가렸습니다</div>
+<div id="phone" class="abs"><img id="scr" alt=""><div id="taps"></div><div id="mark"></div></div>
+<div id="lens" class="abs"><img id="lensi" alt=""><div id="ltap"></div></div>
+<div id="call" class="abs"><div class="r"></div><div class="r"></div><div class="c"></div>
+  <svg viewBox="0 0 24 24" fill="#111"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z"/></svg></div>
+<div id="back" class="abs">← 뒤로</div>
+<div id="acc" class="abs">
+  <div class="tag">가상 상황 · 실제 사고가 아닙니다</div>
+  <div class="h"><span class="dot"><u></u><u></u><i></i></span><span>화학사고 발생</span></div>
+  <div class="ln" id="acc1"></div>
+  <div class="ln" id="acc2"></div>
+</div>
+<div id="tm" class="abs"><div class="k">경과 시간</div><div class="v" id="tmv">0:00.0</div><div class="n">자동 시연 기준</div><span id="spd"></span></div>
+<div id="flash" class="abs"></div>
+<div id="fade" class="abs"></div>
+<script>
+function $(s) { return document.querySelector(s); }
+var 배율 = 1;                                  // 휴대전화 css px → 무대 px
+var 폰w = 470, 폰h = 964;
+function clamp(x) { return Math.max(0, Math.min(1, x)); }
+function 쉬움(x) { x = clamp(x); return 1 - Math.pow(1 - x, 3); }
+function 둘다(x) { x = clamp(x); return x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2; }
+function 사이(t, a, d) { return clamp((t - a) / d); }
+function lerp(a, b, x) { return a + (b - a) * x; }
+function esc(s) { return String(s).replace(/[&<>]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]; }); }
+
+window.준비 = function (o) {
+  배율 = 폰w / o.폭;
+  $('#qri').src = o.qr;
+  var a = o.사고;
+  $('#acc1').innerHTML = '<b>' + esc(a.시각) + '</b>&nbsp;&nbsp;' + esc(a.곳);
+  $('#acc2').innerHTML = esc(a.사업장) + ' 사업장 · <b>' + esc(a.물질) + ' 누출</b>';
+  return Promise.all([$('#qri').decode().catch(function () {}), document.fonts.ready]);
+};
+
+function 시계(s) {
+  // 10분의 1초로 먼저 반올림한 뒤 나눔 — 9.96초가 '010.0' 으로 찍히지 않게
+  var d = Math.round(s * 10), m = Math.floor(d / 600), r = d - m * 600;
+  return m + ':' + (r < 100 ? '0' : '') + (r / 10).toFixed(1);
+}
+
+window.장면 = function (s) {
+  var t = s.t, 인 = s.인트로;
+
+  // ── 가상 사고 카드 — 0.3초부터 하나씩 떠올라 화면 가운데 크게 → 4.9초부터 왼쪽 위로 ──
+  var acc = $('#acc');
+  var 작게 = 둘다(사이(t, 4.9, 0.9));
+  var 크기 = { tf: [40, 26], hf: [124, 56], lf: [62, 40], pv: [34, 18], ph: [48, 28], dot: [58, 30], gap: [22, 10] };
+  Object.keys(크기).forEach(function (k) { acc.style.setProperty('--' + k, lerp(크기[k][0], 크기[k][1], 작게) + 'px'); });
+  var 큰top = 540 - acc.offsetHeight / 2 - 10;
+  acc.style.transform = 'translate(0px,' + lerp(큰top, 36, 작게) + 'px)';
+  // 이름표·자막은 줄어든 카드 바로 아래부터(카드 높이를 숫자로 못 박지 않음)
+  var 카드아래 = 36 + acc.offsetHeight;
+  $('#lbl').style.top = (카드아래 + 30) + 'px';
+  $('#cap').style.top = (카드아래 + 78) + 'px';
+  var 보임 = [쉬움(사이(t, 0.3, 0.4)), 쉬움(사이(t, 1.0, 0.35)), 쉬움(사이(t, 1.7, 0.4)), 쉬움(사이(t, 2.3, 0.4))];
+  acc.style.opacity = 보임[0];
+  [acc.querySelector('.tag'), acc.querySelector('.h'), $('#acc1'), $('#acc2')].forEach(function (el, i) {
+    el.style.opacity = i ? 보임[i] : 1;
+    el.style.transform = 'translateY(' + (18 * (1 - 보임[i])) + 'px)';
+  });
+  // 붉은 점 — 퍼지는 고리. 처음엔 빠르게, 작아진 뒤에는 천천히
+  var 주기 = t < 5 ? 0.9 : 2.2;
+  [].forEach.call(acc.querySelectorAll('.dot u'), function (u, j) {
+    var p = (t - 1.0 - j * 주기 / 2) / 주기;
+    p = p < 0 ? -1 : p - Math.floor(p);
+    u.style.opacity = p < 0 ? 0 : 0.85 * (1 - p);
+    u.style.transform = 'scale(' + (1 + 1.4 * p) + ')';
+  });
+  // 바탕의 붉은 기운 — 사고가 뜰 때 맥박 두세 번, 줄어든 뒤에는 거의 꺼짐
+  var 맥 = t < 1.0 ? 0 : 0.55 + 0.45 * Math.cos(2 * Math.PI * (t - 1.0) / 1.1);
+  $('#alarm').style.opacity = 쉬움(사이(t, 1.0, 0.3)) * (t < 5.5 ? 0.35 + 0.65 * 맥 : 0.12 * (1 - 쉬움(사이(t, 5.5, 1.5))));
+
+  // ── 자막 — 바뀔 때 살짝 올라오며 나타남 ──
+  var cap = $('#cap');
+  cap.textContent = s.자막;
+  cap.className = 'abs' + (s.자막끝 ? ' end' : '');
+  cap.style.opacity = s.자막보임;
+  cap.style.transform = 'translateY(' + (24 * (1 - s.자막보임)) + 'px)';
+  $('#lbl').textContent = s.이름표;
+  $('#lbl').style.opacity = s.이름표 ? s.자막보임 : 0;
+  var 덧 = $('#sub');
+  덧.textContent = s.덧글;
+  덧.style.visibility = s.덧글 ? 'visible' : 'hidden';
+  덧.style.opacity = 쉬움((s.자막보임 - 0.4) / 0.6);
+  덧.style.top = (cap.offsetTop + cap.offsetHeight + 22) + 'px';
+
+  // ── QR — 접속하는 장면(인트로 끝 무렵)과 마무리 ──
+  var qr보임 = t < 인 + 0.5 ? 쉬움(사이(t, 인 - 2.1, 0.4)) * (1 - 사이(t, 인 - 0.3, 0.5)) : s.끝;
+  $('#qr').style.opacity = qr보임;
+  var 스캔 = 사이(t, 인 - 1.8, 1.4);
+  $('#scan').style.top = (스캔 * 100) + '%';
+  $('#scan').style.opacity = t < 인 && 스캔 > 0 && 스캔 < 1 ? 1 : 0;
+  $('#url').style.opacity = s.끝;
+
+  // ── 휴대전화 — 녹화 화면 · 누름 자국 ──
+  var scr = $('#scr');
+  if (s.폰 && scr.getAttribute('src') !== s.폰) scr.setAttribute('src', s.폰);
+  var 폰 = s.폰 ? s.폰보임 : 0;
+  $('#phone').style.opacity = 폰;
+  $('#phone').style.transform = 'translateY(' + (60 * (1 - 폰)) + 'px)';
+  $('#taps').innerHTML = s.누름.map(function (m) {
+    var 크기 = 1 + 2.2 * m.a;
+    return '<div class="tap" style="left:' + (m.x * 배율) + 'px;top:' + (m.y * 배율) + 'px;transform:scale(' + 크기 + ');opacity:' + (1 - m.a) + '"></div>';
+  }).join('');
+  $('#back').style.opacity = s.뒤로 ? 1 : 0;
+
+  // ── 돋보기 — 지금 휴대전화 화면에서 그 자리만 잘라 자막(덧글) 아래에 크게 ──
+  var lens = $('#lens'), mk = $('#mark'), call = $('#call'), lt = $('#ltap');
+  if (s.돋 && s.폰) {
+    var z = s.돋, 여 = 6;
+    var x0 = Math.max(0, z.x - 여), y0 = Math.max(0, z.y - 여), w = z.w + 여 * 2, h = z.h + 여 * 2;
+    var 아래 = s.덧글 ? 덧.offsetTop + 덧.offsetHeight : cap.offsetTop + cap.offsetHeight;
+    var 위 = 아래 + 40;
+    var 폭 = z.전화 >= 0 ? 800 : 900;                   // 전화 표시 자리를 남김
+    var k = Math.min(2.4, 폭 / w, (1000 - 위) / h);
+    lens.style.top = 위 + 'px';
+    lens.style.width = (w * k) + 'px'; lens.style.height = (h * k) + 'px';
+    var li = $('#lensi');
+    if (li.getAttribute('src') !== s.폰) li.setAttribute('src', s.폰);
+    li.style.width = (폰w / 배율 * k) + 'px'; li.style.height = (폰h / 배율 * k) + 'px';
+    li.style.left = (-x0 * k) + 'px'; li.style.top = (-y0 * k) + 'px';
+    lens.style.opacity = z.a;
+    lens.style.transform = 'translateY(' + (20 * (1 - z.a)) + 'px)';
+    mk.style.left = (x0 * 배율) + 'px'; mk.style.top = (y0 * 배율) + 'px';
+    mk.style.width = (w * 배율) + 'px'; mk.style.height = (h * 배율) + 'px';
+    mk.style.opacity = z.a;
+    // 돋보기 안에도 누름 자국 — 휴대전화와 같은 자리
+    var 안 = s.누름.filter(function (m) { return m.x >= x0 && m.x <= x0 + w && m.y >= y0 && m.y <= y0 + h; })[0];
+    if (안) {
+      lt.style.left = ((안.x - x0) * k) + 'px'; lt.style.top = ((안.y - y0) * k) + 'px';
+      lt.style.transform = 'scale(' + (1 + 3.4 * 안.a) + ')'; lt.style.opacity = 1 - 안.a;
+    } else lt.style.opacity = 0;
+    // 상황실 전화 — 누른 뒤 고리가 퍼짐
+    if (z.전화 >= 0) {
+      var 걸 = 쉬움(z.전화 / 0.25) * z.a;
+      call.style.left = (120 + w * k + 26) + 'px';
+      call.style.top = (위 + h * k / 2 - 48) + 'px';
+      call.style.opacity = 걸;
+      call.style.transform = 'scale(' + (0.6 + 0.4 * 쉬움(z.전화 / 0.25)) + ')';
+      [].forEach.call(call.querySelectorAll('.r'), function (r, j) {
+        var p = (z.전화 - 0.15 - j * 0.45) / 0.9;
+        p = p < 0 ? -1 : p - Math.floor(p);
+        r.style.opacity = p < 0 ? 0 : 0.9 * (1 - p);
+        r.style.transform = 'scale(' + (1 + 0.8 * p) + ')';
+      });
+    } else call.style.opacity = 0;
+  } else { lens.style.opacity = 0; mk.style.opacity = 0; call.style.opacity = 0; lt.style.opacity = 0; }
+
+  // ── 경과 시간 — 녹화된 그 장면의 실제 시각(접속한 때부터) ──
+  $('#tm').style.opacity = 쉬움(사이(t, 인 - 0.6, 0.5));
+  $('#tmv').textContent = 시계(s.경과);
+  $('#tm .k').textContent = s.자막끝 ? '전체 경과 시간' : '경과 시간';
+  var 빠름 = s.배 >= 1.15;
+  $('#spd').textContent = 빠름 ? s.배.toFixed(1) + '배 빠르게' : '';
+  $('#spd').style.visibility = 빠름 ? 'visible' : 'hidden';
+
+  // ── 번쩍임 — 사고가 뜨는 순간 한 번(붉은 기운과 함께) · 끝 어둡게 ──
+  var 번 = t >= 1.0 && t < 1.3 ? 0.18 * (1 - (t - 1.0) / 0.3) : 0;
+  $('#flash').style.opacity = 번;
+  $('#fade').style.opacity = s.어둡게 + (t < 0.4 ? 1 - t / 0.4 : 0);
+  var 다 = [];
+  if (scr.getAttribute('src')) 다.push(scr.decode().catch(function () {}));
+  if (s.돋 && $('#lensi').getAttribute('src')) 다.push($('#lensi').decode().catch(function () {}));
+  return Promise.all(다);
+};
+</script>
+</body>
+</html>
