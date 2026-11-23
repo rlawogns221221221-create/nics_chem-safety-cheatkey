@@ -12,7 +12,8 @@
     PPT 에 넣으면 재생 전 이 화면이 보입니다. 2판의 번호 단 화면 구성(첫 장)은 걷어냈습니다.
   · 재생하면 작은 사고 카드가 가운데로 **커졌다가**(나머지는 잠깐 물러남 · 「수정2」 장면) 다시 왼쪽 위로 갑니다.
     붉은 딱지에 「가상 상황 · 실제 사고가 아닙니다」 를 늘 함께 둡니다.
-  · 끝에 마무리 장면이 없습니다 — 시계가 2분 57초에서 멈추는 장에서 영상이 끝납니다(사용자 — "바로 끊기는 게 좋은 것 같아").
+  · 시계가 2분 57초에서 멈춘 뒤 **마무리 1.3초**(금색 끝 자막 · QR · 주소)가 떠오르고 그 화면으로 끝납니다 —
+    어둡게 사라지지 않습니다(사용자 — "마무리 장면 1.3초 정도 … 페이드아웃 없이 영상이 종료되도록").
   · 무엇을 그릴지는 만드는 스크립트가 시각마다 계산해 넘깁니다(`장면(상태)`). 여기는 받은 대로
     그리기만 합니다 — 시각 계산이 두 곳에 나뉘면 타이머와 화면이 어긋납니다.
   · 휴대전화 안은 실제 서비스를 녹화한 화면입니다. 여기서는 테두리 · 자막 · 타이머 · 누름 자국 ·
@@ -58,7 +59,8 @@ body { font-family: 'PGOV', sans-serif; color: #fff; word-break: keep-all; }
 /* 3판 — 첫 장면에서 휴대전화로 바로 읽히게 조금 키움(340px · 흰 바탕 · 흐림·스캔 줄 없음) */
 #qr { left: 120px; top: 640px; width: 340px; height: 340px; background: #fff; border-radius: 22px; padding: 20px; box-sizing: border-box; overflow: hidden; }
 #qr img { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
-#url { left: 460px; top: 760px; font-size: 40px; font-weight: 700; color: #fff; }
+/* QR 이 340px 로 커져 오른쪽 끝이 460px — 주소는 그 옆으로 40px 띄움 */
+#url { left: 500px; top: 760px; font-size: 40px; font-weight: 700; color: #fff; }
 #url small { display: block; font-size: 26px; font-weight: 400; color: var(--gray); margin-top: 10px; }
 #vir { left: 120px; top: 1018px; font-size: 24px; color: #9AA0AA; }
 
@@ -179,7 +181,7 @@ window.장면 = function (s) {
   // ── 자막 — 바뀔 때 살짝 올라오며 나타남 ──
   var cap = $('#cap');
   cap.textContent = s.자막;
-  cap.className = 'abs' + (s.한줄 ? ' one' : '');
+  cap.className = 'abs' + (s.자막끝 ? ' end' : '') + (s.한줄 ? ' one' : '');
   cap.style.opacity = s.자막보임 * 바깥;
   cap.style.transform = 'translateY(' + (24 * (1 - s.자막보임)) + 'px)';
   $('#lbl').textContent = s.이름표;
@@ -190,9 +192,9 @@ window.장면 = function (s) {
   덧.style.opacity = 쉬움((s.자막보임 - 0.4) / 0.6) * 바깥;
   덧.style.top = (cap.offsetTop + cap.offsetHeight + 22) + 'px';
 
-  // ── QR — 첫 장면(접속 화면)부터 01 이 시작할 때까지. 흐림·반투명 없이 흰 바탕 그대로(읽히게) ──
-  $('#qr').style.opacity = 바깥 * (1 - 쉬움(사이(t, s.qr끝 - 0.1, 0.5)));
-  $('#url').style.opacity = 0;
+  // ── QR — 첫 장면(접속 화면)부터 01 이 시작할 때까지, 그리고 마무리. 흐림·반투명 없이 흰 바탕 그대로(읽히게) ──
+  $('#qr').style.opacity = Math.max(바깥 * (1 - 쉬움(사이(t, s.qr끝 - 0.1, 0.5))), s.끝 || 0);
+  $('#url').style.opacity = s.끝 || 0;
 
   // ── 휴대전화 — 녹화 화면 · 누름 자국 ──
   var scr = $('#scr');
@@ -237,6 +239,7 @@ window.장면 = function (s) {
   // ── 경과 시간 — 녹화된 그 장면의 실제 시각(접속한 때부터) ──
   $('#tm').style.opacity = 바깥;
   $('#tmv').textContent = 시계(s.경과);
+  $('#tm .k').textContent = s.자막끝 ? '전체 경과 시간' : '경과 시간';
   var 빠름 = s.배 >= 1.15;
   $('#spd').textContent = 빠름 ? s.배.toFixed(1) + '배 빠르게' : '';
   $('#spd').style.visibility = 빠름 ? 'visible' : 'hidden';
